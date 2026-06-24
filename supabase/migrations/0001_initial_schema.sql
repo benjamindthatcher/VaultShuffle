@@ -109,6 +109,16 @@ alter table public.games enable row level security;
 alter table public.recommendations enable row level security;
 alter table public.app_settings enable row level security;
 
+grant usage on schema public to service_role;
+
+grant select, insert, update, delete on table public.app_users to service_role;
+grant select, insert, update, delete on table public.sessions to service_role;
+grant select, insert, update, delete on table public.games to service_role;
+grant select, insert, update, delete on table public.recommendations to service_role;
+grant select, insert, update, delete on table public.app_settings to service_role;
+
+grant execute on function public.set_updated_at() to service_role;
+
 -- No anon/authenticated policies are created intentionally.
 -- The Next.js server uses the Supabase service role key in route handlers,
 -- looks up the signed Steam session, and scopes every query by app_users.id.
