@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import type { AppUser } from "@/lib/types";
+import type { AppUser, SteamPlayerSummary } from "@/lib/types";
 
 export const SESSION_COOKIE = "vault_session";
 const SESSION_DAYS = 30;
@@ -68,7 +68,7 @@ export async function requireSession() {
   return session;
 }
 
-export async function createSessionForSteamId(steamId: string) {
+export async function createSessionForSteamId(steamId: string, profile?: SteamPlayerSummary | null) {
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_DAYS * 24 * 60 * 60 * 1000);
@@ -78,6 +78,8 @@ export async function createSessionForSteamId(steamId: string) {
     .upsert(
       {
         steam_id: steamId,
+        ...(profile?.display_name ? { display_name: profile.display_name } : {}),
+        ...(profile?.avatar_url ? { avatar_url: profile.avatar_url } : {}),
         last_login_at: now.toISOString(),
         updated_at: now.toISOString()
       },
@@ -102,6 +104,23 @@ export async function createSessionForSteamId(steamId: string) {
   }
 
   return { token, user: user as AppUser };
+}
+
+export async function updateSteamUserProfile(userId: string, profile: SteamPlayerSummary) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("app_users")
+    .update({
+      ...(profile.display_name ? { display_name: profile.display_name } : {}),
+      ...(profile.avatar_url ? { avatar_url: profile.avatar_url } : {}),
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", userId)
+    .select("id, steam_id, display_name, avatar_url")
+    .single();
+
+  if (error) throw new Error(describeSupabaseError(error, "Could not update Steam profile."));
+  return data as AppUser;
 }
 
 export async function deleteCurrentSession() {

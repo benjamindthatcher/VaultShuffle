@@ -160,11 +160,14 @@ button:hover {
   min-width: 0;
 }
 
-.steam-pill {
+.steam-profile {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   min-height: 30px;
-  padding: 0 11px;
+  min-width: 0;
+  max-width: 190px;
+  padding: 3px 10px 3px 4px;
   color: #e8f7ff;
   background: rgba(88, 186, 255, 0.12);
   border: 1px solid rgba(88, 186, 255, 0.22);
@@ -172,6 +175,29 @@ button:hover {
   font-size: 11px;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.steam-profile img,
+.steam-avatar-fallback {
+  width: 23px;
+  height: 23px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  object-fit: cover;
+  box-shadow: 0 0 0 1px rgba(164, 227, 255, 0.22);
+}
+
+.steam-avatar-fallback {
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, rgba(88, 186, 255, 0.42), rgba(225, 107, 255, 0.42));
+  color: #effaff;
+}
+
+.steam-profile span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ghost {
@@ -525,7 +551,7 @@ textarea:focus {
   height: 100%;
   overflow: hidden;
   display: grid;
-  grid-template-rows: 38px 34px minmax(0, 1fr);
+  grid-template-rows: auto 34px minmax(0, 1fr);
   background: rgba(7, 20, 35, 0.78);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -536,7 +562,9 @@ textarea:focus {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 10px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 7px 10px;
   border-bottom: 1px solid rgba(139, 190, 235, 0.12);
 }
 
@@ -548,7 +576,10 @@ textarea:focus {
 .toolbar-controls {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 8px;
+  min-width: 0;
 }
 
 .toolbar-controls label {
@@ -557,8 +588,58 @@ textarea:focus {
 }
 
 .toolbar-controls select {
-  width: 188px;
-  min-height: 30px;
+  width: auto;
+  min-width: 118px;
+  max-width: 188px;
+  min-height: 28px;
+  padding: 5px 28px 5px 10px;
+  color: #dcecff;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.toolbar-switch {
+  display: inline-flex;
+  grid-template-columns: none;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.toolbar-switch input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  opacity: 0;
+}
+
+.toolbar-switch .switch-visual {
+  width: 30px;
+  height: 18px;
+}
+
+.toolbar-switch .switch-visual::after {
+  top: 3px;
+  left: 3px;
+  width: 10px;
+  height: 10px;
+}
+
+.toolbar-switch input:checked + .switch-visual::after {
+  transform: translateX(12px);
+}
+
+.clear-chip {
+  min-height: 28px;
+  padding: 5px 10px;
+  color: var(--blue-strong);
+  background: rgba(19, 44, 72, 0.48);
+  border: 1px solid rgba(124, 185, 237, 0.14);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .view-button {
@@ -576,7 +657,7 @@ textarea:focus {
 .table-head,
 .game-row {
   display: grid;
-  grid-template-columns: 20px minmax(166px, 1fr) 100px 66px 96px 68px 62px 76px 20px;
+  grid-template-columns: 20px minmax(166px, 1fr) 100px 72px 96px 68px 62px 92px 20px;
   gap: 8px;
   align-items: center;
 }

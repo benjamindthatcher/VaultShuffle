@@ -1,4 +1,4 @@
-import type { GamePayload, SteamSearchResult } from "@/lib/types";
+import type { GamePayload, SteamPlayerSummary, SteamSearchResult } from "@/lib/types";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 
@@ -44,6 +44,30 @@ export function steamIdFromOpenId(searchParams: URLSearchParams) {
   const claimedId = searchParams.get("openid.claimed_id") ?? "";
   const match = claimedId.match(/\/id\/(\d+)$/);
   return match?.[1] ?? "";
+}
+
+export async function fetchSteamPlayerSummary(steamId: string, apiKey: string): Promise<SteamPlayerSummary | null> {
+  const params = new URLSearchParams({
+    key: apiKey,
+    steamids: steamId,
+    format: "json"
+  });
+
+  const response = await fetch(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?${params.toString()}`, {
+    headers: { "User-Agent": "VaultShuffle/0.1" },
+    cache: "no-store"
+  });
+
+  if (!response.ok) return null;
+  const payload = await response.json();
+  const player = Array.isArray(payload?.response?.players) ? payload.response.players[0] : null;
+  if (!player) return null;
+
+  return {
+    steam_id: String(player.steamid ?? steamId),
+    display_name: String(player.personaname ?? "").trim() || null,
+    avatar_url: String(player.avatarfull ?? player.avatarmedium ?? player.avatar ?? "").trim() || null
+  };
 }
 
 export async function searchSteamStore(term: string): Promise<SteamSearchResult[]> {
@@ -118,8 +142,15 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
       completion_percentage: 0,
       priority: "Medium",
       date_added: today,
+      last_played_at: steamLastPlayedDate(item.rtime_last_played),
       notes: `Imported from Steam account. AppID: ${appid}`,
       steam_appid: appid
     };
   });
+}
+
+function steamLastPlayedDate(value: unknown) {
+  const seconds = Number(value || 0);
+  if (!Number.isFinite(seconds) || seconds <= 0) return null;
+  return new Date(seconds * 1000).toISOString();
 }

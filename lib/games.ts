@@ -13,6 +13,7 @@ function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
     completion_percentage: payload.status === "Completed" ? 100 : Number(payload.completion_percentage ?? 0),
     priority: payload.priority ?? "Medium",
     date_added: payload.date_added || null,
+    last_played_at: payload.last_played_at || null,
     notes: String(payload.notes ?? "").trim(),
     steam_appid: String(payload.steam_appid ?? "").trim() || null
   };
@@ -142,6 +143,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
       completion_percentage: existing.completion_percentage,
       priority: existing.priority,
       date_added: existing.date_added || incoming.date_added,
+      last_played_at: incoming.last_played_at || existing.last_played_at,
       notes: existing.notes || incoming.notes,
       steam_appid: incoming.steam_appid
     };
@@ -252,6 +254,7 @@ async function updateSteamBackedGame(userId: string, existing: Game, incoming: G
     genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
     status: existing.status === "Completed" ? existing.status : incoming.status,
     date_added: existing.date_added || incoming.date_added,
+    last_played_at: incoming.last_played_at || existing.last_played_at,
     notes: existing.notes || incoming.notes,
     ownership: existing.ownership,
     rating: existing.rating,
@@ -267,7 +270,7 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
   const update: Record<string, string | number | null> = {};
   for (const [key, value] of Object.entries(payload)) {
     if (key === "steam_appid") update[key] = String(value ?? "").trim() || null;
-    else if (key === "date_added") update[key] = value ? String(value) : null;
+    else if (key === "date_added" || key === "last_played_at") update[key] = value ? String(value) : null;
     else if (typeof value === "number") update[key] = value;
     else update[key] = String(value ?? "").trim();
   }

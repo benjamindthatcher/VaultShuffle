@@ -27,6 +27,7 @@ const blankGame: GamePayload = {
   completion_percentage: 0,
   priority: "Medium",
   date_added: new Date().toLocaleDateString("en-GB"),
+  last_played_at: null,
   notes: "",
   steam_appid: null
 };
@@ -54,6 +55,8 @@ export function Dashboard() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [ownership, setOwnership] = useState("All");
+  const [priorityFilter, setPriorityFilter] = useState("All vibes");
+  const [playtimeFilter, setPlaytimeFilter] = useState("Any playtime");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [sort, setSort] = useState("hours_desc");
   const [mood, setMood] = useState("Any vibe");
@@ -102,16 +105,21 @@ export function Dashboard() {
           (!lowerQuery || text.includes(lowerQuery)) &&
           (status === "All" || game.status === status) &&
           (ownership === "All" || game.ownership === ownership) &&
+          (priorityFilter === "All vibes" || game.priority === priorityFilter) &&
+          (playtimeFilter === "Any playtime" || timeBucket(game) === playtimeFilter) &&
           (!hideCompleted || game.status !== "Completed")
         );
       })
       .sort((a, b) => {
         if (sort === "title_asc") return a.title.localeCompare(b.title);
+        if (sort === "title_desc") return b.title.localeCompare(a.title);
         if (sort === "status_asc") return (statusScore[a.status] || 9) - (statusScore[b.status] || 9);
+        if (sort === "hours_asc") return Number(a.hours_played || 0) - Number(b.hours_played || 0);
+        if (sort === "last_played_desc") return dateSortValue(b.last_played_at) - dateSortValue(a.last_played_at);
         if (sort === "priority_desc") return (priorityScore[b.priority] || 0) - (priorityScore[a.priority] || 0);
         return Number(b.hours_played || 0) - Number(a.hours_played || 0);
       });
-  }, [games, hideCompleted, ownership, query, sort, status]);
+  }, [games, hideCompleted, ownership, playtimeFilter, priorityFilter, query, sort, status]);
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
 
@@ -159,6 +167,8 @@ export function Dashboard() {
     setQuery("");
     setStatus("All");
     setOwnership("All");
+    setPriorityFilter("All vibes");
+    setPlaytimeFilter("Any playtime");
     setHideCompleted(false);
   }
 
@@ -263,7 +273,10 @@ export function Dashboard() {
           <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search games..." />
         </label>
         <div className="nav-actions">
-          <span className="steam-pill">Steam {session?.steam_id.slice(-6) ?? "connected"}</span>
+          <span className="steam-profile">
+            {session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">S</span>}
+            <span>{session?.display_name || "Steam user"}</span>
+          </span>
           <button className="ghost" onClick={importSteamLibrary}>
             ⇩ Import Steam Library
           </button>
@@ -334,19 +347,18 @@ export function Dashboard() {
 
           <label>
             Vibe
-            <select>
+            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
               <option>All vibes</option>
-              <option>Relaxed</option>
-              <option>Action</option>
-              <option>Story</option>
-              <option>Competitive</option>
+              <option>High</option>
+              <option>Medium</option>
+              <option>Low</option>
             </select>
           </label>
 
           <label>
             Time Commitment
-            <select>
-              <option>Any time</option>
+            <select value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}>
+              <option>Any playtime</option>
               <option>Short</option>
               <option>Medium</option>
               <option>Long</option>
@@ -403,13 +415,46 @@ export function Dashboard() {
             <div className="table-toolbar">
               <strong>{filteredGames.length} {filteredGames.length === 1 ? "game" : "games"}</strong>
               <div className="toolbar-controls">
+                <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value)}>
+                  <option value="All">All statuses</option>
+                  <option value="Completed">Completed</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Not Started">Not Started</option>
+                </select>
+                <select aria-label="Filter by ownership" value={ownership} onChange={(event) => setOwnership(event.target.value)}>
+                  <option value="All">All ownership</option>
+                  <option value="Owned">Owned</option>
+                  <option value="Wishlist">Wishlist</option>
+                  <option value="Game pass">Game pass</option>
+                </select>
+                <select aria-label="Filter by playtime" value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}>
+                  <option>Any playtime</option>
+                  <option>Short</option>
+                  <option>Medium</option>
+                  <option>Long</option>
+                </select>
+                <select aria-label="Filter by vibe" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
+                  <option>All vibes</option>
+                  <option>High</option>
+                  <option>Medium</option>
+                  <option>Low</option>
+                </select>
+                <label className="toolbar-switch">
+                  <input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" />
+                  <span className="switch-visual" aria-hidden="true" />
+                  <span>Hide completed</span>
+                </label>
                 <label>Sort by</label>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
                   <option value="hours_desc">Playtime (High to Low)</option>
+                  <option value="hours_asc">Playtime (Low to High)</option>
                   <option value="title_asc">Title (A → Z)</option>
+                  <option value="title_desc">Title (Z → A)</option>
                   <option value="status_asc">Status</option>
+                  <option value="last_played_desc">Last Played</option>
                   <option value="priority_desc">Priority</option>
                 </select>
+                <button className="clear-chip" onClick={clearFilters} type="button">Clear</button>
                 <button className="view-button active">☷</button>
                 <button className="view-button">▦</button>
               </div>
@@ -533,7 +578,7 @@ function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; 
         {game.priority}
       </span>
       <span className="pill">{timeBucket(game)}</span>
-      <span>{game.status === "In Progress" ? game.date_added || "—" : "—"}</span>
+      <span>{formatLastPlayed(game.last_played_at)}</span>
       <span>⋮</span>
     </div>
   );
@@ -566,6 +611,7 @@ function GameDetails({ game }: { game: Game | null }) {
       </div>
       <div className="detail-list">
         <DetailLine label="Playtime" value={`${Number(game.hours_played).toLocaleString()}h`} />
+        <DetailLine label="Last Played" value={formatLastPlayed(game.last_played_at)} />
         <DetailLine label="Rating" value={`${game.rating}/10`} />
         <DetailLine
           label="Store"
@@ -679,6 +725,7 @@ function GameDialog({
           <label>Hours<input value={game.hours_played} onChange={(event) => update("hours_played", Number(event.target.value))} type="number" min="0" step="0.1" /></label>
           <label>Completion<input value={game.completion_percentage} onChange={(event) => update("completion_percentage", Number(event.target.value))} type="number" min="0" max="100" step="1" /></label>
           <label>Date Added<input value={game.date_added ?? ""} onChange={(event) => update("date_added", event.target.value)} /></label>
+          <label>Last Played<input value={game.last_played_at ?? ""} onChange={(event) => update("last_played_at", event.target.value)} /></label>
           <label>Steam AppID<input value={game.steam_appid ?? ""} onChange={(event) => update("steam_appid", event.target.value)} /></label>
           <label className="wide">Notes<textarea value={game.notes} onChange={(event) => update("notes", event.target.value)} /></label>
         </div>
@@ -730,6 +777,7 @@ function toPayload(game: Game): GamePayload {
     completion_percentage: game.completion_percentage,
     priority: game.priority,
     date_added: game.date_added,
+    last_played_at: game.last_played_at,
     notes: game.notes,
     steam_appid: game.steam_appid
   };
@@ -772,6 +820,19 @@ function timeBucket(game: Game) {
   if (hours >= 50) return "Long";
   if (hours >= 10) return "Medium";
   return "Short";
+}
+
+function dateSortValue(value?: string | null) {
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatLastPlayed(value?: string | null) {
+  if (!value) return "Never";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return parsed.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function initials(title: string) {

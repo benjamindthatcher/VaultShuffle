@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { attachSessionCookie, createSessionForSteamId } from "@/lib/auth";
-import { siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
+import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 
 function describeError(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -34,7 +34,10 @@ export async function GET(request: Request) {
       throw new Error("Steam sign-in could not be verified.");
     }
 
-    const { token } = await createSessionForSteamId(steamId);
+    const profile = process.env.STEAM_WEB_API_KEY
+      ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY)
+      : null;
+    const { token } = await createSessionForSteamId(steamId, profile);
     const redirectUrl = new URL(`${baseUrl}/app`);
     redirectUrl.searchParams.set("steam_connected", "1");
 

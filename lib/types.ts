@@ -15,6 +15,7 @@ export type Game = {
   completion_percentage: number;
   priority: Priority;
   date_added: string | null;
+  last_played_at: string | null;
   notes: string;
   steam_appid: string | null;
   created_at?: string;
@@ -43,7 +44,15 @@ export type AppUser = {
 export type SessionPayload = {
   logged_in: boolean;
   steam_id: string;
+  display_name: string;
+  avatar_url: string;
   has_steam_key: boolean;
+};
+
+export type SteamPlayerSummary = {
+  steam_id: string;
+  display_name: string | null;
+  avatar_url: string | null;
 };
 
 export type RecommendationPayload = {

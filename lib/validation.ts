@@ -11,6 +11,7 @@ export const gamePayloadSchema = z.object({
   completion_percentage: z.coerce.number().int().min(0).max(100).default(0),
   priority: z.enum(["Low", "Medium", "High"]).default("Medium"),
   date_added: z.preprocess((value) => (value === undefined || value === "" ? null : value), z.string().trim().nullable()),
+  last_played_at: z.preprocess((value) => (value === undefined || value === "" ? null : value), z.string().trim().nullable()),
   notes: z.string().trim().default(""),
   steam_appid: z.preprocess((value) => (value === undefined || value === "" ? null : value), z.string().trim().nullable())
 });

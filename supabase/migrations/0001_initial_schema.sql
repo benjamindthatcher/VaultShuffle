@@ -32,6 +32,7 @@ create table if not exists public.games (
   completion_percentage integer not null default 0,
   priority text not null default 'Medium',
   date_added text,
+  last_played_at timestamptz,
   notes text not null default '',
   steam_appid text,
   created_at timestamptz not null default now(),
