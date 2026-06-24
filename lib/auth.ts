@@ -7,6 +7,19 @@ import type { AppUser } from "@/lib/types";
 export const SESSION_COOKIE = "vault_session";
 const SESSION_DAYS = 30;
 
+function describeSupabaseError(error: unknown, fallback: string) {
+  if (!error) return fallback;
+  if (error instanceof Error) return error.message;
+  if (typeof error === "object") {
+    const details = error as { message?: unknown; details?: unknown; hint?: unknown; code?: unknown };
+    return [details.message, details.details, details.hint, details.code]
+      .filter(Boolean)
+      .map(String)
+      .join(" | ") || fallback;
+  }
+  return String(error);
+}
+
 function sessionSecret() {
   const secret = process.env.SESSION_SECRET;
   if (!secret) {
@@ -74,7 +87,7 @@ export async function createSessionForSteamId(steamId: string) {
     .single();
 
   if (userError || !user) {
-    throw userError ?? new Error("Could not create Steam user.");
+    throw new Error(describeSupabaseError(userError, "Could not create Steam user."));
   }
 
   const token = crypto.randomBytes(32).toString("base64url");
@@ -84,7 +97,9 @@ export async function createSessionForSteamId(steamId: string) {
     expires_at: expiresAt.toISOString()
   });
 
-  if (sessionError) throw sessionError;
+  if (sessionError) {
+    throw new Error(describeSupabaseError(sessionError, "Could not create Steam session."));
+  }
 
   return { token, user: user as AppUser };
 }
