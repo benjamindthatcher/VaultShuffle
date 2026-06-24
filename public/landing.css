@@ -408,6 +408,7 @@ h1 {
 .section-band,
 .feature-grid,
 .showcase,
+.product-proof,
 .final-cta,
 .page-main {
   width: min(1180px, calc(100% - 32px));
@@ -428,6 +429,7 @@ h1 {
 
 .section-heading h2,
 .showcase h2,
+.product-proof h2,
 .final-cta h2,
 .page-hero h1 {
   font-size: clamp(32px, 4vw, 52px);
@@ -437,6 +439,7 @@ h1 {
 
 .section-heading p,
 .showcase p,
+.product-proof p,
 .final-cta p,
 .page-hero p,
 .content-panel p,
@@ -496,6 +499,103 @@ h1 {
   border-radius: 22px;
   border: 1px solid rgba(130, 195, 245, 0.16);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+}
+
+.product-proof {
+  display: grid;
+  grid-template-columns: 0.82fr 1fr;
+  gap: 28px;
+  align-items: stretch;
+  padding: 30px;
+  margin-bottom: 54px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 12%, rgba(214, 137, 255, 0.20), transparent 36%),
+    linear-gradient(135deg, rgba(10, 29, 50, 0.74), rgba(7, 22, 40, 0.88));
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: 0 30px 76px rgba(0, 0, 0, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.055);
+}
+
+.product-proof p {
+  margin: 16px 0 22px;
+}
+
+.workflow-card {
+  min-height: 310px;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 18px;
+  padding: 18px;
+  background: rgba(6, 18, 32, 0.72);
+  border: 1px solid rgba(130, 195, 245, 0.14);
+  border-radius: 26px;
+}
+
+.workflow-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #f3fbff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.workflow-head img {
+  width: 48px;
+  height: 48px;
+  border-radius: 15px;
+  object-fit: cover;
+  box-shadow: 0 0 28px rgba(101, 199, 255, 0.18), 0 0 24px rgba(214, 137, 255, 0.10);
+}
+
+.workflow-steps {
+  display: grid;
+  gap: 10px;
+}
+
+.workflow-steps span {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 14px;
+  color: #dcefff;
+  background: rgba(14, 42, 70, 0.66);
+  border: 1px solid rgba(130, 195, 245, 0.14);
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 780;
+}
+
+.workflow-steps span::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  margin-right: 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--purple), var(--blue));
+  box-shadow: 0 0 16px rgba(214, 137, 255, 0.32);
+}
+
+.workflow-pick {
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(214, 137, 255, 0.18), rgba(101, 199, 255, 0.12));
+  border: 1px solid rgba(214, 137, 255, 0.22);
+  border-radius: 20px;
+}
+
+.workflow-pick small {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--purple);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.workflow-pick strong {
+  color: #f5fbff;
+  font-size: clamp(20px, 3vw, 30px);
+  line-height: 1.05;
 }
 
 .final-cta {
@@ -723,6 +823,7 @@ h1 {
 
   .hero,
   .showcase,
+  .product-proof,
   .section-heading,
   .login-shell {
     grid-template-columns: 1fr;
@@ -760,6 +861,7 @@ h1 {
   .section-band,
   .feature-grid,
   .showcase,
+  .product-proof,
   .final-cta,
   .page-main,
   .login-shell {
@@ -800,6 +902,7 @@ h1 {
   }
 
   .showcase,
+  .product-proof,
   .final-cta,
   .content-panel {
     padding: 22px;

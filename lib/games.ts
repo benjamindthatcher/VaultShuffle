@@ -103,10 +103,61 @@ export async function deleteGame(userId: string, gameId: string) {
 }
 
 export async function upsertSteamGames(userId: string, games: GamePayload[]) {
-  const saved: Game[] = [];
-  for (const game of games) {
-    saved.push(await createGame(userId, game));
+  const steamGames = new Map<string, GamePayload>();
+  for (const game of games.map(normalizeGamePayload)) {
+    if (game.steam_appid) steamGames.set(game.steam_appid, game);
   }
+
+  const incomingGames = [...steamGames.values()];
+  if (!incomingGames.length) return [];
+
+  const supabase = getSupabaseAdmin();
+  const { data: existingData, error: existingError } = await supabase
+    .from("games")
+    .select("*")
+    .eq("user_id", userId)
+    .in("steam_appid", incomingGames.map((game) => game.steam_appid as string));
+
+  if (existingError) throw existingError;
+
+  const existingByAppId = new Map(
+    ((existingData ?? []) as Game[])
+      .filter((game) => game.steam_appid)
+      .map((game) => [game.steam_appid as string, game])
+  );
+
+  const rows = incomingGames.map((incoming) => {
+    const existing = existingByAppId.get(incoming.steam_appid as string);
+    if (!existing) return { ...incoming, user_id: userId };
+
+    return {
+      user_id: userId,
+      title: incoming.title,
+      genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
+      store: "Steam",
+      ownership: existing.ownership,
+      status: existing.status === "Completed" ? existing.status : incoming.status,
+      rating: existing.rating,
+      hours_played: incoming.hours_played,
+      completion_percentage: existing.completion_percentage,
+      priority: existing.priority,
+      date_added: existing.date_added || incoming.date_added,
+      notes: existing.notes || incoming.notes,
+      steam_appid: incoming.steam_appid
+    };
+  });
+
+  const saved: Game[] = [];
+  for (let index = 0; index < rows.length; index += 400) {
+    const { data, error } = await supabase
+      .from("games")
+      .upsert(rows.slice(index, index + 400), { onConflict: "user_id,steam_appid" })
+      .select("*");
+
+    if (error) throw error;
+    saved.push(...((data ?? []) as Game[]));
+  }
+
   return saved;
 }
 

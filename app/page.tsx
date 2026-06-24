@@ -12,8 +12,8 @@ export default function HomePage() {
             <img className="hero-logo" src="/assets/vault-shuffle-icon.png" alt="" />
             <h1>Pick your next game without staring at your backlog all night.</h1>
             <p>
-              Vault Shuffle is a real backlog home for Steam libraries: sign in, pull your games into Supabase, search
-              with artwork, hide what is finished, and roll a game that fits the evening.
+              Sign in with Steam, bring your library into a proper database, and let Vault Shuffle surface the game
+              that actually fits tonight instead of another hour of staring at the list.
             </p>
             <div className="hero-actions">
               <Link className="primary-action" href="/login">
@@ -24,9 +24,9 @@ export default function HomePage() {
               </a>
             </div>
             <div className="proof-strip" aria-label="Current product details">
-              <span>Steam OpenID sign-in</span>
-              <span>Supabase Postgres</span>
-              <span>Vercel-ready Next.js</span>
+              <span>Steam library import</span>
+              <span>Private Supabase rows</span>
+              <span>Mood and time shuffle</span>
             </div>
           </div>
 
@@ -120,15 +120,33 @@ export default function HomePage() {
           </article>
         </section>
 
-        <section className="showcase">
+        <section className="product-proof">
           <div>
-            <h2>A backlog manager with taste.</h2>
-            <p>Vault Shuffle keeps the dense bits useful, then wraps them in a blue-black glass interface with a purple accent.</p>
+            <h2>Built around the moment before you press Play.</h2>
+            <p>
+              Vault Shuffle is not trying to become another spreadsheet. It remembers your Steam library, keeps your
+              finished games out of the way, and gives the shuffle enough context to make a useful pick.
+            </p>
             <Link className="secondary-action" href="/features">
               Explore features
             </Link>
           </div>
-          <img src="/assets/vault-shuffle-logo-sheet.png" alt="Vault Shuffle logo variations" />
+          <div className="workflow-card" aria-label="Vault Shuffle workflow">
+            <div className="workflow-head">
+              <img src="/assets/vault-shuffle-icon.png" alt="" />
+              <span>Tonight&apos;s vault</span>
+            </div>
+            <div className="workflow-steps">
+              <span>Steam sign-in verified</span>
+              <span>Owned games imported</span>
+              <span>Completed games hidden</span>
+              <span>Shuffle narrowed by vibe</span>
+            </div>
+            <div className="workflow-pick">
+              <small>Suggested next</small>
+              <strong>A game that fits a 90-minute evening</strong>
+            </div>
+          </div>
         </section>
 
         <section className="final-cta">

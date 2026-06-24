@@ -64,11 +64,22 @@ export function Dashboard() {
   const [steamQuery, setSteamQuery] = useState("");
   const [formGame, setFormGame] = useState<GamePayload>(blankGame);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
   const steamDialogRef = useRef<HTMLDialogElement>(null);
   const gameDialogRef = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
-    void load();
+    const params = new URLSearchParams(window.location.search);
+    const importError = params.get("import_error");
+    const shouldImport = params.get("steam_connected") === "1";
+    if (importError) {
+      setNotice(`Steam sign-in worked, but library import needs attention: ${importError}`);
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (shouldImport) {
+      setNotice("Steam sign-in worked. Importing your Steam library...");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    void load(shouldImport);
   }, []);
 
   useEffect(() => {
@@ -104,7 +115,7 @@ export function Dashboard() {
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
 
-  async function load() {
+  async function load(importAfterLogin = false) {
     const sessionPayload = await api<SessionPayload>("/api/session");
     if (!sessionPayload.logged_in) {
       window.location.href = "/login";
@@ -121,6 +132,27 @@ export function Dashboard() {
     setRecs(nextRecs);
     setShuffleCards(nextRecs.backlog.slice(0, 5));
     setSelectedId((current) => current ?? nextGames[0]?.id ?? null);
+
+    if (importAfterLogin && sessionPayload.has_steam_key) {
+      try {
+        const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST", body: "{}" });
+        const [{ games: importedGames }, importedStats, importedRecs] = await Promise.all([
+          api<{ games: Game[] }>("/api/games"),
+          api<StatsPayload>("/api/stats"),
+          api<RecommendationPayload>("/api/recommendations")
+        ]);
+        setGames(importedGames);
+        setStats(importedStats);
+        setRecs(importedRecs);
+        setShuffleCards(importedRecs.backlog.slice(0, 5));
+        setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
+        setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Steam library import failed.");
+      }
+    } else if (importAfterLogin) {
+      setNotice("Steam sign-in worked. Add STEAM_WEB_API_KEY to Vercel to import your library.");
+    }
   }
 
   function clearFilters() {
@@ -200,12 +232,16 @@ export function Dashboard() {
 
   async function importSteamLibrary() {
     if (!session?.has_steam_key) {
-      window.alert("Add STEAM_WEB_API_KEY to .env.local and Vercel before importing your owned Steam library.");
+      setNotice("Add STEAM_WEB_API_KEY to Vercel before importing your owned Steam library.");
       return;
     }
-    const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST", body: "{}" });
-    await load();
-    window.alert(`Steam library import complete: ${result.imported} games added or updated.`);
+    try {
+      const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST", body: "{}" });
+      await load();
+      setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Steam library import failed.");
+    }
   }
 
   async function logout() {
@@ -243,6 +279,15 @@ export function Dashboard() {
           </button>
         </div>
       </header>
+
+      {notice ? (
+        <div className="app-notice" role="status">
+          <span>{notice}</span>
+          <button onClick={() => setNotice("")} aria-label="Dismiss notice">
+            ×
+          </button>
+        </div>
+      ) : null}
 
       <div className="workspace">
         <aside className="library-panel">

@@ -196,6 +196,36 @@ button:hover {
   margin: 0 8px;
 }
 
+.app-notice {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  z-index: 30;
+  width: min(760px, calc(100% - 28px));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px 12px 16px;
+  color: #f8efff;
+  background: linear-gradient(135deg, rgba(59, 31, 91, 0.94), rgba(15, 46, 78, 0.94));
+  border: 1px solid rgba(225, 107, 255, 0.34);
+  border-radius: 18px;
+  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.34), 0 0 36px rgba(225, 107, 255, 0.14);
+  transform: translateX(-50%);
+  backdrop-filter: blur(18px);
+}
+
+.app-notice button {
+  min-width: 30px;
+  min-height: 30px;
+  color: #f8efff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: 18px;
+  line-height: 1;
+}
+
 .workspace {
   min-height: 0;
   height: 100%;
