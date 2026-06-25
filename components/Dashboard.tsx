@@ -59,10 +59,13 @@ export function Dashboard() {
   const [playtimeFilter, setPlaytimeFilter] = useState("Any playtime");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [sort, setSort] = useState("hours_desc");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [mood, setMood] = useState("Any vibe");
   const [time, setTime] = useState("Any time");
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
   const [shuffleMessage, setShuffleMessage] = useState("Choose a vibe and roll an unfinished owned game.");
+  const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
   const [steamQuery, setSteamQuery] = useState("");
   const [formGame, setFormGame] = useState<GamePayload>(blankGame);
@@ -93,6 +96,12 @@ export function Dashboard() {
     const timer = window.setTimeout(() => setNotice(""), 5000);
     return () => window.clearTimeout(timer);
   }, [notice]);
+
+  useEffect(() => {
+    if (!guestPrompt || isLoggedIn) return;
+    const timer = window.setTimeout(() => setGuestPrompt(false), 5000);
+    return () => window.clearTimeout(timer);
+  }, [guestPrompt, isLoggedIn]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -189,6 +198,7 @@ export function Dashboard() {
     setPriorityFilter("All vibes");
     setPlaytimeFilter("Any playtime");
     setHideCompleted(false);
+    setFiltersOpen(false);
   }
 
   function openSteamDialog() {
@@ -277,6 +287,8 @@ export function Dashboard() {
   }
 
   async function shuffle() {
+    setShuffleSpinning(true);
+    window.setTimeout(() => setShuffleSpinning(false), 850);
     if (!isLoggedIn) {
       const payload = previewShuffle(games, mood, time);
       if (!payload.game) {
@@ -350,11 +362,18 @@ export function Dashboard() {
             <img src="/assets/vault-shuffle-icon.png" alt="" />
             <strong>Vault Shuffle</strong>
           </a>
+          <nav className="app-links" aria-label="App navigation">
+            <a href="/">Home</a>
+            <a href="/features">Features</a>
+          </nav>
         </div>
-        <label className="search-box">
-          <span>⌕</span>
-          <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search games..." />
-        </label>
+        <div className="nav-search-group">
+          <label className="search-box">
+            <span>⌕</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search games..." />
+          </label>
+          <button className="top-add-button" onClick={openSteamDialog} aria-label="Search Steam for a game">＋</button>
+        </div>
         <div className="nav-actions">
           <span className="steam-profile">
             {isLoggedIn && session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">{isLoggedIn ? "S" : "?"}</span>}
@@ -363,15 +382,9 @@ export function Dashboard() {
           <button className="ghost" onClick={importSteamLibrary}>
             {isLoggedIn ? "⇩ Import Steam Library" : "Sign in with Steam"}
           </button>
-          <span className="divider" />
-          <button className="ghost" onClick={logout}>
-            {isLoggedIn ? "Sign out" : "Open sign-in"}
-          </button>
+          {isLoggedIn ? <button className="ghost subtle" onClick={logout}>Sign out</button> : null}
           <button className="nav-icon" aria-label="Settings">
             ⚙
-          </button>
-          <button className="nav-icon" aria-label="Theme">
-            ☾
           </button>
         </div>
       </header>
@@ -408,75 +421,11 @@ export function Dashboard() {
               </div>
             ))}
           </div>
-
-          <div className="filter-heading">
-            <h2>Filters</h2>
-            <button onClick={clearFilters}>Clear all ›</button>
+          <div className="side-summary">
+            <h2>Smart rules</h2>
+            <p>{activeFilterLabel(status, ownership, priorityFilter, playtimeFilter, hideCompleted)}</p>
+            <button onClick={() => setFiltersOpen(true)}>Adjust filters</button>
           </div>
-
-          <label className="side-search">
-            <span>⌕</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Filter games..." />
-          </label>
-
-          <label>
-            Status
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option>All</option>
-              <option>Completed</option>
-              <option>In Progress</option>
-              <option>Not Started</option>
-            </select>
-          </label>
-
-          <label>
-            Ownership
-            <select value={ownership} onChange={(event) => setOwnership(event.target.value)}>
-              <option>All</option>
-              <option>Owned</option>
-              <option>Wishlist</option>
-              <option>Game pass</option>
-            </select>
-          </label>
-
-          <label>
-            Vibe
-            <select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
-              <option>All vibes</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-          </label>
-
-          <label>
-            Time Commitment
-            <select value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}>
-              <option>Any playtime</option>
-              <option>Short</option>
-              <option>Medium</option>
-              <option>Long</option>
-            </select>
-          </label>
-
-          <label className="filter-switch">
-            <input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" />
-            <span className="switch-visual" aria-hidden="true" />
-            <span>Hide completed</span>
-          </label>
-
-          <section className="project-status">
-            <h2>Project Status</h2>
-            <StatusLine label="Supabase" good={isLoggedIn} muted={!isLoggedIn} />
-            <StatusLine label="Steam API" good={Boolean(session?.has_steam_key)} muted={!session?.has_steam_key} />
-            <StatusLine label={isLoggedIn ? "Cloud library" : "Preview list"} good />
-            {!isLoggedIn ? (
-              <p>Your preview games stay in this browser. Sign in to import and save a real Steam library.</p>
-            ) : (
-              <p>Your Steam games and edits are saved through Supabase for this account.</p>
-            )}
-            <a className="about-project-link" href="/" target="_blank" rel="noreferrer">About the project</a>
-          </section>
         </aside>
 
         <main className="library-main">
@@ -503,9 +452,9 @@ export function Dashboard() {
                 Shuffle
               </button>
             </div>
-            <div className="shuffle-cards">
+            <div className={`shuffle-cards ${shuffleSpinning ? "is-spinning" : ""}`}>
               {shuffleCards.length ? (
-                shuffleCards.map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
+                shuffleCards.slice(0, 3).map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
               ) : (
                 <div className="rec-tile">
                   <Cover title="No pick" />
@@ -518,39 +467,29 @@ export function Dashboard() {
             </div>
           </section>
 
-          <section className="library-table">
+          <section className={`library-table ${viewMode === "grid" ? "grid-mode" : ""}`}>
             <div className="table-toolbar">
               <strong>{filteredGames.length} {filteredGames.length === 1 ? "game" : "games"}</strong>
               <div className="toolbar-controls">
-                <select aria-label="Filter by status" value={status} onChange={(event) => setStatus(event.target.value)}>
-                  <option value="All">All statuses</option>
-                  <option value="Completed">Completed</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Not Started">Not Started</option>
-                </select>
-                <select aria-label="Filter by ownership" value={ownership} onChange={(event) => setOwnership(event.target.value)}>
-                  <option value="All">All ownership</option>
-                  <option value="Owned">Owned</option>
-                  <option value="Wishlist">Wishlist</option>
-                  <option value="Game pass">Game pass</option>
-                </select>
-                <select aria-label="Filter by playtime" value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}>
-                  <option>Any playtime</option>
-                  <option>Short</option>
-                  <option>Medium</option>
-                  <option>Long</option>
-                </select>
-                <select aria-label="Filter by vibe" value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}>
-                  <option>All vibes</option>
-                  <option>High</option>
-                  <option>Medium</option>
-                  <option>Low</option>
-                </select>
-                <label className="toolbar-switch">
-                  <input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" />
-                  <span className="switch-visual" aria-hidden="true" />
-                  <span>Hide completed</span>
-                </label>
+                <div className="filter-popover-wrap">
+                  <button className={`filter-button ${filtersOpen ? "active" : ""}`} onClick={() => setFiltersOpen((open) => !open)} type="button">
+                    Filter
+                    <span>{filterCount(status, ownership, priorityFilter, playtimeFilter, hideCompleted)}</span>
+                  </button>
+                  {filtersOpen ? (
+                    <div className="filter-popover">
+                      <label>Status<select value={status} onChange={(event) => { setStatus(event.target.value); setFiltersOpen(false); }}><option>All</option><option>Completed</option><option>In Progress</option><option>Not Started</option></select></label>
+                      <label>Ownership<select value={ownership} onChange={(event) => { setOwnership(event.target.value); setFiltersOpen(false); }}><option>All</option><option>Owned</option><option>Wishlist</option><option>Game pass</option></select></label>
+                      <label>Vibe<select value={priorityFilter} onChange={(event) => { setPriorityFilter(event.target.value); setFiltersOpen(false); }}><option>All vibes</option><option>High</option><option>Medium</option><option>Low</option></select></label>
+                      <label>Playtime<select value={playtimeFilter} onChange={(event) => { setPlaytimeFilter(event.target.value); setFiltersOpen(false); }}><option>Any playtime</option><option>Short</option><option>Medium</option><option>Long</option></select></label>
+                      <label className="filter-switch compact"><input checked={hideCompleted} onChange={(event) => { setHideCompleted(event.target.checked); setFiltersOpen(false); }} type="checkbox" /><span className="switch-visual" aria-hidden="true" /><span>Hide completed</span></label>
+                      <div className="filter-popover-actions">
+                        <button onClick={clearFilters} type="button">Clear</button>
+                        <button onClick={() => setFiltersOpen(false)} type="button">Done</button>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
                 <label>Sort by</label>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
                   <option value="hours_desc">Playtime (High to Low)</option>
@@ -561,13 +500,12 @@ export function Dashboard() {
                   <option value="last_played_desc">Last Played</option>
                   <option value="priority_desc">Priority</option>
                 </select>
-                <button className="clear-chip" onClick={clearFilters} type="button">Clear</button>
-                <button className="view-button active">☷</button>
-                <button className="view-button">▦</button>
+                <button className={`view-button ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")} type="button" aria-label="List view">☷</button>
+                <button className={`view-button ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")} type="button" aria-label="Cover view">▦</button>
               </div>
             </div>
 
-            <div className="table-head">
+            <div className={`table-head ${viewMode === "grid" ? "hidden" : ""}`}>
               <span>□</span>
               <span>Game</span>
               <span>Status</span>
@@ -578,11 +516,15 @@ export function Dashboard() {
               <span>Last Played</span>
               <span>⚙</span>
             </div>
-            <div className="table-body">
+            <div className={`table-body ${viewMode === "grid" ? "grid-view" : ""}`}>
               {filteredGames.length ? (
-                filteredGames.map((game) => (
-                  <GameRow game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
-                ))
+                filteredGames.map((game) =>
+                  viewMode === "grid" ? (
+                    <GameCard game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
+                  ) : (
+                    <GameRow game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
+                  )
+                )
               ) : (
                 <GuestLibraryState loggedIn={isLoggedIn} onAdd={openSteamDialog} onSignIn={() => (window.location.href = "/api/auth/steam")} />
               )}
@@ -608,41 +550,11 @@ export function Dashboard() {
               <button disabled={!selected} onClick={() => patchSelected({ status: "Completed" })}>
                 Mark Completed
               </button>
-              <button disabled={!selected} className="remove" onClick={deleteSelected}>
-                Remove from Backlog
-              </button>
-            </div>
-          </details>
-          <details className="detail-section">
-            <summary>Recommendations</summary>
-            <div id="recommendations">
-              {[
-                ["Top Backlog", recs.backlog],
-                ["Top Wishlist", recs.wishlist],
-                ["Random Pick", recs.random ? [recs.random] : []]
-              ].map(([title, items]) => (
-                <div className="rec" key={String(title)}>
-                  <strong>{String(title)}</strong>
-                  {(items as Game[]).length ? (
-                    (items as Game[]).slice(0, 2).map((game) => (
-                      <button className="rec-row" key={game.id} onClick={() => setSelectedId(game.id)} type="button">
-                        <Cover game={game} />
-                        <span>{game.title}</span>
-                      </button>
-                    ))
-                  ) : (
-                    <span>No games found.</span>
-                  )}
-                </div>
-              ))}
+              <button disabled={!selected} className="remove" onClick={deleteSelected}>Remove</button>
             </div>
           </details>
         </aside>
       </div>
-
-      <button className="floating-add" onClick={openSteamDialog} aria-label="Search Steam for a game">
-        ＋
-      </button>
 
       <SteamDialog
         dialogRef={steamDialogRef}
@@ -698,15 +610,6 @@ function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; 
   );
 }
 
-function StatusLine({ label, good, muted }: { label: string; good?: boolean; muted?: boolean }) {
-  return (
-    <div className="status-line">
-      <span>{label}</span>
-      <i className={good ? "good" : muted ? "muted" : ""} />
-    </div>
-  );
-}
-
 function GuestLibraryState({ loggedIn, onAdd, onSignIn }: { loggedIn: boolean; onAdd: () => void; onSignIn: () => void }) {
   return (
     <div className="guest-empty">
@@ -729,6 +632,23 @@ function GuestLibraryState({ loggedIn, onAdd, onSignIn }: { loggedIn: boolean; o
         </div>
       ) : null}
     </div>
+  );
+}
+
+function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean; onSelect: () => void }) {
+  const progress = clamp(Number(game.completion_percentage || 0), 0, 100);
+  return (
+    <button className={`game-card ${selected ? "selected" : ""}`} onClick={onSelect} type="button">
+      <span className="game-card-art">{game.steam_appid ? <SteamImage appId={game.steam_appid} type="header" /> : <Cover game={game} />}</span>
+      <span className="game-card-body">
+        <strong>{game.title}</strong>
+        <small>{game.genre || "Unknown"} · {Number(game.hours_played || 0).toLocaleString()}h</small>
+        <span className="progress-track">
+          <span className="progress-fill" style={{ width: `${progress}%` }} />
+        </span>
+      </span>
+      <span className={`chip ${statusClass(game)}`}>{game.status}</span>
+    </button>
   );
 }
 
@@ -782,6 +702,34 @@ function DetailLine({ label, value }: { label: string; value: React.ReactNode })
       <strong>{value}</strong>
     </div>
   );
+}
+
+function filterCount(status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
+  return [status !== "All", ownership !== "All", priority !== "All vibes", playtime !== "Any playtime", hideCompleted].filter(Boolean).length;
+}
+
+function activeFilterLabel(status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
+  const active = [
+    status !== "All" ? status : "",
+    ownership !== "All" ? ownership : "",
+    priority !== "All vibes" ? priority : "",
+    playtime !== "Any playtime" ? playtime : "",
+    hideCompleted ? "Completed hidden" : ""
+  ].filter(Boolean);
+  return active.length ? active.join(" · ") : "All games are visible. Use Filter above the list to narrow things down.";
+}
+
+function numberField(value: number | null | undefined) {
+  const numeric = Number(value || 0);
+  return numeric === 0 ? "" : String(numeric);
+}
+
+function parseNumberInput(value: string, max?: number) {
+  const cleaned = value.replace(/[^\d.]/g, "");
+  if (!cleaned) return 0;
+  const parsed = Number(cleaned);
+  if (!Number.isFinite(parsed)) return 0;
+  return typeof max === "number" ? Math.min(parsed, max) : parsed;
 }
 
 function SteamDialog({
@@ -864,17 +812,19 @@ function GameDialog({
         </header>
         <div className="form-grid">
           <label>Title<input value={game.title} onChange={(event) => update("title", event.target.value)} required /></label>
-          <label>Genre<input value={game.genre} onChange={(event) => update("genre", event.target.value)} /></label>
-          <label>Store<input value={game.store} onChange={(event) => update("store", event.target.value)} /></label>
+          <label>Genre<input value={game.genre} onChange={(event) => update("genre", event.target.value)} list="genre-options" /></label>
+          <label>Store<input value={game.store} onChange={(event) => update("store", event.target.value)} list="store-options" /></label>
           <label>Ownership<select value={game.ownership} onChange={(event) => update("ownership", event.target.value as GamePayload["ownership"])}><option>Owned</option><option>Wishlist</option><option>Game pass</option></select></label>
           <label>Status<select value={game.status} onChange={(event) => update("status", event.target.value as GamePayload["status"])}><option>Not Started</option><option>In Progress</option><option>Completed</option></select></label>
           <label>Priority<select value={game.priority} onChange={(event) => update("priority", event.target.value as GamePayload["priority"])}><option>Low</option><option>Medium</option><option>High</option></select></label>
-          <label>Rating<input value={game.rating} onChange={(event) => update("rating", Number(event.target.value))} type="number" min="0" max="10" step="1" /></label>
-          <label>Hours<input value={game.hours_played} onChange={(event) => update("hours_played", Number(event.target.value))} type="number" min="0" step="0.1" /></label>
-          <label>Completion<input value={game.completion_percentage} onChange={(event) => update("completion_percentage", Number(event.target.value))} type="number" min="0" max="100" step="1" /></label>
+          <label>Rating<input value={numberField(game.rating)} onChange={(event) => update("rating", parseNumberInput(event.target.value, 10))} inputMode="decimal" placeholder="0-10" /></label>
+          <label>Hours<input value={numberField(game.hours_played)} onChange={(event) => update("hours_played", parseNumberInput(event.target.value))} inputMode="decimal" placeholder="Hours played" /></label>
+          <label>Completion<input value={numberField(game.completion_percentage)} onChange={(event) => update("completion_percentage", parseNumberInput(event.target.value, 100))} inputMode="decimal" placeholder="0-100" /></label>
           <label>Date Added<input value={game.date_added ?? ""} onChange={(event) => update("date_added", event.target.value)} /></label>
           <label>Last Played<input value={game.last_played_at ?? ""} onChange={(event) => update("last_played_at", event.target.value)} /></label>
           <label>Steam AppID<input value={game.steam_appid ?? ""} onChange={(event) => update("steam_appid", event.target.value)} /></label>
+          <datalist id="genre-options"><option value="Action" /><option value="Adventure" /><option value="RPG" /><option value="Strategy" /><option value="Puzzle" /><option value="Simulation" /></datalist>
+          <datalist id="store-options"><option value="Steam" /><option value="Epic Games" /><option value="GOG" /><option value="Xbox Game Pass" /><option value="Itch.io" /></datalist>
           <label className="wide">Notes<textarea value={game.notes} onChange={(event) => update("notes", event.target.value)} /></label>
         </div>
         <footer>
