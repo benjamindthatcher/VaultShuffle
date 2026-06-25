@@ -1,6 +1,12 @@
 import type { GamePayload, SteamPlayerSummary, SteamSearchResult } from "@/lib/types";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
+const SEARCH_CACHE_MS = 10 * 60 * 1000;
+const PLAYER_CACHE_MS = 30 * 60 * 1000;
+
+type CacheEntry<T> = { expires: number; value: T };
+const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
+const playerCache = new Map<string, CacheEntry<SteamPlayerSummary | null>>();
 
 export function siteBaseUrl(request?: Request) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -47,6 +53,10 @@ export function steamIdFromOpenId(searchParams: URLSearchParams) {
 }
 
 export async function fetchSteamPlayerSummary(steamId: string, apiKey: string): Promise<SteamPlayerSummary | null> {
+  const cacheKey = `${apiKey.slice(0, 8)}:${steamId}`;
+  const cached = playerCache.get(cacheKey);
+  if (cached && cached.expires > Date.now()) return cached.value;
+
   const params = new URLSearchParams({
     key: apiKey,
     steamids: steamId,
@@ -61,20 +71,28 @@ export async function fetchSteamPlayerSummary(steamId: string, apiKey: string): 
   if (!response.ok) return null;
   const payload = await response.json();
   const player = Array.isArray(payload?.response?.players) ? payload.response.players[0] : null;
-  if (!player) return null;
+  if (!player) {
+    playerCache.set(cacheKey, { expires: Date.now() + PLAYER_CACHE_MS, value: null });
+    return null;
+  }
 
-  return {
+  const summary = {
     steam_id: String(player.steamid ?? steamId),
     display_name: String(player.personaname ?? "").trim() || null,
     avatar_url: String(player.avatarfull ?? player.avatarmedium ?? player.avatar ?? "").trim() || null
   };
+  playerCache.set(cacheKey, { expires: Date.now() + PLAYER_CACHE_MS, value: summary });
+  return summary;
 }
 
 export async function searchSteamStore(term: string): Promise<SteamSearchResult[]> {
-  if (term.trim().length < 2) return [];
+  const normalizedTerm = term.trim().replace(/\s+/g, " ").toLowerCase();
+  if (normalizedTerm.length < 2) return [];
+  const cached = searchCache.get(normalizedTerm);
+  if (cached && cached.expires > Date.now()) return cached.value;
 
   const params = new URLSearchParams({
-    term: term.trim(),
+    term: normalizedTerm,
     cc: "GB",
     l: "en"
   });
@@ -91,17 +109,19 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
   const payload = await response.json();
   const items = Array.isArray(payload.items) ? payload.items : [];
 
-  return items.slice(0, 12).flatMap((item: Record<string, unknown>) => {
+  const results = items.slice(0, 12).flatMap((item: Record<string, unknown>) => {
     const appid = String(item.id ?? item.appid ?? "").trim();
     const name = String(item.name ?? "").trim();
     if (!appid || !name) return [];
     return {
       appid,
       name,
-      image: String(item.tiny_image ?? ""),
+      image: String(item.tiny_image ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_184x69.jpg`),
       store_url: `https://store.steampowered.com/app/${appid}/`
     };
   });
+  searchCache.set(normalizedTerm, { expires: Date.now() + SEARCH_CACHE_MS, value: results });
+  return results;
 }
 
 export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Promise<GamePayload[]> {

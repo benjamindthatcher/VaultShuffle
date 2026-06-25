@@ -689,6 +689,19 @@ h1 {
   height: 35px;
 }
 
+.look-around-link {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 14px;
+  color: var(--blue);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.look-around-link:hover {
+  color: var(--purple);
+}
+
 .login-note {
   max-width: 520px;
   margin-top: 18px;

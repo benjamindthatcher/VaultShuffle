@@ -27,6 +27,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             <a className="steam-login-button" href="/api/auth/steam" aria-label="Sign in through Steam">
               <img src="/assets/signinthroughsteam.png" alt="Sign in through Steam" />
             </a>
+            <Link className="look-around-link" href="/app">
+              Or look around for now
+            </Link>
             <p className="login-note">Steam confirms your SteamID64 through OpenID. Your password stays with Steam.</p>
           </section>
 

@@ -15,6 +15,7 @@ const emptyStats: StatsPayload = {
 };
 
 const emptyRecs: RecommendationPayload = { backlog: [], wishlist: [], random: null };
+const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
 
 const blankGame: GamePayload = {
   title: "",
@@ -38,7 +39,6 @@ async function api<T>(path: string, options: RequestInit = {}) {
     ...options
   });
   if (response.status === 401) {
-    window.location.href = "/login";
     throw new Error("Steam sign-in is required.");
   }
   const payload = await response.json();
@@ -68,8 +68,11 @@ export function Dashboard() {
   const [formGame, setFormGame] = useState<GamePayload>(blankGame);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
+  const [guestPrompt, setGuestPrompt] = useState(false);
   const steamDialogRef = useRef<HTMLDialogElement>(null);
   const gameDialogRef = useRef<HTMLDialogElement>(null);
+
+  const isLoggedIn = Boolean(session?.logged_in);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -86,10 +89,16 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(""), 5000);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
+
+  useEffect(() => {
     const timer = window.setTimeout(() => {
       if (steamQuery.trim().length >= 2) void searchSteam(steamQuery);
       else setSteamResults([]);
-    }, 260);
+    }, 360);
     return () => window.clearTimeout(timer);
   }, [steamQuery]);
 
@@ -126,9 +135,19 @@ export function Dashboard() {
   async function load(importAfterLogin = false) {
     const sessionPayload = await api<SessionPayload>("/api/session");
     if (!sessionPayload.logged_in) {
-      window.location.href = "/login";
+      const previewGames = loadPreviewGames();
+      const previewRecs = previewRecommendations(previewGames);
+      setSession(sessionPayload);
+      setGames(previewGames);
+      setStats(previewStats(previewGames));
+      setRecs(previewRecs);
+      setShuffleCards(previewRecs.backlog.slice(0, 5));
+      setShuffleMessage(previewGames.length ? "Shuffle your temporary preview list, or sign in to import the real thing." : "Add a few Steam games to try the app, or sign in when you want your own library.");
+      setSelectedId((current) => current ?? previewGames[0]?.id ?? null);
+      setGuestPrompt(!previewGames.length);
       return;
     }
+    setGuestPrompt(false);
     const [{ games: nextGames }, nextStats, nextRecs] = await Promise.all([
       api<{ games: Game[] }>("/api/games"),
       api<StatsPayload>("/api/stats"),
@@ -185,8 +204,13 @@ export function Dashboard() {
   }
 
   async function searchSteam(term: string) {
-    const payload = await api<{ results: SteamSearchResult[] }>(`/api/steam/search?q=${encodeURIComponent(term)}`);
-    setSteamResults(payload.results);
+    try {
+      const payload = await api<{ results: SteamSearchResult[] }>(`/api/steam/search?q=${encodeURIComponent(term)}`);
+      setSteamResults(payload.results);
+    } catch (error) {
+      setSteamResults([]);
+      setNotice(error instanceof Error ? error.message : "Steam search is taking a moment.");
+    }
   }
 
   async function addSteamGame(result: SteamSearchResult) {
@@ -196,6 +220,13 @@ export function Dashboard() {
       notes: `Added from Steam search. AppID: ${result.appid}`,
       steam_appid: result.appid
     };
+    if (!isLoggedIn) {
+      const game = previewGameFromPayload(payload);
+      const nextGames = upsertPreview(games, game);
+      applyPreviewGames(nextGames, game.id, "Added to your temporary preview list. Sign in with Steam when you want a saved library.");
+      steamDialogRef.current?.close();
+      return;
+    }
     const { game } = await api<{ game: Game }>("/api/games", { method: "POST", body: JSON.stringify(payload) });
     steamDialogRef.current?.close();
     await load();
@@ -204,6 +235,13 @@ export function Dashboard() {
 
   async function saveGame(event: FormEvent) {
     event.preventDefault();
+    if (!isLoggedIn) {
+      const game = previewGameFromPayload(formGame, editingId ?? undefined);
+      const nextGames = upsertPreview(games, game);
+      applyPreviewGames(nextGames, game.id, editingId ? "Updated your temporary preview game." : "Added to your temporary preview list.");
+      gameDialogRef.current?.close();
+      return;
+    }
     const path = editingId ? `/api/games/${editingId}` : "/api/games";
     const method = editingId ? "PUT" : "POST";
     const { game } = await api<{ game: Game }>(path, { method, body: JSON.stringify(formGame) });
@@ -214,6 +252,13 @@ export function Dashboard() {
 
   async function patchSelected(payload: Partial<GamePayload>) {
     if (!selected) return;
+    if (!isLoggedIn) {
+      const nextGames = games.map((game) =>
+        game.id === selected.id ? { ...game, ...payload, updated_at: new Date().toISOString() } : game
+      );
+      applyPreviewGames(nextGames, selected.id, "Updated your temporary preview game.");
+      return;
+    }
     await api(`/api/games/${selected.id}`, { method: "PATCH", body: JSON.stringify(payload) });
     await load();
     setSelectedId(selected.id);
@@ -221,12 +266,30 @@ export function Dashboard() {
 
   async function deleteSelected() {
     if (!selected || !window.confirm(`Delete "${selected.title}"?`)) return;
+    if (!isLoggedIn) {
+      const nextGames = games.filter((game) => game.id !== selected.id);
+      applyPreviewGames(nextGames, nextGames[0]?.id ?? null, "Removed from your temporary preview list.");
+      return;
+    }
     await api(`/api/games/${selected.id}`, { method: "DELETE" });
     setSelectedId(null);
     await load();
   }
 
   async function shuffle() {
+    if (!isLoggedIn) {
+      const payload = previewShuffle(games, mood, time);
+      if (!payload.game) {
+        setShuffleCards([]);
+        setShuffleMessage(payload.reason);
+        setGuestPrompt(true);
+        return;
+      }
+      setShuffleCards([payload.game]);
+      setShuffleMessage(payload.reason);
+      setSelectedId(payload.game.id);
+      return;
+    }
     const payload = await api<{ game: Game | null; reason: string }>(
       `/api/shuffle?mood=${encodeURIComponent(mood)}&time=${encodeURIComponent(time)}`
     );
@@ -241,6 +304,10 @@ export function Dashboard() {
   }
 
   async function importSteamLibrary() {
+    if (!isLoggedIn) {
+      window.location.href = "/api/auth/steam";
+      return;
+    }
     if (!session?.has_steam_key) {
       setNotice("Add STEAM_WEB_API_KEY to Vercel before importing your owned Steam library.");
       return;
@@ -255,8 +322,24 @@ export function Dashboard() {
   }
 
   async function logout() {
+    if (!isLoggedIn) {
+      window.location.href = "/api/auth/steam";
+      return;
+    }
     await api("/api/logout", { method: "POST", body: "{}" });
     window.location.href = "/login";
+  }
+
+  function applyPreviewGames(nextGames: Game[], nextSelectedId: string | null, message?: string) {
+    savePreviewGames(nextGames);
+    const nextRecs = previewRecommendations(nextGames);
+    setGames(nextGames);
+    setStats(previewStats(nextGames));
+    setRecs(nextRecs);
+    setShuffleCards(nextRecs.backlog.slice(0, 5));
+    setSelectedId(nextSelectedId);
+    setGuestPrompt(!nextGames.length);
+    if (message) setNotice(message);
   }
 
   return (
@@ -274,15 +357,15 @@ export function Dashboard() {
         </label>
         <div className="nav-actions">
           <span className="steam-profile">
-            {session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">S</span>}
-            <span>{session?.display_name || "Steam user"}</span>
+            {isLoggedIn && session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">{isLoggedIn ? "S" : "?"}</span>}
+            <span>{isLoggedIn ? session?.display_name || "Steam user" : "Preview mode"}</span>
           </span>
           <button className="ghost" onClick={importSteamLibrary}>
-            ⇩ Import Steam Library
+            {isLoggedIn ? "⇩ Import Steam Library" : "Sign in with Steam"}
           </button>
           <span className="divider" />
           <button className="ghost" onClick={logout}>
-            Sign out
+            {isLoggedIn ? "Sign out" : "Open sign-in"}
           </button>
           <button className="nav-icon" aria-label="Settings">
             ⚙
@@ -299,6 +382,17 @@ export function Dashboard() {
           <button onClick={() => setNotice("")} aria-label="Dismiss notice">
             ×
           </button>
+        </div>
+      ) : null}
+
+      {guestPrompt && !isLoggedIn ? (
+        <div className="guest-toast" role="status">
+          <div>
+            <strong>Look around first.</strong>
+            <span>Sign in with Steam when you want your own games, playtime, and recommendations to appear.</span>
+          </div>
+          <a href="/api/auth/steam">Sign in</a>
+          <button onClick={() => setGuestPrompt(false)} aria-label="Dismiss guest prompt">×</button>
         </div>
       ) : null}
 
@@ -370,6 +464,19 @@ export function Dashboard() {
             <span className="switch-visual" aria-hidden="true" />
             <span>Hide completed</span>
           </label>
+
+          <section className="project-status">
+            <h2>Project Status</h2>
+            <StatusLine label="Supabase" good={isLoggedIn} muted={!isLoggedIn} />
+            <StatusLine label="Steam API" good={Boolean(session?.has_steam_key)} muted={!session?.has_steam_key} />
+            <StatusLine label={isLoggedIn ? "Cloud library" : "Preview list"} good />
+            {!isLoggedIn ? (
+              <p>Your preview games stay in this browser. Sign in to import and save a real Steam library.</p>
+            ) : (
+              <p>Your Steam games and edits are saved through Supabase for this account.</p>
+            )}
+            <a className="about-project-link" href="/" target="_blank" rel="noreferrer">About the project</a>
+          </section>
         </aside>
 
         <main className="library-main">
@@ -472,9 +579,13 @@ export function Dashboard() {
               <span>⚙</span>
             </div>
             <div className="table-body">
-              {filteredGames.map((game) => (
-                <GameRow game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
-              ))}
+              {filteredGames.length ? (
+                filteredGames.map((game) => (
+                  <GameRow game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
+                ))
+              ) : (
+                <GuestLibraryState loggedIn={isLoggedIn} onAdd={openSteamDialog} onSignIn={() => (window.location.href = "/api/auth/steam")} />
+              )}
             </div>
           </section>
         </main>
@@ -485,22 +596,25 @@ export function Dashboard() {
             <button className="nav-icon">×</button>
           </div>
           <GameDetails game={selected} />
-          <div className="quick-actions">
-            <button disabled={!selected} onClick={() => selected && openGameDialog(selected)}>
-              Edit
-            </button>
-            <button disabled={!selected} onClick={() => patchSelected({ status: "In Progress" })}>
-              Start Playing
-            </button>
-            <button disabled={!selected} onClick={() => patchSelected({ status: "Completed" })}>
-              Mark Completed
-            </button>
-            <button disabled={!selected} className="remove" onClick={deleteSelected}>
-              Remove from Backlog
-            </button>
-          </div>
-          <section className="recommendation-card">
-            <h2>Recommendations</h2>
+          <details className="detail-section" open>
+            <summary>Actions</summary>
+            <div className="quick-actions">
+              <button disabled={!selected} onClick={() => selected && openGameDialog(selected)}>
+                Edit
+              </button>
+              <button disabled={!selected} onClick={() => patchSelected({ status: "In Progress" })}>
+                Start Playing
+              </button>
+              <button disabled={!selected} onClick={() => patchSelected({ status: "Completed" })}>
+                Mark Completed
+              </button>
+              <button disabled={!selected} className="remove" onClick={deleteSelected}>
+                Remove from Backlog
+              </button>
+            </div>
+          </details>
+          <details className="detail-section">
+            <summary>Recommendations</summary>
             <div id="recommendations">
               {[
                 ["Top Backlog", recs.backlog],
@@ -522,7 +636,7 @@ export function Dashboard() {
                 </div>
               ))}
             </div>
-          </section>
+          </details>
         </aside>
       </div>
 
@@ -580,6 +694,40 @@ function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; 
       <span className="pill">{timeBucket(game)}</span>
       <span>{formatLastPlayed(game.last_played_at)}</span>
       <span>⋮</span>
+    </div>
+  );
+}
+
+function StatusLine({ label, good, muted }: { label: string; good?: boolean; muted?: boolean }) {
+  return (
+    <div className="status-line">
+      <span>{label}</span>
+      <i className={good ? "good" : muted ? "muted" : ""} />
+    </div>
+  );
+}
+
+function GuestLibraryState({ loggedIn, onAdd, onSignIn }: { loggedIn: boolean; onAdd: () => void; onSignIn: () => void }) {
+  return (
+    <div className="guest-empty">
+      <div className="guest-empty-art">
+        <span />
+        <span />
+        <span />
+      </div>
+      <p className="detail-kicker">{loggedIn ? "Nothing matches those filters" : "Preview mode"}</p>
+      <h3>{loggedIn ? "No games found." : "Your library will appear here."}</h3>
+      <p>
+        {loggedIn
+          ? "Try clearing a filter or importing your Steam library again."
+          : "You can explore the app layout for now. Sign in with Steam when you want Vault Shuffle to import games, playtime, and recommendations."}
+      </p>
+      {!loggedIn ? (
+        <div className="guest-empty-actions">
+          <button className="shuffle-button" onClick={onAdd}>Add a demo game</button>
+          <button className="ghost" onClick={onSignIn}>Sign in with Steam</button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -850,4 +998,103 @@ function initials(title: string) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
+}
+
+function loadPreviewGames() {
+  try {
+    const raw = window.localStorage.getItem(PREVIEW_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(isPreviewGame).slice(0, 24) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePreviewGames(games: Game[]) {
+  try {
+    window.localStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(games.slice(0, 24)));
+  } catch {
+    // Preview mode is best-effort; the real app path uses Supabase after sign-in.
+  }
+}
+
+function isPreviewGame(value: unknown): value is Game {
+  const game = value as Game;
+  return Boolean(game && typeof game.id === "string" && typeof game.title === "string");
+}
+
+function previewGameFromPayload(payload: GamePayload, id?: string): Game {
+  const now = new Date().toISOString();
+  return {
+    id: id ?? (globalThis.crypto?.randomUUID?.() || `preview-${Date.now()}`),
+    user_id: "preview",
+    title: payload.title.trim() || "Untitled game",
+    genre: payload.genre?.trim() || "Unknown",
+    store: payload.store?.trim() || "Steam",
+    ownership: payload.ownership,
+    status: payload.status,
+    rating: Number(payload.rating || 0),
+    hours_played: Number(payload.hours_played || 0),
+    completion_percentage: payload.status === "Completed" ? 100 : Number(payload.completion_percentage || 0),
+    priority: payload.priority,
+    date_added: payload.date_added || new Date().toLocaleDateString("en-GB"),
+    last_played_at: payload.last_played_at || null,
+    notes: payload.notes?.trim() || "Temporary preview game. Sign in with Steam to save a real library.",
+    steam_appid: payload.steam_appid ? String(payload.steam_appid) : null,
+    created_at: now,
+    updated_at: now
+  };
+}
+
+function upsertPreview(games: Game[], game: Game) {
+  const existing = games.findIndex((item) => item.id === game.id || (game.steam_appid && item.steam_appid === game.steam_appid));
+  if (existing === -1) return [game, ...games].slice(0, 24);
+  return games.map((item, index) => (index === existing ? { ...item, ...game, id: item.id, created_at: item.created_at } : item));
+}
+
+function previewStats(games: Game[]): StatsPayload {
+  const ratings = games.map((game) => Number(game.rating || 0)).filter((rating) => rating > 0);
+  const completionTotal = games.reduce((total, game) => total + Number(game.completion_percentage || 0), 0);
+  return {
+    total: games.length,
+    completed: games.filter((game) => game.status === "Completed").length,
+    in_progress: games.filter((game) => game.status === "In Progress").length,
+    wishlist: games.filter((game) => game.ownership === "Wishlist").length,
+    hours: round1(games.reduce((total, game) => total + Number(game.hours_played || 0), 0)),
+    avg_rating: ratings.length ? round1(ratings.reduce((total, rating) => total + rating, 0) / ratings.length) : 0,
+    avg_completion: games.length ? round1(completionTotal / games.length) : 0
+  };
+}
+
+function previewRecommendations(games: Game[]): RecommendationPayload {
+  const backlog = [...games]
+    .filter((game) => game.ownership === "Owned" && game.status !== "Completed")
+    .sort((a, b) => previewScore(b) - previewScore(a))
+    .slice(0, 3);
+  const wishlist = [...games]
+    .filter((game) => game.ownership === "Wishlist")
+    .sort((a, b) => previewScore(b) - previewScore(a))
+    .slice(0, 3);
+  const unfinished = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed");
+  return { backlog, wishlist, random: unfinished.length ? unfinished[Math.floor(Math.random() * unfinished.length)] : null };
+}
+
+function previewShuffle(games: Game[], mood: string, time: string) {
+  const candidates = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed");
+  if (!candidates.length) return { game: null, reason: "Add a demo game first, or sign in with Steam to shuffle your real backlog." };
+  const game = candidates[Math.floor(Math.random() * candidates.length)];
+  return {
+    game,
+    reason: `Preview pick for ${mood.toLowerCase()} / ${time.toLowerCase()}. Sign in when you want this to use your Steam library.`
+  };
+}
+
+function previewScore(game: Game) {
+  const priorityScore = game.priority === "High" ? 10 : game.priority === "Medium" ? 5 : 0;
+  return Number(game.rating || 0) * 2 + priorityScore + Number(game.hours_played || 0) / 20;
+}
+
+function round1(value: number) {
+  return Math.round(value * 10) / 10;
 }
