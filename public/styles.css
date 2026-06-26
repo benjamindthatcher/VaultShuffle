@@ -71,6 +71,12 @@ button:hover {
   transform: translateY(-1px);
 }
 
+button:disabled {
+  cursor: default;
+  opacity: 0.52;
+  transform: none;
+}
+
 .app-shell {
   height: 100vh;
   max-height: 100vh;
@@ -369,10 +375,29 @@ h2 {
   gap: 10px;
   color: #c4d6ea;
   font-size: 12px;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
 }
 
 .stat-row strong {
   color: var(--blue-strong);
+}
+
+.stat-row:not(.is-static):hover {
+  color: #eef9ff;
+}
+
+.stat-row:not(.is-static):hover strong {
+  color: var(--accent-strong);
+}
+
+.stat-row.is-static {
+  opacity: 1;
 }
 
 .filter-heading {
@@ -573,12 +598,12 @@ textarea:focus {
 }
 
 .shuffle-button {
-  background: linear-gradient(180deg, #f0d6ff, #cf7dff 55%, #a855f7);
+  background: linear-gradient(180deg, #e8c4ff, #bd69f1 58%, #9950de);
   color: #160d22;
   font-weight: 900;
   padding: 7px 12px;
-  border: 1px solid rgba(250, 224, 255, 0.48);
-  box-shadow: 0 10px 26px rgba(174, 91, 255, 0.24);
+  border: 1px solid rgba(250, 224, 255, 0.34);
+  box-shadow: 0 10px 24px rgba(174, 91, 255, 0.16);
 }
 
 .shuffle-cards {
@@ -910,7 +935,7 @@ textarea:focus {
   height: 100%;
   overflow: hidden;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 10px;
   padding: 12px;
 }
@@ -1101,6 +1126,40 @@ textarea:focus {
   margin: 0;
 }
 
+.inline-settings {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(139, 190, 235, 0.10);
+}
+
+.inline-settings h3,
+.detail-actions h3 {
+  margin: 0 0 8px;
+  color: #dcecff;
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.inline-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.inline-settings label {
+  margin: 0;
+  color: var(--muted);
+}
+
+.inline-settings input,
+.inline-settings select {
+  min-height: 30px;
+  font-size: 11px;
+  font-weight: 750;
+}
+
 .quick-actions {
   display: grid;
   grid-template-columns: 1fr;
@@ -1140,7 +1199,7 @@ textarea:focus {
 }
 
 .quick-actions button {
-  background: rgba(19, 44, 72, 0.58);
+  background: rgba(19, 44, 72, 0.42);
   border: 1px solid rgba(124, 185, 237, 0.16);
   color: var(--text);
   padding: 6px 9px;
@@ -1153,8 +1212,8 @@ textarea:focus {
 }
 
 .quick-actions .remove {
-  background: rgba(54, 22, 42, 0.52);
-  border-color: rgba(255, 138, 161, 0.22);
+  background: rgba(54, 22, 42, 0.42);
+  border-color: rgba(255, 138, 161, 0.18);
   color: #ffc1cf;
 }
 
@@ -1483,31 +1542,45 @@ textarea {
 }
 
 .nav-search-group {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 34px;
-  gap: 8px;
+  position: relative;
+  display: block;
   align-items: center;
   justify-self: center;
-  width: min(100%, 650px);
+  width: min(100%, 690px);
 }
 
 .search-box {
   max-width: none;
   width: 100%;
+  height: 42px;
+  padding-right: 12px;
 }
 
-.top-add-button {
+.top-add-button,
+.toolbar-add-button {
   width: 34px;
   height: 34px;
   min-height: 34px;
   padding: 0;
   border-radius: 12px;
   color: #180e24;
-  background: linear-gradient(180deg, #f1d5ff, #c979ff);
-  border: 1px solid rgba(250, 224, 255, 0.42);
-  font-size: 20px;
+  background: linear-gradient(180deg, #e5b8ff, #b95ff0);
+  border: 1px solid rgba(250, 224, 255, 0.34);
+  font-size: 19px;
   font-weight: 900;
-  box-shadow: 0 10px 24px rgba(174, 91, 255, 0.18);
+  line-height: 1;
+  box-shadow: 0 8px 18px rgba(174, 91, 255, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.top-add-button {
+  position: absolute;
+  right: 5px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.toolbar-add-button {
+  flex: 0 0 auto;
 }
 
 .ghost.subtle {
@@ -1591,7 +1664,7 @@ input,
 select,
 textarea {
   border-radius: 10px;
-  padding: 6px 34px 6px 10px;
+  padding: 6px 42px 6px 10px;
 }
 
 select {
@@ -1600,8 +1673,8 @@ select {
     linear-gradient(45deg, transparent 50%, #9db6ca 50%),
     linear-gradient(135deg, #9db6ca 50%, transparent 50%);
   background-position:
-    calc(100% - 18px) 50%,
-    calc(100% - 12px) 50%;
+    calc(100% - 24px) 50%,
+    calc(100% - 18px) 50%;
   background-size: 6px 6px, 6px 6px;
   background-repeat: no-repeat;
 }
@@ -1813,10 +1886,12 @@ textarea {
 .quick-actions button {
   min-height: 32px;
   border-radius: 10px;
+  background: rgba(19, 44, 72, 0.42);
 }
 
 .quick-actions .remove {
   grid-column: 1 / -1;
+  background: rgba(54, 22, 42, 0.42);
 }
 
 .floating-add {

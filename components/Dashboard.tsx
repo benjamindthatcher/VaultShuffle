@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Game, GamePayload, RecommendationPayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
 import { steamImageUrl } from "@/lib/images";
 
@@ -55,7 +55,7 @@ export function Dashboard() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [ownership, setOwnership] = useState("All");
-  const [priorityFilter, setPriorityFilter] = useState("All vibes");
+  const [priorityFilter, setPriorityFilter] = useState("All priorities");
   const [playtimeFilter, setPlaytimeFilter] = useState("Any playtime");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [sort, setSort] = useState("hours_desc");
@@ -68,12 +68,9 @@ export function Dashboard() {
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
   const [steamQuery, setSteamQuery] = useState("");
-  const [formGame, setFormGame] = useState<GamePayload>(blankGame);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [notice, setNotice] = useState("");
   const [guestPrompt, setGuestPrompt] = useState(false);
   const steamDialogRef = useRef<HTMLDialogElement>(null);
-  const gameDialogRef = useRef<HTMLDialogElement>(null);
 
   const isLoggedIn = Boolean(session?.logged_in);
 
@@ -123,9 +120,9 @@ export function Dashboard() {
           (!lowerQuery || text.includes(lowerQuery)) &&
           (status === "All" || game.status === status) &&
           (ownership === "All" || game.ownership === ownership) &&
-          (priorityFilter === "All vibes" || game.priority === priorityFilter) &&
+          (priorityFilter === "All priorities" || game.priority === priorityFilter) &&
           (playtimeFilter === "Any playtime" || timeBucket(game) === playtimeFilter) &&
-          (!hideCompleted || game.status !== "Completed")
+          (!hideCompleted || !isCompleted(game))
         );
       })
       .sort((a, b) => {
@@ -195,22 +192,40 @@ export function Dashboard() {
     setQuery("");
     setStatus("All");
     setOwnership("All");
-    setPriorityFilter("All vibes");
+    setPriorityFilter("All priorities");
     setPlaytimeFilter("Any playtime");
     setHideCompleted(false);
     setFiltersOpen(false);
+  }
+
+  function revealLibrary() {
+    setQuery("");
+    setStatus("All");
+    setOwnership("All");
+    setPriorityFilter("All priorities");
+    setPlaytimeFilter("Any playtime");
+    setHideCompleted(false);
+    setFiltersOpen(false);
+  }
+
+  function applyStatFilter(action: StatAction) {
+    setQuery("");
+    setStatus("All");
+    setOwnership("All");
+    setPriorityFilter("All priorities");
+    setPlaytimeFilter("Any playtime");
+    setHideCompleted(false);
+    setFiltersOpen(false);
+    if (action === "completed") setStatus("Completed");
+    if (action === "progress") setStatus("In Progress");
+    if (action === "not_started") setStatus("Not Started");
+    if (action === "wishlist") setOwnership("Wishlist");
   }
 
   function openSteamDialog() {
     setSteamQuery("");
     setSteamResults([]);
     steamDialogRef.current?.showModal();
-  }
-
-  function openGameDialog(game?: Game) {
-    setEditingId(game?.id ?? null);
-    setFormGame(game ? toPayload(game) : { ...blankGame, date_added: new Date().toLocaleDateString("en-GB") });
-    gameDialogRef.current?.showModal();
   }
 
   async function searchSteam(term: string) {
@@ -224,38 +239,26 @@ export function Dashboard() {
   }
 
   async function addSteamGame(result: SteamSearchResult) {
+    const details = await steamAppDetails(result.appid);
     const payload: GamePayload = {
       ...blankGame,
-      title: result.name,
+      ...(details || {}),
+      title: details?.title || result.name,
+      genre: details?.genre || result.genre || blankGame.genre,
       notes: `Added from Steam search. AppID: ${result.appid}`,
       steam_appid: result.appid
     };
     if (!isLoggedIn) {
       const game = previewGameFromPayload(payload);
       const nextGames = upsertPreview(games, game);
+      revealLibrary();
       applyPreviewGames(nextGames, game.id, "Added to your temporary preview list. Sign in with Steam when you want a saved library.");
       steamDialogRef.current?.close();
       return;
     }
     const { game } = await api<{ game: Game }>("/api/games", { method: "POST", body: JSON.stringify(payload) });
     steamDialogRef.current?.close();
-    await load();
-    setSelectedId(game.id);
-  }
-
-  async function saveGame(event: FormEvent) {
-    event.preventDefault();
-    if (!isLoggedIn) {
-      const game = previewGameFromPayload(formGame, editingId ?? undefined);
-      const nextGames = upsertPreview(games, game);
-      applyPreviewGames(nextGames, game.id, editingId ? "Updated your temporary preview game." : "Added to your temporary preview list.");
-      gameDialogRef.current?.close();
-      return;
-    }
-    const path = editingId ? `/api/games/${editingId}` : "/api/games";
-    const method = editingId ? "PUT" : "POST";
-    const { game } = await api<{ game: Game }>(path, { method, body: JSON.stringify(formGame) });
-    gameDialogRef.current?.close();
+    revealLibrary();
     await load();
     setSelectedId(game.id);
   }
@@ -272,6 +275,18 @@ export function Dashboard() {
     await api(`/api/games/${selected.id}`, { method: "PATCH", body: JSON.stringify(payload) });
     await load();
     setSelectedId(selected.id);
+  }
+
+  async function markSelectedCompleted() {
+    await patchSelected({ status: "Completed", completion_percentage: 100 });
+  }
+
+  async function startSelectedPlaying() {
+    if (!selected) return;
+    await patchSelected({
+      status: "In Progress",
+      completion_percentage: Math.min(Number(selected.completion_percentage || 0), 99)
+    });
   }
 
   async function deleteSelected() {
@@ -297,7 +312,7 @@ export function Dashboard() {
         setGuestPrompt(true);
         return;
       }
-      setShuffleCards([payload.game]);
+      setShuffleCards(shufflePreviewCards(games, payload.game));
       setShuffleMessage(payload.reason);
       setSelectedId(payload.game.id);
       return;
@@ -310,14 +325,14 @@ export function Dashboard() {
       setShuffleMessage(payload.reason);
       return;
     }
-    setShuffleCards([payload.game]);
+    setShuffleCards(shufflePreviewCards(games, payload.game));
     setShuffleMessage(payload.reason);
     setSelectedId(payload.game.id);
   }
 
   async function importSteamLibrary() {
     if (!isLoggedIn) {
-      window.location.href = "/api/auth/steam";
+      window.location.href = "/login";
       return;
     }
     if (!session?.has_steam_key) {
@@ -335,7 +350,7 @@ export function Dashboard() {
 
   async function logout() {
     if (!isLoggedIn) {
-      window.location.href = "/api/auth/steam";
+      window.location.href = "/login";
       return;
     }
     await api("/api/logout", { method: "POST", body: "{}" });
@@ -372,13 +387,8 @@ export function Dashboard() {
             <span>⌕</span>
             <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search games..." />
           </label>
-          <button className="top-add-button" onClick={openSteamDialog} aria-label="Search Steam for a game">＋</button>
         </div>
         <div className="nav-actions">
-          <span className="steam-profile">
-            {isLoggedIn && session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">{isLoggedIn ? "S" : "?"}</span>}
-            <span>{isLoggedIn ? session?.display_name || "Steam user" : "Preview mode"}</span>
-          </span>
           <button className="ghost" onClick={importSteamLibrary}>
             {isLoggedIn ? "⇩ Import Steam Library" : "Sign in with Steam"}
           </button>
@@ -386,6 +396,10 @@ export function Dashboard() {
           <button className="nav-icon" aria-label="Settings">
             ⚙
           </button>
+          <span className="steam-profile">
+            {isLoggedIn && session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">{isLoggedIn ? "S" : "?"}</span>}
+            <span>{isLoggedIn ? session?.display_name || "Steam user" : "Preview mode"}</span>
+          </span>
         </div>
       </header>
 
@@ -404,7 +418,7 @@ export function Dashboard() {
             <strong>Look around first.</strong>
             <span>Sign in with Steam when you want your own games, playtime, and recommendations to appear.</span>
           </div>
-          <a href="/api/auth/steam">Sign in</a>
+          <a href="/login">Sign in</a>
           <button onClick={() => setGuestPrompt(false)} aria-label="Dismiss guest prompt">×</button>
         </div>
       ) : null}
@@ -413,18 +427,23 @@ export function Dashboard() {
         <aside className="library-panel">
           <h2>Library Overview</h2>
           <div className="overview-list">
-            {statRows(stats).map(([icon, label, value]) => (
-              <div className="stat-row" key={label}>
+            {statRows(stats).map(({ icon, label, value, action }) => (
+              <button
+                className={`stat-row ${action ? "" : "is-static"}`}
+                disabled={!action}
+                key={label}
+                onClick={() => action && applyStatFilter(action)}
+                type="button"
+              >
                 <span>{icon}</span>
                 <span>{label}</span>
                 <strong>{value}</strong>
-              </div>
+              </button>
             ))}
           </div>
           <div className="side-summary">
             <h2>Smart rules</h2>
             <p>{activeFilterLabel(status, ownership, priorityFilter, playtimeFilter, hideCompleted)}</p>
-            <button onClick={() => setFiltersOpen(true)}>Adjust filters</button>
           </div>
         </aside>
 
@@ -478,11 +497,11 @@ export function Dashboard() {
                   </button>
                   {filtersOpen ? (
                     <div className="filter-popover">
-                      <label>Status<select value={status} onChange={(event) => { setStatus(event.target.value); setFiltersOpen(false); }}><option>All</option><option>Completed</option><option>In Progress</option><option>Not Started</option></select></label>
-                      <label>Ownership<select value={ownership} onChange={(event) => { setOwnership(event.target.value); setFiltersOpen(false); }}><option>All</option><option>Owned</option><option>Wishlist</option><option>Game pass</option></select></label>
-                      <label>Vibe<select value={priorityFilter} onChange={(event) => { setPriorityFilter(event.target.value); setFiltersOpen(false); }}><option>All vibes</option><option>High</option><option>Medium</option><option>Low</option></select></label>
-                      <label>Playtime<select value={playtimeFilter} onChange={(event) => { setPlaytimeFilter(event.target.value); setFiltersOpen(false); }}><option>Any playtime</option><option>Short</option><option>Medium</option><option>Long</option></select></label>
-                      <label className="filter-switch compact"><input checked={hideCompleted} onChange={(event) => { setHideCompleted(event.target.checked); setFiltersOpen(false); }} type="checkbox" /><span className="switch-visual" aria-hidden="true" /><span>Hide completed</span></label>
+                      <label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option><option>Completed</option><option>In Progress</option><option>Not Started</option></select></label>
+                      <label>Ownership<select value={ownership} onChange={(event) => setOwnership(event.target.value)}><option>All</option><option>Owned</option><option>Wishlist</option><option>Game pass</option></select></label>
+                      <label>Priority<select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}><option>All priorities</option><option>High</option><option>Medium</option><option>Low</option></select></label>
+                      <label>Playtime<select value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}><option>Any playtime</option><option>Short</option><option>Medium</option><option>Long</option></select></label>
+                      <label className="filter-switch compact"><input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" /><span className="switch-visual" aria-hidden="true" /><span>Hide completed</span></label>
                       <div className="filter-popover-actions">
                         <button onClick={clearFilters} type="button">Clear</button>
                         <button onClick={() => setFiltersOpen(false)} type="button">Done</button>
@@ -490,6 +509,7 @@ export function Dashboard() {
                     </div>
                   ) : null}
                 </div>
+                <button className="toolbar-add-button" onClick={openSteamDialog} type="button" aria-label="Search Steam for a game">＋</button>
                 <label>Sort by</label>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
                   <option value="hours_desc">Playtime (High to Low)</option>
@@ -511,7 +531,7 @@ export function Dashboard() {
               <span>Status</span>
               <span>Playtime</span>
               <span>Progress</span>
-              <span>Vibe</span>
+              <span>Priority</span>
               <span>Time</span>
               <span>Last Played</span>
               <span>⚙</span>
@@ -526,7 +546,7 @@ export function Dashboard() {
                   )
                 )
               ) : (
-                <GuestLibraryState loggedIn={isLoggedIn} onAdd={openSteamDialog} onSignIn={() => (window.location.href = "/api/auth/steam")} />
+                <GuestLibraryState loggedIn={isLoggedIn} onAdd={openSteamDialog} onSignIn={() => (window.location.href = "/login")} />
               )}
             </div>
           </section>
@@ -537,22 +557,15 @@ export function Dashboard() {
             <h2>Game Details</h2>
             <button className="nav-icon">×</button>
           </div>
-          <GameDetails game={selected} />
-          <details className="detail-section" open>
-            <summary>Actions</summary>
+          <GameDetails game={selected} onUpdate={patchSelected} />
+          <div className="detail-section detail-actions">
+            <h3>Actions</h3>
             <div className="quick-actions">
-              <button disabled={!selected} onClick={() => selected && openGameDialog(selected)}>
-                Edit
-              </button>
-              <button disabled={!selected} onClick={() => patchSelected({ status: "In Progress" })}>
-                Start Playing
-              </button>
-              <button disabled={!selected} onClick={() => patchSelected({ status: "Completed" })}>
-                Mark Completed
-              </button>
+              <button disabled={!selected} onClick={startSelectedPlaying}>Start playing</button>
+              <button disabled={!selected} onClick={markSelectedCompleted}>Mark complete</button>
               <button disabled={!selected} className="remove" onClick={deleteSelected}>Remove</button>
             </div>
-          </details>
+          </div>
         </aside>
       </div>
 
@@ -562,18 +575,6 @@ export function Dashboard() {
         results={steamResults}
         onQuery={setSteamQuery}
         onAdd={addSteamGame}
-        onManual={() => {
-          steamDialogRef.current?.close();
-          openGameDialog();
-        }}
-      />
-
-      <GameDialog
-        dialogRef={gameDialogRef}
-        game={formGame}
-        editing={Boolean(editingId)}
-        onChange={setFormGame}
-        onSubmit={saveGame}
       />
     </div>
   );
@@ -652,7 +653,7 @@ function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean;
   );
 }
 
-function GameDetails({ game }: { game: Game | null }) {
+function GameDetails({ game, onUpdate }: { game: Game | null; onUpdate: (payload: Partial<GamePayload>) => Promise<void> }) {
   if (!game) {
     return <div className="detail-content empty">Select a game from the library.</div>;
   }
@@ -680,18 +681,85 @@ function GameDetails({ game }: { game: Game | null }) {
       <div className="detail-list">
         <DetailLine label="Playtime" value={`${Number(game.hours_played).toLocaleString()}h`} />
         <DetailLine label="Last Played" value={formatLastPlayed(game.last_played_at)} />
-        <DetailLine label="Rating" value={`${game.rating}/10`} />
+        <DetailLine label="External rating" value={Number(game.rating) > 0 ? `${game.rating}/10` : "Not linked yet"} />
         <DetailLine
           label="Store"
           value={game.steam_appid ? <a href={`https://store.steampowered.com/app/${game.steam_appid}/`} target="_blank" rel="noreferrer">Open on Steam</a> : game.store}
         />
         {game.steam_appid ? <DetailLine label="Steam AppID" value={game.steam_appid} /> : null}
       </div>
+      <InlineGameSettings game={game} onUpdate={onUpdate} />
       <section className="notes">
         <strong>Notes</strong>
         <p>{game.notes || "No notes yet."}</p>
       </section>
     </div>
+  );
+}
+
+function InlineGameSettings({ game, onUpdate }: { game: Game; onUpdate: (payload: Partial<GamePayload>) => Promise<void> }) {
+  const [hoursDraft, setHoursDraft] = useState(numberField(game.hours_played));
+  const [completionDraft, setCompletionDraft] = useState(numberField(game.completion_percentage));
+
+  useEffect(() => {
+    setHoursDraft(numberField(game.hours_played));
+    setCompletionDraft(numberField(game.completion_percentage));
+  }, [game.id, game.hours_played, game.completion_percentage]);
+
+  function commitHours() {
+    void onUpdate({ hours_played: parseNumberInput(hoursDraft) });
+  }
+
+  function commitCompletion() {
+    const completion = parseNumberInput(completionDraft, 100);
+    void onUpdate({
+      completion_percentage: completion,
+      status: completion >= 100 ? "Completed" : completion > 0 ? "In Progress" : game.status === "Completed" ? "Not Started" : game.status
+    });
+  }
+
+  return (
+    <section className="inline-settings" aria-label="Your game settings">
+      <h3>Your settings</h3>
+      <div className="inline-settings-grid">
+        <label>
+          Hours
+          <input
+            inputMode="decimal"
+            onBlur={commitHours}
+            onChange={(event) => setHoursDraft(event.target.value)}
+            placeholder="0"
+            value={hoursDraft}
+          />
+        </label>
+        <label>
+          Completion
+          <input
+            inputMode="decimal"
+            onBlur={commitCompletion}
+            onChange={(event) => setCompletionDraft(event.target.value)}
+            placeholder="0-100"
+            value={completionDraft}
+          />
+        </label>
+        <label>
+          Ownership
+          <select value={game.ownership} onChange={(event) => void onUpdate({ ownership: event.target.value as GamePayload["ownership"] })}>
+            <option>Owned</option>
+            <option>Wishlist</option>
+            <option>Game pass</option>
+          </select>
+        </label>
+        <label>
+          Priority
+          <select value={game.priority} onChange={(event) => void onUpdate({ priority: event.target.value as GamePayload["priority"] })}>
+            <option>Low</option>
+            <option>Medium</option>
+            <option>High</option>
+          </select>
+        </label>
+      </div>
+    </section>
   );
 }
 
@@ -705,14 +773,14 @@ function DetailLine({ label, value }: { label: string; value: React.ReactNode })
 }
 
 function filterCount(status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
-  return [status !== "All", ownership !== "All", priority !== "All vibes", playtime !== "Any playtime", hideCompleted].filter(Boolean).length;
+  return [status !== "All", ownership !== "All", priority !== "All priorities", playtime !== "Any playtime", hideCompleted].filter(Boolean).length;
 }
 
 function activeFilterLabel(status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
   const active = [
     status !== "All" ? status : "",
     ownership !== "All" ? ownership : "",
-    priority !== "All vibes" ? priority : "",
+    priority !== "All priorities" ? `Priority ${priority}` : "",
     playtime !== "Any playtime" ? playtime : "",
     hideCompleted ? "Completed hidden" : ""
   ].filter(Boolean);
@@ -732,20 +800,27 @@ function parseNumberInput(value: string, max?: number) {
   return typeof max === "number" ? Math.min(parsed, max) : parsed;
 }
 
+async function steamAppDetails(appid: string) {
+  try {
+    const payload = await api<{ details: Partial<GamePayload> | null }>(`/api/steam/apps/${encodeURIComponent(appid)}`);
+    return payload.details;
+  } catch {
+    return null;
+  }
+}
+
 function SteamDialog({
   dialogRef,
   query,
   results,
   onQuery,
-  onAdd,
-  onManual
+  onAdd
 }: {
   dialogRef: React.RefObject<HTMLDialogElement | null>;
   query: string;
   results: SteamSearchResult[];
   onQuery: (value: string) => void;
   onAdd: (result: SteamSearchResult) => void;
-  onManual: () => void;
 }) {
   return (
     <dialog ref={dialogRef} className="steam-dialog">
@@ -770,7 +845,7 @@ function SteamDialog({
                 <span className="steam-result-art">{result.image ? <img src={result.image} alt="" /> : null}</span>
                 <span>
                   <strong>{result.name}</strong>
-                  <small>Steam AppID {result.appid}</small>
+                  <small>{result.genre ? `${result.genre} · ` : ""}Steam AppID {result.appid}</small>
                 </span>
                 <b>Add</b>
               </button>
@@ -778,58 +853,7 @@ function SteamDialog({
           </div>
         </div>
         <footer>
-          <button type="button" onClick={onManual}>Manual entry</button>
           <button type="button" onClick={() => dialogRef.current?.close()}>Cancel</button>
-        </footer>
-      </form>
-    </dialog>
-  );
-}
-
-function GameDialog({
-  dialogRef,
-  game,
-  editing,
-  onChange,
-  onSubmit
-}: {
-  dialogRef: React.RefObject<HTMLDialogElement | null>;
-  game: GamePayload;
-  editing: boolean;
-  onChange: (game: GamePayload) => void;
-  onSubmit: (event: FormEvent) => void;
-}) {
-  function update<K extends keyof GamePayload>(key: K, value: GamePayload[K]) {
-    onChange({ ...game, [key]: value });
-  }
-
-  return (
-    <dialog ref={dialogRef}>
-      <form onSubmit={onSubmit}>
-        <header>
-          <h2>{editing ? "Edit Game" : "Add Game"}</h2>
-          <button type="button" className="nav-icon" onClick={() => dialogRef.current?.close()}>×</button>
-        </header>
-        <div className="form-grid">
-          <label>Title<input value={game.title} onChange={(event) => update("title", event.target.value)} required /></label>
-          <label>Genre<input value={game.genre} onChange={(event) => update("genre", event.target.value)} list="genre-options" /></label>
-          <label>Store<input value={game.store} onChange={(event) => update("store", event.target.value)} list="store-options" /></label>
-          <label>Ownership<select value={game.ownership} onChange={(event) => update("ownership", event.target.value as GamePayload["ownership"])}><option>Owned</option><option>Wishlist</option><option>Game pass</option></select></label>
-          <label>Status<select value={game.status} onChange={(event) => update("status", event.target.value as GamePayload["status"])}><option>Not Started</option><option>In Progress</option><option>Completed</option></select></label>
-          <label>Priority<select value={game.priority} onChange={(event) => update("priority", event.target.value as GamePayload["priority"])}><option>Low</option><option>Medium</option><option>High</option></select></label>
-          <label>Rating<input value={numberField(game.rating)} onChange={(event) => update("rating", parseNumberInput(event.target.value, 10))} inputMode="decimal" placeholder="0-10" /></label>
-          <label>Hours<input value={numberField(game.hours_played)} onChange={(event) => update("hours_played", parseNumberInput(event.target.value))} inputMode="decimal" placeholder="Hours played" /></label>
-          <label>Completion<input value={numberField(game.completion_percentage)} onChange={(event) => update("completion_percentage", parseNumberInput(event.target.value, 100))} inputMode="decimal" placeholder="0-100" /></label>
-          <label>Date Added<input value={game.date_added ?? ""} onChange={(event) => update("date_added", event.target.value)} /></label>
-          <label>Last Played<input value={game.last_played_at ?? ""} onChange={(event) => update("last_played_at", event.target.value)} /></label>
-          <label>Steam AppID<input value={game.steam_appid ?? ""} onChange={(event) => update("steam_appid", event.target.value)} /></label>
-          <datalist id="genre-options"><option value="Action" /><option value="Adventure" /><option value="RPG" /><option value="Strategy" /><option value="Puzzle" /><option value="Simulation" /></datalist>
-          <datalist id="store-options"><option value="Steam" /><option value="Epic Games" /><option value="GOG" /><option value="Xbox Game Pass" /><option value="Itch.io" /></datalist>
-          <label className="wide">Notes<textarea value={game.notes} onChange={(event) => update("notes", event.target.value)} /></label>
-        </div>
-        <footer>
-          <button type="button" onClick={() => dialogRef.current?.close()}>Cancel</button>
-          <button className="shuffle-button">Save</button>
         </footer>
       </form>
     </dialog>
@@ -863,35 +887,29 @@ function SteamImage({ appId, type }: { appId: string; type: "capsule" | "header"
   return <img src={steamImageUrl(appId, type)} alt="" loading="lazy" onError={() => setFailed(true)} />;
 }
 
-function toPayload(game: Game): GamePayload {
-  return {
-    title: game.title,
-    genre: game.genre,
-    store: game.store,
-    ownership: game.ownership,
-    status: game.status,
-    rating: game.rating,
-    hours_played: game.hours_played,
-    completion_percentage: game.completion_percentage,
-    priority: game.priority,
-    date_added: game.date_added,
-    last_played_at: game.last_played_at,
-    notes: game.notes,
-    steam_appid: game.steam_appid
-  };
+type StatAction = "all" | "completed" | "progress" | "not_started" | "wishlist";
+
+function statRows(stats: StatsPayload): Array<{ icon: string; label: string; value: string | number; action: StatAction | null }> {
+  const total = stats.total || 1;
+  const notStarted = Math.max(0, stats.total - stats.completed - stats.in_progress);
+  return [
+    { icon: "▦", label: "Total Games", value: stats.total, action: "all" },
+    { icon: "✓", label: "Completed", value: `${stats.completed} (${Math.round((stats.completed / total) * 100)}%)`, action: "completed" },
+    { icon: "▣", label: "In Progress", value: `${stats.in_progress} (${Math.round((stats.in_progress / total) * 100)}%)`, action: "progress" },
+    {
+      icon: "□",
+      label: "Not Started",
+      value: `${notStarted} (${Math.round((notStarted / total) * 100)}%)`,
+      action: "not_started"
+    },
+    { icon: "♡", label: "Wishlist", value: stats.wishlist, action: "wishlist" },
+    { icon: "◴", label: "Hours Played (All)", value: Number(stats.hours).toLocaleString(), action: null },
+    { icon: "◎", label: "Completion Rate", value: `${stats.avg_completion}%`, action: null }
+  ];
 }
 
-function statRows(stats: StatsPayload) {
-  const total = stats.total || 1;
-  return [
-    ["▦", "Total Games", stats.total],
-    ["✓", "Completed", `${stats.completed} (${Math.round((stats.completed / total) * 100)}%)`],
-    ["▣", "In Progress", `${stats.in_progress} (${Math.round((stats.in_progress / total) * 100)}%)`],
-    ["□", "Not Started", `${total - stats.completed - stats.in_progress} (${Math.round(((total - stats.completed - stats.in_progress) / total) * 100)}%)`],
-    ["♡", "Wishlist", stats.wishlist],
-    ["◴", "Hours Played (All)", Number(stats.hours).toLocaleString()],
-    ["◎", "Completion Rate", `${stats.avg_completion}%`]
-  ] as const;
+function isCompleted(game: Game) {
+  return game.status === "Completed" || Number(game.completion_percentage || 0) >= 100;
 }
 
 function statusClass(game: Game) {
@@ -1019,25 +1037,52 @@ function previewStats(games: Game[]): StatsPayload {
 
 function previewRecommendations(games: Game[]): RecommendationPayload {
   const backlog = [...games]
-    .filter((game) => game.ownership === "Owned" && game.status !== "Completed")
+    .filter((game) => game.ownership === "Owned" && !isCompleted(game))
     .sort((a, b) => previewScore(b) - previewScore(a))
     .slice(0, 3);
   const wishlist = [...games]
     .filter((game) => game.ownership === "Wishlist")
     .sort((a, b) => previewScore(b) - previewScore(a))
     .slice(0, 3);
-  const unfinished = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed");
+  const unfinished = games.filter((game) => game.ownership === "Owned" && !isCompleted(game));
   return { backlog, wishlist, random: unfinished.length ? unfinished[Math.floor(Math.random() * unfinished.length)] : null };
 }
 
 function previewShuffle(games: Game[], mood: string, time: string) {
-  const candidates = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed");
+  const candidates = games.filter((game) => game.ownership === "Owned" && !isCompleted(game) && matchesMood(game, mood) && matchesTime(game, time));
   if (!candidates.length) return { game: null, reason: "Add a demo game first, or sign in with Steam to shuffle your real backlog." };
   const game = candidates[Math.floor(Math.random() * candidates.length)];
   return {
     game,
     reason: `Preview pick for ${mood.toLowerCase()} / ${time.toLowerCase()}. Sign in when you want this to use your Steam library.`
   };
+}
+
+function shufflePreviewCards(games: Game[], selected: Game) {
+  const extra = games
+    .filter((game) => game.id !== selected.id && game.ownership === "Owned" && !isCompleted(game))
+    .sort((a, b) => previewScore(b) - previewScore(a))
+    .slice(0, 2);
+  return [selected, ...extra].slice(0, 3);
+}
+
+function matchesMood(game: Game, mood: string) {
+  if (mood === "Any vibe") return true;
+  const text = `${game.title} ${game.genre} ${game.notes}`.toLowerCase();
+  if (mood === "Relaxed") return /(casual|cozy|cosy|puzzle|simulation|sim|sandbox|farming|relax|family)/.test(text);
+  if (mood === "Action") return /(action|shooter|fps|combat|hack|arcade|fighter)/.test(text);
+  if (mood === "Story") return /(story|adventure|rpg|role-playing|narrative|visual novel)/.test(text);
+  if (mood === "Competitive") return /(competitive|multiplayer|moba|sports|racing|strategy|battle royale|pvp)/.test(text);
+  return true;
+}
+
+function matchesTime(game: Game, time: string) {
+  if (time === "Any time") return true;
+  const bucket = timeBucket(game);
+  if (time === "Quick 30-60m") return bucket === "Short";
+  if (time === "Evening 1-3h") return bucket !== "Long";
+  if (time === "Weekend project") return true;
+  return true;
 }
 
 function previewScore(game: Game) {

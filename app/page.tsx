@@ -23,15 +23,6 @@ export default function HomePage() {
               Vault Shuffle turns a messy Steam library into a focused shortlist. Filter out the noise, roll the
               backlog, and choose something that actually fits tonight.
             </p>
-            <div className="hero-actions">
-              <Link className="primary-action" href="/login">Open Vault Shuffle</Link>
-              <Link className="secondary-action" href="/app">Look around first</Link>
-            </div>
-            <ul className="hero-points" aria-label="Vault Shuffle benefits">
-              <li>Steam sign-in</li>
-              <li>Smart shuffle</li>
-              <li>Guest preview</li>
-            </ul>
           </div>
 
           <div className="game-wall" aria-label="Steam game artwork preview">
@@ -46,6 +37,10 @@ export default function HomePage() {
               <strong>Tonight's pick</strong>
             </div>
           </div>
+        </section>
+        <section className="landing-bottom-cta" aria-label="Open Vault Shuffle">
+          <p>Ready to see how it feels?</p>
+          <Link className="primary-action" href="/app">Open Vault Shuffle</Link>
         </section>
       </main>
       <SiteFooter />

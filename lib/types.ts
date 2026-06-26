@@ -66,4 +66,5 @@ export type SteamSearchResult = {
   name: string;
   image: string;
   store_url: string;
+  genre?: string;
 };

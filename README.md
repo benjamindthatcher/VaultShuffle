@@ -2,7 +2,7 @@
 
 [Vault Shuffle](https://www.vaultshuffle.com) is a Steam backlog companion that helps players stop staring at a giant library and actually pick something to play.
 
-Sign in with Steam, import your owned games, filter by status or playtime, and let the shuffle view recommend a sensible next pick. Visitors can also open the app in preview mode and try the interface before connecting a Steam account.
+Open the app in preview mode, add a couple of games from Steam search, and try the shuffle flow before connecting a Steam account. Signing in with Steam imports owned games, playtime, profile details, and keeps the library synced to the user account.
 
 ## What It Does
 
@@ -10,8 +10,8 @@ Sign in with Steam, import your owned games, filter by status or playtime, and l
 - Steam library import using the Steam Web API
 - Steam store search for adding individual games
 - Supabase-backed game data, statuses, recommendations, and user records
-- Filters for status, ownership, vibe, playtime, completed games, and sorting
-- Smart shuffle recommendations for unfinished backlog games
+- Filters for status, ownership, priority, playtime, completed games, and sorting
+- Smart shuffle recommendations for unfinished backlog games, with mood and time controls
 - Temporary browser-only preview mode for guests
 - Responsive blue/purple interface built for a hosted web app
 
@@ -38,4 +38,4 @@ Guest preview games stay in the browser's local storage and are not synced to Su
 
 ## Status
 
-The site is live and under active development. Current focus areas are polishing the dashboard experience, improving imported Steam metadata, and making recommendations feel more personal.
+The site is live and under active development. Current focus areas are dashboard polish, richer Steam metadata, and making recommendations feel more personal.

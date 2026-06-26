@@ -52,12 +52,12 @@ img {
 }
 
 .site-nav {
-  position: sticky;
-  top: 14px;
+  position: static;
+  top: auto;
   z-index: 10;
   min-height: 64px;
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto 1fr;
   gap: 22px;
   align-items: center;
   margin-top: 14px;
@@ -924,7 +924,8 @@ h1 {
 
 /* Clean launch-page pass: simple hero, fixed-feeling nav, app preview login. */
 .site-nav {
-  top: 0;
+  position: static;
+  top: auto;
   width: 100%;
   max-width: none;
   min-height: 66px;
@@ -986,6 +987,33 @@ h1 {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 850;
+}
+
+.landing-bottom-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: -54px auto 42px;
+  padding: 18px 20px;
+  color: var(--muted);
+  background: rgba(7, 22, 40, 0.56);
+  border: 1px solid rgba(130, 195, 245, 0.13);
+  border-radius: 24px;
+  width: min(520px, 100%);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.20);
+}
+
+.landing-bottom-cta p {
+  font-size: 15px;
+  font-weight: 760;
+}
+
+.landing-bottom-cta .primary-action {
+  min-height: 38px;
+  padding: 0 18px;
+  background: linear-gradient(180deg, #ecc7ff, #bd63ee);
+  box-shadow: 0 12px 26px rgba(174, 91, 255, 0.18);
 }
 
 .game-wall {
@@ -1209,5 +1237,110 @@ h1 {
 
   .shuffle-orb strong {
     font-size: 17px;
+  }
+}
+
+/* Login should be a single, direct decision point. */
+.login-page {
+  min-height: calc(100vh - 66px);
+  padding: 42px 0;
+  place-items: center;
+}
+
+.login-shell {
+  width: min(860px, calc(100% - 32px));
+  display: block;
+}
+
+.login-card {
+  min-height: min(690px, calc(100vh - 150px));
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(34px, 5vw, 64px);
+  border-radius: 34px;
+}
+
+.login-brand {
+  margin-bottom: clamp(34px, 6vh, 70px);
+}
+
+.login-card h1 {
+  max-width: 760px;
+  font-size: clamp(50px, 7.1vw, 88px);
+  line-height: 0.93;
+}
+
+.login-card p:not(.login-kicker):not(.login-note):not(.preview-copy) {
+  max-width: 660px;
+  font-size: 20px;
+}
+
+.login-actions {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  margin-top: 34px;
+}
+
+.steam-login-button {
+  display: inline-flex;
+  margin: 0;
+  border-radius: 6px;
+  transition: transform .16s ease, filter .16s ease;
+}
+
+.steam-login-button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+.preview-copy {
+  max-width: none;
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(22px, 3vw, 34px);
+  line-height: 1.15;
+  font-weight: 900;
+}
+
+.look-around-link {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  color: #f0c8ff;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  text-decoration: underline;
+  text-decoration-thickness: .09em;
+  text-underline-offset: .16em;
+}
+
+.look-around-link:hover {
+  color: #ffffff;
+}
+
+.login-note {
+  margin-top: 28px;
+}
+
+.login-preview {
+  display: none;
+}
+
+@media (max-width: 620px) {
+  .login-shell {
+    width: min(100% - 22px, 860px);
+  }
+
+  .login-card {
+    min-height: auto;
+    padding: 28px;
+    border-radius: 24px;
+  }
+
+  .login-card h1 {
+    font-size: 46px;
   }
 }

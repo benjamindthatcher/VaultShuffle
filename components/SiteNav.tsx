@@ -12,9 +12,6 @@ export function SiteNav() {
         <Link href="/about">About</Link>
         <Link href="/privacy">Privacy</Link>
       </nav>
-      <Link className="nav-cta" href="/login">
-        Open App
-      </Link>
     </header>
   );
 }
