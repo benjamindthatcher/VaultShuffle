@@ -281,12 +281,14 @@ export function Dashboard() {
     await patchSelected({ status: "Completed", completion_percentage: 100 });
   }
 
-  async function startSelectedPlaying() {
+  function startSelectedPlaying() {
     if (!selected) return;
-    await patchSelected({
-      status: "In Progress",
-      completion_percentage: Math.min(Number(selected.completion_percentage || 0), 99)
-    });
+    if (!selected.steam_appid) {
+      setNotice("This game does not have a Steam AppID to launch from yet.");
+      return;
+    }
+    window.location.href = `steam://rungameid/${selected.steam_appid}`;
+    setNotice(`Opening ${selected.title} in Steam...`);
   }
 
   async function deleteSelected() {
