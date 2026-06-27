@@ -16,7 +16,15 @@ export const gamePayloadSchema = z.object({
   steam_appid: z.preprocess((value) => (value === undefined || value === "" ? null : value), z.string().trim().nullable())
 });
 
-export const patchGameSchema = gamePayloadSchema.partial();
+export const patchGameSchema = z.object({
+  ownership: z.enum(["Owned", "Wishlist", "Game pass"]).optional(),
+  status: z.enum(["Not Started", "In Progress", "Completed"]).optional(),
+  hours_played: z.coerce.number().min(0).optional(),
+  completion_percentage: z.coerce.number().int().min(0).max(100).optional(),
+  priority: z.enum(["Low", "Medium", "High"]).optional(),
+  last_played_at: z.preprocess((value) => (value === undefined || value === "" ? null : value), z.string().trim().nullable()).optional(),
+  notes: z.string().trim().optional()
+}).strict();
 
 export const steamKeySchema = z.object({
   api_key: z.string().trim().min(10)

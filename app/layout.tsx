@@ -13,6 +13,16 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
+      <head>
+        <style
+          dangerouslySetInnerHTML={{
+            __html:
+              "html,body{margin:0;min-height:100%;background:#051426;color:#f1f7ff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}img{max-width:100%;}"
+          }}
+        />
+        <link rel="preload" href="/landing.css" as="style" />
+        <link rel="preload" href="/styles.css" as="style" />
+      </head>
       <body>
         {children}
         <SpeedInsights />

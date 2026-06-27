@@ -63,6 +63,7 @@ export function Dashboard() {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [mood, setMood] = useState("Any vibe");
   const [time, setTime] = useState("Any time");
+  const [shuffleCount, setShuffleCount] = useState<1 | 2 | 3>(3);
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
   const [shuffleMessage, setShuffleMessage] = useState("Choose a vibe and roll an unfinished owned game.");
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
@@ -70,7 +71,11 @@ export function Dashboard() {
   const [steamQuery, setSteamQuery] = useState("");
   const [notice, setNotice] = useState("");
   const [guestPrompt, setGuestPrompt] = useState(false);
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [notesEditing, setNotesEditing] = useState(false);
+  const [notesDraft, setNotesDraft] = useState("");
   const steamDialogRef = useRef<HTMLDialogElement>(null);
+  const metadataSyncingRef = useRef(false);
 
   const isLoggedIn = Boolean(session?.logged_in);
 
@@ -108,6 +113,11 @@ export function Dashboard() {
     return () => window.clearTimeout(timer);
   }, [steamQuery]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !games.some(needsSteamMetadata)) return;
+    void syncSteamMetadata(2);
+  }, [games.length, isLoggedIn]);
+
   const filteredGames = useMemo(() => {
     const lowerQuery = query.trim().toLowerCase();
     const priorityScore = { High: 3, Medium: 2, Low: 1 } as Record<string, number>;
@@ -137,6 +147,17 @@ export function Dashboard() {
   }, [games, hideCompleted, ownership, playtimeFilter, priorityFilter, query, sort, status]);
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!selected) {
+      setNotesOpen(false);
+      setNotesEditing(false);
+      setNotesDraft("");
+      return;
+    }
+    setNotesDraft(selected.notes || "");
+    setNotesEditing(false);
+  }, [selected?.id, selected?.notes]);
 
   async function load(importAfterLogin = false) {
     const sessionPayload = await api<SessionPayload>("/api/session");
@@ -180,11 +201,52 @@ export function Dashboard() {
         setShuffleCards(importedRecs.backlog.slice(0, 5));
         setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
         setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
+        void syncSteamMetadata(6, true);
       } catch (error) {
         setNotice(error instanceof Error ? error.message : "Steam library import failed.");
       }
     } else if (importAfterLogin) {
       setNotice("Steam sign-in worked. Add STEAM_WEB_API_KEY to Vercel to import your library.");
+    }
+  }
+
+  async function refreshLibrary(preferredSelectedId?: string | null) {
+    const [{ games: nextGames }, nextStats, nextRecs] = await Promise.all([
+      api<{ games: Game[] }>("/api/games"),
+      api<StatsPayload>("/api/stats"),
+      api<RecommendationPayload>("/api/recommendations")
+    ]);
+    setGames(nextGames);
+    setStats(nextStats);
+    setRecs(nextRecs);
+    setShuffleCards((current) => current.filter((card) => nextGames.some((game) => game.id === card.id)).slice(0, shuffleCount));
+    setSelectedId((current) => {
+      const preferred = preferredSelectedId ?? current;
+      if (preferred && nextGames.some((game) => game.id === preferred)) return preferred;
+      return nextGames[0]?.id ?? null;
+    });
+  }
+
+  async function syncSteamMetadata(passes = 4, force = false) {
+    if ((!force && !isLoggedIn) || metadataSyncingRef.current) return;
+    metadataSyncingRef.current = true;
+    try {
+      let totalUpdated = 0;
+      for (let pass = 0; pass < passes; pass += 1) {
+        const result = await api<{ processed: number; updated: number; remaining: number }>("/api/steam/metadata", {
+          method: "POST",
+          body: JSON.stringify({ limit: 12 })
+        });
+        totalUpdated += result.updated;
+        if (result.updated) await refreshLibrary(selectedId);
+        if (!result.remaining || !result.processed) break;
+        await delay(900);
+      }
+      if (totalUpdated) setNotice(`Steam metadata updated for ${totalUpdated} ${totalUpdated === 1 ? "game" : "games"}.`);
+    } catch {
+      // Metadata enrichment is best-effort. The library itself should stay usable.
+    } finally {
+      metadataSyncingRef.current = false;
     }
   }
 
@@ -259,7 +321,8 @@ export function Dashboard() {
     const { game } = await api<{ game: Game }>("/api/games", { method: "POST", body: JSON.stringify(payload) });
     steamDialogRef.current?.close();
     revealLibrary();
-    await load();
+    await refreshLibrary(game.id);
+    if (needsSteamMetadata(game)) void syncSteamMetadata(2);
     setSelectedId(game.id);
   }
 
@@ -273,8 +336,7 @@ export function Dashboard() {
       return;
     }
     await api(`/api/games/${selected.id}`, { method: "PATCH", body: JSON.stringify(payload) });
-    await load();
-    setSelectedId(selected.id);
+    await refreshLibrary(selected.id);
   }
 
   async function markSelectedCompleted() {
@@ -306,30 +368,25 @@ export function Dashboard() {
   async function shuffle() {
     setShuffleSpinning(true);
     window.setTimeout(() => setShuffleSpinning(false), 850);
-    if (!isLoggedIn) {
-      const payload = previewShuffle(games, mood, time);
-      if (!payload.game) {
-        setShuffleCards([]);
-        setShuffleMessage(payload.reason);
-        setGuestPrompt(true);
-        return;
-      }
-      setShuffleCards(shufflePreviewCards(games, payload.game));
-      setShuffleMessage(payload.reason);
-      setSelectedId(payload.game.id);
-      return;
-    }
-    const payload = await api<{ game: Game | null; reason: string }>(
-      `/api/shuffle?mood=${encodeURIComponent(mood)}&time=${encodeURIComponent(time)}`
-    );
-    if (!payload.game) {
+    const picks = pickShuffleGames(filteredGames, mood, time, shuffleCount);
+    if (!picks.length) {
+      const reason = isLoggedIn
+        ? "No games match the current filters and shuffle settings."
+        : "Add a demo game first, or sign in with Steam to shuffle your real backlog.";
       setShuffleCards([]);
-      setShuffleMessage(payload.reason);
+      setShuffleMessage(reason);
+      if (!isLoggedIn) setGuestPrompt(true);
       return;
     }
-    setShuffleCards(shufflePreviewCards(games, payload.game));
-    setShuffleMessage(payload.reason);
-    setSelectedId(payload.game.id);
+    setShuffleCards(picks);
+    setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from your current filters.`);
+    setSelectedId(picks[0].id);
+  }
+
+  async function saveNotes() {
+    if (!selected) return;
+    await patchSelected({ notes: notesDraft });
+    setNotesEditing(false);
   }
 
   async function importSteamLibrary() {
@@ -343,8 +400,9 @@ export function Dashboard() {
     }
     try {
       const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST", body: "{}" });
-      await load();
+      await refreshLibrary(selectedId);
       setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
+      void syncSteamMetadata(6);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Steam library import failed.");
     }
@@ -475,7 +533,7 @@ export function Dashboard() {
             </div>
             <div className={`shuffle-cards ${shuffleSpinning ? "is-spinning" : ""}`}>
               {shuffleCards.length ? (
-                shuffleCards.slice(0, 3).map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
+                shuffleCards.slice(0, shuffleCount).map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
               ) : (
                 <div className="rec-tile">
                   <Cover title="No pick" />
@@ -485,6 +543,18 @@ export function Dashboard() {
                   </div>
                 </div>
               )}
+            </div>
+            <div className="shuffle-count-row" aria-label="Number of games to shuffle">
+              {[1, 2, 3].map((count) => (
+                <button
+                  className={shuffleCount === count ? "active" : ""}
+                  key={count}
+                  onClick={() => setShuffleCount(count as 1 | 2 | 3)}
+                  type="button"
+                >
+                  {count}
+                </button>
+              ))}
             </div>
           </section>
 
@@ -528,7 +598,6 @@ export function Dashboard() {
             </div>
 
             <div className={`table-head ${viewMode === "grid" ? "hidden" : ""}`}>
-              <span>□</span>
               <span>Game</span>
               <span>Status</span>
               <span>Playtime</span>
@@ -559,7 +628,7 @@ export function Dashboard() {
             <h2>Game Details</h2>
             <button className="nav-icon">×</button>
           </div>
-          <GameDetails game={selected} onUpdate={patchSelected} />
+          <GameDetails game={selected} onOpenNotes={() => setNotesOpen(true)} onUpdate={patchSelected} />
           <div className="detail-section detail-actions">
             <h3>Actions</h3>
             <div className="quick-actions">
@@ -578,6 +647,43 @@ export function Dashboard() {
         onQuery={setSteamQuery}
         onAdd={addSteamGame}
       />
+      {notesOpen && selected ? (
+        <div className="notes-overlay" role="dialog" aria-modal="true" aria-label={`${selected.title} notes`}>
+          <section className="notes-modal">
+            <header>
+              <div>
+                <p className="detail-kicker">Notes</p>
+                <h2>{selected.title}</h2>
+              </div>
+              <div className="notes-modal-actions">
+                {notesEditing ? (
+                  <button className="soft-action" onClick={saveNotes} type="button">Save</button>
+                ) : (
+                  <button className="soft-action" onClick={() => setNotesEditing(true)} type="button">Edit</button>
+                )}
+                <button
+                  className="nav-icon"
+                  onClick={() => {
+                    setNotesOpen(false);
+                    setNotesEditing(false);
+                    setNotesDraft(selected.notes || "");
+                  }}
+                  type="button"
+                  aria-label="Close notes"
+                >
+                  ×
+                </button>
+              </div>
+            </header>
+            <textarea
+              readOnly={!notesEditing}
+              value={notesDraft}
+              onChange={(event) => setNotesDraft(event.target.value)}
+              placeholder="Add thoughts, saves, next steps, DLC notes, or why this belongs in the backlog."
+            />
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -586,7 +692,6 @@ function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; 
   const progress = clamp(Number(game.completion_percentage || 0), 0, 100);
   return (
     <div className={`game-row ${selected ? "selected" : ""}`} role="button" tabIndex={0} onClick={onSelect} onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && onSelect()}>
-      <span className="select-box">{selected ? "✓" : ""}</span>
       <span className="game-cell">
         <Cover game={game} />
         <span className="game-title">
@@ -655,7 +760,15 @@ function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean;
   );
 }
 
-function GameDetails({ game, onUpdate }: { game: Game | null; onUpdate: (payload: Partial<GamePayload>) => Promise<void> }) {
+function GameDetails({
+  game,
+  onOpenNotes,
+  onUpdate
+}: {
+  game: Game | null;
+  onOpenNotes: () => void;
+  onUpdate: (payload: Partial<GamePayload>) => Promise<void>;
+}) {
   if (!game) {
     return <div className="detail-content empty">Select a game from the library.</div>;
   }
@@ -691,9 +804,9 @@ function GameDetails({ game, onUpdate }: { game: Game | null; onUpdate: (payload
         {game.steam_appid ? <DetailLine label="Steam AppID" value={game.steam_appid} /> : null}
       </div>
       <InlineGameSettings game={game} onUpdate={onUpdate} />
-      <section className="notes">
+      <section className="notes-preview">
         <strong>Notes</strong>
-        <p>{game.notes || "No notes yet."}</p>
+        <button onClick={onOpenNotes} type="button">View</button>
       </section>
     </div>
   );
@@ -914,6 +1027,10 @@ function isCompleted(game: Game) {
   return game.status === "Completed" || Number(game.completion_percentage || 0) >= 100;
 }
 
+function needsSteamMetadata(game: Game) {
+  return Boolean(game.steam_appid && (!game.genre || game.genre === "Unknown"));
+}
+
 function statusClass(game: Game) {
   if (game.ownership === "Wishlist") return "wishlist";
   if (game.status === "Completed") return "completed";
@@ -968,6 +1085,10 @@ function initials(title: string) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
+}
+
+function delay(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function loadPreviewGames() {
@@ -1050,22 +1171,20 @@ function previewRecommendations(games: Game[]): RecommendationPayload {
   return { backlog, wishlist, random: unfinished.length ? unfinished[Math.floor(Math.random() * unfinished.length)] : null };
 }
 
-function previewShuffle(games: Game[], mood: string, time: string) {
-  const candidates = games.filter((game) => game.ownership === "Owned" && !isCompleted(game) && matchesMood(game, mood) && matchesTime(game, time));
-  if (!candidates.length) return { game: null, reason: "Add a demo game first, or sign in with Steam to shuffle your real backlog." };
-  const game = candidates[Math.floor(Math.random() * candidates.length)];
-  return {
-    game,
-    reason: `Preview pick for ${mood.toLowerCase()} / ${time.toLowerCase()}. Sign in when you want this to use your Steam library.`
-  };
+function pickShuffleGames(games: Game[], mood: string, time: string, count: number) {
+  const candidates = games.filter((game) => !isCompleted(game) && matchesMood(game, mood) && matchesTime(game, time));
+  return randomSample(candidates, count);
 }
 
-function shufflePreviewCards(games: Game[], selected: Game) {
-  const extra = games
-    .filter((game) => game.id !== selected.id && game.ownership === "Owned" && !isCompleted(game))
-    .sort((a, b) => previewScore(b) - previewScore(a))
-    .slice(0, 2);
-  return [selected, ...extra].slice(0, 3);
+function randomSample<T>(items: T[], count: number) {
+  const pool = [...items];
+  const picks: T[] = [];
+  while (pool.length && picks.length < count) {
+    const index = Math.floor(Math.random() * pool.length);
+    const [item] = pool.splice(index, 1);
+    picks.push(item);
+  }
+  return picks;
 }
 
 function matchesMood(game: Game, mood: string) {

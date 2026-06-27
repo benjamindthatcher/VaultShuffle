@@ -4,8 +4,6 @@ export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const SEARCH_CACHE_MS = 10 * 60 * 1000;
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
 const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
-const parsedImportDetailLimit = Number(process.env.STEAM_IMPORT_DETAIL_LIMIT || 60);
-const IMPORT_APP_DETAIL_LIMIT = Number.isFinite(parsedImportDetailLimit) ? parsedImportDetailLimit : 60;
 
 type CacheEntry<T> = { expires: number; value: T };
 const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
@@ -180,18 +178,7 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
     };
   });
 
-  const detailIds = [...baseGames]
-    .sort((a, b) => Number(b.hours_played || 0) - Number(a.hours_played || 0))
-    .slice(0, Math.max(0, IMPORT_APP_DETAIL_LIMIT))
-    .map((game) => String(game.steam_appid ?? ""));
-  const details = await fetchSteamAppDetailsBatch(detailIds);
-  return baseGames.map((game) => {
-    const appDetails = game.steam_appid ? details.get(String(game.steam_appid)) : null;
-    return {
-      ...game,
-      genre: appDetails?.genre || game.genre
-    };
-  });
+  return baseGames;
 }
 
 async function fetchSteamAppDetailsBatch(appids: string[]) {

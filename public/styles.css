@@ -788,7 +788,7 @@ textarea:focus {
 .table-head,
 .game-row {
   display: grid;
-  grid-template-columns: 20px minmax(166px, 1fr) 100px 72px 96px 68px 62px 92px 20px;
+  grid-template-columns: minmax(166px, 1fr) 100px 72px 96px 68px 62px 92px 20px;
   gap: 8px;
   align-items: center;
 }
@@ -830,13 +830,6 @@ textarea:focus {
 .game-row.selected {
   background: linear-gradient(90deg, rgba(214, 137, 255, 0.25), rgba(41, 119, 187, 0.10));
   box-shadow: inset 2px 0 0 var(--accent);
-}
-
-.select-box {
-  width: 14px;
-  height: 14px;
-  border: 1px solid rgba(154, 199, 236, 0.48);
-  border-radius: 5px;
 }
 
 .game-cell {
@@ -1101,7 +1094,7 @@ textarea:focus {
   color: var(--accent-strong);
 }
 
-.notes {
+.notes-preview {
   margin-top: 10px;
   padding: 0;
   background: transparent;
@@ -1111,19 +1104,32 @@ textarea:focus {
   font-size: 12px;
 }
 
-.notes strong {
+.notes-preview strong {
   color: var(--muted);
-  display: block;
-  margin-bottom: 5px;
+  display: inline-block;
   font-size: 10px;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: .04em;
 }
 
-.notes p {
+.notes-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.notes-preview button,
+.soft-action {
+  min-height: 28px;
+  padding: 0 14px;
   color: #dcecff;
-  margin: 0;
+  background: rgba(19, 44, 72, 0.58);
+  border: 1px solid rgba(124, 185, 237, 0.18);
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .inline-settings {
@@ -1712,6 +1718,30 @@ textarea {
   animation: shuffle-pop .85s ease;
 }
 
+.shuffle-count-row {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+.shuffle-count-row button {
+  width: 34px;
+  min-height: 28px;
+  color: var(--muted);
+  background: rgba(14, 34, 58, 0.66);
+  border: 1px solid rgba(124, 185, 237, 0.16);
+  border-radius: 10px;
+  font-weight: 900;
+}
+
+.shuffle-count-row button.active {
+  color: #170e23;
+  background: linear-gradient(180deg, #f0d6ff, #ce79f2);
+  border-color: rgba(250, 224, 255, 0.42);
+  box-shadow: 0 10px 24px rgba(174, 91, 255, 0.18);
+}
+
 @keyframes shuffle-pop {
   0% { transform: translateY(0) scale(1); filter: blur(0); }
   35% { transform: translateY(-6px) scale(1.025); filter: blur(1px); }
@@ -1816,6 +1846,67 @@ textarea {
   color: #dcecff;
   background: rgba(19, 44, 72, 0.58);
   border: 1px solid rgba(124, 185, 237, 0.16);
+}
+
+.notes-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: rgba(1, 7, 14, 0.62);
+}
+
+.notes-modal {
+  width: min(760px, calc(100vw - 40px));
+  min-height: min(520px, calc(100vh - 80px));
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: rgba(8, 25, 43, 0.98);
+  border: 1px solid rgba(139, 190, 235, 0.18);
+  border-radius: 18px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.46);
+}
+
+.notes-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(139, 190, 235, 0.12);
+}
+
+.notes-modal h2 {
+  margin: 2px 0 0;
+  color: var(--text);
+  font-size: 20px;
+}
+
+.notes-modal-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notes-modal textarea {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  resize: none;
+  padding: 20px;
+  color: #edf7ff;
+  background: rgba(5, 18, 33, 0.84);
+  border: 0;
+  outline: 0;
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+.notes-modal textarea:read-only {
+  color: #c8d8ea;
 }
 
 .table-head.hidden {

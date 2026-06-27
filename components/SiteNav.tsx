@@ -1,16 +1,14 @@
-import Link from "next/link";
-
 export function SiteNav() {
   return (
     <header className="site-nav">
-      <Link className="site-brand" href="/" aria-label="Vault Shuffle home">
+      <a className="site-brand" href="/" aria-label="Vault Shuffle home">
         <img src="/assets/vault-shuffle-icon.png" alt="" />
         <span>Vault Shuffle</span>
-      </Link>
+      </a>
       <nav aria-label="Primary navigation">
-        <Link href="/features">Features</Link>
-        <Link href="/about">About</Link>
-        <Link href="/privacy">Privacy</Link>
+        <a href="/features">Features</a>
+        <a href="/about">About</a>
+        <a href="/privacy">Privacy</a>
       </nav>
     </header>
   );
@@ -21,9 +19,9 @@ export function SiteFooter() {
     <footer className="site-footer">
       <span>Vault Shuffle</span>
       <nav aria-label="Footer navigation">
-        <Link href="/about">About</Link>
-        <Link href="/privacy">Privacy</Link>
-        <Link href="/terms">Terms</Link>
+        <a href="/about">About</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/terms">Terms</a>
       </nav>
     </footer>
   );

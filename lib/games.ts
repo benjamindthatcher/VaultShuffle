@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
 import type { Game, GamePayload, RecommendationPayload, StatsPayload } from "@/lib/types";
 
 function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
@@ -28,7 +29,7 @@ export async function listGames(userId: string) {
     .order("title", { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as Game[];
+  return applyCachedSteamMetadata((data ?? []) as Game[]);
 }
 
 export async function findGame(userId: string, gameId: string) {
@@ -109,8 +110,9 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
     if (game.steam_appid) steamGames.set(game.steam_appid, game);
   }
 
-  const incomingGames = [...steamGames.values()];
+  const incomingGames = await applyCachedSteamMetadata([...steamGames.values()]);
   if (!incomingGames.length) return [];
+  await queueSteamMetadata(incomingGames.map((game) => String(game.steam_appid ?? "")));
 
   const supabase = getSupabaseAdmin();
   const { data: existingData, error: existingError } = await supabase
@@ -269,12 +271,14 @@ async function updateSteamBackedGame(userId: string, existing: Game, incoming: G
 function normalizePatchPayload(payload: Partial<GamePayload>) {
   const update: Record<string, string | number | null> = {};
   for (const [key, value] of Object.entries(payload)) {
+    if (value === undefined) continue;
     if (key === "steam_appid") update[key] = String(value ?? "").trim() || null;
     else if (key === "date_added" || key === "last_played_at") update[key] = value ? String(value) : null;
     else if (typeof value === "number") update[key] = value;
     else update[key] = String(value ?? "").trim();
   }
   if (update.status === "Completed") update.completion_percentage = 100;
+  if (typeof update.completion_percentage === "number" && update.completion_percentage >= 100) update.status = "Completed";
   return update;
 }
 

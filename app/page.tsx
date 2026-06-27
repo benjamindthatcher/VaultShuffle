@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SiteFooter, SiteNav } from "@/components/SiteNav";
 
 const heroGames = [
@@ -40,7 +39,7 @@ export default function HomePage() {
         </section>
         <section className="landing-bottom-cta" aria-label="Open Vault Shuffle">
           <p>Ready to see how it feels?</p>
-          <Link className="primary-action" href="/app">Open Vault Shuffle</Link>
+          <a className="primary-action" href="/app">Open Vault Shuffle</a>
         </section>
       </main>
       <SiteFooter />
