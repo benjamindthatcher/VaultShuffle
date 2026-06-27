@@ -173,7 +173,7 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
       priority: "Medium",
       date_added: today,
       last_played_at: steamLastPlayedDate(item.rtime_last_played),
-      notes: `Imported from Steam account. AppID: ${appid}`,
+      notes: "",
       steam_appid: appid
     };
   });
@@ -237,7 +237,7 @@ function steamDetailPayload(appid: string, data: Record<string, unknown>): Parti
     title: String(data.name ?? "").trim() || undefined,
     genre: steamGenreLabel(data) || undefined,
     store: "Steam",
-    notes: `Added from Steam search. AppID: ${appid}`,
+    notes: "",
     steam_appid: appid
   };
 }

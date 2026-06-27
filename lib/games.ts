@@ -15,7 +15,7 @@ function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
     priority: payload.priority ?? "Medium",
     date_added: payload.date_added || null,
     last_played_at: payload.last_played_at || null,
-    notes: String(payload.notes ?? "").trim(),
+    notes: cleanUserNotes(payload.notes),
     steam_appid: String(payload.steam_appid ?? "").trim() || null
   };
 }
@@ -29,7 +29,8 @@ export async function listGames(userId: string) {
     .order("title", { ascending: true });
 
   if (error) throw error;
-  return applyCachedSteamMetadata((data ?? []) as Game[]);
+  const games = ((data ?? []) as Game[]).map(cleanGeneratedNotes);
+  return applyCachedSteamMetadata(games);
 }
 
 export async function findGame(userId: string, gameId: string) {
@@ -146,7 +147,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
       priority: existing.priority,
       date_added: existing.date_added || incoming.date_added,
       last_played_at: incoming.last_played_at || existing.last_played_at,
-      notes: existing.notes || incoming.notes,
+      notes: cleanUserNotes(existing.notes) || incoming.notes,
       steam_appid: incoming.steam_appid
     };
   });
@@ -257,7 +258,7 @@ async function updateSteamBackedGame(userId: string, existing: Game, incoming: G
     status: existing.status === "Completed" ? existing.status : incoming.status,
     date_added: existing.date_added || incoming.date_added,
     last_played_at: incoming.last_played_at || existing.last_played_at,
-    notes: existing.notes || incoming.notes,
+    notes: cleanUserNotes(existing.notes) || incoming.notes,
     ownership: existing.ownership,
     rating: existing.rating,
     completion_percentage: existing.completion_percentage,
@@ -275,11 +276,25 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
     if (key === "steam_appid") update[key] = String(value ?? "").trim() || null;
     else if (key === "date_added" || key === "last_played_at") update[key] = value ? String(value) : null;
     else if (typeof value === "number") update[key] = value;
-    else update[key] = String(value ?? "").trim();
+    else update[key] = key === "notes" ? cleanUserNotes(value) : String(value ?? "").trim();
   }
   if (update.status === "Completed") update.completion_percentage = 100;
   if (typeof update.completion_percentage === "number" && update.completion_percentage >= 100) update.status = "Completed";
   return update;
+}
+
+function cleanGeneratedNotes(game: Game) {
+  const notes = cleanUserNotes(game.notes);
+  return notes === game.notes ? game : { ...game, notes };
+}
+
+function cleanUserNotes(value: unknown) {
+  const notes = String(value ?? "").trim();
+  return isGeneratedSteamNote(notes) ? "" : notes;
+}
+
+function isGeneratedSteamNote(notes: string) {
+  return /^(Imported from Steam account|Added from Steam search)\. AppID: \d+$/i.test(notes);
 }
 
 function topBacklog(games: Game[]) {

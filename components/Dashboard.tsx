@@ -17,7 +17,7 @@ const emptyStats: StatsPayload = {
 const emptyRecs: RecommendationPayload = { backlog: [], wishlist: [], random: null };
 const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
 const METADATA_SYNC_BATCH_SIZE = 8;
-const METADATA_SYNC_DELAY_MS = 1400;
+const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
 
 const blankGame: GamePayload = {
@@ -55,6 +55,7 @@ export function Dashboard() {
   const [recs, setRecs] = useState<RecommendationPayload>(emptyRecs);
   const [session, setSession] = useState<SessionPayload | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [addQuery, setAddQuery] = useState("");
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("All");
   const [ownership, setOwnership] = useState("All");
@@ -63,6 +64,8 @@ export function Dashboard() {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [sort, setSort] = useState("hours_desc");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [rowMenuId, setRowMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [mood, setMood] = useState("Any vibe");
   const [time, setTime] = useState("Any time");
@@ -180,7 +183,7 @@ export function Dashboard() {
       setGames(previewGames);
       setStats(previewStats(previewGames));
       setRecs(previewRecs);
-      setShuffleCards(previewRecs.backlog.slice(0, 5));
+      setShuffleCards(previewRecs.backlog.slice(0, 3));
       setShuffleMessage(previewGames.length ? "Shuffle your temporary preview list, or sign in to import the real thing." : "Add a few Steam games to try the app, or sign in when you want your own library.");
       setSelectedId((current) => current ?? previewGames[0]?.id ?? null);
       setGuestPrompt(!previewGames.length);
@@ -196,7 +199,7 @@ export function Dashboard() {
     setGames(nextGames);
     setStats(nextStats);
     setRecs(nextRecs);
-    setShuffleCards(nextRecs.backlog.slice(0, 5));
+    setShuffleCards(nextRecs.backlog.slice(0, 3));
     setSelectedId((current) => current ?? nextGames[0]?.id ?? null);
 
     if (importAfterLogin && sessionPayload.has_steam_key) {
@@ -210,7 +213,7 @@ export function Dashboard() {
         setGames(importedGames);
         setStats(importedStats);
         setRecs(importedRecs);
-        setShuffleCards(importedRecs.backlog.slice(0, 5));
+        setShuffleCards(importedRecs.backlog.slice(0, 3));
         setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
         setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
         void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
@@ -296,10 +299,17 @@ export function Dashboard() {
     if (action === "wishlist") setOwnership("Wishlist");
   }
 
-  function openSteamDialog() {
-    setSteamQuery("");
+  function openSteamDialog(initialQuery = "") {
+    const nextQuery = initialQuery.trim();
+    setSteamQuery(nextQuery);
     setSteamResults([]);
     steamDialogRef.current?.showModal();
+    if (nextQuery.length >= 2) void searchSteam(nextQuery);
+  }
+
+  function submitAddSearch(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    openSteamDialog(addQuery);
   }
 
   async function searchSteam(term: string) {
@@ -319,7 +329,7 @@ export function Dashboard() {
       ...(details || {}),
       title: details?.title || result.name,
       genre: details?.genre || result.genre || blankGame.genre,
-      notes: `Added from Steam search. AppID: ${result.appid}`,
+      notes: "",
       steam_appid: result.appid
     };
     if (!isLoggedIn) {
@@ -335,6 +345,7 @@ export function Dashboard() {
     revealLibrary();
     await refreshLibrary(game.id);
     if (needsSteamMetadata(game)) void syncSteamMetadata(4);
+    setAddQuery("");
     setSelectedId(game.id);
   }
 
@@ -365,15 +376,16 @@ export function Dashboard() {
     setNotice(`Opening ${selected.title} in Steam...`);
   }
 
-  async function deleteSelected() {
-    if (!selected || !window.confirm(`Delete "${selected.title}"?`)) return;
+  async function deleteGame(gameToDelete: Game) {
+    setRowMenuId(null);
     if (!isLoggedIn) {
-      const nextGames = games.filter((game) => game.id !== selected.id);
-      applyPreviewGames(nextGames, nextGames[0]?.id ?? null, "Removed from your temporary preview list.");
+      const nextGames = games.filter((game) => game.id !== gameToDelete.id);
+      const nextSelectedId = selectedId === gameToDelete.id ? nextGames[0]?.id ?? null : selectedId;
+      applyPreviewGames(nextGames, nextSelectedId, "Removed from your temporary preview list.");
       return;
     }
-    await api(`/api/games/${selected.id}`, { method: "DELETE" });
-    setSelectedId(null);
+    await api(`/api/games/${gameToDelete.id}`, { method: "DELETE" });
+    if (selectedId === gameToDelete.id) setSelectedId(null);
     await load();
   }
 
@@ -443,6 +455,16 @@ export function Dashboard() {
     }
   }
 
+  function syncMetadataManually() {
+    if (!isLoggedIn) {
+      window.location.href = "/login";
+      return;
+    }
+    setNotice("Checking Steam metadata in the background...");
+    void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
+    setSettingsOpen(false);
+  }
+
   async function logout() {
     if (!isLoggedIn) {
       window.location.href = "/login";
@@ -458,7 +480,7 @@ export function Dashboard() {
     setGames(nextGames);
     setStats(previewStats(nextGames));
     setRecs(nextRecs);
-    setShuffleCards(nextRecs.backlog.slice(0, 5));
+    setShuffleCards(nextRecs.backlog.slice(0, 3));
     setSelectedId(nextSelectedId);
     setGuestPrompt(!nextGames.length);
     if (message) setNotice(message);
@@ -468,33 +490,46 @@ export function Dashboard() {
     <div className="app-shell">
       <header className="top-nav">
         <div className="nav-brand">
-          <a className="brand-lockup" href="/" aria-label="Vault Shuffle home">
+          <span className="brand-lockup" aria-label="Vault Shuffle">
             <img src="/assets/vault-shuffle-icon.png" alt="" />
             <strong>Vault Shuffle</strong>
-          </a>
-          <nav className="app-links" aria-label="App navigation">
-            <a href="/">Home</a>
-            <a href="/features">Features</a>
-          </nav>
+          </span>
         </div>
-        <div className="nav-search-group">
-          <label className="search-box">
+        <form className="nav-search-group" onSubmit={submitAddSearch}>
+          <div className="search-box add-search-box">
             <span>⌕</span>
-            <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Search games..." />
-          </label>
-        </div>
+            <input value={addQuery} onChange={(event) => setAddQuery(event.target.value)} type="search" placeholder="Search Steam to add a game..." />
+            <button type="submit">Search</button>
+          </div>
+        </form>
         <div className="nav-actions">
-          <button className="ghost" onClick={importSteamLibrary}>
-            {isLoggedIn ? "⇩ Import Steam Library" : "Sign in with Steam"}
-          </button>
-          {isLoggedIn ? <button className="ghost subtle" onClick={logout}>Sign out</button> : null}
-          <button className="nav-icon" aria-label="Settings">
-            ⚙
-          </button>
           <span className="steam-profile">
             {isLoggedIn && session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">{isLoggedIn ? "S" : "?"}</span>}
             <span>{isLoggedIn ? session?.display_name || "Steam user" : "Preview mode"}</span>
           </span>
+          <button className="ghost" onClick={importSteamLibrary}>
+            {isLoggedIn ? "⇩ Import Steam Library" : "Sign in with Steam"}
+          </button>
+          {isLoggedIn ? <button className="ghost subtle" onClick={logout}>Sign out</button> : null}
+          <div className="settings-wrap">
+            <button className={`nav-icon settings-button ${settingsOpen ? "active" : ""}`} onClick={() => setSettingsOpen((open) => !open)} type="button" aria-label="Settings">
+              ⚙
+            </button>
+            {settingsOpen ? (
+              <div className="settings-menu">
+                <strong>Settings</strong>
+                <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")} type="button">List view</button>
+                <button className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")} type="button">Cover view</button>
+                <label className="filter-switch compact">
+                  <input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" />
+                  <span className="switch-visual" aria-hidden="true" />
+                  <span>Hide completed</span>
+                </label>
+                <button onClick={syncMetadataManually} type="button">Sync Steam metadata</button>
+                <button onClick={clearFilters} type="button">Clear filters</button>
+              </div>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -536,6 +571,14 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+          <div className="side-actions">
+            <h2>Selected actions</h2>
+            <p>{selected ? selected.title : "Pick a game first"}</p>
+            <div className="quick-actions">
+              <button disabled={!selected} onClick={startSelectedPlaying}>Start playing</button>
+              <button disabled={!selected} onClick={markSelectedCompleted}>Mark complete</button>
+            </div>
+          </div>
           <div className="side-summary">
             <h2>Smart rules</h2>
             <p>{activeFilterLabel(status, ownership, priorityFilter, playtimeFilter, hideCompleted)}</p>
@@ -558,9 +601,11 @@ export function Dashboard() {
               </select>
               <select value={time} onChange={(event) => setTime(event.target.value)}>
                 <option>Any time</option>
-                <option>Quick 30-60m</option>
-                <option>Evening 1-3h</option>
-                <option>Weekend project</option>
+                <option>1-5h</option>
+                <option>6-15h</option>
+                <option>16-30h</option>
+                <option>31-50h</option>
+                <option>51+h</option>
               </select>
               <button className="shuffle-button" onClick={shuffle}>
                 Shuffle
@@ -603,14 +648,15 @@ export function Dashboard() {
                 <div className="filter-popover-wrap">
                   <button className={`filter-button ${filtersOpen ? "active" : ""}`} onClick={() => setFiltersOpen((open) => !open)} type="button">
                     Filter
-                    <span>{filterCount(status, ownership, priorityFilter, playtimeFilter, hideCompleted)}</span>
+                    <span>{filterCount(query, status, ownership, priorityFilter, playtimeFilter, hideCompleted)}</span>
                   </button>
                   {filtersOpen ? (
                     <div className="filter-popover">
+                      <label>Search<input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Filter library..." /></label>
                       <label>Status<select value={status} onChange={(event) => setStatus(event.target.value)}><option>All</option><option>Completed</option><option>In Progress</option><option>Not Started</option></select></label>
                       <label>Ownership<select value={ownership} onChange={(event) => setOwnership(event.target.value)}><option>All</option><option>Owned</option><option>Wishlist</option><option>Game pass</option></select></label>
                       <label>Priority<select value={priorityFilter} onChange={(event) => setPriorityFilter(event.target.value)}><option>All priorities</option><option>High</option><option>Medium</option><option>Low</option></select></label>
-                      <label>Playtime<select value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}><option>Any playtime</option><option>Short</option><option>Medium</option><option>Long</option></select></label>
+                      <label>Playtime<select value={playtimeFilter} onChange={(event) => setPlaytimeFilter(event.target.value)}><option>Any playtime</option><option>1-5h</option><option>6-15h</option><option>16-30h</option><option>31-50h</option><option>51+h</option></select></label>
                       <label className="filter-switch compact"><input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" /><span className="switch-visual" aria-hidden="true" /><span>Hide completed</span></label>
                       <div className="filter-popover-actions">
                         <button onClick={clearFilters} type="button">Clear</button>
@@ -619,7 +665,6 @@ export function Dashboard() {
                     </div>
                   ) : null}
                 </div>
-                <button className="toolbar-add-button" onClick={openSteamDialog} type="button" aria-label="Search Steam for a game">＋</button>
                 <label>Sort by</label>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
                   <option value="hours_desc">Playtime (High to Low)</option>
@@ -637,9 +682,8 @@ export function Dashboard() {
 
             <div className={`table-head ${viewMode === "grid" ? "hidden" : ""}`}>
               <span>Game</span>
-              <span>Status</span>
               <span>Playtime</span>
-              <span>Progress</span>
+              <span>Progress / Status</span>
               <span>Priority</span>
               <span>Time</span>
               <span>Last Played</span>
@@ -649,13 +693,27 @@ export function Dashboard() {
               {filteredGames.length ? (
                 filteredGames.map((game) =>
                   viewMode === "grid" ? (
-                    <GameCard game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
+                    <GameCard game={game} key={game.id} selected={game.id === selectedId} onSelect={() => {
+                      setSelectedId(game.id);
+                      setRowMenuId(null);
+                    }} />
                   ) : (
-                    <GameRow game={game} key={game.id} selected={game.id === selectedId} onSelect={() => setSelectedId(game.id)} />
+                    <GameRow
+                      game={game}
+                      key={game.id}
+                      menuOpen={rowMenuId === game.id}
+                      selected={game.id === selectedId}
+                      onDelete={() => void deleteGame(game)}
+                      onSelect={() => {
+                        setSelectedId(game.id);
+                        setRowMenuId(null);
+                      }}
+                      onToggleMenu={() => setRowMenuId((current) => current === game.id ? null : game.id)}
+                    />
                   )
                 )
               ) : (
-                <GuestLibraryState loggedIn={isLoggedIn} onAdd={openSteamDialog} onSignIn={() => (window.location.href = "/login")} />
+                <GuestLibraryState loggedIn={isLoggedIn} onAdd={() => openSteamDialog()} onSignIn={() => (window.location.href = "/login")} />
               )}
             </div>
           </section>
@@ -667,14 +725,6 @@ export function Dashboard() {
             <button className="nav-icon">×</button>
           </div>
           <GameDetails game={selected} onOpenNotes={() => setNotesOpen(true)} onUpdate={patchSelected} />
-          <div className="detail-section detail-actions">
-            <h3>Actions</h3>
-            <div className="quick-actions">
-              <button disabled={!selected} onClick={startSelectedPlaying}>Start playing</button>
-              <button disabled={!selected} onClick={markSelectedCompleted}>Mark complete</button>
-              <button disabled={!selected} className="remove" onClick={deleteSelected}>Remove</button>
-            </div>
-          </div>
         </aside>
       </div>
 
@@ -726,10 +776,36 @@ export function Dashboard() {
   );
 }
 
-function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; onSelect: () => void }) {
+function GameRow({
+  game,
+  selected,
+  menuOpen,
+  onSelect,
+  onToggleMenu,
+  onDelete
+}: {
+  game: Game;
+  selected: boolean;
+  menuOpen: boolean;
+  onSelect: () => void;
+  onToggleMenu: () => void;
+  onDelete: () => void;
+}) {
   const progress = clamp(Number(game.completion_percentage || 0), 0, 100);
   return (
-    <div className={`game-row ${selected ? "selected" : ""}`} role="button" tabIndex={0} onClick={onSelect} onKeyDown={(event) => (event.key === "Enter" || event.key === " ") && onSelect()}>
+    <div
+      className={`game-row ${selected ? "selected" : ""}`}
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(event) => {
+        if (event.currentTarget !== event.target) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onSelect();
+        }
+      }}
+    >
       <span className="game-cell">
         <Cover game={game} />
         <span className="game-title">
@@ -737,13 +813,12 @@ function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; 
           <small>{game.genre || "Unknown"}</small>
         </span>
       </span>
-      <span className={`chip ${statusClass(game)}`}>{statusIcon(game)} {game.status}</span>
       <span>{Number(game.hours_played).toLocaleString()}h</span>
-      <span className="progress-cell">
+      <span className="progress-status-cell">
         <span className="progress-track">
           <span className="progress-fill" style={{ width: `${progress}%` }} />
         </span>
-        {progress ? `${progress}%` : "—"}
+        <span className={`chip ${statusClass(game)}`}>{statusIcon(game)} {game.status}</span>
       </span>
       <span className="pill">
         <i className={`dot ${priorityClass(game.priority)}`} />
@@ -751,7 +826,32 @@ function GameRow({ game, selected, onSelect }: { game: Game; selected: boolean; 
       </span>
       <span className="pill">{timeBucket(game)}</span>
       <span>{formatLastPlayed(game.last_played_at)}</span>
-      <span>⋮</span>
+      <span className="row-menu-cell">
+        <button
+          aria-label={`Actions for ${game.title}`}
+          className="row-menu-button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onToggleMenu();
+          }}
+          type="button"
+        >
+          ⋮
+        </button>
+        {menuOpen ? (
+          <span className="row-menu" onClick={(event) => event.stopPropagation()}>
+            <button
+              onClick={(event) => {
+                event.stopPropagation();
+                onDelete();
+              }}
+              type="button"
+            >
+              Delete
+            </button>
+          </span>
+        ) : null}
+      </span>
     </div>
   );
 }
@@ -789,11 +889,13 @@ function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean;
       <span className="game-card-body">
         <strong>{game.title}</strong>
         <small>{game.genre || "Unknown"} · {Number(game.hours_played || 0).toLocaleString()}h</small>
-        <span className="progress-track">
-          <span className="progress-fill" style={{ width: `${progress}%` }} />
+        <span className="game-card-meta">
+          <span className="progress-track">
+            <span className="progress-fill" style={{ width: `${progress}%` }} />
+          </span>
+          <span className={`chip ${statusClass(game)}`}>{game.status}</span>
         </span>
       </span>
-      <span className={`chip ${statusClass(game)}`}>{game.status}</span>
     </button>
   );
 }
@@ -925,8 +1027,8 @@ function DetailLine({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-function filterCount(status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
-  return [status !== "All", ownership !== "All", priority !== "All priorities", playtime !== "Any playtime", hideCompleted].filter(Boolean).length;
+function filterCount(query: string, status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
+  return [query.trim(), status !== "All", ownership !== "All", priority !== "All priorities", playtime !== "Any playtime", hideCompleted].filter(Boolean).length;
 }
 
 function activeFilterLabel(status: string, ownership: string, priority: string, playtime: string, hideCompleted: boolean) {
@@ -1090,9 +1192,11 @@ function priorityClass(priority: string) {
 
 function timeBucket(game: Game) {
   const hours = Number(game.hours_played || 0);
-  if (hours >= 50) return "Long";
-  if (hours >= 10) return "Medium";
-  return "Short";
+  if (hours > 50) return "51+h";
+  if (hours > 30) return "31-50h";
+  if (hours > 15) return "16-30h";
+  if (hours > 5) return "6-15h";
+  return "1-5h";
 }
 
 function dateSortValue(value?: string | null) {
@@ -1169,7 +1273,7 @@ function previewGameFromPayload(payload: GamePayload, id?: string): Game {
     priority: payload.priority,
     date_added: payload.date_added || new Date().toLocaleDateString("en-GB"),
     last_played_at: payload.last_played_at || null,
-    notes: payload.notes?.trim() || "Temporary preview game. Sign in with Steam to save a real library.",
+    notes: payload.notes?.trim() || "",
     steam_appid: payload.steam_appid ? String(payload.steam_appid) : null,
     created_at: now,
     updated_at: now
@@ -1237,11 +1341,7 @@ function matchesMood(game: Game, mood: string) {
 
 function matchesTime(game: Game, time: string) {
   if (time === "Any time") return true;
-  const bucket = timeBucket(game);
-  if (time === "Quick 30-60m") return bucket === "Short";
-  if (time === "Evening 1-3h") return bucket !== "Long";
-  if (time === "Weekend project") return true;
-  return true;
+  return timeBucket(game) === time;
 }
 
 function previewScore(game: Game) {
