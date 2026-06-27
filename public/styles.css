@@ -1710,8 +1710,20 @@ textarea {
 }
 
 .shuffle-cards {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  justify-content: center;
   gap: 12px;
+}
+
+.shuffle-cards.count-1 {
+  grid-template-columns: minmax(280px, 420px);
+}
+
+.shuffle-cards.count-2 {
+  grid-template-columns: repeat(2, minmax(260px, 410px));
+}
+
+.shuffle-cards.count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .shuffle-cards.is-spinning .rec-tile {
@@ -2053,7 +2065,10 @@ dialog {
   }
 
   .shuffle-row,
-  .shuffle-cards {
+  .shuffle-cards,
+  .shuffle-cards.count-1,
+  .shuffle-cards.count-2,
+  .shuffle-cards.count-3 {
     grid-template-columns: 1fr;
   }
 

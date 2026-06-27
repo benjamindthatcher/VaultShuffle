@@ -11,6 +11,7 @@ type SteamMetadataRow = {
 };
 
 const UNKNOWN_GENRES = new Set(["", "Unknown"]);
+const METADATA_RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
 
 export async function applyCachedSteamMetadata<T extends GamePayload | Game>(games: T[]): Promise<T[]> {
   const appIds = steamAppIds(games);
@@ -54,6 +55,17 @@ export async function queueSteamMetadata(appIds: string[]) {
 
   if (isMissingMetadataTable(error)) return 0;
   if (error) throw error;
+
+  const retryBefore = new Date(Date.now() - METADATA_RETRY_AFTER_MS).toISOString();
+  const { error: retryError } = await supabase
+    .from("steam_app_metadata")
+    .update({ status: "pending", last_error: null })
+    .in("steam_appid", uniqueAppIds)
+    .eq("status", "failed")
+    .lt("checked_at", retryBefore);
+
+  if (retryError && !isMissingMetadataTable(retryError)) throw retryError;
+
   return rows.length;
 }
 

@@ -16,6 +16,9 @@ const emptyStats: StatsPayload = {
 
 const emptyRecs: RecommendationPayload = { backlog: [], wishlist: [], random: null };
 const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
+const METADATA_SYNC_BATCH_SIZE = 8;
+const METADATA_SYNC_DELAY_MS = 1400;
+const METADATA_SYNC_MAX_BATCHES = 32;
 
 const blankGame: GamePayload = {
   title: "",
@@ -147,6 +150,7 @@ export function Dashboard() {
   }, [games, hideCompleted, ownership, playtimeFilter, priorityFilter, query, sort, status]);
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
+  const visibleShuffleCards = shuffleCards.slice(0, shuffleCount);
 
   useEffect(() => {
     if (!selected) {
@@ -201,7 +205,7 @@ export function Dashboard() {
         setShuffleCards(importedRecs.backlog.slice(0, 5));
         setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
         setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
-        void syncSteamMetadata(6, true);
+        void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
       } catch (error) {
         setNotice(error instanceof Error ? error.message : "Steam library import failed.");
       }
@@ -227,7 +231,7 @@ export function Dashboard() {
     });
   }
 
-  async function syncSteamMetadata(passes = 4, force = false) {
+  async function syncSteamMetadata(passes = METADATA_SYNC_MAX_BATCHES, force = false) {
     if ((!force && !isLoggedIn) || metadataSyncingRef.current) return;
     metadataSyncingRef.current = true;
     try {
@@ -235,12 +239,12 @@ export function Dashboard() {
       for (let pass = 0; pass < passes; pass += 1) {
         const result = await api<{ processed: number; updated: number; remaining: number }>("/api/steam/metadata", {
           method: "POST",
-          body: JSON.stringify({ limit: 12 })
+          body: JSON.stringify({ limit: METADATA_SYNC_BATCH_SIZE })
         });
         totalUpdated += result.updated;
         if (result.updated) await refreshLibrary(selectedId);
         if (!result.remaining || !result.processed) break;
-        await delay(900);
+        await delay(METADATA_SYNC_DELAY_MS);
       }
       if (totalUpdated) setNotice(`Steam metadata updated for ${totalUpdated} ${totalUpdated === 1 ? "game" : "games"}.`);
     } catch {
@@ -322,7 +326,7 @@ export function Dashboard() {
     steamDialogRef.current?.close();
     revealLibrary();
     await refreshLibrary(game.id);
-    if (needsSteamMetadata(game)) void syncSteamMetadata(2);
+    if (needsSteamMetadata(game)) void syncSteamMetadata(4);
     setSelectedId(game.id);
   }
 
@@ -383,6 +387,19 @@ export function Dashboard() {
     setSelectedId(picks[0].id);
   }
 
+  function changeShuffleCount(count: 1 | 2 | 3) {
+    setShuffleCount(count);
+    const picks = pickShuffleGames(filteredGames, mood, time, count);
+    if (!picks.length) {
+      setShuffleCards([]);
+      setShuffleMessage("No games match the current filters and shuffle settings.");
+      return;
+    }
+    setShuffleCards(picks);
+    setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from your current filters.`);
+    setSelectedId(picks[0].id);
+  }
+
   async function saveNotes() {
     if (!selected) return;
     await patchSelected({ notes: notesDraft });
@@ -402,7 +419,7 @@ export function Dashboard() {
       const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST", body: "{}" });
       await refreshLibrary(selectedId);
       setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
-      void syncSteamMetadata(6);
+      void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Steam library import failed.");
     }
@@ -531,9 +548,9 @@ export function Dashboard() {
                 Shuffle
               </button>
             </div>
-            <div className={`shuffle-cards ${shuffleSpinning ? "is-spinning" : ""}`}>
+            <div className={`shuffle-cards count-${visibleShuffleCards.length || shuffleCount} ${shuffleSpinning ? "is-spinning" : ""}`}>
               {shuffleCards.length ? (
-                shuffleCards.slice(0, shuffleCount).map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
+                visibleShuffleCards.map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
               ) : (
                 <div className="rec-tile">
                   <Cover title="No pick" />
@@ -549,7 +566,7 @@ export function Dashboard() {
                 <button
                   className={shuffleCount === count ? "active" : ""}
                   key={count}
-                  onClick={() => setShuffleCount(count as 1 | 2 | 3)}
+                  onClick={() => changeShuffleCount(count as 1 | 2 | 3)}
                   type="button"
                 >
                   {count}
