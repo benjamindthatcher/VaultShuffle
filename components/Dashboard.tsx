@@ -70,6 +70,7 @@ export function Dashboard() {
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
   const [shuffleMessage, setShuffleMessage] = useState("Choose a vibe and roll an unfinished owned game.");
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
+  const [shuffleAnimationKey, setShuffleAnimationKey] = useState(0);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
   const [steamQuery, setSteamQuery] = useState("");
   const [notice, setNotice] = useState("");
@@ -79,6 +80,7 @@ export function Dashboard() {
   const [notesDraft, setNotesDraft] = useState("");
   const steamDialogRef = useRef<HTMLDialogElement>(null);
   const metadataSyncingRef = useRef(false);
+  const shuffleAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const isLoggedIn = Boolean(session?.logged_in);
 
@@ -94,6 +96,12 @@ export function Dashboard() {
       window.history.replaceState(null, "", window.location.pathname);
     }
     void load(shouldImport);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (shuffleAnimationTimerRef.current) clearTimeout(shuffleAnimationTimerRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -370,8 +378,7 @@ export function Dashboard() {
   }
 
   async function shuffle() {
-    setShuffleSpinning(true);
-    window.setTimeout(() => setShuffleSpinning(false), 850);
+    playShuffleAnimation();
     const picks = pickShuffleGames(filteredGames, mood, time, shuffleCount);
     if (!picks.length) {
       const reason = isLoggedIn
@@ -389,6 +396,7 @@ export function Dashboard() {
 
   function changeShuffleCount(count: 1 | 2 | 3) {
     setShuffleCount(count);
+    playShuffleAnimation();
     const picks = pickShuffleGames(filteredGames, mood, time, count);
     if (!picks.length) {
       setShuffleCards([]);
@@ -398,6 +406,16 @@ export function Dashboard() {
     setShuffleCards(picks);
     setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from your current filters.`);
     setSelectedId(picks[0].id);
+  }
+
+  function playShuffleAnimation() {
+    if (shuffleAnimationTimerRef.current) clearTimeout(shuffleAnimationTimerRef.current);
+    setShuffleAnimationKey((key) => key + 1);
+    setShuffleSpinning(true);
+    shuffleAnimationTimerRef.current = setTimeout(() => {
+      setShuffleSpinning(false);
+      shuffleAnimationTimerRef.current = null;
+    }, 850);
   }
 
   async function saveNotes() {
@@ -548,7 +566,10 @@ export function Dashboard() {
                 Shuffle
               </button>
             </div>
-            <div className={`shuffle-cards count-${visibleShuffleCards.length || shuffleCount} ${shuffleSpinning ? "is-spinning" : ""}`}>
+            <div
+              className={`shuffle-cards count-${visibleShuffleCards.length || shuffleCount} ${shuffleSpinning ? "is-spinning" : ""}`}
+              key={shuffleAnimationKey}
+            >
               {shuffleCards.length ? (
                 visibleShuffleCards.map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
               ) : (
