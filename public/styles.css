@@ -653,7 +653,10 @@ textarea:focus {
 .fallback-initials,
 .cover .fallback-initials {
   grid-area: 1 / 1;
-  display: none;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
 }
 
 .rec-tile span {
@@ -2063,6 +2066,7 @@ dialog {
 .settings-wrap {
   position: relative;
   display: inline-flex;
+  z-index: 210;
 }
 
 .settings-button {
@@ -2089,7 +2093,7 @@ dialog {
   position: absolute;
   top: calc(100% + 9px);
   right: 0;
-  z-index: 35;
+  z-index: 240;
   width: 230px;
   display: grid;
   gap: 8px;
@@ -2125,61 +2129,8 @@ dialog {
   border-color: rgba(214, 137, 255, 0.36);
 }
 
-.side-actions {
-  margin-top: 24px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(139, 190, 235, 0.10);
-}
-
-.side-actions p {
-  min-height: 34px;
-  margin: 8px 0 10px;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.35;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.side-actions .quick-actions {
-  grid-template-columns: 1fr 1fr;
-}
-
-.side-actions .quick-actions button {
-  min-height: 34px;
-  background: rgba(19, 44, 72, 0.34);
-  border-color: rgba(124, 185, 237, 0.13);
-}
-
-.side-actions .quick-actions .remove {
-  grid-column: 1 / -1;
-}
-
 .details-panel {
   grid-template-rows: auto minmax(0, 1fr);
-}
-
-.table-head,
-.game-row {
-  grid-template-columns: minmax(190px, 1fr) 82px minmax(170px, 230px) 74px 74px 96px 34px;
-}
-
-.progress-status-cell {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: minmax(64px, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-}
-
-.progress-status-cell .progress-track {
-  width: 100%;
-}
-
-.progress-status-cell .chip {
-  justify-self: end;
 }
 
 .filter-popover input {
@@ -2255,6 +2206,251 @@ dialog {
 .row-menu button:focus-visible {
   background: rgba(90, 31, 60, 0.78);
   color: #fff0f4;
+}
+
+.top-nav {
+  position: relative;
+  z-index: 200;
+}
+
+select {
+  padding-right: 36px;
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+}
+
+.table-toolbar {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+}
+
+.toolbar-controls {
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.table-filter-search {
+  width: min(220px, 28vw);
+  min-height: 30px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  padding: 0 10px;
+  color: var(--quiet);
+  background: rgba(6, 19, 34, 0.68);
+  border: 1px solid rgba(124, 185, 237, 0.16);
+  border-radius: 10px;
+}
+
+.table-filter-search input {
+  min-height: 28px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #dcecff;
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.filter-popover {
+  z-index: 180;
+}
+
+.settings-menu {
+  z-index: 240;
+}
+
+.table-head,
+.game-row {
+  grid-template-columns: minmax(220px, 1.35fr) 78px minmax(82px, .62fr) minmax(104px, .75fr) minmax(94px, .68fr) 64px 72px 102px 34px;
+}
+
+.table-head {
+  padding: 0 10px;
+}
+
+.table-head button,
+.table-head .actions-head {
+  min-height: 34px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-head button:hover,
+.table-head button:focus-visible {
+  color: #d8ecff;
+  transform: none;
+}
+
+.table-head .actions-head {
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.game-row {
+  padding: 5px 10px;
+  overflow: visible;
+}
+
+.game-row > span {
+  min-width: 0;
+}
+
+.game-row .progress-cell {
+  width: 100%;
+}
+
+.game-row .progress-track {
+  width: 100%;
+  min-width: 48px;
+}
+
+.game-row .chip,
+.game-row .pill {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.genre-pill {
+  color: #cfe7ff;
+}
+
+.row-menu-cell {
+  justify-self: center;
+}
+
+.row-menu-button {
+  display: grid;
+  place-items: center;
+}
+
+.row-menu {
+  z-index: 180;
+  width: 112px;
+}
+
+.row-menu button:first-child {
+  color: #dcecff;
+  background: rgba(19, 44, 72, 0.64);
+}
+
+.hero-cover {
+  min-height: 150px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.hero-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.hero-cover .cover {
+  width: min(180px, 72%);
+  height: 96px;
+  border-radius: 12px;
+}
+
+.detail-pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 7px;
+}
+
+.detail-pill {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  padding-inline: 8px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+}
+
+.detail-pill i {
+  flex: 0 0 auto;
+}
+
+.play-now-button {
+  width: 100%;
+  min-height: 38px;
+  margin: 10px 0 2px;
+  color: #170e23;
+  background: linear-gradient(180deg, #ebc8ff, #bf69e8);
+  border: 1px solid rgba(250, 224, 255, 0.36);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(174, 91, 255, 0.22);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.notes-preview button,
+.filter-popover-actions button,
+.settings-menu button,
+.ghost,
+.filter-button,
+.view-button {
+  background-color: rgba(19, 44, 72, 0.50);
+}
+
+.notes-preview button {
+  min-height: 30px;
+  padding: 0 12px;
+  color: #e8ccff;
+  border: 1px solid rgba(214, 137, 255, 0.25);
+  border-radius: 10px;
+}
+
+.shuffle-button,
+.add-search-box button {
+  filter: saturate(0.94) brightness(0.97);
+}
+
+.inline-settings-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.toolbar-controls > select {
+  min-width: 198px;
+  max-width: 238px;
+  padding-right: 46px;
+  background-position:
+    calc(100% - 19px) 50%,
+    calc(100% - 13px) 50%;
+}
+
+.filter-popover select,
+.shuffle-row select,
+.inline-settings select {
+  padding-right: 42px;
+  background-position:
+    calc(100% - 18px) 50%,
+    calc(100% - 12px) 50%;
+}
+
+.game-card-art .cover {
+  width: 100%;
+  height: 100%;
+  border-radius: 9px;
 }
 
 @media (max-width: 1180px) {

@@ -1,11 +1,14 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchSteamAppDetails } from "@/lib/steam";
+import { steamImageUrl } from "@/lib/images";
 import type { Game, GamePayload } from "@/lib/types";
 
 type SteamMetadataRow = {
   steam_appid: string;
   title: string | null;
   genre: string | null;
+  capsule_url: string | null;
+  header_url: string | null;
   status: "pending" | "ready" | "failed";
   checked_at: string | null;
 };
@@ -20,26 +23,28 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("steam_app_metadata")
-    .select("steam_appid, genre, status")
-    .in("steam_appid", appIds)
-    .eq("status", "ready");
+    .select("steam_appid, genre, capsule_url, header_url, status")
+    .in("steam_appid", appIds);
 
   if (isMissingMetadataTable(error)) return games;
+  if (isMissingArtworkColumns(error)) return applyLegacyCachedSteamMetadata(games, appIds);
   if (error) throw error;
 
-  const metadataByAppId = new Map(
-    ((data ?? []) as Pick<SteamMetadataRow, "steam_appid" | "genre">[])
-      .filter((row) => row.genre && !UNKNOWN_GENRES.has(row.genre))
-      .map((row) => [row.steam_appid, row.genre as string])
-  );
-
-  if (!metadataByAppId.size) return games;
+  const metadataByAppId = new Map(((data ?? []) as SteamMetadataRow[]).map((row) => [row.steam_appid, row]));
 
   return games.map((game) => {
     const appid = game.steam_appid ? String(game.steam_appid) : "";
-    const genre = metadataByAppId.get(appid);
-    if (!genre || !UNKNOWN_GENRES.has(String(game.genre || ""))) return game;
-    return { ...game, genre };
+    const metadata = metadataByAppId.get(appid);
+    const genre = metadata?.genre && !UNKNOWN_GENRES.has(metadata.genre) ? metadata.genre : null;
+    const capsuleUrl = metadata?.capsule_url || steamImageUrl(appid, "capsule");
+    const headerUrl = metadata?.header_url || steamImageUrl(appid, "header");
+    const nextGame = {
+      ...game,
+      capsule_url: capsuleUrl || game.capsule_url || null,
+      header_url: headerUrl || game.header_url || null
+    };
+    if (genre && UNKNOWN_GENRES.has(String(game.genre || ""))) return { ...nextGame, genre };
+    return nextGame;
   });
 }
 
@@ -125,11 +130,15 @@ async function fetchAndStoreMetadata(appid: string) {
   const details = await fetchSteamAppDetails(appid);
   const genre = String(details?.genre || "").trim();
   const title = String(details?.title || "").trim();
+  const capsuleUrl = String(details?.capsule_url || "").trim() || steamImageUrl(appid, "capsule");
+  const headerUrl = String(details?.header_url || "").trim() || steamImageUrl(appid, "header");
 
   const row = {
     steam_appid: appid,
     title: title || null,
     genre: genre || "Unknown",
+    capsule_url: capsuleUrl || null,
+    header_url: headerUrl || null,
     status: genre ? "ready" : "failed",
     checked_at: checkedAt,
     failure_count: genre ? 0 : 1,
@@ -137,9 +146,25 @@ async function fetchAndStoreMetadata(appid: string) {
   };
 
   const { error } = await supabase.from("steam_app_metadata").upsert(row, { onConflict: "steam_appid" });
-  if (error) throw error;
+  if (isMissingArtworkColumns(error)) {
+    const { error: legacyError } = await supabase.from("steam_app_metadata").upsert(
+      {
+        steam_appid: row.steam_appid,
+        title: row.title,
+        genre: row.genre,
+        status: row.status,
+        checked_at: row.checked_at,
+        failure_count: row.failure_count,
+        last_error: row.last_error
+      },
+      { onConflict: "steam_appid" }
+    );
+    if (legacyError) throw legacyError;
+  } else if (error) {
+    throw error;
+  }
 
-  if (!genre) return false;
+  if (!genre) return Boolean(capsuleUrl || headerUrl);
 
   const { error: updateError } = await supabase
     .from("games")
@@ -149,6 +174,36 @@ async function fetchAndStoreMetadata(appid: string) {
 
   if (updateError) throw updateError;
   return true;
+}
+
+async function applyLegacyCachedSteamMetadata<T extends GamePayload | Game>(games: T[], appIds: string[]): Promise<T[]> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("steam_app_metadata")
+    .select("steam_appid, genre, status")
+    .in("steam_appid", appIds)
+    .eq("status", "ready");
+
+  if (isMissingMetadataTable(error)) return games;
+  if (error) throw error;
+
+  const metadataByAppId = new Map(
+    ((data ?? []) as Pick<SteamMetadataRow, "steam_appid" | "genre">[])
+      .filter((row) => row.genre && !UNKNOWN_GENRES.has(row.genre))
+      .map((row) => [row.steam_appid, row.genre as string])
+  );
+
+  return games.map((game) => {
+    const appid = game.steam_appid ? String(game.steam_appid) : "";
+    const genre = metadataByAppId.get(appid);
+    const nextGame = {
+      ...game,
+      capsule_url: steamImageUrl(appid, "capsule") || game.capsule_url || null,
+      header_url: steamImageUrl(appid, "header") || game.header_url || null
+    };
+    if (genre && UNKNOWN_GENRES.has(String(game.genre || ""))) return { ...nextGame, genre };
+    return nextGame;
+  });
 }
 
 function steamAppIds(games: Array<Pick<GamePayload, "steam_appid">>) {
@@ -173,4 +228,8 @@ function clampLimit(value: number) {
 
 function isMissingMetadataTable(error: { code?: string } | null) {
   return error?.code === "42P01";
+}
+
+function isMissingArtworkColumns(error: { code?: string } | null) {
+  return error?.code === "42703";
 }

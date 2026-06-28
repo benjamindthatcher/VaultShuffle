@@ -1,4 +1,5 @@
 import type { GamePayload, SteamPlayerSummary, SteamSearchResult } from "@/lib/types";
+import { steamImageUrl } from "@/lib/images";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const SEARCH_CACHE_MS = 10 * 60 * 1000;
@@ -233,12 +234,15 @@ async function fetchSingleSteamAppDetail(appid: string): Promise<[string, Partia
 }
 
 function steamDetailPayload(appid: string, data: Record<string, unknown>): Partial<GamePayload> {
+  const headerImage = String(data.header_image ?? "").trim();
   return {
     title: String(data.name ?? "").trim() || undefined,
     genre: steamGenreLabel(data) || undefined,
     store: "Steam",
     notes: "",
-    steam_appid: appid
+    steam_appid: appid,
+    capsule_url: steamImageUrl(appid, "capsule"),
+    header_url: headerImage || steamImageUrl(appid, "header")
   };
 }
 

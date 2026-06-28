@@ -18,6 +18,8 @@ export type Game = {
   last_played_at: string | null;
   notes: string;
   steam_appid: string | null;
+  capsule_url?: string | null;
+  header_url?: string | null;
   created_at?: string;
   updated_at?: string;
 };

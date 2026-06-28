@@ -168,11 +168,13 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
 
 export function statsPayload(games: Game[]): StatsPayload {
   const ratings = games.map((game) => Number(game.rating || 0)).filter((rating) => rating > 0);
-  const completionTotal = games.reduce((total, game) => total + Number(game.completion_percentage || 0), 0);
+  const completionTotal = games.reduce((total, game) => total + gameProgress(game), 0);
+  const completed = games.filter(isCompletedGame).length;
+  const inProgress = games.filter((game) => !isCompletedGame(game) && (game.status === "In Progress" || gameProgress(game) > 0)).length;
   return {
     total: games.length,
-    completed: games.filter((game) => game.status === "Completed").length,
-    in_progress: games.filter((game) => game.status === "In Progress").length,
+    completed,
+    in_progress: inProgress,
     wishlist: games.filter((game) => game.ownership === "Wishlist").length,
     hours: round1(games.reduce((total, game) => total + Number(game.hours_played || 0), 0)),
     avg_rating: ratings.length ? round1(ratings.reduce((total, rating) => total + rating, 0) / ratings.length) : 0,
@@ -183,7 +185,7 @@ export function statsPayload(games: Game[]): StatsPayload {
 export function recommendationsPayload(games: Game[]): RecommendationPayload {
   const backlog = topBacklog(games);
   const wishlist = topWishlist(games);
-  const unfinished = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed");
+  const unfinished = games.filter((game) => game.ownership === "Owned" && !isCompletedGame(game));
   return {
     backlog,
     wishlist,
@@ -196,7 +198,7 @@ export async function recordRecommendation(
   game: Game,
   kind: string,
   reason: string,
-  mood?: string,
+  genre?: string,
   timeCommitment?: string
 ) {
   const supabase = getSupabaseAdmin();
@@ -205,34 +207,25 @@ export async function recordRecommendation(
     game_id: game.id,
     kind,
     reason,
-    mood: mood ?? null,
+    mood: genre ?? null,
     time_commitment: timeCommitment ?? null
   });
 }
 
-export function shuffleGame(games: Game[], mood: string, time: string) {
-  let candidates = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed");
-
-  if (mood !== "Any vibe") {
-    const keywords = {
-      Relaxed: ["cozy", "farming", "sim", "puzzle", "casual", "stardew", "sky"],
-      Action: ["action", "shooter", "fps", "rogue", "combat", "counter", "fear"],
-      Story: ["story", "rpg", "adventure", "narrative", "witcher", "detroit"],
-      Competitive: ["competitive", "multiplayer", "online", "counter-strike", "league"]
-    }[mood] ?? [];
-    const matched = candidates.filter((game) => {
-      const text = `${game.title} ${game.genre} ${game.notes}`.toLowerCase();
-      return keywords.some((word) => text.includes(word));
-    });
-    candidates = matched.length ? matched : candidates;
-  }
+export function shuffleGame(games: Game[], genre: string, time: string) {
+  const candidates = games.filter((game) =>
+    game.ownership === "Owned" &&
+    !isCompletedGame(game) &&
+    matchesGenre(game, genre) &&
+    matchesTime(game, time)
+  );
 
   if (!candidates.length) return { game: null, reason: "No unfinished owned games were found." };
 
   const game = candidates[Math.floor(Math.random() * candidates.length)];
   return {
     game,
-    reason: `${game.status} pick for ${mood.toLowerCase()} / ${time.toLowerCase()} with ${Number(game.hours_played).toLocaleString()}h logged.`
+    reason: `${game.status} pick for ${genre.toLowerCase()} / ${time.toLowerCase()} with ${Number(game.hours_played).toLocaleString()}h logged.`
   };
 }
 
@@ -299,7 +292,7 @@ function isGeneratedSteamNote(notes: string) {
 
 function topBacklog(games: Game[]) {
   return [...games]
-    .filter((game) => game.ownership === "Owned" && game.status !== "Completed")
+    .filter((game) => game.ownership === "Owned" && !isCompletedGame(game))
     .sort((a, b) => scoreBacklog(b) - scoreBacklog(a))
     .slice(0, 3);
 }
@@ -312,14 +305,69 @@ function topWishlist(games: Game[]) {
 }
 
 function scoreBacklog(game: Game) {
-  return scoreWishlist(game) - Number(game.completion_percentage || 0);
+  return scoreWishlist(game) - gameProgress(game);
 }
 
 function scoreWishlist(game: Game) {
-  const priorityScore = game.priority === "High" ? 10 : game.priority === "Medium" ? 5 : 0;
-  return Number(game.rating || 0) * 2 + priorityScore;
+  return Number(game.rating || 0) * 2 + Number(game.hours_played || 0) / 40;
 }
 
 function round1(value: number) {
   return Math.round(value * 10) / 10;
+}
+
+function isCompletedGame(game: Game) {
+  return game.status === "Completed" || gameProgress(game) >= 100;
+}
+
+function gameProgress(game: Game) {
+  if (game.status === "Completed") return 100;
+  const stored = Number(game.completion_percentage || 0);
+  if (stored > 0) return clamp(Math.round(stored), 0, 100);
+  const estimate = estimatedGameHours(game);
+  const played = Number(game.hours_played || 0);
+  if (!played || !estimate) return 0;
+  return clamp(Math.round((played / estimate) * 100), 0, 99);
+}
+
+function estimatedGameHours(game: Pick<Game, "title" | "genre">) {
+  const text = `${game.title} ${game.genre}`.toLowerCase();
+  if (/(mmo|massively multiplayer|battle royale|moba|live service|survival|sandbox)/.test(text)) return 300;
+  if (/(rpg|role-playing|strategy|simulation|management|grand strategy|4x|open world)/.test(text)) return 100;
+  if (/(adventure|action-adventure|souls|metroidvania|horror)/.test(text)) return 50;
+  if (/(action|shooter|fps|third-person|racing|sports|fighting)/.test(text)) return 30;
+  if (/(puzzle|casual|arcade|platformer|indie|hidden object|visual novel)/.test(text)) return 15;
+  return 30;
+}
+
+function timeBucket(game: Game) {
+  const estimate = estimatedGameHours(game);
+  if (estimate <= 5) return "5h";
+  if (estimate <= 15) return "15h";
+  if (estimate <= 30) return "30h";
+  if (estimate <= 50) return "50h";
+  if (estimate <= 100) return "100h";
+  return "300h+";
+}
+
+function splitGenres(value?: string | null) {
+  const genres = String(value || "")
+    .split(/[\/,;|]+/g)
+    .map((genre) => genre.trim())
+    .filter((genre) => genre && genre.toLowerCase() !== "unknown");
+  return Array.from(new Set(genres));
+}
+
+function matchesGenre(game: Game, genre: string) {
+  if (genre === "Any genre") return true;
+  return splitGenres(game.genre).includes(genre);
+}
+
+function matchesTime(game: Game, time: string) {
+  if (time === "Any time") return true;
+  return timeBucket(game) === time;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max));
 }

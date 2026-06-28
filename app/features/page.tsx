@@ -12,7 +12,7 @@ export default function FeaturesPage() {
         },
         {
           title: "Smart Shuffle",
-          body: "Pick by vibe and time, then roll from unfinished owned games instead of the whole library."
+          body: "Pick by genre and time, then roll from unfinished owned games instead of the whole library."
         },
         {
           title: "Visual Library",
@@ -23,8 +23,8 @@ export default function FeaturesPage() {
           body: "Status, ownership, search, hide completed, and sorting help narrow a huge library without losing context."
         },
         {
-          title: "Supabase Database",
-          body: "Games, users, sessions, settings, and recommendation history are stored in Supabase Postgres."
+          title: "Cloud Library",
+          body: "Your Steam library, playtime, filters, and notes stay available when you return."
         },
         {
           title: "Built For Big Lists",
