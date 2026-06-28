@@ -2,6 +2,8 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
 import type { Game, GamePayload, RecommendationPayload, StatsPayload } from "@/lib/types";
 
+type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
+
 function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
   return {
     title: String(payload.title ?? "").trim(),
@@ -132,7 +134,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
 
   const rows = incomingGames.map((incoming) => {
     const existing = existingByAppId.get(incoming.steam_appid as string);
-    if (!existing) return { ...incoming, user_id: userId };
+    if (!existing) return gameDatabaseRow(userId, incoming);
 
     return {
       user_id: userId,
@@ -164,6 +166,13 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
   }
 
   return saved;
+}
+
+function gameDatabaseRow(userId: string, game: GamePayload): GameDatabaseRow {
+  return {
+    ...normalizeGamePayload(game),
+    user_id: userId
+  };
 }
 
 export function statsPayload(games: Game[]): StatsPayload {
