@@ -1,30 +1,34 @@
 :root {
   color-scheme: dark;
-  --page: #051426;
-  --nav: rgba(8, 24, 43, 0.78);
-  --panel: rgba(14, 34, 58, 0.72);
-  --panel-soft: rgba(19, 50, 82, 0.72);
-  --panel-deep: rgba(6, 19, 35, 0.82);
-  --row: rgba(9, 25, 43, 0.76);
-  --row-border: rgba(107, 173, 229, 0.15);
-  --selected: rgba(225, 107, 255, 0.22);
-  --text: #f1f7ff;
-  --muted: #b7c8dc;
-  --quiet: #829ab4;
-  --accent: #e16bff;
-  --accent-strong: #f8d7ff;
-  --accent-dark: #c851ff;
-  --green: #62e6c2;
-  --blue: #58baff;
-  --blue-strong: #a4e3ff;
-  --yellow: #ffe08a;
-  --danger: #ff8aa1;
-  --border: rgba(129, 183, 229, 0.18);
+  --page: #071d2b;
+  --nav: rgba(7, 29, 43, 0.74);
+  --panel: rgba(9, 38, 56, 0.66);
+  --panel-soft: rgba(13, 50, 66, 0.62);
+  --panel-deep: rgba(5, 23, 35, 0.82);
+  --row: rgba(7, 30, 46, 0.70);
+  --row-border: rgba(169, 228, 255, 0.15);
+  --selected: rgba(224, 123, 255, 0.20);
+  --text: #f2fbff;
+  --muted: #b4ceda;
+  --quiet: #86aabc;
+  --accent: #e07bff;
+  --accent-strong: #ffd6ff;
+  --accent-dark: #be65ef;
+  --green: #69e7c8;
+  --blue: #a9e4ff;
+  --blue-strong: #c8f2ff;
+  --yellow: #ffe49b;
+  --danger: #ff8fa8;
+  --border: rgba(169, 228, 255, 0.20);
+  --glass: rgba(9, 38, 56, 0.58);
+  --glass-strong: rgba(11, 42, 59, 0.78);
+  --aurora-soft: linear-gradient(135deg, rgba(169, 228, 255, 0.18), rgba(224, 123, 255, 0.14));
+  --aurora-button: linear-gradient(180deg, #f3dcff, #d984ff 56%, #b56df1);
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 11px;
   --shadow-soft: 0 18px 55px rgba(0, 0, 0, 0.26);
-  --shadow-glow: 0 0 42px rgba(101, 199, 255, 0.12);
+  --shadow-glow: 0 0 42px rgba(169, 228, 255, 0.12), 0 0 34px rgba(224, 123, 255, 0.09);
 }
 
 * { box-sizing: border-box; }
@@ -48,10 +52,10 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 18% 8%, rgba(71, 177, 255, 0.22), transparent 32%),
-    radial-gradient(circle at 84% 18%, rgba(214, 137, 255, 0.20), transparent 34%),
-    radial-gradient(circle at 50% 110%, rgba(36, 104, 170, 0.24), transparent 42%);
-  opacity: 0.88;
+    radial-gradient(circle at 16% 8%, rgba(169, 228, 255, 0.18), transparent 32%),
+    radial-gradient(circle at 84% 18%, rgba(224, 123, 255, 0.17), transparent 34%),
+    radial-gradient(circle at 50% 110%, rgba(39, 132, 145, 0.20), transparent 42%);
+  opacity: 0.92;
 }
 
 button,
@@ -84,8 +88,8 @@ button:disabled {
   display: grid;
   grid-template-rows: 54px minmax(0, 1fr);
   background:
-    linear-gradient(180deg, rgba(8, 25, 45, 0.82), rgba(4, 12, 24, 0.94)),
-    linear-gradient(135deg, #071b32, #06111f 62%, #0b1630);
+    linear-gradient(180deg, rgba(7, 29, 43, 0.86), rgba(4, 14, 22, 0.94)),
+    linear-gradient(135deg, #071d2b, #061925 58%, #1a1234);
 }
 
 .top-nav {
@@ -2564,4 +2568,194 @@ select {
   .form-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* Glass Aurora theme pass */
+.top-nav,
+.library-panel,
+.library-main,
+.details-panel,
+.smart-strip,
+.library-table,
+.filter-popover,
+.settings-menu,
+dialog,
+.notes-modal,
+.steam-dialog {
+  background:
+    linear-gradient(145deg, rgba(9, 38, 56, 0.72), rgba(5, 23, 35, 0.82)),
+    var(--glass);
+  border-color: rgba(169, 228, 255, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 32px rgba(169, 228, 255, 0.055);
+}
+
+.top-nav {
+  background:
+    radial-gradient(circle at 78% 0%, rgba(224, 123, 255, 0.10), transparent 34%),
+    linear-gradient(90deg, rgba(5, 23, 35, 0.86), rgba(7, 29, 43, 0.80));
+}
+
+.workspace {
+  border-top-color: rgba(169, 228, 255, 0.10);
+}
+
+.library-panel,
+.details-panel {
+  background:
+    radial-gradient(circle at 18% 0%, rgba(169, 228, 255, 0.08), transparent 38%),
+    linear-gradient(180deg, rgba(9, 38, 56, 0.76), rgba(5, 23, 35, 0.88));
+}
+
+.library-panel {
+  border-right-color: rgba(169, 228, 255, 0.13);
+}
+
+.details-panel {
+  border-left-color: rgba(169, 228, 255, 0.13);
+}
+
+.smart-strip {
+  background:
+    radial-gradient(circle at 78% 18%, rgba(224, 123, 255, 0.12), transparent 36%),
+    linear-gradient(135deg, rgba(12, 56, 74, 0.58), rgba(7, 29, 43, 0.62));
+}
+
+.library-table {
+  background:
+    linear-gradient(180deg, rgba(7, 30, 46, 0.74), rgba(5, 23, 35, 0.82));
+}
+
+.search-box,
+.add-search-box,
+.side-search,
+.table-filter-search,
+.steam-search-box,
+input,
+select,
+textarea {
+  background-color: rgba(5, 23, 35, 0.72);
+  border-color: rgba(169, 228, 255, 0.20);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+}
+
+.search-box:focus-within,
+.add-search-box:focus-within,
+.side-search:focus-within,
+.table-filter-search:focus-within,
+.steam-search-box:focus-within,
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(224, 123, 255, 0.48);
+  box-shadow: 0 0 0 2px rgba(224, 123, 255, 0.17), 0 0 28px rgba(169, 228, 255, 0.09);
+}
+
+.steam-profile,
+.auth-chip,
+.ghost,
+.filter-button,
+.view-button,
+.settings-button,
+.notes-preview button,
+.filter-popover-actions button,
+.settings-menu button,
+.side-summary button,
+.quick-actions button {
+  background: rgba(11, 42, 59, 0.58);
+  border-color: rgba(169, 228, 255, 0.18);
+  color: var(--blue-strong);
+}
+
+.shuffle-button,
+.top-add-button,
+.toolbar-add-button,
+.add-search-box button,
+.play-now-button,
+.floating-add {
+  background: var(--aurora-button);
+  border-color: rgba(255, 226, 255, 0.44);
+  box-shadow:
+    0 12px 28px rgba(224, 123, 255, 0.19),
+    0 0 28px rgba(169, 228, 255, 0.07),
+    inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+
+.filter-button.active,
+.filter-button:hover,
+.settings-button.active,
+.settings-button:hover,
+.settings-menu button.active,
+.view-button.active,
+.game-card.selected,
+.game-row.selected {
+  border-color: rgba(224, 123, 255, 0.44);
+  box-shadow:
+    inset 0 0 0 1px rgba(224, 123, 255, 0.18),
+    0 0 26px rgba(224, 123, 255, 0.08);
+}
+
+.game-row,
+.game-card,
+.rec-tile,
+.rec-row,
+.steam-result,
+.guest-empty-art span,
+.hero-cover,
+.mini-card {
+  background: rgba(7, 30, 46, 0.58);
+  border-color: rgba(169, 228, 255, 0.13);
+}
+
+.game-row:hover,
+.steam-result:hover,
+.game-card:hover {
+  background: rgba(12, 56, 74, 0.58);
+  border-color: rgba(169, 228, 255, 0.22);
+}
+
+.game-row.selected {
+  background:
+    linear-gradient(90deg, rgba(224, 123, 255, 0.22), rgba(169, 228, 255, 0.08)),
+    rgba(7, 30, 46, 0.70);
+}
+
+.cover,
+.steam-result-art,
+.hero-cover .cover,
+.game-card-art {
+  background:
+    linear-gradient(135deg, rgba(169, 228, 255, 0.24), rgba(224, 123, 255, 0.24)),
+    rgba(7, 30, 46, 0.72);
+}
+
+.chip,
+.detail-pill,
+.status-pill {
+  background: rgba(11, 42, 59, 0.58);
+  border-color: rgba(169, 228, 255, 0.18);
+}
+
+.progress-track,
+.game-card-meta .progress-track {
+  background: rgba(169, 228, 255, 0.16);
+}
+
+.progress-track span,
+.game-card-meta .progress-track span {
+  background: linear-gradient(90deg, #a9e4ff, #e07bff);
+}
+
+.filter-popover,
+.settings-menu,
+.notes-modal,
+dialog {
+  background:
+    radial-gradient(circle at 88% 0%, rgba(224, 123, 255, 0.10), transparent 34%),
+    rgba(5, 23, 35, 0.94);
+}
+
+.notes-overlay {
+  background: rgba(2, 10, 16, 0.66);
 }
