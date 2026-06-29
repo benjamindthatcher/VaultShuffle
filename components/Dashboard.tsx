@@ -20,6 +20,16 @@ const METADATA_SYNC_BATCH_SIZE = 8;
 const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
 const TIME_FILTER_OPTIONS = ["5h", "15h", "30h", "50h", "100h", "300h+"];
+const THEME_OPTIONS = [
+  { id: "glass-aurora", name: "Glass Aurora" },
+  { id: "frostbyte-glass", name: "Frostbyte Glass" },
+  { id: "neon-aquarium", name: "Neon Aquarium" },
+  { id: "cosmic-blueberry", name: "Cosmic Blueberry" },
+  { id: "soft-console", name: "Soft Console" },
+  { id: "ultraviolet-steam", name: "Ultraviolet Steam" }
+] as const;
+
+type ThemeOptionId = (typeof THEME_OPTIONS)[number]["id"];
 
 const blankGame: GamePayload = {
   title: "",
@@ -66,6 +76,7 @@ export function Dashboard() {
   const [sort, setSort] = useState("hours_desc");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selectedTheme, setSelectedTheme] = useState<ThemeOptionId>("glass-aurora");
   const [rowMenuId, setRowMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [shuffleGenre, setShuffleGenre] = useState("Any genre");
@@ -505,7 +516,7 @@ export function Dashboard() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell app-theme-${selectedTheme}`}>
       <header className="top-nav">
         <div className="nav-brand">
           <span className="brand-lockup" aria-label="Vault Shuffle">
@@ -535,15 +546,21 @@ export function Dashboard() {
             </button>
             {settingsOpen ? (
               <div className="settings-menu">
-                <strong>Settings</strong>
-                <button className={viewMode === "list" ? "active" : ""} onClick={() => setViewMode("list")} type="button">List view</button>
-                <button className={viewMode === "grid" ? "active" : ""} onClick={() => setViewMode("grid")} type="button">Cover view</button>
-                <label className="filter-switch compact">
-                  <input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" />
-                  <span className="switch-visual" aria-hidden="true" />
-                  <span>Hide completed</span>
-                </label>
-                <button onClick={clearFilters} type="button">Clear filters</button>
+                <strong>Theme</strong>
+                <div className="settings-theme-grid" role="list" aria-label="Theme options">
+                  {THEME_OPTIONS.map((theme) => (
+                    <button
+                      key={theme.id}
+                      className={`settings-theme-tile theme-${theme.id} ${selectedTheme === theme.id ? "active" : ""}`}
+                      onClick={() => setSelectedTheme(theme.id)}
+                      type="button"
+                      aria-pressed={selectedTheme === theme.id}
+                    >
+                      <span aria-hidden="true" />
+                      <b>{theme.name}</b>
+                    </button>
+                  ))}
+                </div>
               </div>
             ) : null}
           </div>

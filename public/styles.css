@@ -2792,3 +2792,225 @@ dialog {
   border-color: rgba(169, 228, 255, 0.16);
   box-shadow: none;
 }
+
+/* Palette picker and shared button styling */
+.app-shell {
+  --theme-rgb-page: 7, 29, 43;
+  --theme-rgb-panel: 9, 38, 56;
+  --theme-rgb-panel-deep: 5, 23, 35;
+  --theme-rgb-border: 169, 228, 255;
+  --theme-rgb-accent: 224, 123, 255;
+  --theme-rgb-secondary: 189, 241, 255;
+  --theme-button-text: #f8efff;
+  --theme-button-gradient:
+    radial-gradient(circle at 18% 18%, rgba(var(--theme-rgb-secondary), 0.34), transparent 30%),
+    linear-gradient(135deg, rgba(98, 54, 217, 0.98) 0%, rgba(180, 93, 255, 0.98) 52%, rgba(var(--theme-rgb-accent), 0.98) 100%);
+}
+
+.app-shell.app-theme-frostbyte-glass {
+  --theme-rgb-page: 7, 28, 43;
+  --theme-rgb-panel: 11, 42, 59;
+  --theme-rgb-panel-deep: 6, 28, 45;
+  --theme-rgb-border: 158, 234, 255;
+  --theme-rgb-accent: 240, 133, 255;
+  --theme-rgb-secondary: 189, 241, 255;
+}
+
+.app-shell.app-theme-neon-aquarium {
+  --theme-rgb-page: 4, 27, 38;
+  --theme-rgb-panel: 8, 40, 60;
+  --theme-rgb-panel-deep: 4, 25, 39;
+  --theme-rgb-border: 53, 243, 208;
+  --theme-rgb-accent: 255, 99, 222;
+  --theme-rgb-secondary: 53, 243, 208;
+  --theme-button-text: #06131d;
+  --theme-button-gradient:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.44), transparent 30%),
+    linear-gradient(135deg, #35f3d0 0%, #5ebcff 48%, #ff63de 100%);
+}
+
+.app-shell.app-theme-cosmic-blueberry {
+  --theme-rgb-page: 9, 21, 45;
+  --theme-rgb-panel: 16, 32, 71;
+  --theme-rgb-panel-deep: 10, 20, 41;
+  --theme-rgb-border: 117, 167, 255;
+  --theme-rgb-accent: 217, 104, 255;
+  --theme-rgb-secondary: 117, 167, 255;
+}
+
+.app-shell.app-theme-soft-console {
+  --theme-rgb-page: 10, 31, 53;
+  --theme-rgb-panel: 16, 45, 72;
+  --theme-rgb-panel-deep: 10, 26, 44;
+  --theme-rgb-border: 128, 201, 255;
+  --theme-rgb-accent: 184, 141, 255;
+  --theme-rgb-secondary: 128, 201, 255;
+}
+
+.app-shell.app-theme-ultraviolet-steam {
+  --theme-rgb-page: 7, 20, 37;
+  --theme-rgb-panel: 11, 39, 73;
+  --theme-rgb-panel-deep: 7, 18, 34;
+  --theme-rgb-border: 94, 188, 255;
+  --theme-rgb-accent: 242, 93, 255;
+  --theme-rgb-secondary: 94, 188, 255;
+}
+
+.app-shell {
+  background:
+    radial-gradient(circle at 16% 8%, rgba(var(--theme-rgb-secondary), 0.17), transparent 32%),
+    radial-gradient(circle at 84% 18%, rgba(var(--theme-rgb-accent), 0.16), transparent 34%),
+    linear-gradient(135deg, rgb(var(--theme-rgb-page)), rgba(var(--theme-rgb-panel-deep), 0.98) 58%, rgba(var(--theme-rgb-panel), 0.84));
+}
+
+.app-shell .top-nav,
+.app-shell .library-panel,
+.app-shell .library-main,
+.app-shell .details-panel,
+.app-shell .smart-strip,
+.app-shell .library-table,
+.app-shell .filter-popover,
+.app-shell .settings-menu,
+.app-shell dialog,
+.app-shell .notes-modal,
+.app-shell .steam-dialog {
+  background:
+    linear-gradient(145deg, rgba(var(--theme-rgb-panel), 0.72), rgba(var(--theme-rgb-panel-deep), 0.84)),
+    rgba(var(--theme-rgb-panel), 0.58);
+  border-color: rgba(var(--theme-rgb-border), 0.18);
+}
+
+.settings-menu {
+  width: 366px;
+}
+
+.settings-theme-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.settings-theme-tile {
+  min-height: 76px;
+  display: grid;
+  align-content: space-between;
+  justify-items: stretch;
+  gap: 8px;
+  padding: 9px;
+  text-align: left;
+}
+
+.settings-theme-tile span {
+  display: block;
+  height: 28px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.settings-theme-tile b {
+  display: block;
+  min-width: 0;
+  color: inherit;
+  font-size: 10px;
+  line-height: 1.1;
+}
+
+.settings-theme-tile.theme-glass-aurora span {
+  background: linear-gradient(135deg, #071d2b, #a9e4ff 48%, #e07bff);
+}
+
+.settings-theme-tile.theme-frostbyte-glass span {
+  background: linear-gradient(135deg, #061c2d, #bdf1ff 52%, #f085ff);
+}
+
+.settings-theme-tile.theme-neon-aquarium span {
+  background: linear-gradient(135deg, #041b26, #35f3d0 45%, #ff63de);
+}
+
+.settings-theme-tile.theme-cosmic-blueberry span {
+  background: linear-gradient(135deg, #09152d, #75a7ff 50%, #d968ff);
+}
+
+.settings-theme-tile.theme-soft-console span {
+  background: linear-gradient(135deg, #0a1f35, #80c9ff 50%, #b88dff);
+}
+
+.settings-theme-tile.theme-ultraviolet-steam span {
+  background: linear-gradient(135deg, #071425, #5ebcff 42%, #f25dff);
+}
+
+.app-shell button {
+  color: var(--theme-button-text);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-accent), 0.20), rgba(var(--theme-rgb-secondary), 0.10)),
+    rgba(var(--theme-rgb-panel), 0.64);
+  border: 1px solid rgba(var(--theme-rgb-border), 0.18);
+  box-shadow:
+    0 8px 18px rgba(var(--theme-rgb-accent), 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.app-shell button:hover:not(:disabled) {
+  border-color: rgba(var(--theme-rgb-accent), 0.48);
+  box-shadow:
+    0 10px 24px rgba(var(--theme-rgb-accent), 0.16),
+    0 0 18px rgba(var(--theme-rgb-secondary), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.app-shell button:disabled {
+  color: rgba(var(--theme-rgb-border), 0.52);
+  background: rgba(var(--theme-rgb-panel), 0.38);
+  border-color: rgba(var(--theme-rgb-border), 0.12);
+  box-shadow: none;
+}
+
+.app-shell .shuffle-button,
+.app-shell .top-add-button,
+.app-shell .toolbar-add-button,
+.app-shell .add-search-box button,
+.app-shell .play-now-button,
+.app-shell .floating-add,
+.app-shell .settings-theme-tile.active {
+  color: var(--theme-button-text);
+  background: var(--theme-button-gradient);
+  border-color: rgba(var(--theme-rgb-accent), 0.52);
+  box-shadow:
+    0 10px 24px rgba(var(--theme-rgb-accent), 0.22),
+    0 0 24px rgba(var(--theme-rgb-secondary), 0.10),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.app-shell .settings-button {
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+}
+
+.app-shell .table-head button,
+.app-shell .row-menu-toggle {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--muted);
+}
+
+.app-shell .play-now-button {
+  width: min(172px, 100%);
+  min-height: 32px;
+  margin: auto auto 2px;
+  padding: 0 18px;
+  border-radius: 999px;
+  font-size: 11px;
+  letter-spacing: .01em;
+}
+
+@media (max-width: 780px) {
+  .settings-menu {
+    width: min(366px, calc(100vw - 24px));
+  }
+
+  .settings-theme-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
