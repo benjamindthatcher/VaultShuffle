@@ -22,8 +22,8 @@ const METADATA_SYNC_MAX_BATCHES = 32;
 const TIME_FILTER_OPTIONS = ["5h", "15h", "30h", "50h", "100h", "300h+"];
 const THEME_OPTIONS = [
   { id: "glass-aurora", name: "Glass Aurora" },
-  { id: "frostbyte-glass", name: "Frostbyte Glass" },
-  { id: "neon-aquarium", name: "Neon Aquarium" },
+  { id: "moonlit-lagoon", name: "Moonlit Lagoon" },
+  { id: "arcade-dusk", name: "Arcade Dusk" },
   { id: "cosmic-blueberry", name: "Cosmic Blueberry" },
   { id: "soft-console", name: "Soft Console" },
   { id: "ultraviolet-steam", name: "Ultraviolet Steam" }

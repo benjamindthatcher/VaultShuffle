@@ -2807,26 +2807,28 @@ dialog {
     linear-gradient(135deg, rgba(98, 54, 217, 0.98) 0%, rgba(180, 93, 255, 0.98) 52%, rgba(var(--theme-rgb-accent), 0.98) 100%);
 }
 
-.app-shell.app-theme-frostbyte-glass {
-  --theme-rgb-page: 7, 28, 43;
-  --theme-rgb-panel: 11, 42, 59;
-  --theme-rgb-panel-deep: 6, 28, 45;
-  --theme-rgb-border: 158, 234, 255;
-  --theme-rgb-accent: 240, 133, 255;
-  --theme-rgb-secondary: 189, 241, 255;
+.app-shell.app-theme-moonlit-lagoon {
+  --theme-rgb-page: 5, 18, 31;
+  --theme-rgb-panel: 9, 38, 61;
+  --theme-rgb-panel-deep: 7, 28, 49;
+  --theme-rgb-border: 91, 193, 255;
+  --theme-rgb-accent: 220, 114, 255;
+  --theme-rgb-secondary: 91, 193, 255;
+  --theme-button-gradient:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.30), transparent 30%),
+    linear-gradient(135deg, #103a5f 0%, #5bc1ff 46%, #dc72ff 100%);
 }
 
-.app-shell.app-theme-neon-aquarium {
-  --theme-rgb-page: 4, 27, 38;
-  --theme-rgb-panel: 8, 40, 60;
-  --theme-rgb-panel-deep: 4, 25, 39;
-  --theme-rgb-border: 53, 243, 208;
-  --theme-rgb-accent: 255, 99, 222;
-  --theme-rgb-secondary: 53, 243, 208;
-  --theme-button-text: #06131d;
+.app-shell.app-theme-arcade-dusk {
+  --theme-rgb-page: 7, 15, 31;
+  --theme-rgb-panel: 17, 29, 55;
+  --theme-rgb-panel-deep: 11, 24, 48;
+  --theme-rgb-border: 111, 167, 255;
+  --theme-rgb-accent: 195, 130, 255;
+  --theme-rgb-secondary: 157, 212, 255;
   --theme-button-gradient:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.44), transparent 30%),
-    linear-gradient(135deg, #35f3d0 0%, #5ebcff 48%, #ff63de 100%);
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.28), transparent 30%),
+    linear-gradient(135deg, #243a78 0%, #6ea7ff 48%, #c382ff 100%);
 }
 
 .app-shell.app-theme-cosmic-blueberry {
@@ -2919,12 +2921,12 @@ dialog {
   background: linear-gradient(135deg, #071d2b, #a9e4ff 48%, #e07bff);
 }
 
-.settings-theme-tile.theme-frostbyte-glass span {
-  background: linear-gradient(135deg, #061c2d, #bdf1ff 52%, #f085ff);
+.settings-theme-tile.theme-moonlit-lagoon span {
+  background: linear-gradient(135deg, #05121f, #5bc1ff 45%, #dc72ff);
 }
 
-.settings-theme-tile.theme-neon-aquarium span {
-  background: linear-gradient(135deg, #041b26, #35f3d0 45%, #ff63de);
+.settings-theme-tile.theme-arcade-dusk span {
+  background: linear-gradient(135deg, #070f1f, #6ea7ff 48%, #c382ff);
 }
 
 .settings-theme-tile.theme-cosmic-blueberry span {
@@ -2939,7 +2941,20 @@ dialog {
   background: linear-gradient(135deg, #071425, #5ebcff 42%, #f25dff);
 }
 
-.app-shell button {
+.app-shell :is(
+  .ghost,
+  .shuffle-button,
+  .shuffle-count-row button,
+  .filter-button,
+  .filter-popover-actions button,
+  .view-button,
+  .settings-button,
+  .settings-theme-tile,
+  .add-search-box button,
+  .notes-preview button,
+  .soft-action,
+  .play-now-button
+) {
   color: var(--theme-button-text);
   background:
     linear-gradient(135deg, rgba(var(--theme-rgb-accent), 0.20), rgba(var(--theme-rgb-secondary), 0.10)),
@@ -2950,7 +2965,20 @@ dialog {
     inset 0 1px 0 rgba(255, 255, 255, 0.12);
 }
 
-.app-shell button:hover:not(:disabled) {
+.app-shell :is(
+  .ghost,
+  .shuffle-button,
+  .shuffle-count-row button,
+  .filter-button,
+  .filter-popover-actions button,
+  .view-button,
+  .settings-button,
+  .settings-theme-tile,
+  .add-search-box button,
+  .notes-preview button,
+  .soft-action,
+  .play-now-button
+):hover:not(:disabled) {
   border-color: rgba(var(--theme-rgb-accent), 0.48);
   box-shadow:
     0 10px 24px rgba(var(--theme-rgb-accent), 0.16),
@@ -2958,7 +2986,20 @@ dialog {
     inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
-.app-shell button:disabled {
+.app-shell :is(
+  .ghost,
+  .shuffle-button,
+  .shuffle-count-row button,
+  .filter-button,
+  .filter-popover-actions button,
+  .view-button,
+  .settings-button,
+  .settings-theme-tile,
+  .add-search-box button,
+  .notes-preview button,
+  .soft-action,
+  .play-now-button
+):disabled {
   color: rgba(var(--theme-rgb-border), 0.52);
   background: rgba(var(--theme-rgb-panel), 0.38);
   border-color: rgba(var(--theme-rgb-border), 0.12);
@@ -2966,11 +3007,15 @@ dialog {
 }
 
 .app-shell .shuffle-button,
+.app-shell .ghost:not(.subtle),
 .app-shell .top-add-button,
 .app-shell .toolbar-add-button,
 .app-shell .add-search-box button,
 .app-shell .play-now-button,
 .app-shell .floating-add,
+.app-shell .filter-button.active,
+.app-shell .view-button.active,
+.app-shell .shuffle-count-row button.active,
 .app-shell .settings-theme-tile.active {
   color: var(--theme-button-text);
   background: var(--theme-button-gradient);
@@ -2987,12 +3032,52 @@ dialog {
   min-height: 36px;
 }
 
+.app-shell .ghost.subtle {
+  color: var(--muted);
+  background: rgba(var(--theme-rgb-panel), 0.44);
+  box-shadow: none;
+}
+
+.app-shell .stat-row {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.app-shell .stat-row:not(.is-static):hover {
+  background: rgba(var(--theme-rgb-secondary), 0.08);
+  border-color: rgba(var(--theme-rgb-border), 0.16);
+}
+
 .app-shell .table-head button,
-.app-shell .row-menu-toggle {
+.app-shell .row-menu-button,
+.app-shell .row-menu-toggle,
+.app-shell .row-menu button,
+.app-shell .game-card,
+.app-shell .steam-result,
+.app-shell .rec-tile,
+.app-shell .app-notice button,
+.app-shell .guest-toast button,
+.app-shell .nav-icon:not(.settings-button) {
   background: transparent;
   border-color: transparent;
   box-shadow: none;
   color: var(--muted);
+}
+
+.app-shell .table-head button:hover,
+.app-shell .row-menu-toggle:hover,
+.app-shell .row-menu button:hover,
+.app-shell .game-card:hover,
+.app-shell .steam-result:hover,
+.app-shell .rec-tile:hover {
+  color: var(--blue-strong);
+}
+
+.app-shell .row-menu-button {
+  background: rgba(var(--theme-rgb-panel), 0.48);
+  border-color: rgba(var(--theme-rgb-border), 0.18);
 }
 
 .app-shell .play-now-button {
