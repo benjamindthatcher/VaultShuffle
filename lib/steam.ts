@@ -9,7 +9,12 @@ const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
 type CacheEntry<T> = { expires: number; value: T };
 const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
 const playerCache = new Map<string, CacheEntry<SteamPlayerSummary | null>>();
-const appDetailCache = new Map<string, CacheEntry<Partial<GamePayload> | null>>();
+type SteamAppDetails = Partial<GamePayload> & {
+  review_score_desc?: string;
+  review_total?: number;
+  review_positive?: number;
+};
+const appDetailCache = new Map<string, CacheEntry<SteamAppDetails | null>>();
 
 export function siteBaseUrl(request?: Request) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -128,7 +133,7 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
   return results;
 }
 
-export async function fetchSteamAppDetails(appid: string): Promise<Partial<GamePayload> | null> {
+export async function fetchSteamAppDetails(appid: string): Promise<SteamAppDetails | null> {
   const normalizedAppId = String(appid || "").trim();
   if (!normalizedAppId) return null;
   const details = await fetchSteamAppDetailsBatch([normalizedAppId]);
@@ -184,7 +189,7 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
 
 async function fetchSteamAppDetailsBatch(appids: string[]) {
   const uniqueAppIds = [...new Set(appids.map((appid) => String(appid || "").trim()).filter(Boolean))];
-  const results = new Map<string, Partial<GamePayload>>();
+  const results = new Map<string, SteamAppDetails>();
   const missing: string[] = [];
 
   for (const appid of uniqueAppIds) {
@@ -209,7 +214,7 @@ async function fetchSteamAppDetailsBatch(appids: string[]) {
   return results;
 }
 
-async function fetchSingleSteamAppDetail(appid: string): Promise<[string, Partial<GamePayload> | null]> {
+async function fetchSingleSteamAppDetail(appid: string): Promise<[string, SteamAppDetails | null]> {
   const params = new URLSearchParams({
     appids: appid,
     filters: "basic,genres",
@@ -218,22 +223,67 @@ async function fetchSingleSteamAppDetail(appid: string): Promise<[string, Partia
   });
 
   try {
-    const response = await fetch(`https://store.steampowered.com/api/appdetails?${params.toString()}`, {
-      headers: { "User-Agent": "VaultShuffle/0.1" },
-      cache: "no-store"
-    });
-
-    if (!response.ok) return [appid, null];
-    const payload = await response.json();
-    const data = payload?.[appid]?.data;
-    if (!data || payload?.[appid]?.success === false) return [appid, null];
-    return [appid, steamDetailPayload(appid, data)];
+    const [details, reviews] = await Promise.all([
+      fetchSteamStoreAppDetail(appid, params),
+      fetchSteamReviewSummary(appid)
+    ]);
+    if (!details && !reviews) return [appid, null];
+    return [appid, { ...(details || { store: "Steam", steam_appid: appid }), ...(reviews || {}) }];
   } catch {
     return [appid, null];
   }
 }
 
-function steamDetailPayload(appid: string, data: Record<string, unknown>): Partial<GamePayload> {
+async function fetchSteamStoreAppDetail(appid: string, params: URLSearchParams): Promise<SteamAppDetails | null> {
+  try {
+    const response = await fetch(`https://store.steampowered.com/api/appdetails?${params.toString()}`, {
+      headers: { "User-Agent": "VaultShuffle/0.1" },
+      cache: "no-store"
+    });
+
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const data = payload?.[appid]?.data;
+    if (!data || payload?.[appid]?.success === false) return null;
+    return steamDetailPayload(appid, data);
+  } catch {
+    return null;
+  }
+}
+
+async function fetchSteamReviewSummary(appid: string): Promise<SteamAppDetails | null> {
+  try {
+    const params = new URLSearchParams({
+      json: "1",
+      language: "all",
+      purchase_type: "all",
+      num_per_page: "0"
+    });
+
+    const response = await fetch(`https://store.steampowered.com/appreviews/${appid}?${params.toString()}`, {
+      headers: { "User-Agent": "VaultShuffle/0.1" },
+      cache: "no-store"
+    });
+
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const summary = payload?.query_summary;
+    if (!summary) return null;
+    const total = Number(summary.total_reviews || 0);
+    const positive = Number(summary.total_positive || 0);
+    const rating = total > 0 ? clamp(Math.round((positive / total) * 10), 1, 10) : 0;
+    return {
+      rating,
+      review_score_desc: String(summary.review_score_desc || "").trim() || undefined,
+      review_total: Number.isFinite(total) ? total : 0,
+      review_positive: Number.isFinite(positive) ? positive : 0
+    };
+  } catch {
+    return null;
+  }
+}
+
+function steamDetailPayload(appid: string, data: Record<string, unknown>): SteamAppDetails {
   const headerImage = String(data.header_image ?? "").trim();
   return {
     title: String(data.name ?? "").trim() || undefined,
@@ -261,4 +311,8 @@ function steamGenreLabel(item: Record<string, unknown>) {
   if (genres.length) return genres.slice(0, 2).join(" / ");
   const genreText = String(item.genre ?? "").trim();
   return genreText || "";
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(value, max));
 }

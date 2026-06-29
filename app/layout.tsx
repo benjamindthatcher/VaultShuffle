@@ -1,6 +1,17 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY } from "@/lib/themes";
+
+const themeBootScript = `
+try {
+  var themes = ${JSON.stringify(THEME_OPTIONS.map((theme) => theme.id))};
+  var saved = window.localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
+  document.documentElement.dataset.vaultTheme = themes.indexOf(saved) === -1 ? ${JSON.stringify(DEFAULT_THEME_ID)} : saved;
+} catch (error) {
+  document.documentElement.dataset.vaultTheme = ${JSON.stringify(DEFAULT_THEME_ID)};
+}
+`;
 
 export const metadata: Metadata = {
   title: "Vault Shuffle",
@@ -12,8 +23,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-vault-theme={DEFAULT_THEME_ID} suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <style
           dangerouslySetInnerHTML={{
             __html:

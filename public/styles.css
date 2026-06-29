@@ -1,29 +1,39 @@
 :root {
   color-scheme: dark;
-  --page: #071d2b;
-  --nav: rgba(7, 29, 43, 0.74);
-  --panel: rgba(9, 38, 56, 0.66);
-  --panel-soft: rgba(13, 50, 66, 0.62);
-  --panel-deep: rgba(5, 23, 35, 0.82);
+  --theme-rgb-page: 7, 20, 37;
+  --theme-rgb-panel: 11, 39, 73;
+  --theme-rgb-panel-deep: 7, 18, 34;
+  --theme-rgb-border: 94, 188, 255;
+  --theme-rgb-accent: 242, 93, 255;
+  --theme-rgb-secondary: 94, 188, 255;
+  --theme-button-text: #f8efff;
+  --theme-button-gradient:
+    radial-gradient(circle at 18% 18%, rgba(var(--theme-rgb-secondary), 0.34), transparent 30%),
+    linear-gradient(135deg, rgba(98, 54, 217, 0.98) 0%, rgba(180, 93, 255, 0.98) 52%, rgba(var(--theme-rgb-accent), 0.98) 100%);
+  --page: rgb(var(--theme-rgb-page));
+  --nav: rgba(var(--theme-rgb-panel-deep), 0.74);
+  --panel: rgba(var(--theme-rgb-panel), 0.66);
+  --panel-soft: rgba(var(--theme-rgb-panel), 0.62);
+  --panel-deep: rgba(var(--theme-rgb-panel-deep), 0.82);
   --row: rgba(7, 30, 46, 0.70);
-  --row-border: rgba(169, 228, 255, 0.15);
-  --selected: rgba(224, 123, 255, 0.20);
+  --row-border: rgba(var(--theme-rgb-border), 0.15);
+  --selected: rgba(var(--theme-rgb-accent), 0.20);
   --text: #f2fbff;
   --muted: #b4ceda;
   --quiet: #86aabc;
-  --accent: #e07bff;
+  --accent: rgb(var(--theme-rgb-accent));
   --accent-strong: #ffd6ff;
   --accent-dark: #be65ef;
   --green: #69e7c8;
-  --blue: #a9e4ff;
+  --blue: rgb(var(--theme-rgb-secondary));
   --blue-strong: #c8f2ff;
   --yellow: #ffe49b;
   --danger: #ff8fa8;
-  --border: rgba(169, 228, 255, 0.20);
-  --glass: rgba(9, 38, 56, 0.58);
-  --glass-strong: rgba(11, 42, 59, 0.78);
-  --aurora-soft: linear-gradient(135deg, rgba(169, 228, 255, 0.18), rgba(224, 123, 255, 0.14));
-  --aurora-button: linear-gradient(180deg, #f3dcff, #d984ff 56%, #b56df1);
+  --border: rgba(var(--theme-rgb-border), 0.20);
+  --glass: rgba(var(--theme-rgb-panel), 0.58);
+  --glass-strong: rgba(var(--theme-rgb-panel), 0.78);
+  --aurora-soft: linear-gradient(135deg, rgba(var(--theme-rgb-secondary), 0.18), rgba(var(--theme-rgb-accent), 0.14));
+  --aurora-button: var(--theme-button-gradient);
   --radius-lg: 22px;
   --radius-md: 16px;
   --radius-sm: 11px;
@@ -52,8 +62,8 @@ body::before {
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 16% 8%, rgba(169, 228, 255, 0.18), transparent 32%),
-    radial-gradient(circle at 84% 18%, rgba(224, 123, 255, 0.17), transparent 34%),
+    radial-gradient(circle at 16% 8%, rgba(var(--theme-rgb-secondary), 0.18), transparent 32%),
+    radial-gradient(circle at 84% 18%, rgba(var(--theme-rgb-accent), 0.17), transparent 34%),
     radial-gradient(circle at 50% 110%, rgba(39, 132, 145, 0.20), transparent 42%);
   opacity: 0.92;
 }
@@ -2794,31 +2804,41 @@ dialog {
 }
 
 /* Palette picker and shared button styling */
+:root,
 .app-shell {
-  --theme-rgb-page: 7, 29, 43;
-  --theme-rgb-panel: 9, 38, 56;
-  --theme-rgb-panel-deep: 5, 23, 35;
-  --theme-rgb-border: 169, 228, 255;
-  --theme-rgb-accent: 224, 123, 255;
-  --theme-rgb-secondary: 189, 241, 255;
+  --theme-rgb-page: 7, 20, 37;
+  --theme-rgb-panel: 11, 39, 73;
+  --theme-rgb-panel-deep: 7, 18, 34;
+  --theme-rgb-border: 94, 188, 255;
+  --theme-rgb-accent: 242, 93, 255;
+  --theme-rgb-secondary: 94, 188, 255;
   --theme-button-text: #f8efff;
   --theme-button-gradient:
     radial-gradient(circle at 18% 18%, rgba(var(--theme-rgb-secondary), 0.34), transparent 30%),
     linear-gradient(135deg, rgba(98, 54, 217, 0.98) 0%, rgba(180, 93, 255, 0.98) 52%, rgba(var(--theme-rgb-accent), 0.98) 100%);
 }
 
-.app-shell.app-theme-moonlit-lagoon {
-  --theme-rgb-page: 5, 18, 31;
-  --theme-rgb-panel: 9, 38, 61;
-  --theme-rgb-panel-deep: 7, 28, 49;
-  --theme-rgb-border: 91, 193, 255;
-  --theme-rgb-accent: 220, 114, 255;
-  --theme-rgb-secondary: 91, 193, 255;
-  --theme-button-gradient:
-    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.30), transparent 30%),
-    linear-gradient(135deg, #103a5f 0%, #5bc1ff 46%, #dc72ff 100%);
+:root[data-vault-theme="ultraviolet-steam"],
+.app-shell.app-theme-ultraviolet-steam {
+  --theme-rgb-page: 7, 20, 37;
+  --theme-rgb-panel: 11, 39, 73;
+  --theme-rgb-panel-deep: 7, 18, 34;
+  --theme-rgb-border: 94, 188, 255;
+  --theme-rgb-accent: 242, 93, 255;
+  --theme-rgb-secondary: 94, 188, 255;
 }
 
+:root[data-vault-theme="cosmic-blueberry"],
+.app-shell.app-theme-cosmic-blueberry {
+  --theme-rgb-page: 9, 21, 45;
+  --theme-rgb-panel: 16, 32, 71;
+  --theme-rgb-panel-deep: 10, 20, 41;
+  --theme-rgb-border: 117, 167, 255;
+  --theme-rgb-accent: 217, 104, 255;
+  --theme-rgb-secondary: 117, 167, 255;
+}
+
+:root[data-vault-theme="arcade-dusk"],
 .app-shell.app-theme-arcade-dusk {
   --theme-rgb-page: 7, 15, 31;
   --theme-rgb-panel: 17, 29, 55;
@@ -2831,15 +2851,30 @@ dialog {
     linear-gradient(135deg, #243a78 0%, #6ea7ff 48%, #c382ff 100%);
 }
 
-.app-shell.app-theme-cosmic-blueberry {
-  --theme-rgb-page: 9, 21, 45;
-  --theme-rgb-panel: 16, 32, 71;
-  --theme-rgb-panel-deep: 10, 20, 41;
-  --theme-rgb-border: 117, 167, 255;
-  --theme-rgb-accent: 217, 104, 255;
-  --theme-rgb-secondary: 117, 167, 255;
+:root[data-vault-theme="glass-aurora"],
+.app-shell.app-theme-glass-aurora {
+  --theme-rgb-page: 7, 29, 43;
+  --theme-rgb-panel: 9, 38, 56;
+  --theme-rgb-panel-deep: 5, 23, 35;
+  --theme-rgb-border: 169, 228, 255;
+  --theme-rgb-accent: 224, 123, 255;
+  --theme-rgb-secondary: 189, 241, 255;
 }
 
+:root[data-vault-theme="moonlit-lagoon"],
+.app-shell.app-theme-moonlit-lagoon {
+  --theme-rgb-page: 5, 18, 31;
+  --theme-rgb-panel: 9, 38, 61;
+  --theme-rgb-panel-deep: 7, 28, 49;
+  --theme-rgb-border: 91, 193, 255;
+  --theme-rgb-accent: 220, 114, 255;
+  --theme-rgb-secondary: 91, 193, 255;
+  --theme-button-gradient:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.30), transparent 30%),
+    linear-gradient(135deg, #103a5f 0%, #5bc1ff 46%, #dc72ff 100%);
+}
+
+:root[data-vault-theme="soft-console"],
 .app-shell.app-theme-soft-console {
   --theme-rgb-page: 10, 31, 53;
   --theme-rgb-panel: 16, 45, 72;
@@ -2847,15 +2882,6 @@ dialog {
   --theme-rgb-border: 128, 201, 255;
   --theme-rgb-accent: 184, 141, 255;
   --theme-rgb-secondary: 128, 201, 255;
-}
-
-.app-shell.app-theme-ultraviolet-steam {
-  --theme-rgb-page: 7, 20, 37;
-  --theme-rgb-panel: 11, 39, 73;
-  --theme-rgb-panel-deep: 7, 18, 34;
-  --theme-rgb-border: 94, 188, 255;
-  --theme-rgb-accent: 242, 93, 255;
-  --theme-rgb-secondary: 94, 188, 255;
 }
 
 .app-shell {
@@ -2883,62 +2909,100 @@ dialog {
 }
 
 .settings-menu {
-  width: 366px;
+  width: 404px;
 }
 
 .settings-theme-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  gap: 10px;
 }
 
 .settings-theme-tile {
-  min-height: 76px;
+  --tile-bg: linear-gradient(135deg, #071425, #5ebcff 42%, #f25dff);
+  --tile-border: rgba(242, 93, 255, 0.46);
+  --tile-dot: #f25dff;
+  min-height: 64px;
   display: grid;
-  align-content: space-between;
-  justify-items: stretch;
-  gap: 8px;
-  padding: 9px;
+  grid-template-columns: 18px minmax(0, 1fr);
+  align-items: center;
+  gap: 9px;
+  padding: 10px;
   text-align: left;
+  color: #f8efff;
+  background: var(--tile-bg);
+  border-color: var(--tile-border);
+  border-radius: 14px;
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
 }
 
 .settings-theme-tile span {
   display: block;
-  height: 28px;
-  border-radius: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--tile-dot);
+  border: 2px solid rgba(255, 255, 255, 0.56);
+  box-shadow: 0 0 18px var(--tile-dot);
 }
 
 .settings-theme-tile b {
   display: block;
   min-width: 0;
-  color: inherit;
-  font-size: 10px;
-  line-height: 1.1;
+  color: #f8efff;
+  font-size: 11px;
+  line-height: 1.08;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.42);
 }
 
-.settings-theme-tile.theme-glass-aurora span {
-  background: linear-gradient(135deg, #071d2b, #a9e4ff 48%, #e07bff);
+.settings-theme-tile.theme-ultraviolet-steam {
+  --tile-bg:
+    radial-gradient(circle at 14% 8%, rgba(242, 93, 255, 0.55), transparent 36%),
+    linear-gradient(135deg, #201047, #6a38e2 48%, #f25dff);
+  --tile-border: rgba(242, 93, 255, 0.62);
+  --tile-dot: #f25dff;
 }
 
-.settings-theme-tile.theme-moonlit-lagoon span {
-  background: linear-gradient(135deg, #05121f, #5bc1ff 45%, #dc72ff);
+.settings-theme-tile.theme-cosmic-blueberry {
+  --tile-bg:
+    radial-gradient(circle at 86% 10%, rgba(217, 104, 255, 0.52), transparent 34%),
+    linear-gradient(135deg, #09152d, #3a43b7 48%, #d968ff);
+  --tile-border: rgba(217, 104, 255, 0.52);
+  --tile-dot: #d968ff;
 }
 
-.settings-theme-tile.theme-arcade-dusk span {
-  background: linear-gradient(135deg, #070f1f, #6ea7ff 48%, #c382ff);
+.settings-theme-tile.theme-arcade-dusk {
+  --tile-bg:
+    radial-gradient(circle at 18% 88%, rgba(195, 130, 255, 0.44), transparent 34%),
+    linear-gradient(135deg, #070f1f, #274586 46%, #6ea7ff 76%, #c382ff);
+  --tile-border: rgba(195, 130, 255, 0.48);
+  --tile-dot: #c382ff;
 }
 
-.settings-theme-tile.theme-cosmic-blueberry span {
-  background: linear-gradient(135deg, #09152d, #75a7ff 50%, #d968ff);
+.settings-theme-tile.theme-glass-aurora {
+  --tile-bg:
+    radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.36), transparent 30%),
+    linear-gradient(135deg, #071d2b, #51accd 48%, #e07bff);
+  --tile-border: rgba(169, 228, 255, 0.50);
+  --tile-dot: #a9e4ff;
 }
 
-.settings-theme-tile.theme-soft-console span {
-  background: linear-gradient(135deg, #0a1f35, #80c9ff 50%, #b88dff);
+.settings-theme-tile.theme-moonlit-lagoon {
+  --tile-bg:
+    radial-gradient(circle at 86% 14%, rgba(220, 114, 255, 0.40), transparent 34%),
+    linear-gradient(135deg, #05121f, #0f3a5f 42%, #5bc1ff);
+  --tile-border: rgba(91, 193, 255, 0.52);
+  --tile-dot: #5bc1ff;
 }
 
-.settings-theme-tile.theme-ultraviolet-steam span {
-  background: linear-gradient(135deg, #071425, #5ebcff 42%, #f25dff);
+.settings-theme-tile.theme-soft-console {
+  --tile-bg:
+    radial-gradient(circle at 84% 12%, rgba(184, 141, 255, 0.28), transparent 32%),
+    linear-gradient(135deg, #0a1f35, #2f82c7 50%, #80c9ff);
+  --tile-border: rgba(128, 201, 255, 0.50);
+  --tile-dot: #80c9ff;
 }
 
 .app-shell :is(
@@ -2949,7 +3013,6 @@ dialog {
   .filter-popover-actions button,
   .view-button,
   .settings-button,
-  .settings-theme-tile,
   .add-search-box button,
   .notes-preview button,
   .soft-action,
@@ -2973,7 +3036,6 @@ dialog {
   .filter-popover-actions button,
   .view-button,
   .settings-button,
-  .settings-theme-tile,
   .add-search-box button,
   .notes-preview button,
   .soft-action,
@@ -2994,7 +3056,6 @@ dialog {
   .filter-popover-actions button,
   .view-button,
   .settings-button,
-  .settings-theme-tile,
   .add-search-box button,
   .notes-preview button,
   .soft-action,
@@ -3015,8 +3076,7 @@ dialog {
 .app-shell .floating-add,
 .app-shell .filter-button.active,
 .app-shell .view-button.active,
-.app-shell .shuffle-count-row button.active,
-.app-shell .settings-theme-tile.active {
+.app-shell .shuffle-count-row button.active {
   color: var(--theme-button-text);
   background: var(--theme-button-gradient);
   border-color: rgba(var(--theme-rgb-accent), 0.52);
@@ -3033,9 +3093,22 @@ dialog {
 }
 
 .app-shell .ghost.subtle {
-  color: var(--muted);
-  background: rgba(var(--theme-rgb-panel), 0.44);
-  box-shadow: none;
+  color: var(--blue-strong);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-secondary), 0.12), rgba(var(--theme-rgb-accent), 0.08)),
+    rgba(var(--theme-rgb-panel), 0.58);
+  border-color: rgba(var(--theme-rgb-border), 0.22);
+  box-shadow:
+    0 8px 18px rgba(var(--theme-rgb-secondary), 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.11);
+}
+
+.app-shell .ghost.subtle:hover:not(:disabled) {
+  color: #f2fbff;
+  border-color: rgba(var(--theme-rgb-accent), 0.36);
+  box-shadow:
+    0 10px 24px rgba(var(--theme-rgb-accent), 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.14);
 }
 
 .app-shell .stat-row {
@@ -3080,6 +3153,53 @@ dialog {
   border-color: rgba(var(--theme-rgb-border), 0.18);
 }
 
+.app-shell .settings-theme-tile,
+.app-shell .settings-theme-tile:hover:not(:disabled),
+.app-shell .settings-theme-tile.active {
+  color: #f8efff;
+  background: var(--tile-bg);
+  border-color: var(--tile-border);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.16);
+}
+
+.app-shell .settings-theme-tile.active {
+  transform: translateY(-1px);
+  border-color: rgba(var(--theme-rgb-accent), 0.72);
+  box-shadow:
+    0 12px 28px rgba(var(--theme-rgb-accent), 0.18),
+    0 0 0 1px rgba(255, 255, 255, 0.10) inset,
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.app-shell .rec-tile,
+.app-shell .game-card {
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-panel), 0.70), rgba(var(--theme-rgb-panel-deep), 0.76)),
+    rgba(var(--theme-rgb-panel), 0.58);
+  border: 1px solid rgba(var(--theme-rgb-border), 0.18);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.app-shell .rec-tile:hover,
+.app-shell .game-card:hover {
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-panel), 0.82), rgba(var(--theme-rgb-panel-deep), 0.84)),
+    rgba(var(--theme-rgb-panel), 0.70);
+  border-color: rgba(var(--theme-rgb-border), 0.28);
+}
+
+.app-shell .game-card.selected {
+  border-color: rgba(var(--theme-rgb-accent), 0.56);
+  box-shadow:
+    0 12px 30px rgba(var(--theme-rgb-accent), 0.10),
+    inset 0 0 0 1px rgba(var(--theme-rgb-accent), 0.26);
+}
+
 .app-shell .play-now-button {
   width: min(172px, 100%);
   min-height: 32px;
@@ -3090,9 +3210,55 @@ dialog {
   letter-spacing: .01em;
 }
 
+.app-shell .hero-cover {
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  aspect-ratio: 460 / 215;
+  padding: 0;
+  overflow: hidden;
+}
+
+.app-shell .hero-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(var(--theme-rgb-secondary), 0.16), transparent 36%),
+    linear-gradient(135deg, rgba(var(--theme-rgb-panel), 0.92), rgba(var(--theme-rgb-panel-deep), 0.96));
+}
+
+.app-shell .detail-pills {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.app-shell .detail-pill {
+  min-width: 0;
+  justify-content: center;
+  gap: 5px;
+  padding-inline: 7px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 10px;
+}
+
+.app-shell .detail-pill i {
+  flex: 0 0 auto;
+}
+
+.app-shell .inline-settings select {
+  padding-left: 12px;
+  padding-right: 36px;
+  text-overflow: ellipsis;
+}
+
 @media (max-width: 780px) {
   .settings-menu {
-    width: min(366px, calc(100vw - 24px));
+    width: min(404px, calc(100vw - 24px));
   }
 
   .settings-theme-grid {

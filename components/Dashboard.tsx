@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Game, GamePayload, RecommendationPayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
 import { steamImageCandidates } from "@/lib/images";
+import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
 
 const emptyStats: StatsPayload = {
   total: 0,
@@ -20,16 +21,6 @@ const METADATA_SYNC_BATCH_SIZE = 8;
 const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
 const TIME_FILTER_OPTIONS = ["5h", "15h", "30h", "50h", "100h", "300h+"];
-const THEME_OPTIONS = [
-  { id: "glass-aurora", name: "Glass Aurora" },
-  { id: "moonlit-lagoon", name: "Moonlit Lagoon" },
-  { id: "arcade-dusk", name: "Arcade Dusk" },
-  { id: "cosmic-blueberry", name: "Cosmic Blueberry" },
-  { id: "soft-console", name: "Soft Console" },
-  { id: "ultraviolet-steam", name: "Ultraviolet Steam" }
-] as const;
-
-type ThemeOptionId = (typeof THEME_OPTIONS)[number]["id"];
 
 const blankGame: GamePayload = {
   title: "",
@@ -76,7 +67,7 @@ export function Dashboard() {
   const [sort, setSort] = useState("hours_desc");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [selectedTheme, setSelectedTheme] = useState<ThemeOptionId>("glass-aurora");
+  const [selectedTheme, setSelectedTheme] = useState<ThemeOptionId>(readSavedTheme);
   const [rowMenuId, setRowMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const [shuffleGenre, setShuffleGenre] = useState("Any genre");
@@ -120,6 +111,15 @@ export function Dashboard() {
   }, []);
 
   useEffect(() => {
+    document.documentElement.dataset.vaultTheme = selectedTheme;
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, selectedTheme);
+    } catch {
+      // Theme persistence is a preference; losing it should not block the app.
+    }
+  }, [selectedTheme]);
+
+  useEffect(() => {
     if (!notice) return;
     const timer = window.setTimeout(() => setNotice(""), 5000);
     return () => window.clearTimeout(timer);
@@ -158,10 +158,11 @@ export function Dashboard() {
 
     return games
       .filter((game) => {
-        const text = `${game.title} ${game.genre} ${game.store} ${game.status} ${game.notes} ${game.steam_appid ?? ""}`.toLowerCase();
+        const effectiveStatus = displayStatus(game);
+        const text = `${game.title} ${game.genre} ${game.store} ${effectiveStatus} ${game.notes} ${game.steam_appid ?? ""}`.toLowerCase();
         return (
           (!lowerQuery || text.includes(lowerQuery)) &&
-          (status === "All" || game.status === status) &&
+          (status === "All" || effectiveStatus === status) &&
           (ownership === "All" || game.ownership === ownership) &&
           (genreFilter === "All genres" || splitGenres(game.genre).includes(genreFilter)) &&
           (playtimeFilter === "Any playtime" || timeBucket(game) === playtimeFilter) &&
@@ -171,8 +172,8 @@ export function Dashboard() {
       .sort((a, b) => {
         if (sort === "title_asc") return a.title.localeCompare(b.title);
         if (sort === "title_desc") return b.title.localeCompare(a.title);
-        if (sort === "status_asc") return (statusScore[a.status] || 9) - (statusScore[b.status] || 9);
-        if (sort === "status_desc") return (statusScore[b.status] || 9) - (statusScore[a.status] || 9);
+        if (sort === "status_asc") return (statusScore[displayStatus(a)] || 9) - (statusScore[displayStatus(b)] || 9);
+        if (sort === "status_desc") return (statusScore[displayStatus(b)] || 9) - (statusScore[displayStatus(a)] || 9);
         if (sort === "hours_asc") return Number(a.hours_played || 0) - Number(b.hours_played || 0);
         if (sort === "progress_desc") return gameProgress(b) - gameProgress(a);
         if (sort === "progress_asc") return gameProgress(a) - gameProgress(b);
@@ -519,10 +520,10 @@ export function Dashboard() {
     <div className={`app-shell app-theme-${selectedTheme}`}>
       <header className="top-nav">
         <div className="nav-brand">
-          <span className="brand-lockup" aria-label="Vault Shuffle">
+          <a className="brand-lockup" href="/" aria-label="Vault Shuffle home">
             <img src="/assets/vault-shuffle-icon.png" alt="" />
             <strong>Vault Shuffle</strong>
-          </span>
+          </a>
         </div>
         <form className="nav-search-group" onSubmit={submitAddSearch}>
           <div className="search-box add-search-box">
@@ -827,6 +828,7 @@ function GameRow({
   onDelete: () => void;
 }) {
   const progress = gameProgress(game);
+  const status = displayStatus(game);
   return (
     <div
       className={`game-row ${selected ? "selected" : ""}`}
@@ -854,7 +856,7 @@ function GameRow({
           <span className="progress-fill" style={{ width: `${progress}%` }} />
         </span>
       </span>
-      <span className={`chip ${statusClass(game)}`}>{statusIcon(game)} {game.status}</span>
+      <span className={`chip ${statusClass(game)}`}>{statusIcon(game)} {status}</span>
       <span className="pill genre-pill">{primaryGenre(game)}</span>
       <span className="pill">{timeBucket(game)}</span>
       <span>{Number(game.rating) > 0 ? `${game.rating}/10` : "—"}</span>
@@ -925,6 +927,7 @@ function GuestLibraryState({ loggedIn, onAdd, onSignIn }: { loggedIn: boolean; o
 
 function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean; onSelect: () => void }) {
   const progress = gameProgress(game);
+  const status = displayStatus(game);
   return (
     <button className={`game-card ${selected ? "selected" : ""}`} onClick={onSelect} type="button">
       <span className="game-card-art"><Cover game={game} /></span>
@@ -935,7 +938,7 @@ function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean;
           <span className="progress-track">
             <span className="progress-fill" style={{ width: `${progress}%` }} />
           </span>
-          <span className={`chip ${statusClass(game)}`}>{game.status}</span>
+          <span className={`chip ${statusClass(game)}`}>{status}</span>
         </span>
       </span>
     </button>
@@ -957,6 +960,7 @@ function GameDetails({
     return <div className="detail-content empty">Select a game from the library.</div>;
   }
   const progress = gameProgress(game);
+  const status = displayStatus(game);
   return (
     <div className="detail-content">
       <div className="hero-cover"><HeroArtwork game={game} /></div>
@@ -964,7 +968,7 @@ function GameDetails({
       <div className="detail-title">{game.title}</div>
       <div className="detail-subtitle">{game.genre || "Unknown"} · {game.store || "Steam"}</div>
       <div className="detail-pills">
-        <span className="detail-pill"><i>{statusIcon(game)}</i>{game.status}</span>
+        <span className="detail-pill"><i>{statusIcon(game)}</i>{status}</span>
         <span className="detail-pill"><i>◴</i>{timeBucket(game)}</span>
         <span className="detail-pill"><i>★</i>{Number(game.rating) > 0 ? `${game.rating}/10` : "No rating"}</span>
       </div>
@@ -985,7 +989,6 @@ function GameDetails({
           label="Store"
           value={game.steam_appid ? <a href={`https://store.steampowered.com/app/${game.steam_appid}/`} target="_blank" rel="noreferrer">Open on Steam</a> : game.store}
         />
-        {game.steam_appid ? <DetailLine label="Steam AppID" value={game.steam_appid} /> : null}
       </div>
       <InlineGameSettings game={game} onUpdate={onUpdate} />
       <section className="notes-preview">
@@ -1008,14 +1011,24 @@ function InlineGameSettings({ game, onUpdate }: { game: Game; onUpdate: (payload
   }, [game.id, game.hours_played, game.completion_percentage, displayedProgress]);
 
   function commitHours() {
-    void onUpdate({ hours_played: parseNumberInput(hoursDraft) });
+    const hours = parseNumberInput(hoursDraft);
+    const currentStoredCompletion = Number(game.completion_percentage || 0);
+    const currentInferredCompletion = inferredProgressFromHours(game, Number(game.hours_played || 0));
+    const hasManualCompletion = currentStoredCompletion > 0 && currentStoredCompletion !== currentInferredCompletion;
+    const next: Partial<GamePayload> = { hours_played: hours };
+    if (!hasManualCompletion) {
+      const completion = inferredProgressFromHours(game, hours);
+      next.completion_percentage = completion;
+      next.status = statusFromCompletion(completion);
+    }
+    void onUpdate(next);
   }
 
   function commitCompletion() {
     const completion = parseNumberInput(completionDraft, 100);
     void onUpdate({
       completion_percentage: completion,
-      status: completion >= 100 ? "Completed" : completion > 0 ? "In Progress" : game.status === "Completed" ? "Not Started" : game.status
+      status: statusFromCompletion(completion)
     });
   }
 
@@ -1085,6 +1098,16 @@ function numberField(value: number | null | undefined) {
   return numeric === 0 ? "" : String(numeric);
 }
 
+function readSavedTheme(): ThemeOptionId {
+  if (typeof window === "undefined") return DEFAULT_THEME_ID;
+  try {
+    const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+    return isThemeOptionId(saved) ? saved : DEFAULT_THEME_ID;
+  } catch {
+    return DEFAULT_THEME_ID;
+  }
+}
+
 function parseNumberInput(value: string, max?: number) {
   const cleaned = value.replace(/[^\d.]/g, "");
   if (!cleaned) return 0;
@@ -1138,7 +1161,7 @@ function SteamDialog({
                 <span className="steam-result-art">{result.image ? <img src={result.image} alt="" /> : null}</span>
                 <span>
                   <strong>{result.name}</strong>
-                  <small>{result.genre ? `${result.genre} · ` : ""}Steam AppID {result.appid}</small>
+                  <small>{result.genre ? `${result.genre} · ` : ""}Steam</small>
                 </span>
                 <b>Add</b>
               </button>
@@ -1235,20 +1258,26 @@ function isCompleted(game: Game) {
 }
 
 function needsSteamMetadata(game: Game) {
-  return Boolean(game.steam_appid && (!splitGenres(game.genre).length || !game.capsule_url || !game.header_url));
+  return Boolean(game.steam_appid && (!splitGenres(game.genre).length || !game.capsule_url || !game.header_url || Number(game.rating || 0) <= 0));
 }
 
 function statusClass(game: Game) {
   if (game.ownership === "Wishlist") return "wishlist";
   if (isCompleted(game)) return "completed";
-  if (game.status === "In Progress") return "progress";
+  if (displayStatus(game) === "In Progress") return "progress";
   return "";
 }
 
 function statusIcon(game: Game) {
   if (isCompleted(game)) return "✓";
-  if (game.status === "In Progress") return "▶";
+  if (displayStatus(game) === "In Progress") return "▶";
   return "↬";
+}
+
+function displayStatus(game: Game) {
+  if (isCompleted(game)) return "Completed";
+  if (gameProgress(game) > 0) return "In Progress";
+  return "Not Started";
 }
 
 function timeBucket(game: Game) {
@@ -1265,15 +1294,21 @@ function gameProgress(game: Game) {
   if (game.status === "Completed") return 100;
   const stored = Number(game.completion_percentage || 0);
   if (stored > 0) return clamp(Math.round(stored), 0, 100);
+  return inferredProgressFromHours(game, Number(game.hours_played || 0));
+}
+
+function inferredProgressFromHours(game: Game, hours: number) {
   const estimate = estimatedGameHours(game);
-  const played = Number(game.hours_played || 0);
+  const played = Number(hours || 0);
   if (!played || !estimate) return 0;
   return clamp(Math.round((played / estimate) * 100), 0, 99);
 }
 
 function estimatedGameHours(game: Game) {
   const text = `${game.title} ${game.genre}`.toLowerCase();
-  if (/(mmo|massively multiplayer|battle royale|moba|live service|survival|sandbox)/.test(text)) return 300;
+  if (Number(game.hours_played || 0) >= 300) return 300;
+  if (/(counter-?strike|destiny|apex legends|rust|palworld|new world|for honor|warframe|dota|team fortress|pubg|rainbow six|rocket league|dead by daylight|elder scrolls online|final fantasy xiv|path of exile|lost ark)/.test(text)) return 300;
+  if (/(mmo|massively multiplayer|multiplayer|battle royale|moba|live service|survival|sandbox|free to play|pvp|pve|online)/.test(text)) return 300;
   if (/(rpg|role-playing|strategy|simulation|management|grand strategy|4x|open world)/.test(text)) return 100;
   if (/(adventure|action-adventure|souls|metroidvania|horror)/.test(text)) return 50;
   if (/(action|shooter|fps|third-person|racing|sports|fighting)/.test(text)) return 30;
@@ -1323,6 +1358,12 @@ function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
 }
 
+function statusFromCompletion(completion: number): GamePayload["status"] {
+  if (completion >= 100) return "Completed";
+  if (completion > 0) return "In Progress";
+  return "Not Started";
+}
+
 function delay(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
@@ -1353,6 +1394,7 @@ function isPreviewGame(value: unknown): value is Game {
 
 function previewGameFromPayload(payload: GamePayload, id?: string): Game {
   const now = new Date().toISOString();
+  const completion = payload.status === "Completed" ? 100 : clamp(Math.round(Number(payload.completion_percentage || 0)), 0, 100);
   return {
     id: id ?? (globalThis.crypto?.randomUUID?.() || `preview-${Date.now()}`),
     user_id: "preview",
@@ -1360,10 +1402,10 @@ function previewGameFromPayload(payload: GamePayload, id?: string): Game {
     genre: payload.genre?.trim() || "Unknown",
     store: payload.store?.trim() || "Steam",
     ownership: payload.ownership,
-    status: payload.status,
+    status: statusFromCompletion(completion),
     rating: Number(payload.rating || 0),
     hours_played: Number(payload.hours_played || 0),
-    completion_percentage: payload.status === "Completed" ? 100 : Number(payload.completion_percentage || 0),
+    completion_percentage: completion,
     priority: payload.priority,
     date_added: payload.date_added || new Date().toLocaleDateString("en-GB"),
     last_played_at: payload.last_played_at || null,

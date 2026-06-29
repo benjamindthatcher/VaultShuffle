@@ -5,15 +5,18 @@ import type { Game, GamePayload, RecommendationPayload, StatsPayload } from "@/l
 type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
 
 function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
+  const completion = payload.status === "Completed"
+    ? 100
+    : clamp(Math.round(Number(payload.completion_percentage ?? 0)), 0, 100);
   return {
     title: String(payload.title ?? "").trim(),
     genre: String(payload.genre ?? "Unknown").trim() || "Unknown",
     store: String(payload.store ?? "Steam").trim() || "Steam",
     ownership: payload.ownership ?? "Owned",
-    status: payload.status ?? "Not Started",
+    status: statusFromCompletion(completion),
     rating: Number(payload.rating ?? 0),
     hours_played: Number(payload.hours_played ?? 0),
-    completion_percentage: payload.status === "Completed" ? 100 : Number(payload.completion_percentage ?? 0),
+    completion_percentage: completion,
     priority: payload.priority ?? "Medium",
     date_added: payload.date_added || null,
     last_played_at: payload.last_played_at || null,
@@ -281,7 +284,10 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
     else update[key] = key === "notes" ? cleanUserNotes(value) : String(value ?? "").trim();
   }
   if (update.status === "Completed") update.completion_percentage = 100;
-  if (typeof update.completion_percentage === "number" && update.completion_percentage >= 100) update.status = "Completed";
+  if (typeof update.completion_percentage === "number") {
+    update.completion_percentage = clamp(Math.round(update.completion_percentage), 0, 100);
+    update.status = statusFromCompletion(update.completion_percentage);
+  }
   return update;
 }
 
@@ -339,9 +345,17 @@ function gameProgress(game: Game) {
   return clamp(Math.round((played / estimate) * 100), 0, 99);
 }
 
-function estimatedGameHours(game: Pick<Game, "title" | "genre">) {
+function statusFromCompletion(completion: number): GamePayload["status"] {
+  if (completion >= 100) return "Completed";
+  if (completion > 0) return "In Progress";
+  return "Not Started";
+}
+
+function estimatedGameHours(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>) {
   const text = `${game.title} ${game.genre}`.toLowerCase();
-  if (/(mmo|massively multiplayer|battle royale|moba|live service|survival|sandbox)/.test(text)) return 300;
+  if (Number(game.hours_played || 0) >= 300) return 300;
+  if (/(counter-?strike|destiny|apex legends|rust|palworld|new world|for honor|warframe|dota|team fortress|pubg|rainbow six|rocket league|dead by daylight|elder scrolls online|final fantasy xiv|path of exile|lost ark)/.test(text)) return 300;
+  if (/(mmo|massively multiplayer|multiplayer|battle royale|moba|live service|survival|sandbox|free to play|pvp|pve|online)/.test(text)) return 300;
   if (/(rpg|role-playing|strategy|simulation|management|grand strategy|4x|open world)/.test(text)) return 100;
   if (/(adventure|action-adventure|souls|metroidvania|horror)/.test(text)) return 50;
   if (/(action|shooter|fps|third-person|racing|sports|fighting)/.test(text)) return 30;
