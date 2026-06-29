@@ -20,7 +20,6 @@ const METADATA_SYNC_BATCH_SIZE = 8;
 const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
 const TIME_FILTER_OPTIONS = ["5h", "15h", "30h", "50h", "100h", "300h+"];
-const STATUS_FILTER_OPTIONS = ["All", "Not Started", "In Progress", "Completed"];
 
 const blankGame: GamePayload = {
   title: "",
@@ -162,6 +161,7 @@ export function Dashboard() {
         if (sort === "title_asc") return a.title.localeCompare(b.title);
         if (sort === "title_desc") return b.title.localeCompare(a.title);
         if (sort === "status_asc") return (statusScore[a.status] || 9) - (statusScore[b.status] || 9);
+        if (sort === "status_desc") return (statusScore[b.status] || 9) - (statusScore[a.status] || 9);
         if (sort === "hours_asc") return Number(a.hours_played || 0) - Number(b.hours_played || 0);
         if (sort === "progress_desc") return gameProgress(b) - gameProgress(a);
         if (sort === "progress_asc") return gameProgress(a) - gameProgress(b);
@@ -170,6 +170,9 @@ export function Dashboard() {
         if (sort === "last_played_desc") return dateSortValue(b.last_played_at) - dateSortValue(a.last_played_at);
         if (sort === "last_played_asc") return dateSortValue(a.last_played_at) - dateSortValue(b.last_played_at);
         if (sort === "genre_asc") return primaryGenre(a).localeCompare(primaryGenre(b));
+        if (sort === "genre_desc") return primaryGenre(b).localeCompare(primaryGenre(a));
+        if (sort === "time_asc") return estimatedGameHours(a) - estimatedGameHours(b);
+        if (sort === "time_desc") return estimatedGameHours(b) - estimatedGameHours(a);
         return Number(b.hours_played || 0) - Number(a.hours_played || 0);
       });
   }, [games, genreFilter, hideCompleted, ownership, playtimeFilter, query, sort, status]);
@@ -315,30 +318,6 @@ export function Dashboard() {
 
   function toggleSort(descSort: string, ascSort: string) {
     setSort((current) => current === descSort ? ascSort : descSort);
-  }
-
-  function cycleStatusFilter() {
-    setStatus((current) => {
-      const index = STATUS_FILTER_OPTIONS.indexOf(current);
-      return STATUS_FILTER_OPTIONS[(index + 1) % STATUS_FILTER_OPTIONS.length] || "All";
-    });
-  }
-
-  function cycleTimeFilter() {
-    setPlaytimeFilter((current) => {
-      if (current === "Any playtime") return TIME_FILTER_OPTIONS[0];
-      const index = TIME_FILTER_OPTIONS.indexOf(current);
-      return index === -1 || index === TIME_FILTER_OPTIONS.length - 1 ? "Any playtime" : TIME_FILTER_OPTIONS[index + 1];
-    });
-  }
-
-  function cycleGenreFilter() {
-    setGenreFilter((current) => {
-      if (!genreOptions.length) return "All genres";
-      if (current === "All genres") return genreOptions[0];
-      const index = genreOptions.indexOf(current);
-      return index === -1 || index === genreOptions.length - 1 ? "All genres" : genreOptions[index + 1];
-    });
   }
 
   function openSteamDialog(initialQuery = "") {
@@ -698,6 +677,7 @@ export function Dashboard() {
                   <option value="title_asc">Title (A → Z)</option>
                   <option value="title_desc">Title (Z → A)</option>
                   <option value="status_asc">Status</option>
+                  <option value="status_desc">Status (Reverse)</option>
                   <option value="progress_desc">Progress (High to Low)</option>
                   <option value="progress_asc">Progress (Low to High)</option>
                   <option value="rating_desc">Rating (High to Low)</option>
@@ -705,6 +685,9 @@ export function Dashboard() {
                   <option value="last_played_desc">Last Played</option>
                   <option value="last_played_asc">Oldest Played</option>
                   <option value="genre_asc">Genre</option>
+                  <option value="genre_desc">Genre (Reverse)</option>
+                  <option value="time_asc">Time (Short to Long)</option>
+                  <option value="time_desc">Time (Long to Short)</option>
                 </select>
                 <button className={`view-button ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")} type="button" aria-label="List view">☷</button>
                 <button className={`view-button ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")} type="button" aria-label="Cover view">▦</button>
@@ -715,9 +698,9 @@ export function Dashboard() {
               <button onClick={() => toggleSort("title_asc", "title_desc")} type="button">Game</button>
               <button onClick={() => toggleSort("hours_desc", "hours_asc")} type="button">Playtime</button>
               <button onClick={() => toggleSort("progress_desc", "progress_asc")} type="button">Progress</button>
-              <button onClick={cycleStatusFilter} type="button">Status</button>
-              <button onClick={cycleGenreFilter} type="button">Genre</button>
-              <button onClick={cycleTimeFilter} type="button">Time</button>
+              <button onClick={() => toggleSort("status_asc", "status_desc")} type="button">Status</button>
+              <button onClick={() => toggleSort("genre_asc", "genre_desc")} type="button">Genre</button>
+              <button onClick={() => toggleSort("time_asc", "time_desc")} type="button">Time</button>
               <button onClick={() => toggleSort("rating_desc", "rating_asc")} type="button">Rating</button>
               <button onClick={() => toggleSort("last_played_desc", "last_played_asc")} type="button">Last Played</button>
               <span className="actions-head">⋮</span>
@@ -987,12 +970,12 @@ function GameDetails({
         />
         {game.steam_appid ? <DetailLine label="Steam AppID" value={game.steam_appid} /> : null}
       </div>
-      <button className="play-now-button" disabled={!game.steam_appid} onClick={onPlay} type="button">Play Now</button>
       <InlineGameSettings game={game} onUpdate={onUpdate} />
       <section className="notes-preview">
         <strong>Notes</strong>
         <button onClick={onOpenNotes} type="button">View</button>
       </section>
+      <button className="play-now-button" disabled={!game.steam_appid} onClick={onPlay} type="button">Play Now</button>
     </div>
   );
 }

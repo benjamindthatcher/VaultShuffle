@@ -630,7 +630,8 @@ textarea:focus {
 
 .cover {
   width: 48px;
-  height: 36px;
+  aspect-ratio: 184 / 69;
+  height: auto;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, #384064, #5b3f92 55%, #d4a071);
@@ -647,6 +648,7 @@ textarea:focus {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   grid-area: 1 / 1;
 }
 
@@ -838,14 +840,14 @@ textarea:focus {
 .game-cell {
   min-width: 0;
   display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
 }
 
 .game-cell .cover {
-  width: 44px;
-  height: 28px;
+  width: 56px;
+  height: auto;
 }
 
 .game-title {
@@ -943,6 +945,8 @@ textarea:focus {
 }
 
 .detail-content {
+  display: flex;
+  flex-direction: column;
   min-height: 0;
   overflow-y: auto;
   background: transparent;
@@ -1165,6 +1169,10 @@ textarea:focus {
   gap: 8px;
 }
 
+.inline-settings-grid label:nth-child(3) {
+  grid-column: 1 / -1;
+}
+
 .inline-settings label {
   margin: 0;
   color: var(--muted);
@@ -1172,6 +1180,8 @@ textarea:focus {
 
 .inline-settings input,
 .inline-settings select {
+  width: 100%;
+  min-width: 0;
   min-height: 30px;
   font-size: 11px;
   font-weight: 750;
@@ -1276,7 +1286,7 @@ textarea:focus {
   width: 100%;
   min-height: 42px;
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
+  grid-template-columns: 56px minmax(0, 1fr);
   gap: 8px;
   align-items: center;
   margin-top: 5px;
@@ -1289,8 +1299,8 @@ textarea:focus {
 }
 
 .rec-row .cover {
-  width: 38px;
-  height: 26px;
+  width: 52px;
+  height: auto;
   border-radius: 9px;
 }
 
@@ -1773,14 +1783,14 @@ textarea {
 }
 
 .rec-tile {
-  min-height: 70px;
-  grid-template-columns: 74px minmax(0, 1fr);
+  min-height: 64px;
+  grid-template-columns: 90px minmax(0, 1fr);
   border-radius: 12px;
 }
 
 .rec-tile .cover {
-  width: 70px;
-  height: 48px;
+  width: 86px;
+  height: auto;
 }
 
 .library-table {
@@ -1952,7 +1962,7 @@ textarea {
 .game-card {
   min-height: 176px;
   display: grid;
-  grid-template-rows: 92px minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 8px;
   padding: 8px;
   text-align: left;
@@ -1970,6 +1980,8 @@ textarea {
 .game-card-art {
   display: grid;
   place-items: center;
+  width: 100%;
+  aspect-ratio: 184 / 69;
   overflow: hidden;
   border-radius: 9px;
   background: rgba(6, 19, 34, 0.62);
@@ -2393,7 +2405,7 @@ select {
 .play-now-button {
   width: 100%;
   min-height: 38px;
-  margin: 10px 0 2px;
+  margin: auto 0 2px;
   color: #170e23;
   background: linear-gradient(180deg, #ebc8ff, #bf69e8);
   border: 1px solid rgba(250, 224, 255, 0.36);
@@ -2426,7 +2438,11 @@ select {
 }
 
 .inline-settings-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.inline-settings-grid label:nth-child(3) {
+  grid-column: 1 / -1;
 }
 
 .toolbar-controls > select {
