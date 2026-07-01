@@ -1,18 +1,21 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
+import { matchesTopLevelGenre, normaliseSteamGenreLabel } from "@/lib/genres";
 import type { Game, GamePayload, RecommendationPayload, StatsPayload } from "@/lib/types";
 
 type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
 
 function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
+  const title = String(payload.title ?? "").trim();
+  const genre = normaliseSteamGenreLabel(payload.genre ?? "Unknown", title);
   const completion = payload.status === "Completed"
     ? 100
     : clamp(Math.round(Number(payload.completion_percentage ?? 0)), 0, 100);
   return {
-    title: String(payload.title ?? "").trim(),
-    genre: String(payload.genre ?? "Unknown").trim() || "Unknown",
+    title,
+    genre,
     store: String(payload.store ?? "Steam").trim() || "Steam",
-    ownership: payload.ownership ?? "Owned",
+    ownership: normalizeOwnership(payload.ownership),
     status: statusFromCompletion(completion),
     rating: Number(payload.rating ?? 0),
     hours_played: Number(payload.hours_played ?? 0),
@@ -34,7 +37,7 @@ export async function listGames(userId: string) {
     .order("title", { ascending: true });
 
   if (error) throw error;
-  const games = ((data ?? []) as Game[]).map(cleanGeneratedNotes);
+  const games = ((data ?? []) as Game[]).map(cleanStoredGame);
   return applyCachedSteamMetadata(games);
 }
 
@@ -144,7 +147,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
       title: incoming.title,
       genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
       store: "Steam",
-      ownership: existing.ownership,
+      ownership: "Owned",
       status: existing.status === "Completed" ? existing.status : incoming.status,
       rating: existing.rating,
       hours_played: incoming.hours_played,
@@ -280,6 +283,7 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
     if (value === undefined) continue;
     if (key === "steam_appid") update[key] = String(value ?? "").trim() || null;
     else if (key === "date_added" || key === "last_played_at") update[key] = value ? String(value) : null;
+    else if (key === "ownership") update[key] = normalizeOwnership(value);
     else if (typeof value === "number") update[key] = value;
     else update[key] = key === "notes" ? cleanUserNotes(value) : String(value ?? "").trim();
   }
@@ -291,9 +295,10 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
   return update;
 }
 
-function cleanGeneratedNotes(game: Game) {
+function cleanStoredGame(game: Game) {
   const notes = cleanUserNotes(game.notes);
-  return notes === game.notes ? game : { ...game, notes };
+  const ownership = normalizeOwnership(game.ownership);
+  return notes === game.notes && ownership === game.ownership ? game : { ...game, notes, ownership };
 }
 
 function cleanUserNotes(value: unknown) {
@@ -303,6 +308,10 @@ function cleanUserNotes(value: unknown) {
 
 function isGeneratedSteamNote(notes: string) {
   return /^(Imported from Steam account|Added from Steam search)\. AppID: \d+$/i.test(notes);
+}
+
+function normalizeOwnership(value: unknown): GamePayload["ownership"] {
+  return value === "Owned" ? "Owned" : "Wishlist";
 }
 
 function topBacklog(games: Game[]) {
@@ -376,17 +385,8 @@ function timeBucket(game: Game) {
   return "300h+";
 }
 
-function splitGenres(value?: string | null) {
-  const genres = String(value || "")
-    .split(/[\/,;|]+/g)
-    .map((genre) => genre.trim())
-    .filter((genre) => genre && genre.toLowerCase() !== "unknown");
-  return Array.from(new Set(genres));
-}
-
 function matchesGenre(game: Game, genre: string) {
-  if (genre === "Any genre") return true;
-  return splitGenres(game.genre).includes(genre);
+  return matchesTopLevelGenre(game.genre, genre, game.title);
 }
 
 function matchesTime(game: Game, time: string) {

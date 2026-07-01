@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchSteamAppDetails } from "@/lib/steam";
 import { steamImageUrl } from "@/lib/images";
+import { normaliseSteamGenreLabel } from "@/lib/genres";
 import type { Game, GamePayload } from "@/lib/types";
 
 type SteamMetadataRow = {
@@ -39,7 +40,9 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
   return games.map((game) => {
     const appid = game.steam_appid ? String(game.steam_appid) : "";
     const metadata = metadataByAppId.get(appid);
-    const genre = metadata?.genre && !UNKNOWN_GENRES.has(metadata.genre) ? metadata.genre : null;
+    const genre = metadata?.genre && !UNKNOWN_GENRES.has(metadata.genre)
+      ? normaliseSteamGenreLabel(metadata.genre, metadata.title || game.title)
+      : null;
     const rating = Number(metadata?.rating || 0);
     const capsuleUrl = metadata?.capsule_url || steamImageUrl(appid, "capsule");
     const headerUrl = metadata?.header_url || steamImageUrl(appid, "header");
@@ -143,14 +146,15 @@ async function fetchAndStoreMetadata(appid: string) {
   const supabase = getSupabaseAdmin();
   const checkedAt = new Date().toISOString();
   const details = await fetchSteamAppDetails(appid);
-  const genre = String(details?.genre || "").trim();
   const title = String(details?.title || "").trim();
+  const genre = normaliseSteamGenreLabel(String(details?.genre || "").trim(), title);
   const rating = clamp(Math.round(Number(details?.rating || 0)), 0, 10);
   const reviewTotal = Math.max(0, Math.round(Number(details?.review_total || 0)));
   const reviewPositive = Math.max(0, Math.round(Number(details?.review_positive || 0)));
   const reviewScoreDesc = String(details?.review_score_desc || "").trim();
   const capsuleUrl = String(details?.capsule_url || "").trim() || steamImageUrl(appid, "capsule");
   const headerUrl = String(details?.header_url || "").trim() || steamImageUrl(appid, "header");
+  const hasGenre = !UNKNOWN_GENRES.has(genre);
 
   const row = {
     steam_appid: appid,
@@ -162,10 +166,10 @@ async function fetchAndStoreMetadata(appid: string) {
     review_positive: reviewPositive,
     capsule_url: capsuleUrl || null,
     header_url: headerUrl || null,
-    status: genre ? "ready" : "failed",
+    status: hasGenre ? "ready" : "failed",
     checked_at: checkedAt,
-    failure_count: genre ? 0 : 1,
-    last_error: genre ? null : rating ? "Steam returned reviews but not genre metadata." : "Steam did not return genre or review metadata."
+    failure_count: hasGenre ? 0 : 1,
+    last_error: hasGenre ? null : rating ? "Steam returned reviews but not genre metadata." : "Steam did not return genre or review metadata."
   };
 
   const { error } = await supabase.from("steam_app_metadata").upsert(row, { onConflict: "steam_appid" });
@@ -187,7 +191,7 @@ async function fetchAndStoreMetadata(appid: string) {
     throw error;
   }
 
-  if (genre) {
+  if (hasGenre) {
     const { error: genreUpdateError } = await supabase
       .from("games")
       .update({ genre })
@@ -206,7 +210,7 @@ async function fetchAndStoreMetadata(appid: string) {
     if (ratingUpdateError) throw ratingUpdateError;
   }
 
-  return Boolean(genre || rating || capsuleUrl || headerUrl);
+  return Boolean(hasGenre || rating || capsuleUrl || headerUrl);
 }
 
 async function applyLegacyCachedSteamMetadata<T extends GamePayload | Game>(games: T[], appIds: string[]): Promise<T[]> {

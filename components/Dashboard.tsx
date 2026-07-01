@@ -4,6 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Game, GamePayload, RecommendationPayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
 import { steamImageCandidates } from "@/lib/images";
 import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
+import {
+  TOP_LEVEL_GENRES,
+  genreDisplayLabel,
+  matchesTopLevelGenre,
+  primaryGenre as primaryTopLevelGenre,
+  topLevelGenresFor
+} from "@/lib/genres";
 
 const emptyStats: StatsPayload = {
   total: 0,
@@ -23,7 +30,7 @@ const METADATA_SYNC_MAX_BATCHES = 32;
 const FILTER_SEPARATOR = "||";
 const TIME_FILTER_OPTIONS = ["5h", "15h", "30h", "50h", "100h", "300h+"];
 const STATUS_FILTER_OPTIONS = ["Completed", "In Progress", "Not Started"];
-const OWNERSHIP_FILTER_OPTIONS = ["Owned", "Wishlist", "Game pass"];
+const OWNERSHIP_FILTER_OPTIONS = ["Owned", "Wishlist"];
 const SORT_OPTIONS = [
   { value: "hours_desc", label: "Playtime: high to low" },
   { value: "hours_asc", label: "Playtime: low to high" },
@@ -43,7 +50,7 @@ const blankGame: GamePayload = {
   title: "",
   genre: "Unknown",
   store: "Steam",
-  ownership: "Owned",
+  ownership: "Wishlist",
   status: "Not Started",
   rating: 0,
   hours_played: 0,
@@ -159,11 +166,7 @@ export function Dashboard() {
     void syncSteamMetadata(2);
   }, [games.length, isLoggedIn]);
 
-  const genreOptions = useMemo(() => {
-    const genres = new Set<string>();
-    games.forEach((game) => splitGenres(game.genre).forEach((genre) => genres.add(genre)));
-    return Array.from(genres).sort((a, b) => a.localeCompare(b));
-  }, [games]);
+  const genreOptions = useMemo(() => [...TOP_LEVEL_GENRES], []);
 
   const displayStats = useMemo(() => previewStats(games), [games]);
 
@@ -182,7 +185,7 @@ export function Dashboard() {
           (!lowerQuery || text.includes(lowerQuery)) &&
           (!selectedStatuses.length || selectedStatuses.includes(effectiveStatus)) &&
           (!selectedOwnerships.length || selectedOwnerships.includes(game.ownership)) &&
-          (!selectedGenres.length || selectedGenres.some((genre) => splitGenres(game.genre).includes(genre))) &&
+          (!selectedGenres.length || selectedGenres.some((genre) => matchesTopLevelGenre(game.genre, genre, game.title))) &&
           (!selectedTimes.length || selectedTimes.includes(timeBucket(game))) &&
           (!hideCompleted || !isCompleted(game))
         );
@@ -383,6 +386,7 @@ export function Dashboard() {
       capsule_url: details?.capsule_url || result.image || null,
       header_url: details?.header_url || null,
       notes: "",
+      ownership: "Wishlist",
       steam_appid: result.appid
     };
     if (!isLoggedIn) {
@@ -695,7 +699,7 @@ export function Dashboard() {
                   {filtersOpen ? (
                     <div className="filter-popover">
                       <MultiFilterGroup allLabel="All" label="Status" onChange={setStatus} options={STATUS_FILTER_OPTIONS} value={status} />
-                      <MultiFilterGroup allLabel="All" label="Ownership" onChange={setOwnership} options={OWNERSHIP_FILTER_OPTIONS} value={ownership} />
+                      <MultiFilterGroup allLabel="All" label="Library" onChange={setOwnership} options={OWNERSHIP_FILTER_OPTIONS} value={ownership} />
                       <MultiFilterGroup allLabel="All genres" label="Genre" onChange={setGenreFilter} options={genreOptions} value={genreFilter} />
                       <MultiFilterGroup allLabel="Any playtime" label="Time" onChange={setPlaytimeFilter} options={TIME_FILTER_OPTIONS} value={playtimeFilter} />
                       <label className="filter-switch compact"><input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" /><span className="switch-visual" aria-hidden="true" /><span>Hide completed</span></label>
@@ -850,7 +854,7 @@ function GameRow({
         <Cover game={game} />
         <span className="game-title">
           <strong>{game.title}</strong>
-          <small>{game.genre || "Unknown"}</small>
+          <small>{displayGenres(game)}</small>
         </span>
       </span>
       <span>{Number(game.hours_played).toLocaleString()}h</span>
@@ -936,7 +940,7 @@ function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean;
       <span className="game-card-art"><Cover game={game} /></span>
       <span className="game-card-body">
         <strong>{game.title}</strong>
-        <small>{game.genre || "Unknown"} · {Number(game.hours_played || 0).toLocaleString()}h</small>
+        <small>{displayGenres(game)} · {Number(game.hours_played || 0).toLocaleString()}h</small>
         <span className="game-card-meta">
           <span className="progress-track">
             <span className="progress-fill" style={{ width: `${progress}%` }} />
@@ -971,7 +975,7 @@ function GameDetails({
       <div className="hero-cover"><HeroArtwork game={game} /></div>
       <p className="detail-kicker">Now selected</p>
       <div className="detail-title">{game.title}</div>
-      <div className="detail-subtitle">{game.genre || "Unknown"} · {game.store || "Steam"}</div>
+      <div className="detail-subtitle">{displayGenres(game)} · {game.store || "Steam"}</div>
       <div className="detail-pills">
         <span className="detail-pill"><i>{statusIcon(game)}</i>{status}</span>
         <span className="detail-pill"><i>◴</i>{timeBucket(game)}</span>
@@ -990,6 +994,7 @@ function GameDetails({
         <DetailLine label="Playtime" value={`${Number(game.hours_played).toLocaleString()}h`} />
         <DetailLine label="Last Played" value={formatLastPlayed(game.last_played_at)} />
         <DetailLine label="Steam rating" value={ratingText} />
+        <DetailLine label="Library" value={game.ownership === "Owned" ? "Steam library" : "Wishlist"} />
         <DetailLine
           label="Store"
           value={game.steam_appid ? <a href={`https://store.steampowered.com/app/${game.steam_appid}/`} target="_blank" rel="noreferrer">Open on Steam</a> : game.store}
@@ -1065,11 +1070,10 @@ function InlineGameSettings({ game, onUpdate }: { game: Game; onUpdate: (payload
           />
         </label>
         <label>
-          Ownership
+          Library
           <select value={game.ownership} onChange={(event) => void onUpdate({ ownership: event.target.value as GamePayload["ownership"] })}>
             <option>Owned</option>
             <option>Wishlist</option>
-            <option>Game pass</option>
           </select>
         </label>
       </div>
@@ -1312,7 +1316,7 @@ function statRows(stats: StatsPayload, games: Game[]): Array<{ icon: string; lab
   const total = stats.total || 1;
   const notStarted = Math.max(0, stats.total - stats.completed - stats.in_progress);
   const owned = games.filter((game) => game.ownership === "Owned").length;
-  const genreCount = new Set(games.flatMap((game) => splitGenres(game.genre))).size;
+  const genreCount = new Set(games.flatMap((game) => topLevelGenresFor(game.genre, game.title))).size;
   const rated = games.filter((game) => Number(game.rating || 0) > 0).length;
   const longGames = games.filter((game) => timeBucket(game) === "300h+").length;
   return [
@@ -1340,7 +1344,7 @@ function isCompleted(game: Game) {
 }
 
 function needsSteamMetadata(game: Game) {
-  return Boolean(game.steam_appid && (!splitGenres(game.genre).length || !game.capsule_url || !game.header_url || Number(game.rating || 0) <= 0));
+  return Boolean(game.steam_appid && (!topLevelGenresFor(game.genre, game.title).length || !game.capsule_url || !game.header_url || Number(game.rating || 0) <= 0));
 }
 
 function statusClass(game: Game) {
@@ -1403,16 +1407,12 @@ function estimatedGameHours(game: Game) {
   return 30;
 }
 
-function splitGenres(value?: string | null) {
-  const genres = String(value || "")
-    .split(/[\/,;|]+/g)
-    .map((genre) => genre.trim())
-    .filter((genre) => genre && genre.toLowerCase() !== "unknown");
-  return Array.from(new Set(genres));
+function primaryGenre(game: Game) {
+  return primaryTopLevelGenre(game.genre, game.title);
 }
 
-function primaryGenre(game: Game) {
-  return splitGenres(game.genre)[0] || "Unknown";
+function displayGenres(game: Game) {
+  return genreDisplayLabel(game.genre, game.title);
 }
 
 function dateSortValue(value?: string | null) {

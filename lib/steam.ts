@@ -1,5 +1,6 @@
 import type { GamePayload, SteamPlayerSummary, SteamSearchResult } from "@/lib/types";
 import { steamImageUrl } from "@/lib/images";
+import { normaliseSteamGenreLabel } from "@/lib/genres";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const SEARCH_CACHE_MS = 10 * 60 * 1000;
@@ -126,7 +127,7 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
       name,
       image: String(item.tiny_image ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_184x69.jpg`),
       store_url: `https://store.steampowered.com/app/${appid}/`,
-      genre: steamGenreLabel(item)
+      genre: steamGenreLabel(item, name)
     };
   });
   searchCache.set(normalizedTerm, { expires: Date.now() + SEARCH_CACHE_MS, value: results });
@@ -287,7 +288,7 @@ function steamDetailPayload(appid: string, data: Record<string, unknown>): Steam
   const headerImage = String(data.header_image ?? "").trim();
   return {
     title: String(data.name ?? "").trim() || undefined,
-    genre: steamGenreLabel(data) || undefined,
+    genre: steamGenreLabel(data, String(data.name ?? "")) || undefined,
     store: "Steam",
     notes: "",
     steam_appid: appid,
@@ -302,15 +303,15 @@ function steamLastPlayedDate(value: unknown) {
   return new Date(seconds * 1000).toISOString();
 }
 
-function steamGenreLabel(item: Record<string, unknown>) {
+function steamGenreLabel(item: Record<string, unknown>, title = "") {
   const genreList = Array.isArray(item.genres) ? item.genres : [];
   const genres = genreList
     .map((genre) => (typeof genre === "string" ? genre : String((genre as Record<string, unknown>)?.description ?? "")))
     .map((genre) => genre.trim())
     .filter(Boolean);
-  if (genres.length) return genres.slice(0, 2).join(" / ");
   const genreText = String(item.genre ?? "").trim();
-  return genreText || "";
+  const allGenres = [...genres, ...genreText.split(/[\/,;|]+/g)];
+  return normaliseSteamGenreLabel(allGenres, title);
 }
 
 function clamp(value: number, min: number, max: number) {
