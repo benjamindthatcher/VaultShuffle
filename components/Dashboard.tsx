@@ -608,6 +608,7 @@ export function Dashboard() {
               <h2>Smart Shuffle</h2>
               <p>Uses the same games and filters as the list beside it.</p>
             </div>
+            <p className="shuffle-info"><span aria-hidden="true">i</span>Completed games are skipped automatically.</p>
             <div className="sidebar-shuffle-meta">
               <strong>{shuffleEligibleCount}</strong>
               <span>eligible games</span>
@@ -629,7 +630,7 @@ export function Dashboard() {
             </button>
           </section>
           <div className="side-summary">
-            <h2>Smart rules</h2>
+            <h2>Current filter</h2>
             <p>{activeRulesLabel}</p>
           </div>
         </aside>
@@ -640,10 +641,6 @@ export function Dashboard() {
               <div>
                 <h2>◎ Shuffle Deck</h2>
                 <p>{shuffleMessage}</p>
-              </div>
-              <div className="shuffle-pool">
-                <span>{shuffleEligibleCount} eligible</span>
-                <strong>{activeRulesLabel}</strong>
               </div>
             </div>
             <div
@@ -964,6 +961,8 @@ function GameDetails({
   }
   const progress = gameProgress(game);
   const status = displayStatus(game);
+  const note = String(game.notes || "").trim();
+  const ratingText = Number(game.rating) > 0 ? `${game.rating}/10` : "Sync pending";
   return (
     <div className="detail-content">
       <div className="hero-cover"><HeroArtwork game={game} /></div>
@@ -973,7 +972,7 @@ function GameDetails({
       <div className="detail-pills">
         <span className="detail-pill"><i>{statusIcon(game)}</i>{status}</span>
         <span className="detail-pill"><i>◴</i>{timeBucket(game)}</span>
-        <span className="detail-pill"><i>★</i>{Number(game.rating) > 0 ? `${game.rating}/10` : "No rating"}</span>
+        <span className="detail-pill"><i>★</i>{Number(game.rating) > 0 ? ratingText : "No rating"}</span>
       </div>
       <div className="detail-progress">
         <div>
@@ -987,15 +986,18 @@ function GameDetails({
       <div className="detail-list">
         <DetailLine label="Playtime" value={`${Number(game.hours_played).toLocaleString()}h`} />
         <DetailLine label="Last Played" value={formatLastPlayed(game.last_played_at)} />
-        <DetailLine label="External rating" value={Number(game.rating) > 0 ? `${game.rating}/10` : "Not linked yet"} />
+        <DetailLine label="Steam rating" value={ratingText} />
         <DetailLine
           label="Store"
           value={game.steam_appid ? <a href={`https://store.steampowered.com/app/${game.steam_appid}/`} target="_blank" rel="noreferrer">Open on Steam</a> : game.store}
         />
       </div>
       <InlineGameSettings game={game} onUpdate={onUpdate} />
-      <section className="notes-preview">
-        <strong>Notes</strong>
+      <section className={`notes-preview ${note ? "" : "is-empty"}`}>
+        <div>
+          <strong>Notes</strong>
+          <p>{note || "No notes yet. Add why it is next, stuck, or worth saving for later."}</p>
+        </div>
         <button onClick={onOpenNotes} type="button">View</button>
       </section>
       <button className="play-now-button" disabled={!game.steam_appid} onClick={onPlay} type="button">Play Now</button>
