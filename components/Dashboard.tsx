@@ -448,7 +448,13 @@ export function Dashboard() {
 
   function changeShuffleCount(count: 1 | 2 | 3) {
     setShuffleCount(count);
-    setShuffleCards((current) => current.slice(0, count));
+    if (shuffleCards.length >= count) return;
+    const existingIds = new Set(shuffleCards.map((game) => game.id));
+    const additions = randomSample(
+      filteredGames.filter((game) => !isCompleted(game) && !existingIds.has(game.id)),
+      count - shuffleCards.length
+    );
+    if (additions.length) setShuffleCards([...shuffleCards, ...additions]);
   }
 
   function playShuffleAnimation() {
