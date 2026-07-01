@@ -7,3 +7,4 @@ __pycache__/
 .env.local
 .env.*.local
 pnpm-workspace.yaml
+.DS_Store
