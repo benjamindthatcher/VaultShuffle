@@ -1319,17 +1319,17 @@ function statRows(stats: StatsPayload, games: Game[]): Array<{ icon: string; lab
     { icon: "▦", label: "Total Games", value: stats.total, action: "all" },
     { icon: "●", label: "Owned", value: owned, action: "owned" },
     { icon: "♡", label: "Wishlist", value: stats.wishlist, action: "wishlist" },
-    { icon: "✓", label: "Completed", value: `${stats.completed} (${Math.round((stats.completed / total) * 100)}%)`, action: "completed" },
-    { icon: "▶", label: "In Progress", value: `${stats.in_progress} (${Math.round((stats.in_progress / total) * 100)}%)`, action: "progress" },
     {
       icon: "□",
       label: "Not Started",
       value: `${notStarted} (${Math.round((notStarted / total) * 100)}%)`,
       action: "not_started"
     },
-    { icon: "∞", label: "300h+ Games", value: longGames, action: "long_games" },
+    { icon: "▶", label: "In Progress", value: `${stats.in_progress} (${Math.round((stats.in_progress / total) * 100)}%)`, action: "progress" },
+    { icon: "✓", label: "Completed", value: `${stats.completed} (${Math.round((stats.completed / total) * 100)}%)`, action: "completed" },
     { icon: "◴", label: "Hours Played", value: Number(stats.hours).toLocaleString(), action: null },
     { icon: "◎", label: "Completion Rate", value: `${stats.avg_completion}%`, action: null },
+    { icon: "∞", label: "300h+ Games", value: longGames, action: "long_games" },
     { icon: "★", label: "Rated Games", value: `${rated}/${stats.total || games.length || 0}`, action: null },
     { icon: "◇", label: "Genres", value: genreCount || "—", action: null }
   ];

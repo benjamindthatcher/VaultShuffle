@@ -3781,3 +3781,288 @@ dialog {
     grid-template-rows: auto minmax(0, 1fr);
   }
 }
+
+/* Side panel fit pass: these panels should feel fixed, not independently scrollable. */
+.app-shell .library-panel,
+.app-shell .details-panel,
+.app-shell .detail-content {
+  overflow: hidden;
+}
+
+.app-shell .library-panel {
+  padding: 14px 15px;
+}
+
+.app-shell .overview-list {
+  margin-top: 12px;
+  padding-bottom: 12px;
+}
+
+.app-shell .stat-row {
+  min-height: 25px;
+  grid-template-columns: 23px minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 11.5px;
+}
+
+.app-shell .stat-row strong {
+  font-size: 11.5px;
+}
+
+.app-shell .sidebar-shuffle {
+  margin-top: 12px;
+  padding: 12px;
+  gap: 10px;
+}
+
+.app-shell .sidebar-shuffle h2 {
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.app-shell .sidebar-shuffle p {
+  font-size: 10.5px;
+  line-height: 1.34;
+}
+
+.app-shell .sidebar-shuffle-meta {
+  padding: 8px 10px;
+}
+
+.app-shell .sidebar-shuffle-meta strong {
+  font-size: 20px;
+}
+
+.app-shell .sidebar-shuffle-meta span {
+  font-size: 9.5px;
+}
+
+.app-shell .sidebar-shuffle-count {
+  gap: 7px;
+}
+
+.app-shell .sidebar-shuffle-count button {
+  min-height: 30px;
+  border-radius: 10px;
+}
+
+.app-shell .sidebar-shuffle-button {
+  min-height: 32px;
+}
+
+.app-shell .shuffle-info {
+  margin-top: 8px;
+  padding-top: 8px;
+  font-size: 10.5px;
+}
+
+.app-shell .side-summary {
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.app-shell .side-summary h2 {
+  font-size: 10.5px;
+}
+
+.app-shell .side-summary p {
+  margin-top: 6px;
+  font-size: 10.5px;
+  line-height: 1.34;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.app-shell .details-panel {
+  padding: 12px 14px;
+  gap: 8px;
+}
+
+.app-shell .details-header h2 {
+  font-size: 10.5px;
+}
+
+.app-shell .hero-cover {
+  height: auto;
+  aspect-ratio: 460 / 176;
+  margin-bottom: 8px;
+}
+
+.app-shell .detail-kicker {
+  margin-bottom: 4px;
+  font-size: 9px;
+}
+
+.app-shell .detail-title {
+  display: -webkit-box;
+  margin-bottom: 4px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 15px;
+  line-height: 1.14;
+}
+
+.app-shell .detail-subtitle {
+  margin-bottom: 7px;
+  font-size: 11px;
+}
+
+.app-shell .detail-pills {
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.app-shell .detail-pill {
+  min-height: 23px;
+  padding-inline: 8px;
+  font-size: 10px;
+}
+
+.app-shell .detail-progress {
+  gap: 6px;
+  padding: 8px 0;
+}
+
+.app-shell .detail-progress .progress-track {
+  height: 6px;
+}
+
+.app-shell .detail-line {
+  padding: 5px 0;
+}
+
+.app-shell .inline-settings {
+  margin-top: 8px;
+  padding-top: 9px;
+}
+
+.app-shell .inline-settings h3 {
+  margin-bottom: 6px;
+  font-size: 9.5px;
+}
+
+.app-shell .inline-settings-grid {
+  gap: 6px;
+}
+
+.app-shell .inline-settings label {
+  gap: 4px;
+  font-size: 10.5px;
+}
+
+.app-shell .inline-settings input,
+.app-shell .inline-settings select {
+  min-height: 28px;
+  font-size: 10.5px;
+}
+
+.app-shell .notes-preview {
+  margin-top: 8px;
+  padding: 8px 0 9px;
+  gap: 8px;
+}
+
+.app-shell .notes-preview p {
+  margin-top: 4px;
+  -webkit-line-clamp: 1;
+  font-size: 10.5px;
+}
+
+.app-shell .notes-preview button {
+  min-height: 28px;
+  padding-inline: 12px;
+}
+
+.app-shell .play-now-button {
+  min-height: 32px;
+  margin-top: auto;
+}
+
+/* Full-page proportions pass: keep the sidebars useful, but let the library own the screen. */
+@media (min-width: 1181px) {
+  .app-shell {
+    grid-template-rows: 56px minmax(0, 1fr);
+  }
+
+  .app-shell .top-nav {
+    grid-template-columns: clamp(220px, 14vw, 270px) minmax(360px, 580px) minmax(360px, 1fr);
+    gap: 16px;
+    padding-inline: 18px;
+  }
+
+  .app-shell .nav-search-group {
+    width: min(580px, 100%);
+  }
+
+  .app-shell .nav-actions {
+    gap: 8px;
+  }
+
+  .app-shell .steam-profile {
+    max-width: 160px;
+  }
+
+  .app-shell .workspace {
+    grid-template-columns: clamp(260px, 14vw, 276px) minmax(0, 1fr) clamp(270px, 14.5vw, 286px);
+  }
+
+  .app-shell .library-main {
+    grid-template-rows: 164px minmax(0, 1fr);
+  }
+
+  .app-shell .smart-strip {
+    min-height: 164px;
+    padding: 14px 18px;
+  }
+
+  .app-shell .smart-filter-row h2 {
+    font-size: 14px;
+  }
+
+  .app-shell .smart-filter-row p {
+    font-size: 12px;
+  }
+
+  .app-shell .shuffle-cards {
+    margin-top: 12px;
+    gap: 12px;
+  }
+
+  .app-shell .smart-strip .rec-tile {
+    min-height: 72px;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 16px;
+  }
+
+  .app-shell .smart-strip .rec-tile .cover {
+    width: 92px;
+    height: 50px;
+    border-radius: 12px;
+  }
+
+  .app-shell .smart-strip .rec-tile span {
+    font-size: 13px;
+  }
+
+  .app-shell .smart-strip .rec-tile p,
+  .app-shell .smart-strip .rec-tile small {
+    font-size: 11px;
+  }
+
+  .app-shell .table-toolbar {
+    min-height: 52px;
+    padding: 8px 14px;
+  }
+
+  .app-shell .table-head,
+  .app-shell .game-row {
+    grid-template-columns: minmax(220px, 1.55fr) 82px minmax(84px, .72fr) minmax(104px, .78fr) minmax(86px, .68fr) 62px 70px 98px 30px;
+    gap: 9px;
+  }
+}
