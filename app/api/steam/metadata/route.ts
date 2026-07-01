@@ -8,7 +8,8 @@ export async function POST(request: Request) {
     const { user } = await requireSession();
     const body = await request.json().catch(() => ({}));
     const limit = Number(body?.limit ?? 12);
-    const result = await enrichSteamMetadataForUser(user.id, limit);
+    const force = Boolean(body?.force);
+    const result = await enrichSteamMetadataForUser(user.id, limit, force);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();

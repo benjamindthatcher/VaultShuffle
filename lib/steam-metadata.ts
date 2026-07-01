@@ -80,7 +80,7 @@ export async function queueSteamMetadata(appIds: string[]) {
   return rows.length;
 }
 
-export async function enrichSteamMetadataForUser(userId: string, limit = 12) {
+export async function enrichSteamMetadataForUser(userId: string, limit = 12, force = false) {
   const supabase = getSupabaseAdmin();
   const { data: gameData, error: gameError } = await supabase
     .from("games")
@@ -94,6 +94,15 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12) {
   if (!appIds.length) return { processed: 0, updated: 0, remaining: 0 };
 
   await queueSteamMetadata(appIds);
+  if (force) {
+    const { error: forceError } = await supabase
+      .from("steam_app_metadata")
+      .update({ status: "pending", last_error: null })
+      .in("steam_appid", appIds)
+      .or("rating.eq.0,genre.eq.Unknown,status.eq.failed,capsule_url.is.null,header_url.is.null");
+
+    if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
+  }
 
   const { data: pendingData, error: pendingError } = await supabase
     .from("steam_app_metadata")

@@ -3538,3 +3538,246 @@ dialog {
 .app-shell .notes-preview button {
   align-self: center;
 }
+
+/* Current app polish: balanced header, multi-filter controls, larger overview, and stronger shuffle stage. */
+.app-shell .top-nav {
+  grid-template-columns: minmax(220px, 300px) minmax(360px, 620px) minmax(430px, 1fr);
+  gap: 20px;
+  padding-inline: 22px;
+}
+
+.app-shell .nav-brand {
+  min-width: 0;
+}
+
+.app-shell .nav-search-group {
+  width: min(620px, 100%);
+  justify-self: center;
+}
+
+.app-shell .add-search-box {
+  width: 100%;
+  max-width: none;
+}
+
+.app-shell .nav-actions {
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.app-shell .workspace {
+  grid-template-columns: 300px minmax(520px, 1fr) 292px;
+}
+
+.app-shell .library-main {
+  grid-template-rows: 186px minmax(0, 1fr);
+}
+
+.app-shell .library-panel {
+  overflow-y: auto;
+}
+
+.app-shell .overview-list {
+  margin-top: 14px;
+  padding-bottom: 14px;
+}
+
+.app-shell .stat-row {
+  min-height: 30px;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 5px 0;
+}
+
+.app-shell .stat-row span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell .stat-row strong {
+  font-size: 13px;
+}
+
+.app-shell .sidebar-shuffle {
+  margin-top: 14px;
+}
+
+.app-shell .shuffle-info {
+  margin: 10px 0 0;
+  padding: 9px 0 0;
+  border-top: 1px solid rgba(var(--theme-rgb-border), 0.10);
+  border-bottom: 0;
+  color: var(--quiet);
+  font-size: 11px;
+  line-height: 1.38;
+}
+
+.app-shell .side-summary {
+  margin-top: 18px;
+}
+
+.app-shell .smart-strip {
+  position: relative;
+  min-height: 186px;
+  padding: 18px 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 22% 8%, rgba(var(--theme-rgb-secondary), 0.16), transparent 32%),
+    radial-gradient(circle at 88% 22%, rgba(var(--theme-rgb-accent), 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(var(--theme-rgb-panel), 0.72), rgba(var(--theme-rgb-panel-deep), 0.76));
+}
+
+.app-shell .smart-strip::before {
+  content: "";
+  position: absolute;
+  inset: -35% -10% auto;
+  height: 160px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-rgb-accent), 0.16), rgba(var(--theme-rgb-secondary), 0.10), transparent);
+  filter: blur(18px);
+  opacity: 0.9;
+}
+
+.app-shell .smart-filter-row,
+.app-shell .shuffle-cards {
+  position: relative;
+  z-index: 1;
+}
+
+.app-shell .smart-filter-row h2 {
+  font-size: 15px;
+  letter-spacing: .08em;
+}
+
+.app-shell .smart-filter-row p {
+  max-width: 760px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.app-shell .shuffle-cards {
+  margin-top: 18px;
+  gap: 16px;
+}
+
+.app-shell .smart-strip .rec-tile {
+  min-height: 86px;
+  grid-template-columns: 108px minmax(0, 1fr);
+  gap: 16px;
+  padding: 12px 14px;
+  border-color: rgba(var(--theme-rgb-border), 0.24);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 10% 18%, rgba(var(--theme-rgb-secondary), 0.18), transparent 35%),
+    linear-gradient(135deg, rgba(var(--theme-rgb-panel), 0.78), rgba(var(--theme-rgb-panel-deep), 0.82));
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.18),
+    0 0 26px rgba(var(--theme-rgb-secondary), 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.app-shell .smart-strip .rec-tile .cover {
+  width: 108px;
+  height: 58px;
+  border-radius: 14px;
+}
+
+.app-shell .smart-strip .rec-tile span {
+  font-size: 15px;
+}
+
+.app-shell .smart-strip .rec-tile p {
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.app-shell .smart-strip .rec-tile small {
+  max-width: 100%;
+  margin-top: 5px;
+}
+
+.app-shell .filter-popover {
+  width: min(360px, calc(100vw - 40px));
+  max-height: min(660px, calc(100vh - 170px));
+  overflow-y: auto;
+  gap: 14px;
+  padding: 18px;
+}
+
+.app-shell .filter-group {
+  min-width: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.app-shell .filter-group legend {
+  padding: 0;
+  color: var(--quiet);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app-shell .filter-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.app-shell .filter-chip-group button {
+  min-height: 30px;
+  padding: 0 11px;
+  color: var(--muted);
+  background: rgba(var(--theme-rgb-panel), 0.52);
+  border: 1px solid rgba(var(--theme-rgb-border), 0.18);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.app-shell .filter-chip-group button.active {
+  color: var(--theme-button-text);
+  background: var(--theme-button-gradient);
+  border-color: rgba(var(--theme-rgb-accent), 0.52);
+  box-shadow:
+    0 8px 20px rgba(var(--theme-rgb-accent), 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.app-shell .table-head .table-label {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  color: inherit;
+  font: inherit;
+  font-weight: 900;
+  text-transform: uppercase;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1180px) {
+  .app-shell .workspace {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .app-shell .top-nav {
+    grid-template-columns: 1fr minmax(300px, 560px);
+  }
+}
+
+@media (max-width: 780px) {
+  .app-shell .top-nav {
+    grid-template-columns: 1fr;
+    padding-inline: 10px;
+  }
+
+  .app-shell .library-main {
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+}
