@@ -337,12 +337,15 @@ function isCompletedGame(game: Game) {
 
 function gameProgress(game: Game) {
   if (game.status === "Completed") return 100;
-  const stored = Number(game.completion_percentage || 0);
-  if (stored > 0) return clamp(Math.round(stored), 0, 100);
   const estimate = estimatedGameHours(game);
   const played = Number(game.hours_played || 0);
-  if (!played || !estimate) return 0;
-  return clamp(Math.round((played / estimate) * 100), 0, 99);
+  const inferred = !played || !estimate ? 0 : played >= estimate ? 100 : clamp(Math.round((played / estimate) * 100), 0, 99);
+  const stored = Number(game.completion_percentage || 0);
+  if (stored > 0) {
+    const roundedStored = clamp(Math.round(stored), 0, 100);
+    return inferred >= 100 && roundedStored >= 99 ? 100 : roundedStored;
+  }
+  return inferred;
 }
 
 function statusFromCompletion(completion: number): GamePayload["status"] {

@@ -70,11 +70,9 @@ export function Dashboard() {
   const [selectedTheme, setSelectedTheme] = useState<ThemeOptionId>(readSavedTheme);
   const [rowMenuId, setRowMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [shuffleGenre, setShuffleGenre] = useState("Any genre");
-  const [time, setTime] = useState("Any time");
   const [shuffleCount, setShuffleCount] = useState<1 | 2 | 3>(3);
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
-  const [shuffleMessage, setShuffleMessage] = useState("Choose a genre and roll an unfinished owned game.");
+  const [shuffleMessage, setShuffleMessage] = useState("Shuffle the games currently visible in your library.");
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [shuffleAnimationKey, setShuffleAnimationKey] = useState(0);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
@@ -191,6 +189,8 @@ export function Dashboard() {
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
   const visibleShuffleCards = shuffleCards.slice(0, shuffleCount);
+  const shuffleEligibleCount = useMemo(() => filteredGames.filter((game) => !isCompleted(game)).length, [filteredGames]);
+  const activeRulesLabel = activeFilterLabel(status, ownership, genreFilter, playtimeFilter, hideCompleted);
 
   useEffect(() => {
     if (!selected) {
@@ -431,10 +431,10 @@ export function Dashboard() {
 
   async function shuffle() {
     playShuffleAnimation();
-    const picks = pickShuffleGames(filteredGames, shuffleGenre, time, shuffleCount);
+    const picks = pickShuffleGames(filteredGames, shuffleCount);
     if (!picks.length) {
       const reason = isLoggedIn
-        ? "No games match the current filters and shuffle settings."
+        ? "No unfinished games match the current library view."
         : "Add a demo game first, or sign in with Steam to shuffle your real backlog.";
       setShuffleCards([]);
       setShuffleMessage(reason);
@@ -442,22 +442,13 @@ export function Dashboard() {
       return;
     }
     setShuffleCards(picks);
-    setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from your current filters.`);
+    setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from the games shown below.`);
     setSelectedId(picks[0].id);
   }
 
   function changeShuffleCount(count: 1 | 2 | 3) {
     setShuffleCount(count);
-    playShuffleAnimation();
-    const picks = pickShuffleGames(filteredGames, shuffleGenre, time, count);
-    if (!picks.length) {
-      setShuffleCards([]);
-      setShuffleMessage("No games match the current filters and shuffle settings.");
-      return;
-    }
-    setShuffleCards(picks);
-    setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from your current filters.`);
-    setSelectedId(picks[0].id);
+    setShuffleCards((current) => current.slice(0, count));
   }
 
   function playShuffleAnimation() {
@@ -606,30 +597,48 @@ export function Dashboard() {
               </button>
             ))}
           </div>
+          <section className="sidebar-shuffle">
+            <div>
+              <h2>Smart Shuffle</h2>
+              <p>Uses the same games and filters as the list beside it.</p>
+            </div>
+            <div className="sidebar-shuffle-meta">
+              <strong>{shuffleEligibleCount}</strong>
+              <span>eligible games</span>
+            </div>
+            <div className="sidebar-shuffle-count" aria-label="Number of games to shuffle">
+              {[1, 2, 3].map((count) => (
+                <button
+                  className={shuffleCount === count ? "active" : ""}
+                  key={count}
+                  onClick={() => changeShuffleCount(count as 1 | 2 | 3)}
+                  type="button"
+                >
+                  {count}
+                </button>
+              ))}
+            </div>
+            <button className="shuffle-button sidebar-shuffle-button" onClick={shuffle} type="button">
+              Shuffle {shuffleCount}
+            </button>
+          </section>
           <div className="side-summary">
             <h2>Smart rules</h2>
-            <p>{activeFilterLabel(status, ownership, genreFilter, playtimeFilter, hideCompleted)}</p>
+            <p>{activeRulesLabel}</p>
           </div>
         </aside>
 
         <main className="library-main">
           <section className="smart-strip">
-            <div className="shuffle-row">
+            <div className="shuffle-row smart-filter-row">
               <div>
-                <h2>◎ Smart Shuffle</h2>
-                <p>Get a recommendation based on your filters and preferences</p>
+                <h2>◎ Shuffle Deck</h2>
+                <p>{shuffleMessage}</p>
               </div>
-              <select value={shuffleGenre} onChange={(event) => setShuffleGenre(event.target.value)}>
-                <option>Any genre</option>
-                {genreOptions.map((genre) => <option key={genre}>{genre}</option>)}
-              </select>
-              <select value={time} onChange={(event) => setTime(event.target.value)}>
-                <option>Any time</option>
-                {TIME_FILTER_OPTIONS.map((option) => <option key={option}>{option}</option>)}
-              </select>
-              <button className="shuffle-button" onClick={shuffle}>
-                Shuffle
-              </button>
+              <div className="shuffle-pool">
+                <span>{shuffleEligibleCount} eligible</span>
+                <strong>{activeRulesLabel}</strong>
+              </div>
             </div>
             <div
               className={`shuffle-cards count-${visibleShuffleCards.length || shuffleCount} ${shuffleSpinning ? "is-spinning" : ""}`}
@@ -646,18 +655,6 @@ export function Dashboard() {
                   </div>
                 </div>
               )}
-            </div>
-            <div className="shuffle-count-row" aria-label="Number of games to shuffle">
-              {[1, 2, 3].map((count) => (
-                <button
-                  className={shuffleCount === count ? "active" : ""}
-                  key={count}
-                  onClick={() => changeShuffleCount(count as 1 | 2 | 3)}
-                  type="button"
-                >
-                  {count}
-                </button>
-              ))}
             </div>
           </section>
 
@@ -690,22 +687,22 @@ export function Dashboard() {
                 </div>
                 <label>Sort by</label>
                 <select value={sort} onChange={(event) => setSort(event.target.value)}>
-                  <option value="hours_desc">Playtime (High to Low)</option>
-                  <option value="hours_asc">Playtime (Low to High)</option>
                   <option value="title_asc">Title (A → Z)</option>
                   <option value="title_desc">Title (Z → A)</option>
-                  <option value="status_asc">Status</option>
-                  <option value="status_desc">Status (Reverse)</option>
+                  <option value="hours_desc">Playtime (High to Low)</option>
+                  <option value="hours_asc">Playtime (Low to High)</option>
                   <option value="progress_desc">Progress (High to Low)</option>
                   <option value="progress_asc">Progress (Low to High)</option>
-                  <option value="rating_desc">Rating (High to Low)</option>
-                  <option value="rating_asc">Rating (Low to High)</option>
-                  <option value="last_played_desc">Last Played</option>
-                  <option value="last_played_asc">Oldest Played</option>
+                  <option value="status_asc">Status</option>
+                  <option value="status_desc">Status (Reverse)</option>
                   <option value="genre_asc">Genre</option>
                   <option value="genre_desc">Genre (Reverse)</option>
                   <option value="time_asc">Time (Short to Long)</option>
                   <option value="time_desc">Time (Long to Short)</option>
+                  <option value="rating_desc">Rating (High to Low)</option>
+                  <option value="rating_asc">Rating (Low to High)</option>
+                  <option value="last_played_desc">Last Played</option>
+                  <option value="last_played_asc">Oldest Played</option>
                 </select>
                 <button className={`view-button ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")} type="button" aria-label="List view">☷</button>
                 <button className={`view-button ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")} type="button" aria-label="Cover view">▦</button>
@@ -1177,12 +1174,14 @@ function SteamDialog({
 }
 
 function RecommendationTile({ game, onClick }: { game: Game; onClick: () => void }) {
+  const note = String(game.notes || "").trim();
   return (
     <button className="rec-tile" onClick={onClick} type="button">
       <Cover game={game} />
       <div>
         <span>{game.title}</span>
         <p>{primaryGenre(game)} · {timeBucket(game)}</p>
+        {note ? <small>{note}</small> : null}
       </div>
     </button>
   );
@@ -1292,15 +1291,20 @@ function timeBucket(game: Game) {
 
 function gameProgress(game: Game) {
   if (game.status === "Completed") return 100;
+  const inferred = inferredProgressFromHours(game, Number(game.hours_played || 0));
   const stored = Number(game.completion_percentage || 0);
-  if (stored > 0) return clamp(Math.round(stored), 0, 100);
-  return inferredProgressFromHours(game, Number(game.hours_played || 0));
+  if (stored > 0) {
+    const roundedStored = clamp(Math.round(stored), 0, 100);
+    return inferred >= 100 && roundedStored >= 99 ? 100 : roundedStored;
+  }
+  return inferred;
 }
 
 function inferredProgressFromHours(game: Game, hours: number) {
   const estimate = estimatedGameHours(game);
   const played = Number(hours || 0);
   if (!played || !estimate) return 0;
+  if (played >= estimate) return 100;
   return clamp(Math.round((played / estimate) * 100), 0, 99);
 }
 
@@ -1453,8 +1457,8 @@ function previewRecommendations(games: Game[]): RecommendationPayload {
   return { backlog, wishlist, random: unfinished.length ? unfinished[Math.floor(Math.random() * unfinished.length)] : null };
 }
 
-function pickShuffleGames(games: Game[], genre: string, time: string, count: number) {
-  const candidates = games.filter((game) => !isCompleted(game) && matchesGenre(game, genre) && matchesTime(game, time));
+function pickShuffleGames(games: Game[], count: number) {
+  const candidates = games.filter((game) => !isCompleted(game));
   return randomSample(candidates, count);
 }
 
@@ -1467,16 +1471,6 @@ function randomSample<T>(items: T[], count: number) {
     picks.push(item);
   }
   return picks;
-}
-
-function matchesGenre(game: Game, genre: string) {
-  if (genre === "Any genre") return true;
-  return splitGenres(game.genre).includes(genre);
-}
-
-function matchesTime(game: Game, time: string) {
-  if (time === "Any time") return true;
-  return timeBucket(game) === time;
 }
 
 function previewScore(game: Game) {

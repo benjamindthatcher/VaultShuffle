@@ -1416,21 +1416,21 @@ h1 {
   }
 }
 
-/* Glass Aurora theme pass */
+/* Site-wide theme pass */
 body {
   background:
-    radial-gradient(circle at 14% 6%, rgba(169, 228, 255, 0.22), transparent 30%),
-    radial-gradient(circle at 84% 10%, rgba(224, 123, 255, 0.20), transparent 33%),
-    radial-gradient(circle at 54% 94%, rgba(39, 132, 145, 0.20), transparent 38%),
-    linear-gradient(180deg, #071d2b, #061925 54%, #040c14);
+    radial-gradient(circle at 14% 6%, rgba(var(--theme-rgb-secondary), 0.22), transparent 30%),
+    radial-gradient(circle at 84% 10%, rgba(var(--theme-rgb-accent), 0.20), transparent 33%),
+    radial-gradient(circle at 54% 94%, rgba(var(--theme-rgb-border), 0.15), transparent 38%),
+    var(--theme-page-bg);
 }
 
 .site-nav {
   background:
-    radial-gradient(circle at 76% 0%, rgba(224, 123, 255, 0.10), transparent 32%),
-    rgba(5, 23, 35, 0.82);
-  border-color: rgba(169, 228, 255, 0.16);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22), 0 0 34px rgba(169, 228, 255, 0.07);
+    radial-gradient(circle at 76% 0%, rgba(var(--theme-rgb-accent), 0.10), transparent 32%),
+    rgba(var(--theme-rgb-panel-deep), 0.82);
+  border-color: rgba(var(--theme-rgb-border), 0.16);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22), 0 0 34px rgba(var(--theme-rgb-secondary), 0.07);
 }
 
 .preview-shell,
@@ -1450,34 +1450,35 @@ body {
 .login-preview,
 .mini-window {
   background:
-    linear-gradient(145deg, rgba(9, 38, 56, 0.70), rgba(5, 23, 35, 0.82)),
-    rgba(9, 38, 56, 0.60);
-  border-color: rgba(169, 228, 255, 0.18);
+    linear-gradient(145deg, rgba(var(--theme-rgb-panel), 0.70), rgba(var(--theme-rgb-panel-deep), 0.82)),
+    rgba(var(--theme-rgb-panel), 0.60);
+  border-color: rgba(var(--theme-rgb-border), 0.18);
   box-shadow:
     0 28px 78px rgba(0, 0, 0, 0.28),
-    0 0 34px rgba(169, 228, 255, 0.07),
+    0 0 34px rgba(var(--theme-rgb-secondary), 0.07),
     inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 .preview-glow,
 .game-wall::after {
   background:
-    radial-gradient(circle at 72% 18%, rgba(224, 123, 255, 0.26), transparent 38%),
-    radial-gradient(circle at 22% 65%, rgba(169, 228, 255, 0.22), transparent 38%);
+    radial-gradient(circle at 72% 18%, rgba(var(--theme-rgb-accent), 0.26), transparent 38%),
+    radial-gradient(circle at 22% 65%, rgba(var(--theme-rgb-secondary), 0.22), transparent 38%);
 }
 
 .hero-logo,
 .site-brand img,
 .workflow-head img {
-  box-shadow: 0 0 38px rgba(169, 228, 255, 0.18), 0 0 28px rgba(224, 123, 255, 0.12);
+  box-shadow: 0 0 38px rgba(var(--theme-rgb-secondary), 0.18), 0 0 28px rgba(var(--theme-rgb-accent), 0.12);
 }
 
 .nav-cta,
 .primary-action,
 .pick-card button {
-  background: linear-gradient(180deg, #f3dcff, #d984ff 55%, #b56df1);
-  border-color: rgba(255, 226, 255, 0.50);
-  box-shadow: 0 16px 34px rgba(224, 123, 255, 0.22), 0 0 28px rgba(169, 228, 255, 0.08);
+  color: var(--theme-button-text);
+  background: var(--theme-button-gradient);
+  border-color: rgba(var(--theme-rgb-accent), 0.50);
+  box-shadow: 0 16px 34px rgba(var(--theme-rgb-accent), 0.22), 0 0 28px rgba(var(--theme-rgb-secondary), 0.08);
 }
 
 .secondary-action,
@@ -1485,8 +1486,8 @@ body {
 .hero-points li,
 .workflow-steps span,
 .look-around-link {
-  background: rgba(11, 42, 59, 0.62);
-  border-color: rgba(169, 228, 255, 0.18);
+  background: rgba(var(--theme-rgb-panel), 0.62);
+  border-color: rgba(var(--theme-rgb-border), 0.18);
 }
 
 .game-wall::before,
@@ -1495,22 +1496,22 @@ body {
 .mini-side,
 .mini-list i,
 .game-poster {
-  background-color: rgba(5, 23, 35, 0.68);
-  border-color: rgba(169, 228, 255, 0.16);
+  background-color: rgba(var(--theme-rgb-panel-deep), 0.68);
+  border-color: rgba(var(--theme-rgb-border), 0.16);
 }
 
 .fake-table .active,
 .mini-list i:first-child,
 .workflow-pick {
   background:
-    linear-gradient(90deg, rgba(224, 123, 255, 0.22), rgba(169, 228, 255, 0.10)),
-    rgba(7, 30, 46, 0.66);
-  border-color: rgba(224, 123, 255, 0.32);
+    linear-gradient(90deg, rgba(var(--theme-rgb-accent), 0.22), rgba(var(--theme-rgb-secondary), 0.10)),
+    rgba(var(--theme-rgb-panel), 0.66);
+  border-color: rgba(var(--theme-rgb-accent), 0.32);
 }
 
 .shuffle-orb {
   background:
     radial-gradient(circle at 34% 22%, rgba(255, 255, 255, 0.92), transparent 22%),
-    linear-gradient(160deg, #bdf1ff, #f0b8ff 55%, #d984ff);
-  box-shadow: 0 26px 70px rgba(224, 123, 255, 0.28), 0 0 0 10px rgba(169, 228, 255, 0.08);
+    var(--theme-button-gradient);
+  box-shadow: 0 26px 70px rgba(var(--theme-rgb-accent), 0.28), 0 0 0 10px rgba(var(--theme-rgb-secondary), 0.08);
 }
