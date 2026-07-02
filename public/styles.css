@@ -922,17 +922,17 @@ textarea:focus {
   gap: 8px;
 }
 
-.progress-zero {
-  color: rgba(202, 224, 246, 0.58);
-  font-size: 11px;
-  font-weight: 800;
-}
-
 .progress-track {
   width: 52px;
   height: 6px;
   background: rgba(102, 137, 171, 0.26);
   border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress-track.is-empty {
+  background: rgba(145, 166, 196, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(180, 210, 239, 0.035);
 }
 
 .progress-fill {
@@ -2278,7 +2278,8 @@ select {
   gap: 5px;
 }
 
-.table-head .label-with-help i {
+.table-head .length-help {
+  position: relative;
   width: 15px;
   height: 15px;
   display: inline-grid;
@@ -2290,6 +2291,56 @@ select {
   font-size: 9px;
   font-style: normal;
   text-transform: none;
+  cursor: help;
+  outline: none;
+}
+
+.table-head .length-help:hover,
+.table-head .length-help:focus-visible {
+  color: #fff4ff;
+  border-color: rgba(var(--theme-rgb-secondary), 0.62);
+  background: rgba(var(--theme-rgb-secondary), 0.24);
+}
+
+.length-tooltip {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 10px);
+  z-index: 80;
+  min-width: 220px;
+  transform: translate(-50%, 4px);
+  display: grid;
+  gap: 5px;
+  padding: 12px 13px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.30);
+  border-radius: 14px;
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-primary), 0.18), rgba(var(--theme-rgb-secondary), 0.12)),
+    rgba(6, 24, 42, 0.97);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  color: #d9ecff;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.25;
+  letter-spacing: 0;
+  text-align: left;
+  text-transform: none;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease, transform 120ms ease, visibility 120ms ease;
+}
+
+.length-tooltip strong {
+  color: #ffffff;
+  font-size: 12px;
+}
+
+.table-head .length-help:hover .length-tooltip,
+.table-head .length-help:focus-visible .length-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
 }
 
 .table-head button:hover,
@@ -4167,5 +4218,463 @@ dialog {
   .app-shell .add-search-results {
     position: static;
     margin-top: 8px;
+  }
+}
+
+.app-shell .sidebar-shuffle {
+  position: relative;
+  overflow: hidden;
+}
+
+.app-shell .sidebar-shuffle::after {
+  content: "";
+  position: absolute;
+  inset: auto 20px 18px 20px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(var(--theme-rgb-accent), 0.45), transparent);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.app-shell .sidebar-shuffle h2 {
+  letter-spacing: 0.08em;
+}
+
+.app-shell .sidebar-shuffle-button {
+  box-shadow: 0 16px 34px rgba(var(--theme-rgb-accent), 0.18);
+}
+
+.app-shell .vault-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(var(--theme-rgb-accent), 0.22), transparent 30%),
+    rgba(2, 8, 22, 0.72);
+  backdrop-filter: blur(18px);
+}
+
+.app-shell .vault-dialog {
+  width: min(1040px, calc(100vw - 48px));
+  max-height: min(860px, calc(100vh - 48px));
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 18px;
+  padding: 24px;
+  overflow: hidden;
+  color: var(--text);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-panel), 0.94), rgba(var(--theme-rgb-bg), 0.94)),
+    radial-gradient(circle at 20% 15%, rgba(var(--theme-rgb-accent), 0.18), transparent 32%);
+  border: 1px solid rgba(var(--theme-rgb-border), 0.55);
+  border-radius: 28px;
+  box-shadow:
+    0 38px 100px rgba(0, 0, 0, 0.48),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.app-shell .vault-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.app-shell .vault-dialog-header h2 {
+  margin: 6px 0 8px;
+  color: var(--text);
+  font-size: clamp(32px, 4vw, 58px);
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+}
+
+.app-shell .vault-dialog-header p {
+  max-width: 620px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.app-shell .vault-dialog .modal-close {
+  flex: 0 0 auto;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.5);
+  border-radius: 50%;
+  color: var(--text);
+  background: rgba(var(--theme-rgb-panel), 0.6);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.app-shell .vault-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.78fr) minmax(300px, 1fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.app-shell .vault-stage,
+.app-shell .vault-control-panel {
+  min-height: 250px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.42);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 10%, rgba(var(--theme-rgb-accent), 0.12), transparent 36%),
+    rgba(var(--theme-rgb-bg), 0.55);
+}
+
+.app-shell .vault-stage {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: hidden;
+}
+
+.app-shell .vault-door {
+  position: relative;
+  width: min(240px, 48vw);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.22), transparent 16%),
+    radial-gradient(circle, rgba(var(--theme-rgb-secondary), 0.18), transparent 62%),
+    linear-gradient(135deg, rgba(var(--theme-rgb-accent), 0.42), rgba(var(--theme-rgb-secondary), 0.20) 52%, rgba(var(--theme-rgb-panel), 0.72));
+  border: 2px solid rgba(var(--theme-rgb-border), 0.62);
+  box-shadow:
+    0 26px 70px rgba(var(--theme-rgb-accent), 0.16),
+    inset 0 0 0 18px rgba(4, 18, 36, 0.42),
+    inset 0 0 0 34px rgba(255, 255, 255, 0.03);
+}
+
+.app-shell .vault-door-glow {
+  position: absolute;
+  inset: 16%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--theme-rgb-accent), 0.28), transparent 62%);
+  opacity: 0.5;
+  filter: blur(12px);
+}
+
+.app-shell .vault-door-slit {
+  position: absolute;
+  top: 15%;
+  bottom: 15%;
+  left: 50%;
+  width: 6px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, transparent, rgba(var(--theme-rgb-accent), 0.55), transparent);
+  box-shadow: 0 0 22px rgba(var(--theme-rgb-accent), 0.65);
+  opacity: 0.65;
+}
+
+.app-shell .vault-door-ring {
+  position: absolute;
+  inset: 32%;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(3, 16, 32, 0.62);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+}
+
+.app-shell .vault-door-ring span {
+  position: absolute;
+  width: 8px;
+  height: 42%;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(var(--theme-rgb-secondary), 0.9), rgba(var(--theme-rgb-accent), 0.7));
+  transform-origin: 50% 100%;
+}
+
+.app-shell .vault-door-ring span:nth-child(1) {
+  transform: translateY(-50%) rotate(0deg);
+}
+
+.app-shell .vault-door-ring span:nth-child(2) {
+  transform: translateY(-50%) rotate(120deg);
+}
+
+.app-shell .vault-door-ring span:nth-child(3) {
+  transform: translateY(-50%) rotate(240deg);
+}
+
+.app-shell .vault-door-lock {
+  position: absolute;
+  inset: 44%;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 18px rgba(255, 255, 255, 0.35);
+}
+
+.app-shell .vault-door.is-spinning .vault-door-ring {
+  animation: vaultDial 0.85s cubic-bezier(0.2, 0.8, 0.18, 1);
+}
+
+.app-shell .vault-door.is-spinning .vault-door-glow,
+.app-shell .vault-door.is-open .vault-door-glow {
+  opacity: 0.95;
+}
+
+.app-shell .vault-control-panel {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  align-content: center;
+  padding: 24px;
+}
+
+.app-shell .vault-control-label {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.app-shell .vault-count-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.app-shell .vault-count-row button {
+  min-height: 46px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.55);
+  border-radius: 16px;
+  color: var(--text);
+  background:
+    linear-gradient(135deg, rgba(var(--theme-rgb-secondary), 0.12), rgba(var(--theme-rgb-accent), 0.07)),
+    rgba(var(--theme-rgb-panel), 0.56);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.app-shell .vault-count-row button.active,
+.app-shell .vault-count-row button:hover {
+  color: #180522;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  box-shadow: 0 14px 34px rgba(var(--theme-rgb-accent), 0.28);
+}
+
+.app-shell .vault-primary {
+  width: 100%;
+  min-height: 50px;
+}
+
+.app-shell .vault-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.app-shell .vault-control-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.app-shell .vault-result-grid {
+  display: grid;
+  gap: 14px;
+  min-height: 170px;
+}
+
+.app-shell .vault-result-grid.count-1 {
+  grid-template-columns: minmax(280px, 0.72fr);
+  justify-content: center;
+}
+
+.app-shell .vault-result-grid.count-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.app-shell .vault-result-grid.count-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.app-shell .vault-result-card {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 14px;
+  min-width: 0;
+  min-height: 230px;
+  padding: 14px;
+  text-align: left;
+  color: var(--text);
+  border: 1px solid rgba(var(--theme-rgb-border), 0.48);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(var(--theme-rgb-secondary), 0.15), rgba(var(--theme-rgb-accent), 0.08)),
+    rgba(var(--theme-rgb-panel), 0.6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(14px) scale(0.98);
+  animation: vaultCardReveal 0.42s ease forwards;
+}
+
+.app-shell .vault-result-card.delay-1 {
+  animation-delay: 0.08s;
+}
+
+.app-shell .vault-result-card.delay-2 {
+  animation-delay: 0.16s;
+}
+
+.app-shell .vault-result-grid.is-spinning .vault-result-card {
+  animation: vaultCardShuffle 0.85s ease both;
+}
+
+.app-shell .vault-result-cover {
+  display: block;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.35);
+  background: rgba(var(--theme-rgb-bg), 0.62);
+}
+
+.app-shell .vault-result-cover img,
+.app-shell .vault-result-cover .cover-fallback {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-shell .vault-result-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.app-shell .vault-result-copy span {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.app-shell .vault-result-copy strong {
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 21px;
+  line-height: 1.08;
+}
+
+.app-shell .vault-result-copy small {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.app-shell .vault-result-copy em {
+  display: -webkit-box;
+  overflow: hidden;
+  color: rgba(214, 230, 255, 0.72);
+  font-size: 12px;
+  font-style: normal;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.app-shell .vault-result-cta {
+  align-self: end;
+  width: fit-content;
+  padding: 9px 12px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.55);
+  border-radius: 999px;
+  color: var(--text);
+  background: rgba(var(--theme-rgb-panel), 0.62);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app-shell .vault-result-card:hover {
+  border-color: rgba(var(--theme-rgb-accent), 0.82);
+  transform: translateY(-2px);
+}
+
+.app-shell .vault-empty {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--muted);
+  text-align: center;
+  border: 1px dashed rgba(var(--theme-rgb-border), 0.55);
+  border-radius: 22px;
+  background: rgba(var(--theme-rgb-bg), 0.46);
+}
+
+.app-shell .vault-empty strong {
+  color: var(--text);
+  font-size: 22px;
+}
+
+@keyframes vaultDial {
+  0% { transform: rotate(0deg) scale(1); }
+  70% { transform: rotate(410deg) scale(1.06); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+@keyframes vaultCardReveal {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes vaultCardShuffle {
+  0% {
+    opacity: 0.45;
+    transform: translateY(8px) scale(0.96) rotate(-0.8deg);
+    filter: blur(1px);
+  }
+  55% {
+    opacity: 0.8;
+    transform: translateY(-8px) scale(1.02) rotate(0.8deg);
+    filter: blur(0.6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(0deg);
+    filter: blur(0);
+  }
+}
+
+@media (max-width: 940px) {
+  .app-shell .vault-dialog {
+    overflow: auto;
+  }
+
+  .app-shell .vault-body,
+  .app-shell .vault-result-grid,
+  .app-shell .vault-result-grid.count-1,
+  .app-shell .vault-result-grid.count-2,
+  .app-shell .vault-result-grid.count-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell .vault-door.is-spinning .vault-door-ring,
+  .app-shell .vault-result-card,
+  .app-shell .vault-result-grid.is-spinning .vault-result-card {
+    animation: none;
+    opacity: 1;
+    transform: none;
   }
 }

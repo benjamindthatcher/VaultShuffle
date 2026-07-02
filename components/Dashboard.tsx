@@ -92,6 +92,7 @@ export function Dashboard() {
   const [shuffleCount, setShuffleCount] = useState<1 | 2 | 3>(3);
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
   const [shuffleMessage, setShuffleMessage] = useState("Shuffle the games currently visible in your library.");
+  const [shuffleVaultOpen, setShuffleVaultOpen] = useState(false);
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [shuffleAnimationKey, setShuffleAnimationKey] = useState(0);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
@@ -149,6 +150,15 @@ export function Dashboard() {
     const timer = window.setTimeout(() => setGuestPrompt(false), 5000);
     return () => window.clearTimeout(timer);
   }, [guestPrompt, isLoggedIn]);
+
+  useEffect(() => {
+    if (!shuffleVaultOpen) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setShuffleVaultOpen(false);
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [shuffleVaultOpen]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -450,6 +460,7 @@ export function Dashboard() {
   }
 
   async function shuffle() {
+    setShuffleVaultOpen(true);
     playShuffleAnimation();
     const picks = pickShuffleGames(filteredGames, shuffleCount);
     if (!picks.length) {
@@ -458,7 +469,6 @@ export function Dashboard() {
         : "Add a demo game first, or sign in with Steam to shuffle your real backlog.";
       setShuffleCards([]);
       setShuffleMessage(reason);
-      if (!isLoggedIn) setGuestPrompt(true);
       return;
     }
     setShuffleCards(picks);
@@ -468,13 +478,7 @@ export function Dashboard() {
 
   function changeShuffleCount(count: 1 | 2 | 3) {
     setShuffleCount(count);
-    if (shuffleCards.length >= count) return;
-    const existingIds = new Set(shuffleCards.map((game) => game.id));
-    const additions = randomSample(
-      filteredGames.filter((game) => !isCompleted(game) && !existingIds.has(game.id)),
-      count - shuffleCards.length
-    );
-    if (additions.length) setShuffleCards([...shuffleCards, ...additions]);
+    setShuffleCards((current) => current.slice(0, count));
   }
 
   function playShuffleAnimation() {
@@ -636,6 +640,24 @@ export function Dashboard() {
         </div>
       ) : null}
 
+      {shuffleVaultOpen ? (
+        <VaultShuffleModal
+          animationKey={shuffleAnimationKey}
+          cards={visibleShuffleCards}
+          count={shuffleCount}
+          eligibleCount={shuffleEligibleCount}
+          message={shuffleMessage}
+          onClose={() => setShuffleVaultOpen(false)}
+          onCountChange={changeShuffleCount}
+          onSelect={(game) => {
+            setSelectedId(game.id);
+            setShuffleVaultOpen(false);
+          }}
+          onShuffle={() => void shuffle()}
+          spinning={shuffleSpinning}
+        />
+      ) : null}
+
       <div className="workspace">
         <aside className="library-panel">
           <h2>Library Overview</h2>
@@ -656,8 +678,8 @@ export function Dashboard() {
           </div>
           <section className="sidebar-shuffle">
             <div>
-              <h2>Smart Shuffle</h2>
-              <p>Uses the same games and filters as the list beside it.</p>
+              <h2>Vault Shuffle</h2>
+              <p>Open the vault and draw from the games currently visible in your list.</p>
             </div>
             <div className="sidebar-shuffle-meta">
               <strong>{shuffleEligibleCount}</strong>
@@ -675,8 +697,8 @@ export function Dashboard() {
                 </button>
               ))}
             </div>
-            <button className="shuffle-button sidebar-shuffle-button" onClick={shuffle} type="button">
-              Shuffle {shuffleCount}
+            <button className="shuffle-button sidebar-shuffle-button" onClick={() => void shuffle()} type="button">
+              Open Vault
             </button>
           </section>
           <p className="shuffle-info"><span aria-hidden="true">i</span>Completed games are skipped automatically.</p>
@@ -687,31 +709,6 @@ export function Dashboard() {
         </aside>
 
         <main className="library-main">
-          <section className="smart-strip">
-            <div className="shuffle-row smart-filter-row">
-              <div>
-                <h2>◎ Shuffle Deck</h2>
-                <p>{shuffleMessage}</p>
-              </div>
-            </div>
-            <div
-              className={`shuffle-cards count-${visibleShuffleCards.length || shuffleCount} ${shuffleSpinning ? "is-spinning" : ""}`}
-              key={shuffleAnimationKey}
-            >
-              {shuffleCards.length ? (
-                visibleShuffleCards.map((game) => <RecommendationTile game={game} key={game.id} onClick={() => setSelectedId(game.id)} />)
-              ) : (
-                <div className="rec-tile">
-                  <Cover title="No pick" />
-                  <div>
-                    <span>No pick yet</span>
-                    <p>{shuffleMessage}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-
           <section className={`library-table ${viewMode === "grid" ? "grid-mode" : ""}`}>
             <div className="table-toolbar">
               <strong>{filteredGames.length} {filteredGames.length === 1 ? "game" : "games"}</strong>
@@ -753,7 +750,23 @@ export function Dashboard() {
               <button onClick={() => toggleSort("progress_desc", "progress_asc")} type="button">Progress</button>
               <span className="table-label">Status</span>
               <span className="table-label">Genre</span>
-              <span className="table-label label-with-help">Length <i title={LENGTH_HELP_TEXT} aria-label={LENGTH_HELP_TEXT}>i</i></span>
+              <span className="table-label label-with-help">
+                Length
+                <span className="length-help" tabIndex={0} aria-label={LENGTH_HELP_TEXT}>
+                  i
+                  <span className="length-tooltip" role="tooltip">
+                    <strong>Length guide</strong>
+                    <span>Bitesize: under 5h</span>
+                    <span>Short: 5-10h</span>
+                    <span>Weekend: 10-20h</span>
+                    <span>Campaign: 20-40h</span>
+                    <span>Meaty: 40-80h</span>
+                    <span>Marathon: 80-120h</span>
+                    <span>Odyssey: 120h+</span>
+                    <span>Endless: replayable/live-service/sandbox</span>
+                  </span>
+                </span>
+              </span>
               <button onClick={() => toggleSort("rating_desc", "rating_asc")} type="button">Rating</button>
               <span className="actions-head">⋮</span>
             </div>
@@ -879,13 +892,9 @@ function GameRow({
       </span>
       <span>{Number(game.hours_played).toLocaleString()}h</span>
       <span className="progress-cell">
-        {progress > 0 ? (
-          <span className="progress-track">
-            <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} />
-          </span>
-        ) : (
-          <span className="progress-zero">0%</span>
-        )}
+        <span className={`progress-track ${progress <= 0 ? "is-empty" : ""}`} aria-label={`${progress}% progress`}>
+          {progress > 0 ? <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} /> : null}
+        </span>
       </span>
       <span className={`chip ${statusClass(game)}`}>{statusIcon(game)} {status}</span>
       <span className="pill genre-pill">{primaryGenre(game)}</span>
@@ -930,6 +939,139 @@ function GameRow({
   );
 }
 
+function VaultShuffleModal({
+  animationKey,
+  cards,
+  count,
+  eligibleCount,
+  message,
+  onClose,
+  onCountChange,
+  onSelect,
+  onShuffle,
+  spinning
+}: {
+  animationKey: number;
+  cards: Game[];
+  count: 1 | 2 | 3;
+  eligibleCount: number;
+  message: string;
+  onClose: () => void;
+  onCountChange: (count: 1 | 2 | 3) => void;
+  onSelect: (game: Game) => void;
+  onShuffle: () => void;
+  spinning: boolean;
+}) {
+  const hasCards = cards.length > 0;
+  const resultCount = hasCards ? cards.length : count;
+
+  return (
+    <div className="vault-backdrop" onMouseDown={onClose}>
+      <section
+        aria-label="Vault Shuffle"
+        aria-modal="true"
+        className={`vault-dialog count-${resultCount}`}
+        onMouseDown={(event) => event.stopPropagation()}
+        role="dialog"
+      >
+        <header className="vault-dialog-header">
+          <div>
+            <span className="detail-kicker">Vault Shuffle</span>
+            <h2>Crack open the vault.</h2>
+            <p>{eligibleCount ? `${eligibleCount} unfinished games are eligible from your current view.` : message}</p>
+          </div>
+          <button aria-label="Close Vault Shuffle" className="modal-close" onClick={onClose} type="button">
+            ×
+          </button>
+        </header>
+
+        <div className="vault-body">
+          <div className="vault-stage" aria-hidden="true">
+            <VaultDoorGraphic hasCards={hasCards} spinning={spinning} />
+          </div>
+
+          <div className="vault-control-panel">
+            <span className="vault-control-label">Draw size</span>
+            <div className="vault-count-row" aria-label="Number of games to draw">
+              {[1, 2, 3].map((option) => (
+                <button
+                  className={count === option ? "active" : ""}
+                  key={option}
+                  onClick={() => onCountChange(option as 1 | 2 | 3)}
+                  type="button"
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <button className="shuffle-button vault-primary" disabled={!eligibleCount || spinning} onClick={onShuffle} type="button">
+              {spinning ? "Shuffling..." : `Shuffle ${count}`}
+            </button>
+            <p>Completed games stay locked away automatically.</p>
+          </div>
+        </div>
+
+        <div
+          className={`vault-result-grid count-${resultCount} ${spinning ? "is-spinning" : ""}`}
+          key={animationKey}
+        >
+          {hasCards ? (
+            cards.map((game, index) => (
+              <VaultResultCard game={game} index={index} key={game.id} onSelect={onSelect} />
+            ))
+          ) : (
+            <div className="vault-empty">
+              <strong>No draw yet.</strong>
+              <span>{message}</span>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function VaultDoorGraphic({ hasCards, spinning }: { hasCards: boolean; spinning: boolean }) {
+  return (
+    <div className={`vault-door ${spinning ? "is-spinning" : ""} ${hasCards ? "is-open" : ""}`}>
+      <span className="vault-door-glow" />
+      <span className="vault-door-slit" />
+      <span className="vault-door-ring">
+        <span />
+        <span />
+        <span />
+      </span>
+      <span className="vault-door-lock" />
+    </div>
+  );
+}
+
+function VaultResultCard({
+  game,
+  index,
+  onSelect
+}: {
+  game: Game;
+  index: number;
+  onSelect: (game: Game) => void;
+}) {
+  const note = String(game.notes || "").trim();
+  return (
+    <button className={`vault-result-card delay-${index}`} onClick={() => onSelect(game)} type="button">
+      <span className="vault-result-cover">
+        <Cover game={game} />
+      </span>
+      <span className="vault-result-copy">
+        <span>Pick {index + 1}</span>
+        <strong>{game.title}</strong>
+        <small>{displayGenres(game)} · {lengthBucket(game)}</small>
+        {note ? <em>{note}</em> : null}
+      </span>
+      <span className="vault-result-cta">View details</span>
+    </button>
+  );
+}
+
 function GuestLibraryState({ loggedIn, onAdd, onSignIn }: { loggedIn: boolean; onAdd: () => void; onSignIn: () => void }) {
   return (
     <div className="guest-empty">
@@ -965,7 +1107,7 @@ function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean;
         <strong>{game.title}</strong>
         <small>{displayGenres(game)} · {Number(game.hours_played || 0).toLocaleString()}h</small>
         <span className="game-card-meta">
-          <span className="progress-track">
+          <span className={`progress-track ${progress <= 0 ? "is-empty" : ""}`}>
             <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} />
           </span>
           <span className={`chip ${statusClass(game)}`}>{status}</span>
@@ -1009,8 +1151,8 @@ function GameDetails({
           <span>Progress</span>
           <strong>{progress}%</strong>
         </div>
-        <span className="progress-track">
-          <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} />
+        <span className={`progress-track ${progress <= 0 ? "is-empty" : ""}`}>
+          {progress > 0 ? <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} /> : null}
         </span>
       </div>
       <div className="detail-list">
