@@ -38,24 +38,12 @@ create table if not exists public.games (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint games_ownership_check check (ownership in ('Owned', 'Wishlist', 'Game pass')),
-  constraint games_status_check check (status in ('Not Started', 'In Progress', 'Completed')),
+  constraint games_status_check check (status in ('Not Started', 'Sampled', 'In Progress', 'Completed')),
   constraint games_priority_check check (priority in ('Low', 'Medium', 'High')),
   constraint games_rating_check check (rating between 0 and 10),
   constraint games_completion_check check (completion_percentage between 0 and 100),
   constraint games_hours_check check (hours_played >= 0),
   constraint games_user_steam_appid_unique unique (user_id, steam_appid)
-);
-
-create table if not exists public.recommendations (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references public.app_users(id) on delete cascade,
-  game_id uuid references public.games(id) on delete set null,
-  kind text not null,
-  reason text not null default '',
-  mood text,
-  time_commitment text,
-  created_at timestamptz not null default now(),
-  constraint recommendations_kind_check check (kind in ('shuffle', 'top_backlog', 'top_wishlist', 'random'))
 );
 
 create table if not exists public.app_settings (
@@ -100,14 +88,11 @@ create index if not exists games_user_status_idx on public.games(user_id, status
 create index if not exists games_user_ownership_idx on public.games(user_id, ownership);
 create index if not exists games_user_priority_idx on public.games(user_id, priority);
 create index if not exists games_user_title_idx on public.games(user_id, lower(title));
-create index if not exists recommendations_user_id_idx on public.recommendations(user_id);
-create index if not exists recommendations_user_created_idx on public.recommendations(user_id, created_at desc);
 create index if not exists app_settings_user_id_idx on public.app_settings(user_id);
 
 alter table public.app_users enable row level security;
 alter table public.sessions enable row level security;
 alter table public.games enable row level security;
-alter table public.recommendations enable row level security;
 alter table public.app_settings enable row level security;
 
 grant usage on schema public to service_role;
@@ -115,7 +100,6 @@ grant usage on schema public to service_role;
 grant select, insert, update, delete on table public.app_users to service_role;
 grant select, insert, update, delete on table public.sessions to service_role;
 grant select, insert, update, delete on table public.games to service_role;
-grant select, insert, update, delete on table public.recommendations to service_role;
 grant select, insert, update, delete on table public.app_settings to service_role;
 
 grant execute on function public.set_updated_at() to service_role;

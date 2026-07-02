@@ -9,9 +9,9 @@ Open the app in preview mode, add a couple of games from Steam search, and try t
 - Steam OpenID sign-in with an HTTP-only app session
 - Steam library import using the Steam Web API
 - Steam store search for adding individual games
-- Supabase-backed game data, statuses, recommendations, and user records
-- Filters for status, ownership, priority, playtime, completed games, and sorting
-- Smart shuffle recommendations for unfinished backlog games, with mood and time controls
+- Supabase-backed user records, imported games, statuses, and user edits
+- Filters for status, library source, genre, length, search, and sorting
+- Smart shuffle picks from the currently visible unfinished games
 - Temporary browser-only preview mode for guests
 - Responsive blue/purple interface built for a hosted web app
 
@@ -38,4 +38,4 @@ Guest preview games stay in the browser's local storage and are not synced to Su
 
 ## Status
 
-The site is live and under active development. Current focus areas are dashboard polish, richer Steam metadata, and making recommendations feel more personal.
+The site is live and under active development. Current focus areas are dashboard polish, richer Steam metadata, and making the shuffle flow feel more personal.

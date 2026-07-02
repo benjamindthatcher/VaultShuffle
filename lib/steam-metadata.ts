@@ -260,7 +260,7 @@ function chunks<T>(items: T[], size: number) {
 function clampLimit(value: number) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return 12;
-  return Math.max(1, Math.min(Math.floor(parsed), 24));
+  return Math.max(1, Math.min(Math.floor(parsed), 50));
 }
 
 function isMissingMetadataTable(error: { code?: string } | null) {

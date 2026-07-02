@@ -12,7 +12,7 @@ export default function FeaturesPage() {
         },
         {
           title: "Smart Shuffle",
-          body: "Pick by genre and time, then roll from unfinished owned games instead of the whole library."
+          body: "Roll one, two, or three games from the same filtered library you are already looking at."
         },
         {
           title: "Visual Library",
@@ -20,7 +20,7 @@ export default function FeaturesPage() {
         },
         {
           title: "Focused Filters",
-          body: "Status, ownership, search, hide completed, and sorting help narrow a huge library without losing context."
+          body: "Status, library source, genre, length, search, and sorting help narrow a huge library without losing context."
         },
         {
           title: "Cloud Library",

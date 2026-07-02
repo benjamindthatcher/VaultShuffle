@@ -1,5 +1,5 @@
 export type Ownership = "Owned" | "Wishlist";
-export type GameStatus = "Not Started" | "In Progress" | "Completed";
+export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Completed";
 export type Priority = "Low" | "Medium" | "High";
 
 export type Game = {
@@ -55,12 +55,6 @@ export type SteamPlayerSummary = {
   steam_id: string;
   display_name: string | null;
   avatar_url: string | null;
-};
-
-export type RecommendationPayload = {
-  backlog: Game[];
-  wishlist: Game[];
-  random: Game | null;
 };
 
 export type SteamSearchResult = {
