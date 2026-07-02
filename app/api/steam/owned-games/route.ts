@@ -22,7 +22,7 @@ async function importLibrary() {
     }
     const importedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
     const games = await upsertSteamGames(user.id, importedGames);
-    await enrichSteamMetadataForUser(user.id, 16).catch(() => null);
+    await enrichSteamMetadataForUser(user.id, 50, true).catch(() => null);
     return NextResponse.json({ imported: games.length, games });
   } catch (error) {
     if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();

@@ -102,7 +102,7 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
       .from("steam_app_metadata")
       .update({ status: "pending", last_error: null })
       .in("steam_appid", appIds)
-      .or("rating.eq.0,genre.eq.Unknown,status.eq.failed,capsule_url.is.null,header_url.is.null");
+      .or("rating.is.null,rating.eq.0,genre.is.null,genre.eq.Unknown,status.eq.failed,capsule_url.is.null,header_url.is.null");
 
     if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
   }

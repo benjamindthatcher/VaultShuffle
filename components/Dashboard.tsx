@@ -24,7 +24,7 @@ const emptyStats: StatsPayload = {
 
 const emptyRecs: RecommendationPayload = { backlog: [], wishlist: [], random: null };
 const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
-const METADATA_SYNC_BATCH_SIZE = 8;
+const METADATA_SYNC_BATCH_SIZE = 50;
 const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
 const FILTER_SEPARATOR = "||";
@@ -32,6 +32,8 @@ const TIME_FILTER_OPTIONS = ["5h", "15h", "30h", "50h", "100h", "300h+"];
 const STATUS_FILTER_OPTIONS = ["Completed", "In Progress", "Not Started"];
 const OWNERSHIP_FILTER_OPTIONS = ["Owned", "Wishlist"];
 const SORT_OPTIONS = [
+  { value: "title_asc", label: "Title: A to Z" },
+  { value: "title_desc", label: "Title: Z to A" },
   { value: "hours_desc", label: "Playtime: high to low" },
   { value: "hours_asc", label: "Playtime: low to high" },
   { value: "progress_desc", label: "Progress: high to low" },
@@ -39,11 +41,7 @@ const SORT_OPTIONS = [
   { value: "rating_desc", label: "Rating: high to low" },
   { value: "rating_asc", label: "Rating: low to high" },
   { value: "last_played_desc", label: "Last played: newest" },
-  { value: "last_played_asc", label: "Last played: oldest" },
-  { value: "time_asc", label: "Time: short to long" },
-  { value: "time_desc", label: "Time: long to short" },
-  { value: "title_asc", label: "Title: A to Z" },
-  { value: "title_desc", label: "Title: Z to A" }
+  { value: "last_played_asc", label: "Last played: oldest" }
 ];
 
 const blankGame: GamePayload = {
@@ -87,7 +85,6 @@ export function Dashboard() {
   const [ownership, setOwnership] = useState("All");
   const [genreFilter, setGenreFilter] = useState("All genres");
   const [playtimeFilter, setPlaytimeFilter] = useState("Any playtime");
-  const [hideCompleted, setHideCompleted] = useState(false);
   const [sort, setSort] = useState("hours_desc");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -100,13 +97,13 @@ export function Dashboard() {
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [shuffleAnimationKey, setShuffleAnimationKey] = useState(0);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
-  const [steamQuery, setSteamQuery] = useState("");
+  const [addSearchOpen, setAddSearchOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [guestPrompt, setGuestPrompt] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
-  const steamDialogRef = useRef<HTMLDialogElement>(null);
+  const addSearchInputRef = useRef<HTMLInputElement>(null);
   const metadataSyncingRef = useRef(false);
   const shuffleAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -155,11 +152,11 @@ export function Dashboard() {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      if (steamQuery.trim().length >= 2) void searchSteam(steamQuery);
+      if (addQuery.trim().length >= 2) void searchSteam(addQuery);
       else setSteamResults([]);
     }, 360);
     return () => window.clearTimeout(timer);
-  }, [steamQuery]);
+  }, [addQuery]);
 
   useEffect(() => {
     if (!isLoggedIn || !games.some(needsSteamMetadata)) return;
@@ -186,8 +183,7 @@ export function Dashboard() {
           (!selectedStatuses.length || selectedStatuses.includes(effectiveStatus)) &&
           (!selectedOwnerships.length || selectedOwnerships.includes(game.ownership)) &&
           (!selectedGenres.length || selectedGenres.some((genre) => matchesTopLevelGenre(game.genre, genre, game.title))) &&
-          (!selectedTimes.length || selectedTimes.includes(timeBucket(game))) &&
-          (!hideCompleted || !isCompleted(game))
+          (!selectedTimes.length || selectedTimes.includes(timeBucket(game)))
         );
       })
       .sort((a, b) => {
@@ -204,12 +200,12 @@ export function Dashboard() {
         if (sort === "time_desc") return estimatedGameHours(b) - estimatedGameHours(a);
         return Number(b.hours_played || 0) - Number(a.hours_played || 0);
       });
-  }, [games, genreFilter, hideCompleted, ownership, playtimeFilter, query, sort, status]);
+  }, [games, genreFilter, ownership, playtimeFilter, query, sort, status]);
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
   const visibleShuffleCards = shuffleCards.slice(0, shuffleCount);
   const shuffleEligibleCount = useMemo(() => filteredGames.filter((game) => !isCompleted(game)).length, [filteredGames]);
-  const activeRulesLabel = activeFilterLabel(status, ownership, genreFilter, playtimeFilter, hideCompleted);
+  const activeRulesLabel = activeFilterLabel(status, ownership, genreFilter, playtimeFilter);
 
   useEffect(() => {
     if (!selected) {
@@ -319,7 +315,6 @@ export function Dashboard() {
     setOwnership("All");
     setGenreFilter("All genres");
     setPlaytimeFilter("Any playtime");
-    setHideCompleted(false);
     setFiltersOpen(false);
   }
 
@@ -329,7 +324,6 @@ export function Dashboard() {
     setOwnership("All");
     setGenreFilter("All genres");
     setPlaytimeFilter("Any playtime");
-    setHideCompleted(false);
     setFiltersOpen(false);
   }
 
@@ -339,31 +333,22 @@ export function Dashboard() {
     setOwnership("All");
     setGenreFilter("All genres");
     setPlaytimeFilter("Any playtime");
-    setHideCompleted(false);
     setFiltersOpen(false);
     if (action === "completed") setStatus("Completed");
     if (action === "progress") setStatus("In Progress");
     if (action === "not_started") setStatus("Not Started");
     if (action === "owned") setOwnership("Owned");
     if (action === "wishlist") setOwnership("Wishlist");
-    if (action === "long_games") setPlaytimeFilter("300h+");
   }
 
   function toggleSort(descSort: string, ascSort: string) {
     setSort((current) => current === descSort ? ascSort : descSort);
   }
 
-  function openSteamDialog(initialQuery = "") {
-    const nextQuery = initialQuery.trim();
-    setSteamQuery(nextQuery);
-    setSteamResults([]);
-    steamDialogRef.current?.showModal();
-    if (nextQuery.length >= 2) void searchSteam(nextQuery);
-  }
-
   function submitAddSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    openSteamDialog(addQuery);
+    setAddSearchOpen(true);
+    if (addQuery.trim().length >= 2) void searchSteam(addQuery);
   }
 
   async function searchSteam(term: string) {
@@ -394,16 +379,22 @@ export function Dashboard() {
       const nextGames = upsertPreview(games, game);
       revealLibrary();
       applyPreviewGames(nextGames, game.id, "Added to your temporary preview list. Sign in with Steam when you want a saved library.");
-      steamDialogRef.current?.close();
+      setAddSearchOpen(false);
+      setAddQuery("");
       return;
     }
     const { game } = await api<{ game: Game }>("/api/games", { method: "POST", body: JSON.stringify(payload) });
-    steamDialogRef.current?.close();
+    setAddSearchOpen(false);
     revealLibrary();
     await refreshLibrary(game.id);
     if (needsSteamMetadata(game)) void syncSteamMetadata(4);
     setAddQuery("");
     setSelectedId(game.id);
+  }
+
+  function focusAddSearch() {
+    addSearchInputRef.current?.focus();
+    setAddSearchOpen(true);
   }
 
   async function patchGame(gameToPatch: Game, payload: Partial<GamePayload>) {
@@ -547,9 +538,37 @@ export function Dashboard() {
         <form className="nav-search-group" onSubmit={submitAddSearch}>
           <div className="search-box add-search-box">
             <span>⌕</span>
-            <input value={addQuery} onChange={(event) => setAddQuery(event.target.value)} type="search" placeholder="Search Steam to add a game..." />
+            <input
+              ref={addSearchInputRef}
+              value={addQuery}
+              onFocus={() => setAddSearchOpen(true)}
+              onChange={(event) => {
+                setAddQuery(event.target.value);
+                setAddSearchOpen(true);
+              }}
+              type="search"
+              placeholder="Search Steam to add a game..."
+            />
             <button type="submit">Search</button>
           </div>
+          {addSearchOpen && addQuery.trim().length >= 2 ? (
+            <div className="add-search-results">
+              {steamResults.length ? (
+                steamResults.map((result) => (
+                  <button className="add-search-result" key={result.appid} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => void addSteamGame(result)}>
+                    <span className="steam-result-art">{result.image ? <img src={result.image} alt="" /> : null}</span>
+                    <span>
+                      <strong>{result.name}</strong>
+                      <small>{result.genre ? `${result.genre} · ` : ""}Steam</small>
+                    </span>
+                    <b>Add</b>
+                  </button>
+                ))
+              ) : (
+                <p className="add-search-empty">No Steam games found yet.</p>
+              )}
+            </div>
+          ) : null}
         </form>
         <div className="nav-actions">
           <span className="steam-profile">
@@ -694,7 +713,7 @@ export function Dashboard() {
                 <div className="filter-popover-wrap">
                   <button className={`filter-button ${filtersOpen ? "active" : ""}`} onClick={() => setFiltersOpen((open) => !open)} type="button">
                     Filter
-                    <span>{filterCount(query, status, ownership, genreFilter, playtimeFilter, hideCompleted)}</span>
+                    <span>{filterCount(query, status, ownership, genreFilter, playtimeFilter)}</span>
                   </button>
                   {filtersOpen ? (
                     <div className="filter-popover">
@@ -702,7 +721,6 @@ export function Dashboard() {
                       <MultiFilterGroup allLabel="All" label="Library" onChange={setOwnership} options={OWNERSHIP_FILTER_OPTIONS} value={ownership} />
                       <MultiFilterGroup allLabel="All genres" label="Genre" onChange={setGenreFilter} options={genreOptions} value={genreFilter} />
                       <MultiFilterGroup allLabel="Any playtime" label="Time" onChange={setPlaytimeFilter} options={TIME_FILTER_OPTIONS} value={playtimeFilter} />
-                      <label className="filter-switch compact"><input checked={hideCompleted} onChange={(event) => setHideCompleted(event.target.checked)} type="checkbox" /><span className="switch-visual" aria-hidden="true" /><span>Hide completed</span></label>
                       <div className="filter-popover-actions">
                         <button onClick={clearFilters} type="button">Clear</button>
                         <button onClick={() => setFiltersOpen(false)} type="button">Done</button>
@@ -755,7 +773,7 @@ export function Dashboard() {
                   )
                 )
               ) : (
-                <GuestLibraryState loggedIn={isLoggedIn} onAdd={() => openSteamDialog()} onSignIn={() => (window.location.href = "/login")} />
+                <GuestLibraryState loggedIn={isLoggedIn} onAdd={focusAddSearch} onSignIn={() => (window.location.href = "/login")} />
               )}
             </div>
           </section>
@@ -769,13 +787,6 @@ export function Dashboard() {
         </aside>
       </div>
 
-      <SteamDialog
-        dialogRef={steamDialogRef}
-        query={steamQuery}
-        results={steamResults}
-        onQuery={setSteamQuery}
-        onAdd={addSteamGame}
-      />
       {notesOpen && selected ? (
         <div className="notes-overlay" role="dialog" aria-modal="true" aria-label={`${selected.title} notes`}>
           <section className="notes-modal">
@@ -1090,24 +1101,22 @@ function DetailLine({ label, value }: { label: string; value: React.ReactNode })
   );
 }
 
-function filterCount(query: string, status: string, ownership: string, genre: string, playtime: string, hideCompleted: boolean) {
+function filterCount(query: string, status: string, ownership: string, genre: string, playtime: string) {
   return [
     query.trim() ? 1 : 0,
     selectedOptions(status, "All").length,
     selectedOptions(ownership, "All").length,
     selectedOptions(genre, "All genres").length,
-    selectedOptions(playtime, "Any playtime").length,
-    hideCompleted ? 1 : 0
+    selectedOptions(playtime, "Any playtime").length
   ].reduce((total, count) => total + count, 0);
 }
 
-function activeFilterLabel(status: string, ownership: string, genre: string, playtime: string, hideCompleted: boolean) {
+function activeFilterLabel(status: string, ownership: string, genre: string, playtime: string) {
   const active = [
     ...selectedOptions(status, "All"),
     ...selectedOptions(ownership, "All"),
     ...selectedOptions(genre, "All genres"),
-    ...selectedOptions(playtime, "Any playtime"),
-    hideCompleted ? "Completed hidden" : ""
+    ...selectedOptions(playtime, "Any playtime")
   ].filter(Boolean);
   return active.length ? active.join(" · ") : "All games are visible. Use Filter above the list to narrow things down.";
 }
@@ -1201,57 +1210,6 @@ async function steamAppDetails(appid: string) {
   }
 }
 
-function SteamDialog({
-  dialogRef,
-  query,
-  results,
-  onQuery,
-  onAdd
-}: {
-  dialogRef: React.RefObject<HTMLDialogElement | null>;
-  query: string;
-  results: SteamSearchResult[];
-  onQuery: (value: string) => void;
-  onAdd: (result: SteamSearchResult) => void;
-}) {
-  return (
-    <dialog ref={dialogRef} className="steam-dialog">
-      <form method="dialog">
-        <header>
-          <div>
-            <h2>Add from Steam</h2>
-            <p>Search the Steam store and add a game with artwork ready to go.</p>
-          </div>
-          <button type="button" className="nav-icon" onClick={() => dialogRef.current?.close()}>×</button>
-        </header>
-        <div className="steam-search-panel">
-          <label className="steam-search-box">
-            <span>⌕</span>
-            <input value={query} onChange={(event) => onQuery(event.target.value)} type="search" placeholder="Search Steam games..." />
-          </label>
-          <div className="steam-results">
-            {query.trim().length < 2 ? <p className="steam-hint">Type a game name to search Steam.</p> : null}
-            {query.trim().length >= 2 && !results.length ? <p className="steam-hint">No Steam games found yet.</p> : null}
-            {results.map((result) => (
-              <button className="steam-result" key={result.appid} type="button" onClick={() => onAdd(result)}>
-                <span className="steam-result-art">{result.image ? <img src={result.image} alt="" /> : null}</span>
-                <span>
-                  <strong>{result.name}</strong>
-                  <small>{result.genre ? `${result.genre} · ` : ""}Steam</small>
-                </span>
-                <b>Add</b>
-              </button>
-            ))}
-          </div>
-        </div>
-        <footer>
-          <button type="button" onClick={() => dialogRef.current?.close()}>Cancel</button>
-        </footer>
-      </form>
-    </dialog>
-  );
-}
-
 function RecommendationTile({ game, onClick }: { game: Game; onClick: () => void }) {
   const note = String(game.notes || "").trim();
   return (
@@ -1310,15 +1268,13 @@ function Cover({ game, title }: { game?: Game; title?: string }) {
   );
 }
 
-type StatAction = "all" | "completed" | "progress" | "not_started" | "owned" | "wishlist" | "long_games";
+type StatAction = "all" | "completed" | "progress" | "not_started" | "owned" | "wishlist";
 
 function statRows(stats: StatsPayload, games: Game[]): Array<{ icon: string; label: string; value: string | number; action: StatAction | null }> {
   const total = stats.total || 1;
   const notStarted = Math.max(0, stats.total - stats.completed - stats.in_progress);
   const owned = games.filter((game) => game.ownership === "Owned").length;
   const genreCount = new Set(games.flatMap((game) => topLevelGenresFor(game.genre, game.title))).size;
-  const rated = games.filter((game) => Number(game.rating || 0) > 0).length;
-  const longGames = games.filter((game) => timeBucket(game) === "300h+").length;
   return [
     { icon: "▦", label: "Total Games", value: stats.total, action: "all" },
     { icon: "●", label: "Owned", value: owned, action: "owned" },
@@ -1331,11 +1287,9 @@ function statRows(stats: StatsPayload, games: Game[]): Array<{ icon: string; lab
     },
     { icon: "▶", label: "In Progress", value: `${stats.in_progress} (${Math.round((stats.in_progress / total) * 100)}%)`, action: "progress" },
     { icon: "✓", label: "Completed", value: `${stats.completed} (${Math.round((stats.completed / total) * 100)}%)`, action: "completed" },
+    { icon: "◇", label: "Genres", value: genreCount || "—", action: null },
     { icon: "◴", label: "Hours Played", value: Number(stats.hours).toLocaleString(), action: null },
-    { icon: "◎", label: "Completion Rate", value: `${stats.avg_completion}%`, action: null },
-    { icon: "∞", label: "300h+ Games", value: longGames, action: "long_games" },
-    { icon: "★", label: "Rated Games", value: `${rated}/${stats.total || games.length || 0}`, action: null },
-    { icon: "◇", label: "Genres", value: genreCount || "—", action: null }
+    { icon: "◎", label: "Completion Rate", value: `${stats.avg_completion}%`, action: null }
   ];
 }
 
