@@ -478,7 +478,6 @@ export function Dashboard() {
 
   function changeShuffleCount(count: 1 | 2 | 3) {
     setShuffleCount(count);
-    setShuffleCards((current) => current.slice(0, count));
   }
 
   function playShuffleAnimation() {

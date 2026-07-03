@@ -3292,7 +3292,7 @@ dialog {
 }
 
 .app-shell .library-main {
-  grid-template-rows: 142px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .app-shell .sidebar-shuffle {
@@ -3596,7 +3596,7 @@ dialog {
 }
 
 .app-shell .library-main {
-  grid-template-rows: 186px minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .app-shell .library-panel {
@@ -3804,7 +3804,7 @@ dialog {
   }
 
   .app-shell .library-main {
-    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
 }
 
@@ -4037,7 +4037,7 @@ dialog {
   }
 
   .app-shell .library-main {
-    grid-template-rows: 164px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
   }
 
   .app-shell .smart-strip {
@@ -4247,7 +4247,7 @@ dialog {
 .app-shell .vault-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 1000;
   display: grid;
   place-items: center;
   padding: 24px;
@@ -4544,7 +4544,15 @@ dialog {
   background: rgba(var(--theme-rgb-bg), 0.62);
 }
 
+.app-shell .vault-result-cover .cover {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 .app-shell .vault-result-cover img,
+.app-shell .vault-result-cover .fallback-initials,
 .app-shell .vault-result-cover .cover-fallback {
   width: 100%;
   height: 100%;
