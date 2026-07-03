@@ -1,41 +1,92 @@
 # Vault Shuffle
 
-[Vault Shuffle](https://www.vaultshuffle.com) is a Steam backlog companion that helps players stop staring at a giant library and actually pick something to play.
+[Vault Shuffle](https://www.vaultshuffle.com) is a Steam backlog companion that helps players stop staring at a huge library and actually choose something to play.
 
-Open the app in preview mode, add a couple of games from Steam search, and try the shuffle flow before connecting a Steam account. Signing in with Steam imports owned games, playtime, profile details, and keeps the library synced to the user account.
+It started as a first-year Python backlog tracker and has grown into a hosted Next.js app with Steam sign-in, Supabase persistence, Steam metadata sync, and a purpose-built shuffle flow.
 
 ## What It Does
 
-- Steam OpenID sign-in with an HTTP-only app session
-- Steam library import using the Steam Web API
-- Steam store search for adding individual games
-- Supabase-backed user records, imported games, statuses, and user edits
-- Filters for status, library source, genre, length, search, and sorting
-- Smart shuffle picks from the currently visible unfinished games
-- Temporary browser-only preview mode for guests
-- Responsive blue/purple interface built for a hosted web app
+- Lets visitors preview the app before signing in.
+- Uses Steam OpenID so users can connect without sharing a Steam password.
+- Imports a Steam library with playtime, last-played dates, artwork, genres, and ratings where available.
+- Stores user-specific game state in Supabase: library source, progress, notes, completion, and shuffle-ready metadata.
+- Lets users add individual games from Steam search.
+- Filters by status, library source, top-level genre, length, and free-text search.
+- Draws random unfinished games from the current visible list through the Vault Shuffle flow.
+- Persists the selected visual theme across the site.
 
-## Why I Built It
+## Live Project
 
-This started as a first-year Python backlog tracker, then grew into a hosted web product. The current version is built around a real deployment flow: GitHub for source control, Vercel for hosting, Supabase for data, and Steam for identity and library import.
+- Production: [vaultshuffle.com](https://www.vaultshuffle.com)
+- Hosting: Vercel
+- Database: Supabase Postgres
+- Source control: GitHub
 
-The main design goal is simple: make a large Steam library feel less overwhelming.
+## Architecture
 
-## Tech Highlights
+```mermaid
+flowchart LR
+  Browser["Browser UI"] --> Next["Next.js App Router"]
+  Next --> SteamOpenID["Steam OpenID"]
+  Next --> SteamAPI["Steam Web API / Store Metadata"]
+  Next --> Supabase["Supabase Postgres"]
+  Next --> Vercel["Vercel Hosting"]
+  Browser --> LocalStorage["Preview Mode Local Storage"]
+```
 
-- **Next.js App Router** for the site, app shell, and server route handlers
-- **Supabase Postgres** for persistent user and game data
-- **Steam OpenID** for authentication without handling Steam passwords
-- **Steam Web API** for library import and profile details
-- **Cached Steam store search** to keep API usage sensible
-- **Vercel** production deployment at [vaultshuffle.com](https://www.vaultshuffle.com)
+## Data Model
 
-## Privacy Notes
+The main hosted data lives in Supabase:
 
-Vault Shuffle does not ask for or store Steam passwords. Steam confirms the user through OpenID, then the app stores the SteamID, profile display details, imported game metadata, and any edits made inside Vault Shuffle.
+- `app_users`: Steam identity, display name, avatar, and account timestamps.
+- `games`: imported or manually added games with Steam AppID, title, artwork URLs, genres, rating, playtime, status, progress, ownership, and notes.
+- `sessions`: server-side session records used by the HTTP-only auth cookie.
+- `recommendations`: shuffle/recommendation history for future tuning.
+- `steam_app_metadata`: cached Steam store metadata so imports do not repeatedly hammer Steam.
 
-Guest preview games stay in the browser's local storage and are not synced to Supabase.
+Preview mode is deliberately separate: guest games stay in browser storage and are not written to Supabase.
 
-## Status
+## Notable Implementation Details
 
-The site is live and under active development. Current focus areas are dashboard polish, richer Steam metadata, and making the shuffle flow feel more personal.
+- **Steam-first identity:** Steam confirms the account; Vault Shuffle never sees Steam passwords.
+- **Metadata caching:** Steam app details are cached and refreshed in batches to avoid unnecessary API usage.
+- **Top-level genre filters:** Games can keep detailed genre tags, but filtering is intentionally reduced to broad useful categories.
+- **Shared game classification:** status, progress, length, and endless-game logic are centralised so the app and API agree.
+- **Hosted environment:** secrets such as the Steam API key and Supabase service role key live in Vercel environment variables.
+
+## Environment
+
+The app expects these variables in Vercel:
+
+```bash
+NEXT_PUBLIC_SITE_URL=
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SERVICE_ROLE_KEY=
+STEAM_API_KEY=
+SESSION_SECRET=
+```
+
+Local development is possible with the same variables, but the public project is intended to be reviewed through the live deployment.
+
+## Quality Checks
+
+The main safety check is the production build:
+
+```bash
+npm run build
+```
+
+The project is actively being tightened up with more extracted components, shared helpers, and future automated checks.
+
+## Roadmap
+
+- Polish the Vault Shuffle modal into the main memorable product moment.
+- Improve length estimates with a better external source when permitted.
+- Continue filling missing Steam genres, artwork, and ratings through cached background sync.
+- Add stronger empty, loading, and error states around imports.
+- Add lightweight automated checks once the UI settles.
+
+## Ownership
+
+This is a portfolio project by Ben Thatcher. Vault Shuffle is not affiliated with Valve, Steam, or any game publisher. Game names, artwork, store links, and Steam references belong to their respective owners.

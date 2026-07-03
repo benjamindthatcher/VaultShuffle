@@ -1,4 +1,12 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {
+  displayStatus,
+  gameProgress,
+  inferredCompletionForPayload,
+  isCompletedGame,
+  statusFromCompletion,
+  statusFromGameProgress
+} from "@/lib/game-classification";
 import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import type { Game, GamePayload, StatsPayload } from "@/lib/types";
@@ -281,96 +289,6 @@ function normalizeOwnership(value: unknown): GamePayload["ownership"] {
 
 function round1(value: number) {
   return Math.round(value * 10) / 10;
-}
-
-function isCompletedGame(game: Game) {
-  return game.status === "Completed" || gameProgress(game) >= 100;
-}
-
-function displayStatus(game: Game) {
-  if (isCompletedGame(game)) return "Completed";
-  const progress = gameProgress(game);
-  if (progress > 0 && progress <= 10) return "Sampled";
-  if (progress > 10 || (isEndlessGame(game) && Number(game.hours_played || 0) > 0)) return "In Progress";
-  return "Not Started";
-}
-
-function gameProgress(game: Game) {
-  if (game.status === "Completed") return 100;
-  const inferred = inferredProgressFromHours(game, Number(game.hours_played || 0));
-  const stored = Number(game.completion_percentage || 0);
-  if (stored > 0) {
-    const roundedStored = clamp(Math.round(stored), 0, 100);
-    return inferred >= 100 && roundedStored >= 99 ? 100 : roundedStored;
-  }
-  return inferred;
-}
-
-function inferredCompletionForPayload(
-  title: string,
-  genre: string,
-  hours: number,
-  status: Partial<GamePayload>["status"],
-  completion: Partial<GamePayload>["completion_percentage"]
-) {
-  if (status === "Completed") return 100;
-  const stored = clamp(Math.round(Number(completion ?? 0)), 0, 100);
-  if (stored > 0) return stored;
-  return inferredProgressFromHours({ title, genre, hours_played: hours }, hours);
-}
-
-function inferredProgressFromHours(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>, hours: number) {
-  const estimate = estimatedGameHours(game);
-  const played = Number(hours || 0);
-  if (!played || !estimate) return 0;
-  if (played >= estimate) return 100;
-  return clamp(Math.round((played / estimate) * 100), 0, 99);
-}
-
-function statusFromGameProgress(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>, completion: number): GamePayload["status"] {
-  if (completion >= 100) return "Completed";
-  if (completion > 10) return "In Progress";
-  if (completion > 0) return "Sampled";
-  if (isEndlessGame(game) && Number(game.hours_played || 0) > 0) return "In Progress";
-  return "Not Started";
-}
-
-function statusFromCompletion(completion: number): GamePayload["status"] {
-  if (completion >= 100) return "Completed";
-  if (completion > 10) return "In Progress";
-  if (completion > 0) return "Sampled";
-  return "Not Started";
-}
-
-function estimatedGameHours(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>) {
-  const text = `${game.title} ${game.genre}`.toLowerCase();
-  if (isEndlessGame(game)) return 0;
-  if (/(open world|grand strategy|4x|jrpg|role-playing|role playing)/.test(text)) return 120;
-  if (/(rpg|strategy|simulation|management)/.test(text)) return 80;
-  if (/(adventure|action-adventure|souls|metroidvania|horror)/.test(text)) return 40;
-  if (/(action|shooter|fps|third-person|racing|sports|fighting)/.test(text)) return 20;
-  if (/(puzzle|casual|arcade|platformer|indie|hidden object|visual novel)/.test(text)) return 10;
-  return 20;
-}
-
-function lengthBucket(game: Game) {
-  if (isEndlessGame(game)) return "Endless";
-  const estimate = estimatedGameHours(game);
-  if (estimate < 5) return "Bitesize";
-  if (estimate <= 10) return "Short";
-  if (estimate <= 20) return "Weekend";
-  if (estimate <= 40) return "Campaign";
-  if (estimate <= 80) return "Meaty";
-  if (estimate <= 120) return "Marathon";
-  return "Odyssey";
-}
-
-function isEndlessGame(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>) {
-  const text = `${game.title} ${game.genre}`.toLowerCase();
-  return (
-    /(counter-?strike|destiny|apex legends|rust|palworld|new world|for honor|warframe|dota|team fortress|pubg|rainbow six|rocket league|dead by daylight|elder scrolls online|final fantasy xiv|path of exile|lost ark|factorio|rimworld|terraria|monster hunter)/.test(text) ||
-    /(mmo|massively multiplayer|multiplayer|battle royale|moba|live service|survival|sandbox|free to play|pvp|pve|online|roguelike|roguelite)/.test(text)
-  );
 }
 
 function clamp(value: number, min: number, max: number) {

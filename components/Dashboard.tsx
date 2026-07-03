@@ -2,13 +2,24 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Game, GamePayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
-import { steamImageCandidates } from "@/lib/images";
+import {
+  LENGTH_HELP_TEXT,
+  LENGTH_LABELS,
+  displayStatus,
+  gameProgress,
+  inferredProgressFromHours,
+  isCompletedGame as isCompleted,
+  lengthBucket,
+  statusFromCompletion
+} from "@/lib/game-classification";
+import { GameDetails } from "@/components/dashboard/GameDetails";
+import { GameCard, GameRow, GuestLibraryState } from "@/components/dashboard/GameListItems";
+import { LibrarySidebar, type StatAction } from "@/components/dashboard/LibrarySidebar";
+import { VaultShuffleModal } from "@/components/dashboard/VaultShuffleModal";
 import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
 import {
   TOP_LEVEL_GENRES,
-  genreDisplayLabel,
   matchesTopLevelGenre,
-  primaryGenre as primaryTopLevelGenre,
   topLevelGenresFor
 } from "@/lib/genres";
 
@@ -26,10 +37,10 @@ const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
 const METADATA_SYNC_BATCH_SIZE = 50;
 const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
+const SHUFFLE_ANIMATION_MS = 1450;
 const FILTER_SEPARATOR = "||";
 const ANY_LENGTH_LABEL = "Any";
-const LENGTH_FILTER_OPTIONS = ["Bitesize", "Short", "Weekend", "Campaign", "Meaty", "Marathon", "Odyssey", "Endless"];
-const LENGTH_HELP_TEXT = "Bitesize: under 5h. Short: 5-10h. Weekend: 10-20h. Campaign: 20-40h. Meaty: 40-80h. Marathon: 80-120h. Odyssey: 120h+. Endless: replayable, live-service, or sandbox.";
+const LENGTH_FILTER_OPTIONS = [...LENGTH_LABELS];
 const STATUS_FILTER_OPTIONS = ["Completed", "In Progress", "Sampled", "Not Started"];
 const OWNERSHIP_FILTER_OPTIONS = ["Owned", "Wishlist"];
 const SORT_OPTIONS = [
@@ -226,7 +237,6 @@ export function Dashboard() {
   }, [games, genreFilter, lengthFilter, ownership, query, sort, status]);
 
   const selected = games.find((game) => game.id === selectedId) ?? null;
-  const visibleShuffleCards = shuffleCards.slice(0, shuffleCount);
   const shuffleEligibleCount = useMemo(() => filteredGames.filter((game) => !isCompleted(game)).length, [filteredGames]);
   const activeRulesLabel = activeFilterLabel(status, ownership, genreFilter, lengthFilter);
 
@@ -459,8 +469,14 @@ export function Dashboard() {
     await load();
   }
 
-  async function shuffle() {
+  function openVault() {
     setShuffleVaultOpen(true);
+    if (!shuffleCards.length) {
+      setShuffleMessage("Pick a draw size, then open the vault to pull from the games shown in your library.");
+    }
+  }
+
+  async function shuffle() {
     playShuffleAnimation();
     const picks = pickShuffleGames(filteredGames, shuffleCount);
     if (!picks.length) {
@@ -487,7 +503,7 @@ export function Dashboard() {
     shuffleAnimationTimerRef.current = setTimeout(() => {
       setShuffleSpinning(false);
       shuffleAnimationTimerRef.current = null;
-    }, 850);
+    }, SHUFFLE_ANIMATION_MS);
   }
 
   async function saveNotes() {
@@ -642,7 +658,7 @@ export function Dashboard() {
       {shuffleVaultOpen ? (
         <VaultShuffleModal
           animationKey={shuffleAnimationKey}
-          cards={visibleShuffleCards}
+          cards={shuffleCards}
           count={shuffleCount}
           eligibleCount={shuffleEligibleCount}
           message={shuffleMessage}
@@ -658,54 +674,16 @@ export function Dashboard() {
       ) : null}
 
       <div className="workspace">
-        <aside className="library-panel">
-          <h2>Library Overview</h2>
-          <div className="overview-list">
-            {statRows(displayStats, games).map(({ icon, label, value, action }) => (
-              <button
-                className={`stat-row ${action ? "" : "is-static"}`}
-                disabled={!action}
-                key={label}
-                onClick={() => action && applyStatFilter(action)}
-                type="button"
-              >
-                <span>{icon}</span>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </button>
-            ))}
-          </div>
-          <section className="sidebar-shuffle">
-            <div>
-              <h2>Vault Shuffle</h2>
-              <p>Open the vault and draw from the games currently visible in your list.</p>
-            </div>
-            <div className="sidebar-shuffle-meta">
-              <strong>{shuffleEligibleCount}</strong>
-              <span>eligible games</span>
-            </div>
-            <div className="sidebar-shuffle-count" aria-label="Number of games to shuffle">
-              {[1, 2, 3].map((count) => (
-                <button
-                  className={shuffleCount === count ? "active" : ""}
-                  key={count}
-                  onClick={() => changeShuffleCount(count as 1 | 2 | 3)}
-                  type="button"
-                >
-                  {count}
-                </button>
-              ))}
-            </div>
-            <button className="shuffle-button sidebar-shuffle-button" onClick={() => void shuffle()} type="button">
-              Open Vault
-            </button>
-          </section>
-          <p className="shuffle-info"><span aria-hidden="true">i</span>Completed games are skipped automatically.</p>
-          <div className="side-summary">
-            <h2>Current filter</h2>
-            <p>{activeRulesLabel}</p>
-          </div>
-        </aside>
+        <LibrarySidebar
+          activeRulesLabel={activeRulesLabel}
+          games={games}
+          onOpenVault={openVault}
+          onShuffleCountChange={changeShuffleCount}
+          onStatFilter={applyStatFilter}
+          shuffleCount={shuffleCount}
+          shuffleEligibleCount={shuffleEligibleCount}
+          stats={displayStats}
+        />
 
         <main className="library-main">
           <section className={`library-table ${viewMode === "grid" ? "grid-mode" : ""}`}>
@@ -751,9 +729,9 @@ export function Dashboard() {
               <span className="table-label">Genre</span>
               <span className="table-label label-with-help">
                 Length
-                <span className="length-help" tabIndex={0} aria-label={LENGTH_HELP_TEXT}>
+                <button className="length-help" type="button" aria-label={LENGTH_HELP_TEXT} aria-describedby="length-tooltip">
                   i
-                  <span className="length-tooltip" role="tooltip">
+                  <span className="length-tooltip" id="length-tooltip" role="tooltip">
                     <strong>Length guide</strong>
                     <span>Bitesize: under 5h</span>
                     <span>Short: 5-10h</span>
@@ -764,7 +742,7 @@ export function Dashboard() {
                     <span>Odyssey: 120h+</span>
                     <span>Endless: replayable/live-service/sandbox</span>
                   </span>
-                </span>
+                </button>
               </span>
               <button onClick={() => toggleSort("rating_desc", "rating_asc")} type="button">Rating</button>
               <span className="actions-head">⋮</span>
@@ -849,412 +827,6 @@ export function Dashboard() {
   );
 }
 
-function GameRow({
-  game,
-  selected,
-  menuOpen,
-  onSelect,
-  onToggleMenu,
-  onCompleted,
-  onDelete
-}: {
-  game: Game;
-  selected: boolean;
-  menuOpen: boolean;
-  onSelect: () => void;
-  onToggleMenu: () => void;
-  onCompleted: () => void;
-  onDelete: () => void;
-}) {
-  const progress = gameProgress(game);
-  const status = displayStatus(game);
-  return (
-    <div
-      className={`game-row ${selected ? "selected" : ""}`}
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.currentTarget !== event.target) return;
-        if (event.key === "Enter" || event.key === " ") {
-          event.preventDefault();
-          onSelect();
-        }
-      }}
-    >
-      <span className="game-cell">
-        <Cover game={game} />
-        <span className="game-title">
-          <strong>{game.title}</strong>
-          <small>{displayGenres(game)}</small>
-        </span>
-      </span>
-      <span>{Number(game.hours_played).toLocaleString()}h</span>
-      <span className="progress-cell">
-        <span className={`progress-track ${progress <= 0 ? "is-empty" : ""}`} aria-label={`${progress}% progress`}>
-          {progress > 0 ? <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} /> : null}
-        </span>
-      </span>
-      <span className={`chip ${statusClass(game)}`}>{statusIcon(game)} {status}</span>
-      <span className="pill genre-pill">{primaryGenre(game)}</span>
-      <span className="pill">{lengthBucket(game)}</span>
-      <span>{Number(game.rating) > 0 ? `${game.rating}/10` : game.steam_appid ? "Updating" : "—"}</span>
-      <span className="row-menu-cell">
-        <button
-          aria-label={`Actions for ${game.title}`}
-          className="row-menu-button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onToggleMenu();
-          }}
-          type="button"
-        >
-          ⋮
-        </button>
-        {menuOpen ? (
-          <span className="row-menu" onClick={(event) => event.stopPropagation()}>
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                onCompleted();
-              }}
-              type="button"
-            >
-              Completed
-            </button>
-            <button
-              onClick={(event) => {
-                event.stopPropagation();
-                onDelete();
-              }}
-              type="button"
-            >
-              Delete
-            </button>
-          </span>
-        ) : null}
-      </span>
-    </div>
-  );
-}
-
-function VaultShuffleModal({
-  animationKey,
-  cards,
-  count,
-  eligibleCount,
-  message,
-  onClose,
-  onCountChange,
-  onSelect,
-  onShuffle,
-  spinning
-}: {
-  animationKey: number;
-  cards: Game[];
-  count: 1 | 2 | 3;
-  eligibleCount: number;
-  message: string;
-  onClose: () => void;
-  onCountChange: (count: 1 | 2 | 3) => void;
-  onSelect: (game: Game) => void;
-  onShuffle: () => void;
-  spinning: boolean;
-}) {
-  const hasCards = cards.length > 0;
-  const resultCount = hasCards ? cards.length : count;
-
-  return (
-    <div className="vault-backdrop" onMouseDown={onClose}>
-      <section
-        aria-label="Vault Shuffle"
-        aria-modal="true"
-        className={`vault-dialog count-${resultCount}`}
-        onMouseDown={(event) => event.stopPropagation()}
-        role="dialog"
-      >
-        <header className="vault-dialog-header">
-          <div>
-            <span className="detail-kicker">Vault Shuffle</span>
-            <h2>Crack open the vault.</h2>
-            <p>{eligibleCount ? `${eligibleCount} unfinished games are eligible from your current view.` : message}</p>
-          </div>
-          <button aria-label="Close Vault Shuffle" className="modal-close" onClick={onClose} type="button">
-            ×
-          </button>
-        </header>
-
-        <div className="vault-body">
-          <div className="vault-stage" aria-hidden="true">
-            <VaultDoorGraphic hasCards={hasCards} spinning={spinning} />
-          </div>
-
-          <div className="vault-control-panel">
-            <span className="vault-control-label">Draw size</span>
-            <div className="vault-count-row" aria-label="Number of games to draw">
-              {[1, 2, 3].map((option) => (
-                <button
-                  className={count === option ? "active" : ""}
-                  key={option}
-                  onClick={() => onCountChange(option as 1 | 2 | 3)}
-                  type="button"
-                >
-                  {option}
-                </button>
-              ))}
-            </div>
-            <button className="shuffle-button vault-primary" disabled={!eligibleCount || spinning} onClick={onShuffle} type="button">
-              {spinning ? "Shuffling..." : `Shuffle ${count}`}
-            </button>
-            <p>Completed games stay locked away automatically.</p>
-          </div>
-        </div>
-
-        <div
-          className={`vault-result-grid count-${resultCount} ${spinning ? "is-spinning" : ""}`}
-          key={animationKey}
-        >
-          {hasCards ? (
-            cards.map((game, index) => (
-              <VaultResultCard game={game} index={index} key={game.id} onSelect={onSelect} />
-            ))
-          ) : (
-            <div className="vault-empty">
-              <strong>No draw yet.</strong>
-              <span>{message}</span>
-            </div>
-          )}
-        </div>
-      </section>
-    </div>
-  );
-}
-
-function VaultDoorGraphic({ hasCards, spinning }: { hasCards: boolean; spinning: boolean }) {
-  return (
-    <div className={`vault-door ${spinning ? "is-spinning" : ""} ${hasCards ? "is-open" : ""}`}>
-      <span className="vault-door-glow" />
-      <span className="vault-door-slit" />
-      <span className="vault-door-ring">
-        <span />
-        <span />
-        <span />
-      </span>
-      <span className="vault-door-lock" />
-    </div>
-  );
-}
-
-function VaultResultCard({
-  game,
-  index,
-  onSelect
-}: {
-  game: Game;
-  index: number;
-  onSelect: (game: Game) => void;
-}) {
-  const note = String(game.notes || "").trim();
-  return (
-    <button className={`vault-result-card delay-${index}`} onClick={() => onSelect(game)} type="button">
-      <span className="vault-result-cover">
-        <Cover game={game} />
-      </span>
-      <span className="vault-result-copy">
-        <span>Pick {index + 1}</span>
-        <strong>{game.title}</strong>
-        <small>{displayGenres(game)} · {lengthBucket(game)}</small>
-        {note ? <em>{note}</em> : null}
-      </span>
-      <span className="vault-result-cta">View details</span>
-    </button>
-  );
-}
-
-function GuestLibraryState({ loggedIn, onAdd, onSignIn }: { loggedIn: boolean; onAdd: () => void; onSignIn: () => void }) {
-  return (
-    <div className="guest-empty">
-      <div className="guest-empty-art">
-        <span />
-        <span />
-        <span />
-      </div>
-      <p className="detail-kicker">{loggedIn ? "Nothing matches those filters" : "Preview mode"}</p>
-      <h3>{loggedIn ? "No games found." : "Your library will appear here."}</h3>
-      <p>
-        {loggedIn
-          ? "Try clearing a filter or importing your Steam library again."
-          : "You can explore the app layout for now. Sign in with Steam when you want Vault Shuffle to import your games and playtime."}
-      </p>
-      {!loggedIn ? (
-        <div className="guest-empty-actions">
-          <button className="shuffle-button" onClick={onAdd}>Add a demo game</button>
-          <button className="ghost" onClick={onSignIn}>Sign in with Steam</button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function GameCard({ game, selected, onSelect }: { game: Game; selected: boolean; onSelect: () => void }) {
-  const progress = gameProgress(game);
-  const status = displayStatus(game);
-  return (
-    <button className={`game-card ${selected ? "selected" : ""}`} onClick={onSelect} type="button">
-      <span className="game-card-art"><Cover game={game} /></span>
-      <span className="game-card-body">
-        <strong>{game.title}</strong>
-        <small>{displayGenres(game)} · {Number(game.hours_played || 0).toLocaleString()}h</small>
-        <span className="game-card-meta">
-          <span className={`progress-track ${progress <= 0 ? "is-empty" : ""}`}>
-            <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} />
-          </span>
-          <span className={`chip ${statusClass(game)}`}>{status}</span>
-        </span>
-      </span>
-    </button>
-  );
-}
-
-function GameDetails({
-  game,
-  onOpenNotes,
-  onPlay,
-  onUpdate
-}: {
-  game: Game | null;
-  onOpenNotes: () => void;
-  onPlay: () => void;
-  onUpdate: (payload: Partial<GamePayload>) => Promise<void>;
-}) {
-  if (!game) {
-    return <div className="detail-content empty">Select a game from the library.</div>;
-  }
-  const progress = gameProgress(game);
-  const status = displayStatus(game);
-  const note = String(game.notes || "").trim();
-  const ratingText = Number(game.rating) > 0 ? `${game.rating}/10` : game.steam_appid ? "Updating..." : "Unavailable";
-  return (
-    <div className="detail-content">
-      <div className="hero-cover"><HeroArtwork game={game} /></div>
-      <p className="detail-kicker">Selected game</p>
-      <div className="detail-title">{game.title}</div>
-      <div className="detail-subtitle">{displayGenres(game)} · {game.store || "Steam"}</div>
-      <div className="detail-pills">
-        <span className="detail-pill"><i>{statusIcon(game)}</i>{status}</span>
-        <span className="detail-pill"><i>◴</i>{lengthBucket(game)}</span>
-        <span className="detail-pill"><i>★</i>{ratingText}</span>
-      </div>
-      <div className="detail-progress">
-        <div>
-          <span>Progress</span>
-          <strong>{progress}%</strong>
-        </div>
-        <span className={`progress-track ${progress <= 0 ? "is-empty" : ""}`}>
-          {progress > 0 ? <span className={`progress-fill ${statusClass(game)}`} style={{ width: `${progress}%` }} /> : null}
-        </span>
-      </div>
-      <div className="detail-list">
-        <DetailLine label="Playtime" value={`${Number(game.hours_played).toLocaleString()}h`} />
-        <DetailLine label="Length" value={lengthBucket(game)} />
-        <DetailLine label="Last played" value={formatLastPlayed(game.last_played_at)} />
-        <DetailLine label="Steam rating" value={ratingText} />
-        <DetailLine label="Library" value={game.ownership === "Owned" ? "Steam library" : "Wishlist"} />
-        <DetailLine
-          label="Store"
-          value={game.steam_appid ? <a href={`https://store.steampowered.com/app/${game.steam_appid}/`} target="_blank" rel="noreferrer">Open on Steam</a> : game.store}
-        />
-      </div>
-      <InlineGameSettings game={game} onUpdate={onUpdate} />
-      <section className={`notes-preview ${note ? "" : "is-empty"}`}>
-        <div>
-          <strong>Notes</strong>
-          <p>{note || "No notes yet. Add why it is next, stuck, or worth saving for later."}</p>
-        </div>
-        <button onClick={onOpenNotes} type="button">View</button>
-      </section>
-      <button className="play-now-button" disabled={!game.steam_appid} onClick={onPlay} type="button">Play Now</button>
-    </div>
-  );
-}
-
-function InlineGameSettings({ game, onUpdate }: { game: Game; onUpdate: (payload: Partial<GamePayload>) => Promise<void> }) {
-  const displayedProgress = gameProgress(game);
-  const [hoursDraft, setHoursDraft] = useState(numberField(game.hours_played));
-  const [completionDraft, setCompletionDraft] = useState(numberField(game.completion_percentage || displayedProgress));
-
-  useEffect(() => {
-    setHoursDraft(numberField(game.hours_played));
-    setCompletionDraft(numberField(game.completion_percentage || displayedProgress));
-  }, [game.id, game.hours_played, game.completion_percentage, displayedProgress]);
-
-  function commitHours() {
-    const hours = parseNumberInput(hoursDraft);
-    const currentStoredCompletion = Number(game.completion_percentage || 0);
-    const currentInferredCompletion = inferredProgressFromHours(game, Number(game.hours_played || 0));
-    const hasManualCompletion = currentStoredCompletion > 0 && currentStoredCompletion !== currentInferredCompletion;
-    const next: Partial<GamePayload> = { hours_played: hours };
-    if (!hasManualCompletion) {
-      const completion = inferredProgressFromHours(game, hours);
-      next.completion_percentage = completion;
-      next.status = statusFromCompletion(completion);
-    }
-    void onUpdate(next);
-  }
-
-  function commitCompletion() {
-    const completion = parseNumberInput(completionDraft, 100);
-    void onUpdate({
-      completion_percentage: completion,
-      status: statusFromCompletion(completion)
-    });
-  }
-
-  return (
-    <section className="inline-settings" aria-label="Your game settings">
-      <h3>Your settings</h3>
-      <div className="inline-settings-grid">
-        <label>
-          Hours
-          <input
-            inputMode="decimal"
-            onBlur={commitHours}
-            onChange={(event) => setHoursDraft(event.target.value)}
-            placeholder="0"
-            value={hoursDraft}
-          />
-        </label>
-        <label>
-          Completion
-          <input
-            inputMode="decimal"
-            onBlur={commitCompletion}
-            onChange={(event) => setCompletionDraft(event.target.value)}
-            placeholder="0-100"
-            value={completionDraft}
-          />
-        </label>
-        <label>
-          Library
-          <select value={game.ownership} onChange={(event) => void onUpdate({ ownership: event.target.value as GamePayload["ownership"] })}>
-            <option>Owned</option>
-            <option>Wishlist</option>
-          </select>
-        </label>
-      </div>
-    </section>
-  );
-}
-
-function DetailLine({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="detail-line">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  );
-}
-
 function filterCount(query: string, status: string, ownership: string, genre: string, length: string) {
   return [
     query.trim() ? 1 : 0,
@@ -1332,11 +904,6 @@ function MultiFilterGroup({
   );
 }
 
-function numberField(value: number | null | undefined) {
-  const numeric = Number(value || 0);
-  return numeric === 0 ? "" : String(numeric);
-}
-
 function readSavedTheme(): ThemeOptionId {
   if (typeof window === "undefined") return DEFAULT_THEME_ID;
   try {
@@ -1345,14 +912,6 @@ function readSavedTheme(): ThemeOptionId {
   } catch {
     return DEFAULT_THEME_ID;
   }
-}
-
-function parseNumberInput(value: string, max?: number) {
-  const cleaned = value.replace(/[^\d.]/g, "");
-  if (!cleaned) return 0;
-  const parsed = Number(cleaned);
-  if (!Number.isFinite(parsed)) return 0;
-  return typeof max === "number" ? Math.min(parsed, max) : parsed;
 }
 
 async function steamAppDetails(appid: string) {
@@ -1364,212 +923,12 @@ async function steamAppDetails(appid: string) {
   }
 }
 
-function RecommendationTile({ game, onClick }: { game: Game; onClick: () => void }) {
-  const note = String(game.notes || "").trim();
-  return (
-    <button className="rec-tile" onClick={onClick} type="button">
-      <Cover game={game} />
-      <div>
-        <span>{game.title}</span>
-        <p>{primaryGenre(game)} · {lengthBucket(game)}</p>
-        {note ? <small>{note}</small> : null}
-      </div>
-    </button>
-  );
-}
-
-function HeroArtwork({ game }: { game: Game }) {
-  const candidates = useMemo(() => {
-    return [...steamImageCandidates(game, "header"), ...steamImageCandidates(game, "capsule")];
-  }, [game.capsule_url, game.header_url, game.id, game.steam_appid]);
-  const [imageIndex, setImageIndex] = useState(0);
-
-  useEffect(() => {
-    setImageIndex(0);
-  }, [game.capsule_url, game.header_url, game.id, game.steam_appid]);
-
-  const src = candidates[imageIndex];
-  if (!src) return <Cover game={game} />;
-  return (
-    <img
-      src={src}
-      alt=""
-      loading="lazy"
-      onError={() => setImageIndex((current) => current + 1)}
-    />
-  );
-}
-
-function Cover({ game, title }: { game?: Game; title?: string }) {
-  const displayTitle = title || game?.title || "Game";
-  const candidates = useMemo(() => steamImageCandidates(game, "capsule"), [game?.capsule_url, game?.id, game?.steam_appid]);
-  const [imageIndex, setImageIndex] = useState(0);
-
-  useEffect(() => {
-    setImageIndex(0);
-  }, [game?.capsule_url, game?.id, game?.steam_appid, displayTitle]);
-
-  const src = candidates[imageIndex];
-
-  return (
-    <span className="cover">
-      {src ? (
-        <img src={src} alt="" loading="lazy" onError={() => setImageIndex((current) => current + 1)} />
-      ) : (
-        <span className="fallback-initials">{initials(displayTitle)}</span>
-      )}
-    </span>
-  );
-}
-
-type StatAction = "all" | "completed" | "progress" | "sampled" | "not_started" | "owned" | "wishlist";
-
-function statRows(stats: StatsPayload, games: Game[]): Array<{ icon: string; label: string; value: string | number; action: StatAction | null }> {
-  const total = games.length || stats.total || 1;
-  const completed = games.filter((game) => displayStatus(game) === "Completed").length;
-  const sampled = games.filter((game) => displayStatus(game) === "Sampled").length;
-  const inProgress = games.filter((game) => displayStatus(game) === "In Progress").length;
-  const notStarted = games.filter((game) => displayStatus(game) === "Not Started").length;
-  const owned = games.filter((game) => game.ownership === "Owned").length;
-  const wishlist = games.filter((game) => game.ownership === "Wishlist").length;
-  const genreCount = new Set(games.flatMap((game) => topLevelGenresFor(game.genre, game.title))).size;
-  return [
-    { icon: "▦", label: "Total Games", value: stats.total, action: "all" },
-    { icon: "●", label: "Owned", value: owned, action: "owned" },
-    { icon: "♡", label: "Wishlist", value: wishlist, action: "wishlist" },
-    {
-      icon: "□",
-      label: "Not Started",
-      value: `${notStarted} (${Math.round((notStarted / total) * 100)}%)`,
-      action: "not_started"
-    },
-    { icon: "◐", label: "Sampled", value: `${sampled} (${Math.round((sampled / total) * 100)}%)`, action: "sampled" },
-    { icon: "▶", label: "In Progress", value: `${inProgress} (${Math.round((inProgress / total) * 100)}%)`, action: "progress" },
-    { icon: "✓", label: "Completed", value: `${completed} (${Math.round((completed / total) * 100)}%)`, action: "completed" },
-    { icon: "◇", label: "Genres", value: genreCount || "—", action: null },
-    { icon: "◴", label: "Hours Played", value: Number(stats.hours).toLocaleString(), action: null },
-    { icon: "◎", label: "Average Progress", value: `${stats.avg_completion}%`, action: null }
-  ];
-}
-
-function isCompleted(game: Game) {
-  return game.status === "Completed" || gameProgress(game) >= 100;
-}
-
 function needsSteamMetadata(game: Game) {
   return Boolean(game.steam_appid && (!topLevelGenresFor(game.genre, game.title).length || !game.capsule_url || !game.header_url || Number(game.rating || 0) <= 0));
 }
 
-function statusClass(game: Game) {
-  if (game.ownership === "Wishlist") return "wishlist";
-  if (isCompleted(game)) return "completed";
-  if (displayStatus(game) === "Sampled") return "sampled";
-  if (displayStatus(game) === "In Progress") return "progress";
-  return "";
-}
-
-function statusIcon(game: Game) {
-  if (isCompleted(game)) return "✓";
-  if (displayStatus(game) === "Sampled") return "◐";
-  if (displayStatus(game) === "In Progress") return "▶";
-  return "↬";
-}
-
-function displayStatus(game: Game) {
-  if (isCompleted(game)) return "Completed";
-  const progress = gameProgress(game);
-  if (progress > 0 && progress <= 10) return "Sampled";
-  if (progress > 10 || (isEndlessGame(game) && Number(game.hours_played || 0) > 0)) return "In Progress";
-  return "Not Started";
-}
-
-function lengthBucket(game: Game) {
-  if (isEndlessGame(game)) return "Endless";
-  const estimate = estimatedGameHours(game);
-  if (estimate < 5) return "Bitesize";
-  if (estimate <= 10) return "Short";
-  if (estimate <= 20) return "Weekend";
-  if (estimate <= 40) return "Campaign";
-  if (estimate <= 80) return "Meaty";
-  if (estimate <= 120) return "Marathon";
-  return "Odyssey";
-}
-
-function gameProgress(game: Game) {
-  if (game.status === "Completed") return 100;
-  const inferred = inferredProgressFromHours(game, Number(game.hours_played || 0));
-  const stored = Number(game.completion_percentage || 0);
-  if (stored > 0) {
-    const roundedStored = clamp(Math.round(stored), 0, 100);
-    return inferred >= 100 && roundedStored >= 99 ? 100 : roundedStored;
-  }
-  return inferred;
-}
-
-function inferredProgressFromHours(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>, hours: number) {
-  const estimate = estimatedGameHours(game);
-  const played = Number(hours || 0);
-  if (!played || !estimate) return 0;
-  if (played >= estimate) return 100;
-  return clamp(Math.round((played / estimate) * 100), 0, 99);
-}
-
-function estimatedGameHours(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>) {
-  const text = `${game.title} ${game.genre}`.toLowerCase();
-  if (isEndlessGame(game)) return 0;
-  if (/(open world|grand strategy|4x|jrpg|role-playing|role playing)/.test(text)) return 120;
-  if (/(rpg|strategy|simulation|management)/.test(text)) return 80;
-  if (/(adventure|action-adventure|souls|metroidvania|horror)/.test(text)) return 40;
-  if (/(action|shooter|fps|third-person|racing|sports|fighting)/.test(text)) return 20;
-  if (/(puzzle|casual|arcade|platformer|indie|hidden object|visual novel)/.test(text)) return 10;
-  return 20;
-}
-
-function isEndlessGame(game: Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played">>) {
-  const text = `${game.title} ${game.genre}`.toLowerCase();
-  return (
-    /(counter-?strike|destiny|apex legends|rust|palworld|new world|for honor|warframe|dota|team fortress|pubg|rainbow six|rocket league|dead by daylight|elder scrolls online|final fantasy xiv|path of exile|lost ark|factorio|rimworld|terraria|monster hunter)/.test(text) ||
-    /(mmo|massively multiplayer|multiplayer|battle royale|moba|live service|survival|sandbox|free to play|pvp|pve|online|roguelike|roguelite)/.test(text)
-  );
-}
-
-function primaryGenre(game: Game) {
-  return primaryTopLevelGenre(game.genre, game.title);
-}
-
-function displayGenres(game: Game) {
-  return genreDisplayLabel(game.genre, game.title);
-}
-
-function formatLastPlayed(value?: string | null) {
-  if (!value) return "Never";
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return "—";
-  return parsed.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
-}
-
-function initials(title: string) {
-  return (
-    title
-      .replace(/[^a-zA-Z0-9 ]/g, " ")
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((word) => word[0])
-      .join("")
-      .toUpperCase() || "VS"
-  );
-}
-
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
-}
-
-function statusFromCompletion(completion: number): GamePayload["status"] {
-  if (completion >= 100) return "Completed";
-  if (completion > 10) return "In Progress";
-  if (completion > 0) return "Sampled";
-  return "Not Started";
 }
 
 function delay(ms: number) {

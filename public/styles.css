@@ -699,7 +699,7 @@ textarea:focus {
 .library-table {
   min-height: 0;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   display: grid;
   grid-template-rows: auto 34px minmax(0, 1fr);
   background: rgba(7, 20, 35, 0.78);
@@ -813,6 +813,8 @@ textarea:focus {
 }
 
 .table-head {
+  position: relative;
+  z-index: 45;
   padding: 0 14px;
   color: #8fb0cb;
   font-size: 10px;
@@ -2273,15 +2275,20 @@ select {
 }
 
 .table-head .label-with-help {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
+  overflow: visible;
 }
 
 .table-head .length-help {
+  appearance: none;
   position: relative;
   width: 15px;
   height: 15px;
+  min-height: 15px;
+  padding: 0;
   display: inline-grid;
   place-items: center;
   border-radius: 999px;
@@ -2305,10 +2312,10 @@ select {
 .length-tooltip {
   position: absolute;
   left: 50%;
-  bottom: calc(100% + 10px);
-  z-index: 80;
+  top: calc(100% + 10px);
+  z-index: 260;
   min-width: 220px;
-  transform: translate(-50%, 4px);
+  transform: translate(-50%, -4px);
   display: grid;
   gap: 5px;
   padding: 12px 13px;
@@ -3177,6 +3184,34 @@ dialog {
 .app-shell .steam-result:hover,
 .app-shell .rec-tile:hover {
   color: var(--blue-strong);
+}
+
+.app-shell .table-head .length-help,
+.app-shell .table-head .length-help:hover,
+.app-shell .table-head .length-help:focus-visible {
+  width: 15px;
+  min-width: 15px;
+  height: 15px;
+  min-height: 15px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 999px;
+  color: #dcecff;
+  background: rgba(var(--theme-rgb-secondary), 0.16);
+  border: 1px solid rgba(var(--theme-rgb-border), 0.20);
+  box-shadow: none;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 1;
+  text-transform: none;
+}
+
+.app-shell .table-head .length-help:hover,
+.app-shell .table-head .length-help:focus-visible {
+  color: #fff4ff;
+  border-color: rgba(var(--theme-rgb-secondary), 0.62);
+  background: rgba(var(--theme-rgb-secondary), 0.24);
 }
 
 .app-shell .row-menu-button {
@@ -4258,7 +4293,7 @@ dialog {
 }
 
 .app-shell .vault-dialog {
-  width: min(1040px, calc(100vw - 48px));
+  width: min(1120px, calc(100vw - 48px));
   max-height: min(860px, calc(100vh - 48px));
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
@@ -4314,31 +4349,50 @@ dialog {
 
 .app-shell .vault-body {
   display: grid;
-  grid-template-columns: minmax(220px, 0.78fr) minmax(300px, 1fr);
-  gap: 18px;
-  align-items: stretch;
-}
-
-.app-shell .vault-stage,
-.app-shell .vault-control-panel {
-  min-height: 250px;
-  border: 1px solid rgba(var(--theme-rgb-border), 0.42);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at 50% 10%, rgba(var(--theme-rgb-accent), 0.12), transparent 36%),
-    rgba(var(--theme-rgb-bg), 0.55);
+  grid-template-columns: 1fr;
+  align-items: center;
+  justify-items: center;
 }
 
 .app-shell .vault-stage {
+  position: relative;
+  width: min(620px, 100%);
+  min-height: 360px;
   display: grid;
-  place-items: center;
-  padding: 24px;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  gap: 16px;
+  padding: 18px 22px 20px;
   overflow: hidden;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.42);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(var(--theme-rgb-accent), 0.22), transparent 38%),
+    radial-gradient(circle at 50% 52%, rgba(var(--theme-rgb-secondary), 0.18), transparent 46%),
+    rgba(var(--theme-rgb-bg), 0.55);
+}
+
+.app-shell .vault-controls-over {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: auto auto auto;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: fit-content;
+  max-width: 100%;
+  padding: 8px;
+  border: 1px solid rgba(var(--theme-rgb-border), 0.38);
+  border-radius: 18px;
+  background: rgba(var(--theme-rgb-panel), 0.64);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
 }
 
 .app-shell .vault-door {
   position: relative;
-  width: min(240px, 48vw);
+  z-index: 1;
+  width: min(320px, 44vw, 38vh);
   aspect-ratio: 1;
   border-radius: 50%;
   background:
@@ -4347,9 +4401,22 @@ dialog {
     linear-gradient(135deg, rgba(var(--theme-rgb-accent), 0.42), rgba(var(--theme-rgb-secondary), 0.20) 52%, rgba(var(--theme-rgb-panel), 0.72));
   border: 2px solid rgba(var(--theme-rgb-border), 0.62);
   box-shadow:
-    0 26px 70px rgba(var(--theme-rgb-accent), 0.16),
+    0 30px 90px rgba(var(--theme-rgb-accent), 0.22),
     inset 0 0 0 18px rgba(4, 18, 36, 0.42),
     inset 0 0 0 34px rgba(255, 255, 255, 0.03);
+}
+
+.app-shell .vault-door::after {
+  content: "";
+  position: absolute;
+  inset: -18%;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 90deg, transparent, rgba(var(--theme-rgb-accent), 0.2), transparent 32%, rgba(var(--theme-rgb-secondary), 0.18), transparent 68%),
+    radial-gradient(circle, rgba(var(--theme-rgb-accent), 0.28), transparent 58%);
+  opacity: 0;
+  transform: scale(0.82);
+  pointer-events: none;
 }
 
 .app-shell .vault-door-glow {
@@ -4415,7 +4482,7 @@ dialog {
 }
 
 .app-shell .vault-door.is-spinning .vault-door-ring {
-  animation: vaultDial 0.85s cubic-bezier(0.2, 0.8, 0.18, 1);
+  animation: vaultDial 1.45s cubic-bezier(0.2, 0.8, 0.18, 1);
 }
 
 .app-shell .vault-door.is-spinning .vault-door-glow,
@@ -4423,12 +4490,8 @@ dialog {
   opacity: 0.95;
 }
 
-.app-shell .vault-control-panel {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 14px;
-  align-content: center;
-  padding: 24px;
+.app-shell .vault-door.is-spinning::after {
+  animation: vaultBurst 1.45s ease both;
 }
 
 .app-shell .vault-control-label {
@@ -4442,18 +4505,19 @@ dialog {
 .app-shell .vault-count-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 7px;
+  width: 132px;
 }
 
 .app-shell .vault-count-row button {
-  min-height: 46px;
+  min-height: 34px;
   border: 1px solid rgba(var(--theme-rgb-border), 0.55);
-  border-radius: 16px;
+  border-radius: 12px;
   color: var(--text);
   background:
     linear-gradient(135deg, rgba(var(--theme-rgb-secondary), 0.12), rgba(var(--theme-rgb-accent), 0.07)),
     rgba(var(--theme-rgb-panel), 0.56);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 900;
   cursor: pointer;
 }
@@ -4466,8 +4530,10 @@ dialog {
 }
 
 .app-shell .vault-primary {
-  width: 100%;
-  min-height: 50px;
+  width: 172px;
+  min-height: 36px;
+  padding-inline: 18px;
+  font-size: 13px;
 }
 
 .app-shell .vault-primary:disabled {
@@ -4476,17 +4542,19 @@ dialog {
   box-shadow: none;
 }
 
-.app-shell .vault-control-panel p {
+.app-shell .vault-stage-note {
   margin: 0;
   color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
+  text-align: center;
 }
 
 .app-shell .vault-result-grid {
   display: grid;
-  gap: 14px;
-  min-height: 170px;
+  gap: 12px;
+  align-items: stretch;
+  min-height: 118px;
 }
 
 .app-shell .vault-result-grid.count-1 {
@@ -4504,11 +4572,13 @@ dialog {
 
 .app-shell .vault-result-card {
   display: grid;
-  grid-template-rows: auto 1fr auto;
-  gap: 14px;
+  grid-template-columns: minmax(92px, 126px) minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  gap: 10px 12px;
   min-width: 0;
-  min-height: 230px;
-  padding: 14px;
+  min-height: 112px;
+  padding: 12px;
   text-align: left;
   color: var(--text);
   border: 1px solid rgba(var(--theme-rgb-border), 0.48);
@@ -4518,28 +4588,39 @@ dialog {
     rgba(var(--theme-rgb-panel), 0.6);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   cursor: pointer;
-  opacity: 0;
-  transform: translateY(14px) scale(0.98);
-  animation: vaultCardReveal 0.42s ease forwards;
+  opacity: 1;
+  transform: none;
+  --draw-x: 0px;
+  --draw-tilt: 0deg;
+}
+
+.app-shell .vault-result-card.delay-0 {
+  --draw-x: -24px;
+  --draw-tilt: -5deg;
 }
 
 .app-shell .vault-result-card.delay-1 {
-  animation-delay: 0.08s;
+  --draw-x: 0px;
+  --draw-tilt: 3deg;
+  animation-delay: 0.1s;
 }
 
 .app-shell .vault-result-card.delay-2 {
-  animation-delay: 0.16s;
+  --draw-x: 24px;
+  --draw-tilt: 6deg;
+  animation-delay: 0.2s;
 }
 
 .app-shell .vault-result-grid.is-spinning .vault-result-card {
-  animation: vaultCardShuffle 0.85s ease both;
+  animation: vaultCardShuffle 1.45s cubic-bezier(0.2, 0.82, 0.2, 1) both;
 }
 
 .app-shell .vault-result-cover {
+  grid-row: 1 / span 2;
   display: block;
-  aspect-ratio: 460 / 215;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-radius: 16px;
+  border-radius: 14px;
   border: 1px solid rgba(var(--theme-rgb-border), 0.35);
   background: rgba(var(--theme-rgb-bg), 0.62);
 }
@@ -4561,7 +4642,7 @@ dialog {
 
 .app-shell .vault-result-copy {
   display: grid;
-  gap: 5px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -4576,8 +4657,8 @@ dialog {
 .app-shell .vault-result-copy strong {
   overflow-wrap: anywhere;
   color: var(--text);
-  font-size: 21px;
-  line-height: 1.08;
+  font-size: 17px;
+  line-height: 1.12;
 }
 
 .app-shell .vault-result-copy small {
@@ -4598,9 +4679,10 @@ dialog {
 }
 
 .app-shell .vault-result-cta {
-  align-self: end;
+  grid-column: 2;
+  align-self: start;
   width: fit-content;
-  padding: 9px 12px;
+  padding: 7px 10px;
   border: 1px solid rgba(var(--theme-rgb-border), 0.55);
   border-radius: 999px;
   color: var(--text);
@@ -4634,8 +4716,27 @@ dialog {
 
 @keyframes vaultDial {
   0% { transform: rotate(0deg) scale(1); }
-  70% { transform: rotate(410deg) scale(1.06); }
-  100% { transform: rotate(360deg) scale(1); }
+  20% { transform: rotate(-18deg) scale(1.02); }
+  74% { transform: rotate(610deg) scale(1.07); }
+  100% { transform: rotate(720deg) scale(1); }
+}
+
+@keyframes vaultBurst {
+  0% {
+    opacity: 0;
+    transform: scale(0.72) rotate(0deg);
+    filter: blur(6px);
+  }
+  38% {
+    opacity: 0.72;
+    transform: scale(1.02) rotate(120deg);
+    filter: blur(2px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.3) rotate(260deg);
+    filter: blur(10px);
+  }
 }
 
 @keyframes vaultCardReveal {
@@ -4647,14 +4748,19 @@ dialog {
 
 @keyframes vaultCardShuffle {
   0% {
-    opacity: 0.45;
-    transform: translateY(8px) scale(0.96) rotate(-0.8deg);
-    filter: blur(1px);
+    opacity: 0;
+    transform: translate(var(--draw-x), -330px) scale(0.2) rotate(var(--draw-tilt));
+    filter: blur(4px) saturate(1.45);
   }
-  55% {
-    opacity: 0.8;
-    transform: translateY(-8px) scale(1.02) rotate(0.8deg);
-    filter: blur(0.6px);
+  36% {
+    opacity: 0.92;
+    transform: translate(calc(var(--draw-x) * 0.55), -150px) scale(0.72) rotate(calc(var(--draw-tilt) * -1));
+    filter: blur(1.5px) saturate(1.22);
+  }
+  72% {
+    opacity: 1;
+    transform: translateY(8px) scale(1.035) rotate(0deg);
+    filter: blur(0) saturate(1);
   }
   100% {
     opacity: 1;
@@ -4674,6 +4780,27 @@ dialog {
   .app-shell .vault-result-grid.count-2,
   .app-shell .vault-result-grid.count-3 {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell .vault-stage {
+    min-height: 330px;
+    padding-inline: 14px;
+  }
+
+  .app-shell .vault-controls-over {
+    grid-template-columns: 1fr;
+    width: min(260px, 100%);
+  }
+
+  .app-shell .vault-count-row,
+  .app-shell .vault-primary {
+    width: 100%;
+  }
+
+  .app-shell .vault-result-card {
+    grid-template-columns: 104px minmax(0, 1fr);
   }
 }
 
