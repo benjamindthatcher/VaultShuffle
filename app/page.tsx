@@ -1,52 +1,3 @@
-const shortlistGames = [
-  {
-    title: "Baldur's Gate 3",
-    genre: "RPG",
-    image: "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg"
-  },
-  {
-    title: "Hades",
-    genre: "Roguelike",
-    image: "https://cdn.cloudflare.steamstatic.com/steam/apps/1145360/header.jpg"
-  },
-  {
-    title: "Disco Elysium",
-    genre: "RPG",
-    image: "https://cdn.cloudflare.steamstatic.com/steam/apps/632470/header.jpg"
-  },
-  {
-    title: "Stardew Valley",
-    genre: "Life Sim",
-    image: "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/header.jpg"
-  },
-  {
-    title: "Portal 2",
-    genre: "Puzzle",
-    image: "https://cdn.cloudflare.steamstatic.com/steam/apps/620/header.jpg"
-  }
-];
-
-const libraryRows = [
-  ["Elden Ring", "290h", "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg"],
-  ["Baldur's Gate 3", "215h", "https://cdn.cloudflare.steamstatic.com/steam/apps/1086940/header.jpg"],
-  ["Cyberpunk 2077", "80h", "https://cdn.cloudflare.steamstatic.com/steam/apps/1091500/header.jpg"],
-  ["Red Dead Redemption 2", "Adventure", "https://cdn.cloudflare.steamstatic.com/steam/apps/1174180/header.jpg"]
-];
-
-const wishlistRows = [
-  ["Hollow Knight", "Must Play", "https://cdn.cloudflare.steamstatic.com/steam/apps/367520/header.jpg"],
-  ["Persona 5 Royal", "High", "https://cdn.cloudflare.steamstatic.com/steam/apps/1687950/header.jpg"],
-  ["Stardew Valley", "Medium", "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/header.jpg"],
-  ["Sekiro: Shadows Die Twice", "Medium", "https://cdn.cloudflare.steamstatic.com/steam/apps/814380/header.jpg"]
-];
-
-const collectionRows = [
-  ["Backlog Essentials", "8 games", "https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg"],
-  ["Co-op Nights", "12 games", "https://cdn.cloudflare.steamstatic.com/steam/apps/730/header.jpg"],
-  ["Strategy Sessions", "9 games", "https://cdn.cloudflare.steamstatic.com/steam/apps/1142710/header.jpg"],
-  ["Cozy & Chill", "7 games", "https://cdn.cloudflare.steamstatic.com/steam/apps/413150/header.jpg"]
-];
-
 const valueProps = [
   {
     title: "Curated surprises",
@@ -65,7 +16,7 @@ const valueProps = [
   },
   {
     title: "100% in your control",
-    text: "Your data stays yours, always.",
+    text: "Your data stays local and always private.",
     icon: "shield"
   }
 ];
@@ -76,24 +27,45 @@ const productCards = [
     text: "All your games in one clean, powerful view.",
     bullets: ["Filter and sort", "Track playtime", "See what's next"],
     action: "Explore Library",
-    rows: libraryRows,
-    icon: "books"
+    icon: "books",
+    preview: "library",
+    rows: [
+      ["Game Horizon", "120h"],
+      ["Neon Frontiers", "85h"],
+      ["Shattered Skies", "60h"],
+      ["Echoes of Ruin", "45h"],
+      ["Beyond the Gate", "30h"]
+    ]
   },
   {
     title: "Wishlist",
     text: "Turn endless wishlists into your next obsession.",
-    bullets: ["Track discounts", "Prioritize picks", "Never lose a gem"],
+    bullets: ["Track discounts", "Prioritise picks", "Never lose a gem"],
     action: "Explore Wishlist",
-    rows: wishlistRows,
-    icon: "bookmark"
+    icon: "bookmark",
+    preview: "wishlist",
+    rows: [
+      ["Astral Divide", ""],
+      ["Silent Vector", ""],
+      ["Project Aurora", ""],
+      ["Void Runner", ""],
+      ["Crimson Tides", ""]
+    ]
   },
   {
     title: "Collections",
     text: "Create custom collections for any mood.",
     bullets: ["Build your themes", "Tag what matters", "Shuffle your way"],
     action: "Explore Collections",
-    rows: collectionRows,
-    icon: "layers"
+    icon: "layers",
+    preview: "collections",
+    rows: [
+      ["Backlog Essentials", "12 games"],
+      ["Co-op Nights", "8 games"],
+      ["Story Rich", "15 games"],
+      ["Quick Plays", "10 games"],
+      ["Chill & Relax", "7 games"]
+    ]
   }
 ];
 
@@ -109,6 +81,31 @@ function LandingIcon({ name }: { name: string }) {
     strokeLinejoin: "round" as const,
     "aria-hidden": true
   };
+
+  if (name === "steam") {
+    return (
+      <svg {...shared}>
+        <circle cx="12" cy="12" r="9" />
+        <circle cx="15.8" cy="8.2" r="2.5" />
+        <circle cx="8.3" cy="15.6" r="2.2" />
+        <path d="m10.1 14.4 3.7-4.3" />
+        <path d="m6.2 14.7 2.2 1.1" />
+      </svg>
+    );
+  }
+
+  if (name === "guest") {
+    return (
+      <svg {...shared}>
+        <path d="M8 18v-1.2A3.8 3.8 0 0 1 11.8 13h.4a3.8 3.8 0 0 1 3.8 3.8V18" />
+        <circle cx="12" cy="8" r="3" />
+        <path d="M4 7v5" />
+        <path d="M2.5 9.5h3" />
+        <path d="M20 7v5" />
+        <path d="M18.5 9.5h3" />
+      </svg>
+    );
+  }
 
   if (name === "clock") {
     return (
@@ -135,6 +132,15 @@ function LandingIcon({ name }: { name: string }) {
       <svg {...shared}>
         <path d="M12 3 5 6v5c0 4.3 2.8 8.2 7 10 4.2-1.8 7-5.7 7-10V6l-7-3Z" />
         <path d="m9 12 2 2 4-5" />
+      </svg>
+    );
+  }
+
+  if (name === "lock") {
+    return (
+      <svg {...shared}>
+        <rect x="5" y="10" width="14" height="10" rx="2" />
+        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
       </svg>
     );
   }
@@ -167,6 +173,14 @@ function LandingIcon({ name }: { name: string }) {
     );
   }
 
+  if (name === "folder") {
+    return (
+      <svg {...shared}>
+        <path d="M3 7.5h6l2 2h10v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
+      </svg>
+    );
+  }
+
   return (
     <svg {...shared}>
       <circle cx="12" cy="12" r="8" />
@@ -183,15 +197,12 @@ export default function HomePage() {
       <main className="vs-landing">
         <nav className="vs-nav" aria-label="Vault Shuffle">
           <a className="vs-brand" href="/" aria-label="Vault Shuffle home">
-            <img src="/assets/landing/vaultshuffle-logo.png" alt="" />
+            <img src="/assets/landing/vaultshuffle-logo-real.png" alt="" />
             <span>Vault <strong>Shuffle</strong></span>
           </a>
-          <div className="vs-nav-links">
-            <a href="/about">About</a>
-            <a className="vs-open-link" href="/app">
-              Open Vault Shuffle <span aria-hidden="true">&rarr;</span>
-            </a>
-          </div>
+          <a className="vs-open-link" href="/app">
+            Open Vault Shuffle <span aria-hidden="true">&rarr;</span>
+          </a>
         </nav>
 
         <section className="vs-hero" aria-labelledby="landing-title">
@@ -212,43 +223,28 @@ export default function HomePage() {
                 <span aria-hidden="true">&rarr;</span>
               </a>
               <a className="vs-cta vs-cta-secondary" href="/app">
-                <LandingIcon name="players" />
+                <LandingIcon name="guest" />
                 Try Guest Mode
               </a>
             </div>
             <div className="vs-trust-row" aria-label="Vault Shuffle promises">
-              <span>No spam</span>
-              <span>Private &amp; local</span>
-              <span>You control your data</span>
+              <span>
+                <LandingIcon name="shield" />
+                No spam
+              </span>
+              <span>
+                <LandingIcon name="lock" />
+                Private &amp; local
+              </span>
+              <span>
+                <LandingIcon name="players" />
+                You control your data
+              </span>
             </div>
           </div>
 
           <div className="vs-hero-visual" aria-hidden="true">
-            <img className="vs-stage-art" src="/assets/landing/landing-vault-stage.png" alt="" />
-            <article className="vs-tonight-card">
-              <span>Tonight&apos;s pick</span>
-              <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg" alt="" />
-              <h2>Elden Ring</h2>
-              <div className="vs-pill-row">
-                <small>RPG</small>
-                <small>Open World</small>
-                <small>Soul-like</small>
-              </div>
-              <p>Recommended based on your library &amp; playtime</p>
-            </article>
-            <aside className="vs-shortlist">
-              <h2>Shortlist</h2>
-              {shortlistGames.map((game) => (
-                <div className="vs-shortlist-row" key={game.title}>
-                  <img src={game.image} alt="" />
-                  <div>
-                    <strong>{game.title}</strong>
-                    <span>{game.genre}</span>
-                  </div>
-                </div>
-              ))}
-              <a href="/app">See Full Shortlist <span aria-hidden="true">&rarr;</span></a>
-            </aside>
+            <img className="vs-stage-art" src="/assets/landing/futuristic-vault-hero.png" alt="" />
           </div>
         </section>
 
@@ -266,7 +262,7 @@ export default function HomePage() {
           ))}
         </section>
 
-        <section className="vs-product-grid" aria-label="Vault Shuffle areas">
+        <section className="vs-product-grid" aria-label="Vault Shuffle features">
           {productCards.map((card) => (
             <article className="vs-product-card" key={card.title}>
               <div className="vs-product-copy">
@@ -280,25 +276,31 @@ export default function HomePage() {
                     <li key={bullet}>{bullet}</li>
                   ))}
                 </ul>
-                <a href="/app">{card.action} <span aria-hidden="true">&rarr;</span></a>
+                <a href="/app">
+                  {card.action} <span aria-hidden="true">&rarr;</span>
+                </a>
               </div>
-              <div className="vs-mini-panel" aria-hidden="true">
-                <h3>{card.title === "Library" ? "All Games" : card.title === "Wishlist" ? "Your Wishlist (32)" : "Your Collections"}</h3>
-                {card.rows.map(([title, meta, image]) => (
-                  <div className="vs-mini-row" key={title}>
-                    <img src={image} alt="" />
-                    <span>{title}</span>
-                    <small>{meta}</small>
+
+              <div className={`vs-mini-panel vs-mini-${card.preview}`} aria-hidden="true">
+                <h3>
+                  {card.preview === "library"
+                    ? "All Games"
+                    : card.preview === "wishlist"
+                      ? "Your Wishlist (5)"
+                      : "Your Collections"}
+                </h3>
+                {card.preview === "library" && <div className="vs-mini-search">Filter library...</div>}
+                {card.rows.map(([label, meta]) => (
+                  <div className="vs-mini-row" key={label}>
+                    <span className={card.preview === "collections" ? "vs-folder-mark" : "vs-thumb"} />
+                    <strong>{label}</strong>
+                    {meta && <small>{meta}</small>}
                   </div>
                 ))}
               </div>
             </article>
           ))}
         </section>
-
-        <footer className="vs-footer">
-          <span>Your library stays yours. Steam sign-in is only used to import your games.</span>
-        </footer>
       </main>
     </>
   );
