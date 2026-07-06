@@ -17,7 +17,8 @@ export const metadata: Metadata = {
   title: "Vault Shuffle",
   description: "Pick your next Steam game without staring at your backlog all night.",
   icons: {
-    icon: "/assets/vault-shuffle-icon.png"
+    icon: "/assets/landing/vaultshuffle-logo-real.png",
+    apple: "/assets/landing/vaultshuffle-logo-real.png"
   }
 };
 

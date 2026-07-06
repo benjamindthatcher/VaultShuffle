@@ -2,16 +2,18 @@
 
 import { displayStatus } from "@/lib/game-classification";
 import { topLevelGenresFor } from "@/lib/genres";
-import type { Game, GamePayload, StatsPayload } from "@/lib/types";
+import type { Collection, CollectionGame, Game, GamePayload, StatsPayload } from "@/lib/types";
 import { GameDetails } from "@/components/dashboard/GameDetails";
+import type { AppPage } from "@/components/dashboard/AppTopNav";
 import type { VaultMode } from "@/components/dashboard/VaultShuffleModal";
 
 export type SidebarTab = "overview" | "details" | "vault";
 export type StatAction = "all" | "completed" | "progress" | "sampled" | "not_started" | "owned" | "wishlist";
 
 export function ContextSidebar({
-  activeRulesLabel,
+  activePage = "library",
   activeTab,
+  collections = [],
   games,
   onOpenNotes,
   onOpenVault,
@@ -20,13 +22,17 @@ export function ContextSidebar({
   onTabChange,
   onUpdateGame,
   selected,
+  selectedCollectionId,
   setVaultMode,
   shuffleEligibleCount,
   stats,
   vaultMode
 }: {
   activeRulesLabel: string;
+  activePage?: AppPage;
   activeTab: SidebarTab;
+  collections?: Collection[];
+  collectionItems?: CollectionGame[];
   games: Game[];
   onOpenNotes: () => void;
   onOpenVault: () => void;
@@ -35,43 +41,62 @@ export function ContextSidebar({
   onTabChange: (tab: SidebarTab) => void;
   onUpdateGame: (payload: Partial<GamePayload>) => Promise<void>;
   selected: Game | null;
+  selectedCollectionId?: string | null;
   setVaultMode: (mode: VaultMode) => void;
   shuffleEligibleCount: number;
   stats: StatsPayload;
   vaultMode: VaultMode;
 }) {
+  if (activePage === "collections") {
+    return (
+      <CollectionsSidebar
+        collections={collections}
+        games={games}
+        onOpenVault={onOpenVault}
+        selectedCollectionId={selectedCollectionId}
+      />
+    );
+  }
+
   return (
     <aside className="context-sidebar">
       <div className="sidebar-tabs" role="tablist" aria-label="Sidebar view">
-        <SidebarTabButton active={activeTab === "overview"} label="Overview" onClick={() => onTabChange("overview")} />
-        <SidebarTabButton active={activeTab === "details"} label="Game Details" onClick={() => onTabChange("details")} />
-        <SidebarTabButton active={activeTab === "vault"} label="Vault" onClick={() => onTabChange("vault")} />
+        <SidebarTabButton
+          active={activeTab === "overview"}
+          icon="⬡"
+          label="Overview"
+          onClick={() => onTabChange("overview")}
+        />
+
+        <SidebarTabButton
+          active={activeTab === "details"}
+          icon="▣"
+          label="Game Details"
+          onClick={() => onTabChange("details")}
+        />
+
+        <SidebarTabButton
+          active={activeTab === "vault"}
+          icon="◇"
+          label="Vault"
+          onClick={() => onTabChange("vault")}
+        />
       </div>
 
-      {activeTab === "overview" ? (
-        <div className="context-panel">
-          <h2>Library Overview</h2>
-          <div className="overview-list">
-            {statRows(stats, games).map(({ icon, label, value, action }) => (
-              <button
-                className={`stat-row ${action ? "" : "is-static"}`}
-                disabled={!action}
-                key={label}
-                onClick={() => action && onStatFilter(action)}
-                type="button"
-              >
-                <span>{icon}</span>
-                <span>{label}</span>
-                <strong>{value}</strong>
-              </button>
-            ))}
-          </div>
-          <CompactVaultLauncher count={shuffleEligibleCount} mode={vaultMode} onModeChange={setVaultMode} onOpen={onOpenVault} />
-          <div className="side-summary">
-            <h2>Current filter</h2>
-            <p>{activeRulesLabel}</p>
-          </div>
-        </div>
+      {activeTab === "overview" && activePage === "library" ? (
+        <LibraryOverviewPanel
+          games={games}
+          onOpenVault={onOpenVault}
+          onStatFilter={onStatFilter}
+          setVaultMode={setVaultMode}
+          shuffleEligibleCount={shuffleEligibleCount}
+          stats={stats}
+          vaultMode={vaultMode}
+        />
+      ) : null}
+
+      {activeTab === "overview" && activePage === "wishlist" ? (
+        <WishlistOverviewPanel games={games} onOpenVault={onOpenVault} />
       ) : null}
 
       {activeTab === "details" ? (
@@ -81,40 +106,203 @@ export function ContextSidebar({
       ) : null}
 
       {activeTab === "vault" ? (
-        <div className="context-panel">
-          <h2>Vault</h2>
-          <section className="sidebar-vault-feature">
-            <img src="/assets/vault-door-compact.svg" alt="" />
-            <h3>Crack open the vault.</h3>
-            <p>One game. Yours to play. Pull from the games currently visible in the library.</p>
-            <div className="vault-mode-stack">
-              <button className={vaultMode === "draw" ? "active" : ""} onClick={() => setVaultMode("draw")} type="button">
-                <strong>Vault Draw</strong>
-                <span>One decisive pick</span>
-              </button>
-              <button className={vaultMode === "choose" ? "active" : ""} onClick={() => setVaultMode("choose")} type="button">
-                <strong>Let Me Choose</strong>
-                <span>Three options</span>
-              </button>
-            </div>
-            <div className="sidebar-shuffle-meta">
-              <strong>{shuffleEligibleCount}</strong>
-              <span>eligible games</span>
-            </div>
-            <button className="shuffle-button sidebar-shuffle-button" onClick={onOpenVault} type="button">Open Vault</button>
-          </section>
-          <p className="shuffle-info"><span aria-hidden="true">i</span>Completed games are skipped automatically.</p>
-        </div>
+        <VaultPanel
+          onOpenVault={onOpenVault}
+          setVaultMode={setVaultMode}
+          shuffleEligibleCount={shuffleEligibleCount}
+          vaultMode={vaultMode}
+        />
       ) : null}
     </aside>
   );
 }
 
-function SidebarTabButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function SidebarTabButton({
+  active,
+  icon,
+  label,
+  onClick
+}: {
+  active: boolean;
+  icon: string;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button aria-selected={active} className={`sidebar-tab ${active ? "active" : ""}`} onClick={onClick} role="tab" type="button">
-      {label}
+      <span className="sidebar-tab-icon" aria-hidden="true">
+        {icon}
+      </span>
+      <span>{label}</span>
     </button>
+  );
+}
+
+function LibraryOverviewPanel({
+  games,
+  onOpenVault,
+  onStatFilter,
+  setVaultMode,
+  shuffleEligibleCount,
+  stats,
+  vaultMode
+}: {
+  games: Game[];
+  onOpenVault: () => void;
+  onStatFilter: (action: StatAction) => void;
+  setVaultMode: (mode: VaultMode) => void;
+  shuffleEligibleCount: number;
+  stats: StatsPayload;
+  vaultMode: VaultMode;
+}) {
+  return (
+    <div className="context-panel overview-context">
+      <h2>Library Overview</h2>
+
+      <div className="overview-list">
+        {statRows(stats, games).map(({ icon, label, value, action }) => (
+          <button
+            className={`stat-row ${action ? "" : "is-static"}`}
+            disabled={!action}
+            key={label}
+            onClick={() => action && onStatFilter(action)}
+            type="button"
+          >
+            <span className="stat-icon">{icon}</span>
+            <span>{label}</span>
+            <strong>{value}</strong>
+          </button>
+        ))}
+      </div>
+
+      <CompactVaultLauncher
+        count={shuffleEligibleCount}
+        mode={vaultMode}
+        onModeChange={setVaultMode}
+        onOpen={onOpenVault}
+      />
+    </div>
+  );
+}
+
+function WishlistOverviewPanel({ games, onOpenVault }: { games: Game[]; onOpenVault: () => void }) {
+  const wishlist = games.filter((game) => game.ownership === "Wishlist");
+  const priorityCounts = {
+    "Must Play": wishlist.filter((game) => game.priority === "Must Play").length,
+    High: wishlist.filter((game) => game.priority === "High").length,
+    Medium: wishlist.filter((game) => game.priority === "Medium").length,
+    Low: wishlist.filter((game) => game.priority === "Low").length
+  };
+  const genres = new Set(wishlist.flatMap((game) => topLevelGenresFor(game.genre, game.title)));
+  const notes = wishlist.filter((game) => String(game.notes || "").trim()).length;
+  const totalHours = wishlist.reduce((sum, game) => sum + Number(game.hours_played || 0), 0);
+  const averageLength = wishlist.length ? "Weekend" : "—";
+
+  return (
+    <div className="context-panel wishlist-context">
+      <h2>Wishlist Overview</h2>
+
+      <div className="overview-list">
+        <div className="stat-row is-static"><span className="stat-icon">▦</span><span>Total Wishlisted</span><strong>{wishlist.length}</strong></div>
+        <div className="stat-row is-static"><span className="stat-icon">♡</span><span>Unique Genres</span><strong>{genres.size || "—"}</strong></div>
+        <div className="stat-row is-static"><span className="stat-icon">◷</span><span>Average Length</span><strong>{averageLength}</strong></div>
+        <div className="stat-row is-static"><span className="stat-icon">◔</span><span>Total Experience</span><strong>{Math.round(totalHours).toLocaleString()}h+</strong></div>
+      </div>
+
+      <section className="sidebar-section-block">
+        <h3>By Priority</h3>
+
+        <div className="priority-breakdown">
+          {(["Must Play", "High", "Medium", "Low"] as const).map((priority) => (
+            <div className={`priority-breakdown-row priority-${priority.toLowerCase().replace(/\s+/g, "-")}`} key={priority}>
+              <span />
+              <p>{priority}</p>
+              <strong>{priorityCounts[priority]}</strong>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="sidebar-section-block">
+        <h3>View</h3>
+
+        <div className="wishlist-view-list">
+          <div className="wishlist-view-row active"><span>☆</span><p>All Wishlist</p><strong>{wishlist.length}</strong></div>
+          <div className="wishlist-view-row"><span>◷</span><p>Recently Added</p><strong>{Math.min(6, wishlist.length)}</strong></div>
+          <div className="wishlist-view-row"><span>☰</span><p>Notes</p><strong>{notes}</strong></div>
+        </div>
+      </section>
+
+      <button className="shuffle-button sidebar-shuffle-button wishlist-vault-button" onClick={onOpenVault} type="button">
+        Open Vault
+      </button>
+    </div>
+  );
+}
+
+function CollectionsSidebar({
+  collections,
+  games,
+  onOpenVault,
+  selectedCollectionId
+}: {
+  collections: Collection[];
+  games: Game[];
+  onOpenVault: () => void;
+  selectedCollectionId?: string | null;
+}) {
+  const totalGamesInCollections = collections.reduce((sum, collection) => sum + Number(collection.game_count || 0), 0);
+  const selected = collections.find((collection) => collection.id === selectedCollectionId) ?? collections[0] ?? null;
+  const shortCount = Math.min(5, games.length);
+  const longCount = Math.min(2, games.length);
+  const coopCount = Math.min(4, games.length);
+
+  function focusCreateForm() {
+    document.querySelector<HTMLInputElement>(".create-collection-form input")?.focus();
+  }
+
+  return (
+    <aside className="context-sidebar collections-context-sidebar">
+      <div className="context-panel collections-sidebar-panel">
+        <h2>Collections</h2>
+
+        <div className="overview-list">
+          <div className="stat-row is-static"><span className="stat-icon">♧</span><span>Total Collections</span><strong>{collections.length}</strong></div>
+          <div className="stat-row is-static"><span className="stat-icon">✤</span><span>Total Games in Collections</span><strong>{totalGamesInCollections}</strong></div>
+          <div className="stat-row is-static"><span className="stat-icon">⊗</span><span>Created by You</span><strong>{collections.length}</strong></div>
+          <div className="stat-row is-static"><span className="stat-icon">♚</span><span>Selected</span><strong>{selected?.game_count ?? 0}</strong></div>
+        </div>
+
+        <section className="sidebar-section-block">
+          <h3>Quick Collections</h3>
+
+          <div className="wishlist-view-list">
+            <div className="wishlist-view-row"><span>◷</span><p>Recently Updated</p><strong>{Math.min(4, collections.length)}</strong></div>
+            <div className="wishlist-view-row"><span>◉</span><p>Most Played</p><strong>{Math.min(3, collections.length)}</strong></div>
+            <div className="wishlist-view-row"><span>♙</span><p>Short & Sweet (≤10h)</p><strong>{shortCount}</strong></div>
+            <div className="wishlist-view-row"><span>▣</span><p>Long Adventures (≥30h)</p><strong>{longCount}</strong></div>
+            <div className="wishlist-view-row"><span>☊</span><p>Co-op Ready</p><strong>{coopCount}</strong></div>
+          </div>
+        </section>
+
+        <button className="shuffle-button sidebar-shuffle-button new-collection-button" onClick={focusCreateForm} type="button">
+          ＋ New Collection
+        </button>
+
+        <section className="organise-vault-card">
+          <div>
+            <h3>Organise your vault</h3>
+            <p>Group your owned games into collections and shuffle what you feel like playing.</p>
+          </div>
+
+          <img src="/assets/vault-door-compact.svg" alt="" />
+        </section>
+
+        <button className="ghost collection-sidebar-open-vault" onClick={onOpenVault} type="button">
+          Open Vault
+        </button>
+      </div>
+    </aside>
   );
 }
 
@@ -131,23 +319,83 @@ function CompactVaultLauncher({
 }) {
   return (
     <section className="sidebar-shuffle canonical-vault-card">
-      <div>
-        <p className="detail-kicker">Vault Shuffle</p>
-        <h2>Crack open the vault</h2>
-        <p>Play something new from your current view.</p>
+      <div className="sidebar-shuffle-copy">
+        <h3>Switch to Vault</h3>
+        <p>Crack the vault, draw games from your collection, and discover something new.</p>
       </div>
+
       <img src="/assets/vault-door-compact.svg" alt="" />
+
       <div className="vault-mode-row" aria-label="Vault mode">
-        <button className={mode === "draw" ? "active" : ""} onClick={() => onModeChange("draw")} type="button">Vault Draw</button>
-        <button className={mode === "choose" ? "active" : ""} onClick={() => onModeChange("choose")} type="button">Let Me Choose</button>
+        <button className={mode === "draw" ? "active" : ""} onClick={() => onModeChange("draw")} type="button">
+          Vault Draw
+        </button>
+
+        <button className={mode === "choose" ? "active" : ""} onClick={() => onModeChange("choose")} type="button">
+          3 Options
+        </button>
       </div>
+
       <div className="sidebar-shuffle-meta">
         <strong>{count}</strong>
         <span>eligible games</span>
       </div>
-      <button className="shuffle-button sidebar-shuffle-button" onClick={onOpen} type="button">Open Vault</button>
-      <p className="shuffle-info"><span aria-hidden="true">i</span>Completed games stay locked away.</p>
+
+      <button className="shuffle-button sidebar-shuffle-button" onClick={onOpen} type="button">
+        Open Vault
+      </button>
     </section>
+  );
+}
+
+function VaultPanel({
+  onOpenVault,
+  setVaultMode,
+  shuffleEligibleCount,
+  vaultMode
+}: {
+  onOpenVault: () => void;
+  setVaultMode: (mode: VaultMode) => void;
+  shuffleEligibleCount: number;
+  vaultMode: VaultMode;
+}) {
+  return (
+    <div className="context-panel vault-context">
+      <h2>Vault</h2>
+
+      <section className="sidebar-vault-feature">
+        <img src="/assets/vault-door-compact.svg" alt="" />
+
+        <h3>Crack open the vault.</h3>
+        <p>One game. Yours to play. Pull from the games currently visible in the library.</p>
+
+        <div className="vault-mode-stack">
+          <button className={vaultMode === "draw" ? "active" : ""} onClick={() => setVaultMode("draw")} type="button">
+            <strong>Vault Draw</strong>
+            <span>One decisive pick</span>
+          </button>
+
+          <button className={vaultMode === "choose" ? "active" : ""} onClick={() => setVaultMode("choose")} type="button">
+            <strong>Let Me Choose</strong>
+            <span>Three options</span>
+          </button>
+        </div>
+
+        <div className="sidebar-shuffle-meta">
+          <strong>{shuffleEligibleCount}</strong>
+          <span>eligible games</span>
+        </div>
+
+        <button className="shuffle-button sidebar-shuffle-button" onClick={onOpenVault} type="button">
+          Open Vault
+        </button>
+      </section>
+
+      <p className="shuffle-info">
+        <span aria-hidden="true">i</span>
+        Completed games are skipped automatically.
+      </p>
+    </div>
   );
 }
 
@@ -160,16 +408,18 @@ function statRows(stats: StatsPayload, games: Game[]): Array<{ icon: string; lab
   const owned = games.filter((game) => game.ownership === "Owned").length;
   const wishlist = games.filter((game) => game.ownership === "Wishlist").length;
   const genreCount = new Set(games.flatMap((game) => topLevelGenresFor(game.genre, game.title))).size;
+  const hours = Number(stats.hours || games.reduce((sum, game) => sum + Number(game.hours_played || 0), 0));
+
   return [
-    { icon: "▦", label: "Total Games", value: stats.total, action: "all" },
-    { icon: "●", label: "Owned", value: owned, action: "owned" },
+    { icon: "▦", label: "Total Games", value: games.length || stats.total, action: "all" },
+    { icon: "✓", label: "Owned", value: owned, action: "owned" },
     { icon: "♡", label: "Wishlist", value: wishlist, action: "wishlist" },
     { icon: "□", label: "Not Started", value: `${notStarted} (${Math.round((notStarted / total) * 100)}%)`, action: "not_started" },
-    { icon: "◐", label: "Sampled", value: `${sampled} (${Math.round((sampled / total) * 100)}%)`, action: "sampled" },
-    { icon: "▶", label: "In Progress", value: `${inProgress} (${Math.round((inProgress / total) * 100)}%)`, action: "progress" },
-    { icon: "✓", label: "Completed", value: `${completed} (${Math.round((completed / total) * 100)}%)`, action: "completed" },
+    { icon: "▷", label: "Sampled", value: `${sampled} (${Math.round((sampled / total) * 100)}%)`, action: "sampled" },
+    { icon: "◉", label: "In Progress", value: `${inProgress} (${Math.round((inProgress / total) * 100)}%)`, action: "progress" },
+    { icon: "◌", label: "Completed", value: `${completed} (${Math.round((completed / total) * 100)}%)`, action: "completed" },
     { icon: "◇", label: "Genres", value: genreCount || "—", action: null },
-    { icon: "◴", label: "Hours Played", value: Number(stats.hours).toLocaleString(), action: null },
-    { icon: "◎", label: "Average Progress", value: `${stats.avg_completion}%`, action: null }
+    { icon: "◷", label: "Hours Played", value: Math.round(hours).toLocaleString(), action: null },
+    { icon: "◔", label: "Average Progress", value: `${Math.round(Number(stats.avg_completion || 0))}%`, action: null }
   ];
 }

@@ -610,7 +610,7 @@ export function Dashboard() {
   );
 
   return (
-    <div className={`app-shell shell-v2 app-theme-${selectedTheme}`}>
+    <div className={`app-shell shell-v2 app-theme-${selectedTheme} app-page-${activePage}`}>
       <div ref={settingsRef}>
         <AppTopNav
           activePage={activePage}
@@ -682,6 +682,10 @@ export function Dashboard() {
           shuffleEligibleCount={shuffleEligibleCount}
           stats={displayStats}
           vaultMode={vaultMode}
+	  activePage={activePage}
+	  collections={collections}
+	  collectionItems={collectionItems}
+	  selectedCollectionId={selectedCollectionId}
         />
 
         <main className="library-main main-workspace">
