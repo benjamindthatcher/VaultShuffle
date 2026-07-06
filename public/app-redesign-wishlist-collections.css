@@ -1,11 +1,16 @@
 /* =========================================================
-   Wishlist + Collections redesign pass
-   Paste at the very bottom of public/app-redesign.css
+   Vault Shuffle — Wishlist + Collections page styles
+   Purpose:
+   - Keep the shared Library/Game Details styling in styles.css.
+   - Keep this file scoped to Wishlist + Collections only.
+   - Avoid one-off "final fix" override blocks.
    ========================================================= */
+
+/* Shared page sizing */
 
 .app-shell.shell-v2.app-page-wishlist .workspace.workspace-v2,
 .app-shell.shell-v2.app-page-collections .workspace.workspace-v2 {
-  grid-template-columns: 372px minmax(0, 1fr);
+  grid-template-columns: 357px minmax(0, 1fr);
 }
 
 .app-shell.shell-v2.app-page-wishlist .main-workspace,
@@ -13,258 +18,300 @@
   overflow: auto;
 }
 
-/* Wishlist sidebar */
+/* =========================================================
+   Wishlist sidebar
+   ========================================================= */
 
-.app-shell.shell-v2 .wishlist-context .sidebar-section-block {
-  margin-top: 26px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(137, 97, 255, 0.14);
+.app-shell.shell-v2.app-page-wishlist .wishlist-context {
+  padding: 22px 26px 26px;
+  overflow-y: auto;
 }
 
-.app-shell.shell-v2 .sidebar-section-block h3 {
-  margin: 0 0 14px;
-  color: #e79cff;
-  font-size: 13px;
+.app-shell.shell-v2.app-page-wishlist .wishlist-context h2 {
+  margin: 0 0 16px;
+  color: #d45dff;
+  font-size: 12px;
+  line-height: 1.2;
   font-weight: 950;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
 }
 
-.app-shell.shell-v2 .priority-breakdown,
-.app-shell.shell-v2 .wishlist-view-list {
-  display: grid;
-  gap: 0;
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .overview-list {
+  margin: 0;
+  padding: 0;
+  border: 0;
 }
 
-.app-shell.shell-v2 .priority-breakdown-row,
-.app-shell.shell-v2 .wishlist-view-row {
-  display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto;
-  align-items: center;
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .stat-row {
+  min-height: 34px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   gap: 10px;
-  min-height: 32px;
-  color: rgba(245, 242, 255, 0.75);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 760;
 }
 
-.app-shell.shell-v2 .priority-breakdown-row span {
-  width: 10px;
-  height: 10px;
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .stat-icon {
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .stat-row strong {
+  font-size: 12px;
+}
+
+/* one divider per section, not stacked dividers */
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .overview-list .stat-row:last-child {
+  border-bottom: 0;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .sidebar-section-block {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(137, 97, 255, 0.14);
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-context .sidebar-section-block h3 {
+  margin: 0 0 12px;
+  color: #e79cff;
+  font-size: 12px;
+  line-height: 1.2;
+  font-weight: 950;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-wishlist .priority-breakdown,
+.app-shell.shell-v2.app-page-wishlist .wishlist-view-list {
+  display: grid;
+  gap: 2px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row,
+.app-shell.shell-v2.app-page-wishlist .wishlist-view-row {
+  display: grid;
+  grid-template-columns: 14px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  min-height: 28px;
+  color: rgba(245, 242, 255, 0.76);
+  font-size: 12px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row p,
+.app-shell.shell-v2.app-page-wishlist .wishlist-view-row p {
+  margin: 0;
+  min-width: 0;
+}
+
+.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row strong,
+.app-shell.shell-v2.app-page-wishlist .wishlist-view-row strong {
+  color: #fff;
+  font-size: 12px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row > span {
+  width: 9px;
+  height: 9px;
   border-radius: 999px;
   background: #b45cff;
   box-shadow: 0 0 12px rgba(180, 92, 255, 0.32);
 }
 
-.app-shell.shell-v2 .priority-high span { background: #d45dff; }
-.app-shell.shell-v2 .priority-medium span { background: #39b8ff; }
-.app-shell.shell-v2 .priority-low span { background: rgba(148, 163, 184, 0.62); }
+.app-shell.shell-v2.app-page-wishlist .priority-high > span { background: #d45dff; }
+.app-shell.shell-v2.app-page-wishlist .priority-medium > span { background: #39b8ff; }
+.app-shell.shell-v2.app-page-wishlist .priority-low > span { background: rgba(148, 163, 184, 0.62); }
 
-.app-shell.shell-v2 .priority-breakdown-row p,
-.app-shell.shell-v2 .wishlist-view-row p {
-  margin: 0;
-  min-width: 0;
-}
-
-.app-shell.shell-v2 .priority-breakdown-row strong,
-.app-shell.shell-v2 .wishlist-view-row strong {
-  color: #fff;
-}
-
-.app-shell.shell-v2 .wishlist-view-row {
-  min-height: 42px;
+.app-shell.shell-v2.app-page-wishlist .wishlist-view-row {
+  min-height: 36px;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   padding: 0 10px;
   border-radius: 8px;
 }
 
-.app-shell.shell-v2 .wishlist-view-row.active {
-  border: 1px solid rgba(137, 97, 255, 0.18);
-  background: linear-gradient(90deg, rgba(180, 92, 255, 0.18), rgba(137, 97, 255, 0.04));
+.app-shell.shell-v2.app-page-wishlist .wishlist-view-row.active {
+  border: 1px solid rgba(137, 97, 255, 0.24);
+  background: linear-gradient(90deg, rgba(180, 92, 255, 0.16), rgba(137, 97, 255, 0.035));
 }
 
-.app-shell.shell-v2 .wishlist-vault-button {
+.app-shell.shell-v2.app-page-wishlist .wishlist-vault-button {
+  width: 100%;
+  min-height: 44px;
   margin-top: 22px;
+  border-radius: 10px;
+  font-size: 13px;
 }
 
-/* Wishlist main */
+/* =========================================================
+   Wishlist main
+   ========================================================= */
 
-.app-shell.shell-v2 .wishlist-redesign {
+.app-shell.shell-v2.app-page-wishlist .wishlist-redesign {
   min-height: 100%;
-  padding: 28px 38px 34px;
+  padding: 28px 30px 28px;
   display: grid;
-  gap: 28px;
+  gap: 22px;
+  align-content: start;
 }
 
-.app-shell.shell-v2 .wishlist-page-heading h1,
-.app-shell.shell-v2 .wishlist-list-heading h2,
-.app-shell.shell-v2 .collections-main-heading h1 {
+.app-shell.shell-v2.app-page-wishlist .wishlist-page-heading h1,
+.app-shell.shell-v2.app-page-wishlist .wishlist-list-heading h2 {
   margin: 0;
   color: #fff;
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1.1;
-  font-weight: 850;
-  letter-spacing: -0.035em;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  text-transform: none;
 }
 
-.app-shell.shell-v2 .wishlist-page-heading p,
-.app-shell.shell-v2 .wishlist-list-heading p {
-  margin: 7px 0 0;
-  color: rgba(245, 242, 255, 0.62);
+.app-shell.shell-v2.app-page-wishlist .wishlist-page-heading p,
+.app-shell.shell-v2.app-page-wishlist .wishlist-list-heading p {
+  margin: 6px 0 0;
+  color: rgba(245, 242, 255, 0.64);
   font-size: 14px;
+  line-height: 1.35;
 }
 
-.app-shell.shell-v2 .add-steam-shell {
-  margin-top: 14px;
-  padding: 18px 18px 16px;
+.app-shell.shell-v2.app-page-wishlist .add-steam-shell {
+  margin-top: 12px;
+  padding: 14px 16px;
   border: 1px solid rgba(137, 97, 255, 0.22);
   border-radius: 10px;
   background:
-    radial-gradient(circle at 20% 0%, rgba(180, 92, 255, 0.12), transparent 34%),
+    radial-gradient(circle at 18% 0%, rgba(180, 92, 255, 0.12), transparent 36%),
     rgba(7, 14, 31, 0.58);
 }
 
-.app-shell.shell-v2 .wishlist-search {
+.app-shell.shell-v2.app-page-wishlist .wishlist-search {
   display: grid;
-  grid-template-columns: 36px minmax(0, 660px) auto;
-  gap: 12px;
+  grid-template-columns: 32px minmax(0, 1fr) 160px;
   align-items: center;
+  gap: 10px;
 }
 
-.app-shell.shell-v2 .steam-search-badge {
+.app-shell.shell-v2.app-page-wishlist .steam-search-badge {
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
-  width: 32px;
-  height: 32px;
   border-radius: 999px;
-  background: rgba(245, 242, 255, 0.14);
   color: #fff;
+  background: rgba(245, 242, 255, 0.12);
 }
 
-.app-shell.shell-v2 .wishlist-search label {
+.app-shell.shell-v2.app-page-wishlist .wishlist-search label {
+  min-height: 40px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 42px;
-  margin: 0;
   padding: 0 14px;
-  border: 1px solid rgba(180, 92, 255, 0.58);
+  border: 1px solid rgba(180, 92, 255, 0.42);
   border-radius: 9px;
-  background: rgba(4, 10, 24, 0.72);
-  box-shadow: 0 0 20px rgba(180, 92, 255, 0.14);
+  background: rgba(4, 8, 24, 0.62);
 }
 
-.app-shell.shell-v2 .wishlist-search input {
-  min-height: 40px;
-  padding: 0;
+.app-shell.shell-v2.app-page-wishlist .wishlist-search input {
+  min-width: 0;
+  min-height: 38px;
   border: 0;
+  outline: 0;
+  color: #f5f2ff;
   background: transparent;
-  color: #fff;
-  box-shadow: none;
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-search .shuffle-button {
+  min-height: 40px;
+  border-radius: 9px;
   font-size: 14px;
 }
 
-.app-shell.shell-v2 .wishlist-search .shuffle-button {
-  min-height: 42px;
-  padding: 0 18px;
-}
-
-.app-shell.shell-v2 .steam-result-title {
-  margin: 24px 0 12px;
+.app-shell.shell-v2.app-page-wishlist .steam-result-title {
+  margin: 18px 0 10px;
   color: #e79cff;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
+  letter-spacing: 0.07em;
   text-transform: uppercase;
-  letter-spacing: 0.055em;
 }
 
-.app-shell.shell-v2 .steam-result-strip {
+.app-shell.shell-v2.app-page-wishlist .steam-result-strip {
   display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(4, minmax(170px, 1fr));
+  gap: 12px;
 }
 
-.app-shell.shell-v2 .steam-result-card {
-  display: grid;
-  grid-template-columns: 128px minmax(0, 1fr);
-  grid-template-areas:
-    "art copy"
-    "meta add";
-  gap: 8px 12px;
-  align-items: center;
-  min-height: 112px;
-  padding: 10px;
-  border: 1px solid rgba(137, 97, 255, 0.18);
-  border-radius: 8px;
-  background: rgba(7, 14, 31, 0.48);
-}
-
-.app-shell.shell-v2 .steam-result-art {
-  grid-area: art;
-}
-
-.app-shell.shell-v2 .steam-result-art img {
-  width: 128px;
-  height: 48px;
-  object-fit: cover;
-  border-radius: 5px;
-}
-
-.app-shell.shell-v2 .steam-result-copy {
-  grid-area: copy;
-  min-width: 0;
-}
-
-.app-shell.shell-v2 .steam-result-copy strong {
-  display: block;
-  overflow: hidden;
-  color: #fff;
-  font-size: 13px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2 .steam-result-tags {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-
-.app-shell.shell-v2 .steam-result-tags small {
-  padding: 3px 7px;
-  border: 1px solid rgba(137, 97, 255, 0.18);
-  border-radius: 999px;
-  color: rgba(245, 242, 255, 0.72);
-  font-size: 10px;
-}
-
-.app-shell.shell-v2 .steam-result-card button {
-  grid-area: add;
-  justify-self: end;
-  min-height: 34px;
-  padding: 0 14px;
-  border: 1px solid rgba(180, 92, 255, 0.42);
-  border-radius: 8px;
-  background: rgba(180, 92, 255, 0.12);
-  color: #f0c7ff;
-  font-weight: 850;
-}
-
-.app-shell.shell-v2 .steam-result-empty {
+.app-shell.shell-v2.app-page-wishlist .steam-result-empty {
   grid-column: 1 / -1;
   margin: 0;
   color: rgba(245, 242, 255, 0.62);
+  font-size: 13px;
 }
 
-.app-shell.shell-v2 .steam-more-link {
+.app-shell.shell-v2.app-page-wishlist .steam-more-link {
   display: inline-flex;
-  margin-top: 14px;
-  color: #e79cff;
+  margin-top: 12px;
+  color: #f09cff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
   text-decoration: none;
 }
 
-.app-shell.shell-v2 .wishlist-list-heading {
+.app-shell.shell-v2.app-page-wishlist .steam-result-card {
+  min-height: 92px;
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 10px;
+  padding: 9px;
+  border: 1px solid rgba(137, 97, 255, 0.20);
+  border-radius: 10px;
+  background: rgba(7, 14, 31, 0.64);
+  text-align: left;
+}
+
+.app-shell.shell-v2.app-page-wishlist .steam-result-art img {
+  width: 110px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 7px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .steam-result-copy strong {
+  display: block;
+  color: #fff;
+  font-size: 12px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .steam-result-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .steam-result-tags small {
+  padding: 3px 7px;
+  border: 1px solid rgba(137, 97, 255, 0.20);
+  border-radius: 999px;
+  color: rgba(245, 242, 255, 0.74);
+  font-size: 10px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .steam-result-card button {
+  grid-column: 1 / -1;
+  min-height: 31px;
+  border-radius: 8px;
+  color: #170e23;
+  background: linear-gradient(180deg, #f0d6ff, #c978ff);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-list-heading {
   display: flex;
   align-items: end;
   justify-content: space-between;
@@ -272,990 +319,518 @@
   margin-bottom: 12px;
 }
 
-.app-shell.shell-v2 .wishlist-table-actions {
+.app-shell.shell-v2.app-page-wishlist .wishlist-table-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.app-shell.shell-v2 .wishlist-table-actions button,
-.app-shell.shell-v2 .wishlist-table-actions select {
-  min-height: 40px;
-  border: 1px solid rgba(137, 97, 255, 0.20);
+.app-shell.shell-v2.app-page-wishlist .wishlist-table-actions button,
+.app-shell.shell-v2.app-page-wishlist .wishlist-table-actions select {
+  min-height: 38px;
   border-radius: 8px;
-  background: rgba(7, 14, 31, 0.62);
-  color: #fff;
+  font-size: 13px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-table-actions button {
+  padding: 0 14px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-table-actions label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 170px);
+  align-items: center;
+  gap: 8px;
+  color: rgba(245, 242, 255, 0.55);
   font-size: 13px;
   font-weight: 850;
 }
 
-.app-shell.shell-v2 .wishlist-table-actions button {
-  padding: 0 16px;
+.app-shell.shell-v2.app-page-wishlist .wishlist-table-actions select {
+  min-width: 170px;
 }
 
-.app-shell.shell-v2 .wishlist-table-actions label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  color: rgba(245, 242, 255, 0.56);
-  font-size: 13px;
-  font-weight: 780;
-}
-
-.app-shell.shell-v2 .wishlist-table-actions select {
-  min-width: 190px;
-}
-
-.app-shell.shell-v2 .wishlist-table {
+.app-shell.shell-v2.app-page-wishlist .wishlist-head,
+.app-shell.shell-v2.app-page-wishlist .wishlist-row {
   display: grid;
-  min-height: 0;
-}
-
-.app-shell.shell-v2 .wishlist-head,
-.app-shell.shell-v2 .wishlist-row {
-  display: grid;
-  grid-template-columns: minmax(270px, 1.4fr) minmax(160px, 0.8fr) 130px 140px minmax(170px, 0.9fr) 34px;
+  grid-template-columns: minmax(260px, 1.35fr) minmax(150px, .85fr) 120px 130px minmax(150px, .85fr) 34px;
   align-items: center;
-  column-gap: 16px;
+  column-gap: 14px;
 }
 
-.app-shell.shell-v2 .wishlist-head {
-  min-height: 42px;
+.app-shell.shell-v2.app-page-wishlist .wishlist-head {
+  min-height: 38px;
   padding: 0 4px;
+  color: rgba(245, 242, 255, 0.52);
   border-bottom: 1px solid rgba(137, 97, 255, 0.14);
-  color: rgba(245, 242, 255, 0.56);
   font-size: 11px;
   font-weight: 950;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  letter-spacing: 0.045em;
 }
 
-.app-shell.shell-v2 .wishlist-row {
-  min-height: 58px;
-  padding: 6px 4px;
-  border: 0;
+.app-shell.shell-v2.app-page-wishlist .wishlist-row {
+  width: 100%;
+  min-height: 56px;
+  padding: 5px 4px;
+  border-radius: 9px;
   border-bottom: 1px solid rgba(137, 97, 255, 0.10);
-  border-radius: 0;
-  background: transparent;
   color: rgba(245, 242, 255, 0.82);
+  background: transparent;
   text-align: left;
 }
 
-.app-shell.shell-v2 .wishlist-row:hover {
-  transform: none;
-  background: rgba(137, 97, 255, 0.06);
+.app-shell.shell-v2.app-page-wishlist .wishlist-row:hover {
+  background: rgba(137, 97, 255, 0.08);
 }
 
-.app-shell.shell-v2 .wishlist-genre-cell {
+.app-shell.shell-v2.app-page-wishlist .wishlist-row .game-cell {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-row .cover {
+  width: 84px;
+  height: 46px;
+  border-radius: 7px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-row strong {
+  color: #fff;
+  font-size: 14px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-genre-cell {
   display: flex;
-  gap: 6px;
   flex-wrap: wrap;
+  gap: 6px;
 }
 
-.app-shell.shell-v2 .wishlist-genre-cell small {
+.app-shell.shell-v2.app-page-wishlist .wishlist-genre-cell small {
   padding: 4px 8px;
   border: 1px solid rgba(137, 97, 255, 0.18);
   border-radius: 999px;
-  color: rgba(245, 242, 255, 0.78);
-  font-size: 11px;
-}
-
-.app-shell.shell-v2 .priority-select {
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(180, 92, 255, 0.28);
-  background: rgba(180, 92, 255, 0.12);
-  color: #e79cff;
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.app-shell.shell-v2 .priority-high { color: #ff65e9; }
-.app-shell.shell-v2 .priority-medium { color: #39b8ff; }
-.app-shell.shell-v2 .priority-low { color: rgba(245, 242, 255, 0.62); }
-
-.app-shell.shell-v2 .wishlist-row-menu {
-  justify-self: center;
-  color: rgba(245, 242, 255, 0.66);
-  font-size: 18px;
-}
-
-/* Collections sidebar */
-
-.app-shell.shell-v2 .collections-context-sidebar .sidebar-tabs {
-  display: none;
-}
-
-.app-shell.shell-v2 .collections-sidebar-panel {
-  padding: 34px 30px 28px;
-}
-
-.app-shell.shell-v2 .new-collection-button {
-  margin-top: 28px;
-  min-height: 54px;
-  border: 1px solid rgba(218, 155, 255, 0.40);
-  background: linear-gradient(135deg, #7c32ff, #b947ff);
-}
-
-.app-shell.shell-v2 .organise-vault-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 118px;
-  align-items: center;
-  gap: 12px;
-  margin-top: 28px;
-  padding: 18px;
-  border: 1px solid rgba(137, 97, 255, 0.22);
-  border-radius: 10px;
-  background:
-    radial-gradient(circle at 90% 60%, rgba(180, 92, 255, 0.20), transparent 42%),
-    rgba(7, 14, 31, 0.50);
-}
-
-.app-shell.shell-v2 .organise-vault-card h3 {
-  margin: 0 0 10px;
-  color: #e79cff;
-  font-size: 15px;
-}
-
-.app-shell.shell-v2 .organise-vault-card p {
-  margin: 0;
   color: rgba(245, 242, 255, 0.72);
-  font-size: 13px;
-  line-height: 1.45;
-}
-
-.app-shell.shell-v2 .organise-vault-card img {
-  width: 118px;
-  filter: drop-shadow(0 0 22px rgba(180, 92, 255, 0.44));
-}
-
-.app-shell.shell-v2 .collection-sidebar-open-vault {
-  width: 100%;
-  min-height: 42px;
-  margin-top: 12px;
-}
-
-/* Collections main */
-
-.app-shell.shell-v2 .collections-redesign {
-  min-height: 100%;
-  padding: 28px 36px 34px;
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr);
-  gap: 18px;
-}
-
-.app-shell.shell-v2 .collection-card-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(190px, 1fr));
-  gap: 16px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-}
-
-.app-shell.shell-v2 .collection-showcase-card {
-  min-height: 246px;
-  display: grid;
-  grid-template-rows: 120px auto auto auto;
-  gap: 10px;
-  padding: 10px 16px 16px;
-  border: 1px solid rgba(137, 97, 255, 0.16);
-  border-radius: 12px;
-  background: rgba(7, 14, 31, 0.50);
-  color: #fff;
-  text-align: left;
-}
-
-.app-shell.shell-v2 .collection-showcase-card.active {
-  border-color: rgba(180, 92, 255, 0.86);
-  box-shadow:
-    0 0 0 1px rgba(180, 92, 255, 0.18),
-    0 0 28px rgba(180, 92, 255, 0.20);
-}
-
-.app-shell.shell-v2 .collection-cover-stack {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  height: 120px;
-  overflow: hidden;
-  border-radius: 8px;
-}
-
-.app-shell.shell-v2 .collection-cover-stack > span,
-.app-shell.shell-v2 .collection-cover-stack .cover,
-.app-shell.shell-v2 .collection-cover-stack img {
-  width: 100%;
-  height: 100%;
-}
-
-.app-shell.shell-v2 .collection-cover-stack .cover {
-  border-radius: 0;
-}
-
-.app-shell.shell-v2 .collection-cover-stack img {
-  object-fit: cover;
-}
-
-.app-shell.shell-v2 .collection-showcase-card strong {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-  font-size: 21px;
-  line-height: 1.1;
-}
-
-.app-shell.shell-v2 .collection-showcase-card strong small,
-.app-shell.shell-v2 .selected-collection-card h2 span {
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(137, 97, 255, 0.24);
-  background: rgba(137, 97, 255, 0.16);
-  color: rgba(245, 242, 255, 0.80);
-  font-size: 12px;
-}
-
-.app-shell.shell-v2 .collection-showcase-card p {
-  margin: 0;
-  color: rgba(245, 242, 255, 0.68);
-  font-size: 14px;
-}
-
-.app-shell.shell-v2 .collection-showcase-card em {
-  color: rgba(245, 242, 255, 0.80);
-  font-style: normal;
-  font-size: 14px;
-}
-
-.app-shell.shell-v2 .collection-detail-showcase {
-  display: grid;
-  grid-template-columns: 290px minmax(0, 1fr);
-  min-height: 380px;
-  border: 1px solid rgba(180, 92, 255, 0.70);
-  border-radius: 12px;
-  overflow: hidden;
-  background: rgba(7, 14, 31, 0.46);
-  box-shadow: 0 0 34px rgba(180, 92, 255, 0.12);
-}
-
-.app-shell.shell-v2 .selected-collection-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 34px 26px;
-  border-right: 1px solid rgba(137, 97, 255, 0.18);
-  background:
-    radial-gradient(circle at 52% 10%, rgba(180, 92, 255, 0.18), transparent 32%),
-    rgba(9, 17, 39, 0.40);
-}
-
-.app-shell.shell-v2 .selected-collection-icon {
-  display: grid;
-  place-items: center;
-  width: 78px;
-  height: 78px;
-  margin: 0 auto 16px;
-  border-radius: 22px;
-  background: radial-gradient(circle, rgba(180, 92, 255, 0.42), rgba(124, 50, 255, 0.18));
-  color: #c45cff;
-  font-size: 44px;
-}
-
-.app-shell.shell-v2 .selected-collection-card h2 {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  color: #fff;
-  font-size: 22px;
-  line-height: 1.1;
-}
-
-.app-shell.shell-v2 .selected-collection-card p {
-  margin: 0;
-  color: rgba(245, 242, 255, 0.68);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-.app-shell.shell-v2 .selected-collection-card > strong {
-  color: rgba(245, 242, 255, 0.82);
-  font-size: 14px;
-}
-
-.app-shell.shell-v2 .selected-collection-card .shuffle-button {
-  margin-top: 10px;
-  min-height: 50px;
-  background: linear-gradient(135deg, #7c32ff, #b947ff);
-}
-
-.app-shell.shell-v2 .selected-collection-card .ghost {
-  min-height: 44px;
-  border-radius: 9px;
-}
-
-.app-shell.shell-v2 .selected-collection-card small {
-  margin-top: auto;
-  display: flex;
-  justify-content: space-between;
-  color: rgba(245, 242, 255, 0.50);
-  font-size: 13px;
-}
-
-.app-shell.shell-v2 .selected-collection-card small b {
-  color: #fff;
-}
-
-.app-shell.shell-v2 .selected-collection-games {
-  min-width: 0;
-  padding: 22px 26px;
-  overflow: auto;
-}
-
-.app-shell.shell-v2 .selected-collection-header {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 16px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid rgba(137, 97, 255, 0.14);
-}
-
-.app-shell.shell-v2 .selected-collection-header h2 {
-  margin: 0;
-  color: #fff;
-  font-size: 18px;
-}
-
-.app-shell.shell-v2 .collection-add-row {
-  display: flex;
-  gap: 8px;
-}
-
-.app-shell.shell-v2 .collection-add-row select,
-.app-shell.shell-v2 .collection-add-row button {
-  min-height: 34px;
-  border-radius: 8px;
-}
-
-.app-shell.shell-v2 .collection-game-table {
-  display: grid;
-}
-
-.app-shell.shell-v2 .collection-game-head,
-.app-shell.shell-v2 .collection-game-row {
-  display: grid;
-  grid-template-columns: minmax(260px, 1.3fr) 100px minmax(160px, 0.9fr) 34px;
-  align-items: center;
-  column-gap: 16px;
-}
-
-.app-shell.shell-v2 .collection-game-head {
-  min-height: 38px;
-  color: rgba(245, 242, 255, 0.56);
   font-size: 11px;
+}
+
+.app-shell.shell-v2.app-page-wishlist .priority-select {
+  min-height: 28px;
+  width: 100%;
+  padding: 0 10px;
+  border: 1px solid rgba(180, 92, 255, 0.30);
+  border-radius: 999px;
+  color: #39b8ff;
+  background: rgba(180, 92, 255, 0.16);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app-shell.shell-v2.app-page-wishlist .wishlist-row-menu {
+  text-align: center;
+  color: rgba(245, 242, 255, 0.54);
+}
+
+/* =========================================================
+   Collections sidebar
+   ========================================================= */
+
+.app-shell.shell-v2.app-page-collections .collections-context-sidebar {
+  height: calc(100vh - 74px);
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
+  height: 100%;
+  padding: 32px 30px 28px;
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel h2 {
+  margin: 0 0 28px;
+  color: #d45dff;
+  font-size: 15px;
+  line-height: 1.2;
   font-weight: 950;
+  letter-spacing: 0.075em;
   text-transform: uppercase;
 }
 
-.app-shell.shell-v2 .collection-game-row {
-  min-height: 52px;
-  border-top: 1px solid rgba(137, 97, 255, 0.10);
-  color: rgba(245, 242, 255, 0.82);
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .overview-list {
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(137, 97, 255, 0.14);
 }
 
-.app-shell.shell-v2 .collection-create-inline {
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .stat-row {
+  min-height: 38px;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .sidebar-section-block {
+  margin-top: 24px;
+  padding-top: 0;
+  border-top: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .sidebar-section-block h3 {
+  margin: 0 0 14px;
+  color: #e79cff;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .wishlist-view-row {
+  min-height: 32px;
+  grid-template-columns: 20px minmax(0, 1fr) auto;
+  padding: 0;
+  color: rgba(245, 242, 255, 0.76);
+  font-size: 13px;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-button {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 24px;
+  border-radius: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .organise-vault-card {
+  margin-top: 24px;
   display: grid;
-  grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+  border: 1px solid rgba(137, 97, 255, 0.20);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 72% 92%, rgba(180, 92, 255, 0.24), transparent 42%),
+    rgba(8, 15, 34, 0.58);
+}
+
+.app-shell.shell-v2.app-page-collections .organise-vault-card h3 {
+  margin: 0 0 8px;
+  color: #e79cff;
+  font-size: 14px;
+}
+
+.app-shell.shell-v2.app-page-collections .organise-vault-card p {
+  margin: 0;
+  color: rgba(245, 242, 255, 0.66);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.app-shell.shell-v2.app-page-collections .organise-vault-card img {
+  width: 104px;
+  max-width: 100%;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-sidebar-open-vault {
+  width: 100%;
+  min-height: 40px;
+  margin-top: 12px;
+}
+
+/* =========================================================
+   Collections main
+   ========================================================= */
+
+.app-shell.shell-v2.app-page-collections .collections-redesign {
+  min-height: 100%;
+  padding: 28px 30px 28px;
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-main-heading h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-card-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-showcase-card {
+  min-height: 210px;
+  display: grid;
+  grid-template-rows: 98px auto auto auto;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  border: 1px solid rgba(137, 97, 255, 0.20);
+  border-radius: 11px;
+  color: rgba(245, 242, 255, 0.76);
+  background: rgba(7, 14, 31, 0.58);
+  text-align: left;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-showcase-card.active {
+  border-color: rgba(180, 92, 255, 0.46);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(180, 92, 255, 0.18), transparent 44%),
+    rgba(7, 14, 31, 0.66);
+}
+
+.app-shell.shell-v2.app-page-collections .collection-cover-stack {
+  height: 98px;
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-cover-stack > span {
+  position: absolute;
+  inset: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-cover-stack > span:nth-child(2) {
+  transform: translate(16px, 12px) scale(.88);
+  opacity: .74;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-cover-stack > span:nth-child(3) {
+  transform: translate(32px, 24px) scale(.76);
+  opacity: .46;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-showcase-card strong {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #fff;
+  font-size: 19px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-showcase-card strong small {
+  color: rgba(245, 242, 255, 0.50);
+  font-size: 11px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-showcase-card p,
+.app-shell.shell-v2.app-page-collections .collection-showcase-card em {
+  margin: 0;
+  color: rgba(245, 242, 255, 0.64);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-detail-showcase {
+  min-height: 330px;
+  display: grid;
+  grid-template-columns: 270px minmax(0, 1fr);
+  border: 1px solid rgba(137, 97, 255, 0.18);
+  border-radius: 11px;
+  overflow: hidden;
+  background: rgba(7, 14, 31, 0.50);
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-card {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 26px 22px;
+  border-right: 1px solid rgba(137, 97, 255, 0.14);
+  background: rgba(16, 15, 44, 0.52);
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 10px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(180, 92, 255, .40), rgba(57, 184, 255, .20));
+  font-size: 34px;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-card h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-card h2 span {
+  display: block;
+  margin-top: 4px;
+  color: rgba(245, 242, 255, 0.48);
+  font-size: 11px;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-card p {
+  margin: 0;
+  color: rgba(245, 242, 255, 0.66);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-card .shuffle-button {
+  min-height: 46px;
+  border-radius: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-card .ghost {
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-games {
+  padding: 20px 24px;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.app-shell.shell-v2.app-page-collections .selected-collection-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 17px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-add-row select,
+.app-shell.shell-v2.app-page-collections .collection-add-row button {
+  min-height: 36px;
+  border-radius: 8px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-game-head,
+.app-shell.shell-v2.app-page-collections .collection-game-row {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.3fr) 96px minmax(150px, .9fr) 34px;
+  align-items: center;
+  column-gap: 14px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-game-head {
+  min-height: 36px;
+  color: rgba(245, 242, 255, 0.52);
+  border-bottom: 1px solid rgba(137, 97, 255, 0.14);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-game-row {
+  min-height: 50px;
+  border-bottom: 1px solid rgba(137, 97, 255, 0.10);
+  color: rgba(245, 242, 255, 0.78);
+}
+
+.app-shell.shell-v2.app-page-collections .collection-game-row .game-cell {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-game-row .cover {
+  width: 78px;
+  height: 42px;
+  border-radius: 7px;
+}
+
+.app-shell.shell-v2.app-page-collections .collection-create-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
   gap: 10px;
   margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(137, 97, 255, 0.14);
 }
 
-.app-shell.shell-v2 .collection-create-inline input,
-.app-shell.shell-v2 .collection-create-inline button {
+.app-shell.shell-v2.app-page-collections .collection-create-inline input,
+.app-shell.shell-v2.app-page-collections .collection-create-inline button {
   min-height: 38px;
   border-radius: 8px;
 }
 
-@media (max-width: 1250px) {
-  .app-shell.shell-v2 .steam-result-strip,
-  .app-shell.shell-v2 .collection-card-strip {
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
-  }
+/* Signed-out state */
 
-  .app-shell.shell-v2 .collection-detail-showcase {
-    grid-template-columns: 1fr;
-  }
-
-  .app-shell.shell-v2 .selected-collection-card {
-    border-right: 0;
-    border-bottom: 1px solid rgba(137, 97, 255, 0.18);
-  }
-}
-/* =========================================================
-   Wishlist + Collections scale correction
-   Match Library/Game Details sizing
-   ========================================================= */
-
-/* Match the Library page sidebar/main proportions */
-.app-shell.shell-v2.app-page-wishlist .workspace.workspace-v2,
-.app-shell.shell-v2.app-page-collections .workspace.workspace-v2 {
-  grid-template-columns: 357px minmax(0, 1fr) !important;
-}
-
-/* Make Wishlist / Collections main pages use the same visual scale as Library */
-.app-shell.shell-v2 .wishlist-redesign,
-.app-shell.shell-v2 .collections-redesign {
-  padding: 28px 30px 26px !important;
-  gap: 20px !important;
-}
-
-/* Page headings should match All Games scale, not feel like a landing page */
-.app-shell.shell-v2 .wishlist-page-heading h1,
-.app-shell.shell-v2 .wishlist-list-heading h2,
-.app-shell.shell-v2 .collections-main-heading h1 {
-  font-size: 25px !important;
-  line-height: 1.08 !important;
-  font-weight: 900 !important;
-  letter-spacing: -0.04em !important;
-  text-transform: none !important;
-}
-
-.app-shell.shell-v2 .wishlist-page-heading p,
-.app-shell.shell-v2 .wishlist-list-heading p {
-  margin-top: 6px !important;
-  font-size: 14px !important;
-  line-height: 1.35 !important;
-}
-
-/* Add from Steam panel: smaller, cleaner, less giant */
-.app-shell.shell-v2 .add-steam-shell {
-  margin-top: 12px !important;
-  padding: 14px 16px !important;
-  border-radius: 10px !important;
-}
-
-.app-shell.shell-v2 .wishlist-search {
-  grid-template-columns: 34px minmax(0, 1fr) 180px !important;
-  gap: 10px !important;
-}
-
-.app-shell.shell-v2 .steam-search-badge {
-  width: 30px !important;
-  height: 30px !important;
-}
-
-.app-shell.shell-v2 .wishlist-search label {
-  min-height: 40px !important;
-  border-radius: 9px !important;
-}
-
-.app-shell.shell-v2 .wishlist-search input {
-  min-height: 38px !important;
-  font-size: 14px !important;
-}
-
-.app-shell.shell-v2 .wishlist-search .shuffle-button {
-  min-height: 40px !important;
-  padding: 0 16px !important;
-  border-radius: 9px !important;
-  font-size: 14px !important;
-}
-
-/* Search results should not dominate the page */
-.app-shell.shell-v2 .steam-result-title {
-  margin: 18px 0 10px !important;
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2 .steam-result-strip {
-  grid-template-columns: repeat(4, minmax(170px, 1fr)) !important;
-  gap: 12px !important;
-}
-
-.app-shell.shell-v2 .steam-result-card {
-  min-height: 92px !important;
-  padding: 9px !important;
-  grid-template-columns: 110px minmax(0, 1fr) !important;
-}
-
-.app-shell.shell-v2 .steam-result-art img {
-  width: 110px !important;
-  height: 42px !important;
-}
-
-.app-shell.shell-v2 .steam-result-copy strong {
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2 .steam-result-card button {
-  min-height: 31px !important;
-  padding: 0 12px !important;
-  font-size: 12px !important;
-}
-
-/* Wishlist list heading/toolbar: same compact feel as Library toolbar */
-.app-shell.shell-v2 .wishlist-list-heading {
-  margin-bottom: 10px !important;
-  align-items: center !important;
-}
-
-.app-shell.shell-v2 .wishlist-table-actions {
-  gap: 10px !important;
-}
-
-.app-shell.shell-v2 .wishlist-table-actions button,
-.app-shell.shell-v2 .wishlist-table-actions select {
-  min-height: 38px !important;
-  border-radius: 8px !important;
-  font-size: 13px !important;
-}
-
-.app-shell.shell-v2 .wishlist-table-actions button {
-  padding: 0 14px !important;
-}
-
-.app-shell.shell-v2 .wishlist-table-actions select {
-  min-width: 170px !important;
-}
-
-/* Wishlist table: make rows same general size as Library rows */
-.app-shell.shell-v2 .wishlist-head,
-.app-shell.shell-v2 .wishlist-row {
-  grid-template-columns:
-    minmax(260px, 1.35fr)
-    minmax(150px, 0.85fr)
-    120px
-    130px
-    minmax(150px, 0.85fr)
-    34px !important;
-  column-gap: 14px !important;
-}
-
-.app-shell.shell-v2 .wishlist-head {
-  min-height: 38px !important;
-  font-size: 11px !important;
-}
-
-.app-shell.shell-v2 .wishlist-row {
-  min-height: 56px !important;
-  padding: 5px 4px !important;
-}
-
-.app-shell.shell-v2 .wishlist-row .game-cell {
-  grid-template-columns: 84px minmax(0, 1fr) !important;
-  gap: 12px !important;
-}
-
-.app-shell.shell-v2 .wishlist-row .cover {
-  width: 84px !important;
-  height: 46px !important;
-}
-
-.app-shell.shell-v2 .wishlist-row strong {
-  font-size: 14px !important;
-}
-
-.app-shell.shell-v2 .wishlist-genre-cell small {
-  padding: 4px 8px !important;
-  font-size: 11px !important;
-}
-
-.app-shell.shell-v2 .priority-select {
-  min-height: 28px !important;
-  padding: 0 10px !important;
-  font-size: 12px !important;
-}
-
-/* Wishlist sidebar should match Library sidebar scale */
-.app-shell.shell-v2 .wishlist-context .sidebar-section-block {
-  margin-top: 22px !important;
-  padding-top: 18px !important;
-}
-
-.app-shell.shell-v2 .sidebar-section-block h3 {
-  margin-bottom: 12px !important;
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2 .priority-breakdown-row,
-.app-shell.shell-v2 .wishlist-view-row {
-  min-height: 31px !important;
-  font-size: 13px !important;
-}
-
-.app-shell.shell-v2 .wishlist-view-row {
-  min-height: 39px !important;
-}
-
-/* Collections main: reduce the oversized cards */
-.app-shell.shell-v2 .collection-card-strip {
-  grid-template-columns: repeat(4, minmax(190px, 1fr)) !important;
-  gap: 14px !important;
-}
-
-.app-shell.shell-v2 .collection-showcase-card {
-  min-height: 210px !important;
-  grid-template-rows: 98px auto auto auto !important;
-  gap: 8px !important;
-  padding: 10px 14px 14px !important;
-  border-radius: 11px !important;
-}
-
-.app-shell.shell-v2 .collection-cover-stack {
-  height: 98px !important;
-}
-
-.app-shell.shell-v2 .collection-showcase-card strong {
-  font-size: 19px !important;
-}
-
-.app-shell.shell-v2 .collection-showcase-card p,
-.app-shell.shell-v2 .collection-showcase-card em {
-  font-size: 13px !important;
-}
-
-/* Collections detail panel: closer to Library scale */
-.app-shell.shell-v2 .collection-detail-showcase {
-  min-height: 330px !important;
-  grid-template-columns: 270px minmax(0, 1fr) !important;
-  border-radius: 11px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-card {
-  padding: 26px 22px !important;
-  gap: 12px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-icon {
-  width: 64px !important;
-  height: 64px !important;
-  margin-bottom: 10px !important;
-  border-radius: 18px !important;
-  font-size: 34px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-card h2 {
-  font-size: 20px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-card p {
-  font-size: 13px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-card .shuffle-button {
-  min-height: 46px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-card .ghost {
-  min-height: 40px !important;
-}
-
-/* Collections game table */
-.app-shell.shell-v2 .selected-collection-games {
-  padding: 20px 24px !important;
-}
-
-.app-shell.shell-v2 .selected-collection-header h2 {
-  font-size: 17px !important;
-}
-
-.app-shell.shell-v2 .collection-game-head,
-.app-shell.shell-v2 .collection-game-row {
-  grid-template-columns: minmax(250px, 1.3fr) 96px minmax(150px, 0.9fr) 34px !important;
-  column-gap: 14px !important;
-}
-
-.app-shell.shell-v2 .collection-game-head {
-  min-height: 36px !important;
-}
-
-.app-shell.shell-v2 .collection-game-row {
-  min-height: 50px !important;
-}
-
-/* Collections sidebar: match Library sidebar density */
-.app-shell.shell-v2 .collections-sidebar-panel {
-  padding: 30px 30px 28px !important;
-}
-
-.app-shell.shell-v2 .new-collection-button {
-  min-height: 50px !important;
-  margin-top: 24px !important;
-}
-
-.app-shell.shell-v2 .organise-vault-card {
-  margin-top: 24px !important;
-  padding: 16px !important;
-  grid-template-columns: minmax(0, 1fr) 104px !important;
-}
-
-.app-shell.shell-v2 .organise-vault-card h3 {
-  font-size: 14px !important;
-}
-
-.app-shell.shell-v2 .organise-vault-card p {
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2 .organise-vault-card img {
-  width: 104px !important;
-}
-
-/* Signed-out collections panel should not become a giant hero card */
 .app-shell.shell-v2.app-page-collections .workspace-empty {
-  max-width: 720px !important;
-  margin: 70px auto 0 !important;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
+  max-width: 760px;
+  margin: 70px auto 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
 }
 
 .app-shell.shell-v2.app-page-collections .workspace-empty h1 {
-  font-size: 25px !important;
-  line-height: 1.1 !important;
+  margin: 0 0 10px;
+  color: #fff;
+  font-size: 25px;
 }
 
 .app-shell.shell-v2.app-page-collections .workspace-empty p {
-  font-size: 14px !important;
-}
-/* =========================================================
-   Correct Wishlist sidebar: keep tab bar, shrink overview
-   ========================================================= */
-
-/* Bring back the Overview / Game Details / Vault tab bar */
-.app-shell.shell-v2.app-page-wishlist .sidebar-tabs {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  flex: 0 0 84px !important;
-  min-height: 84px !important;
-  padding: 14px 26px 0 !important;
-  border-bottom: 1px solid rgba(137, 97, 255, 0.16) !important;
+  margin: 0 0 14px;
+  color: rgba(245, 242, 255, 0.64);
+  font-size: 14px;
 }
 
-.app-shell.shell-v2.app-page-wishlist .sidebar-tab {
-  min-height: 68px !important;
-  font-size: 13px !important;
+/* Responsive */
+
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-wishlist .wishlist-head,
+  .app-shell.shell-v2.app-page-wishlist .wishlist-row {
+    grid-template-columns: minmax(220px, 1fr) 120px 100px 120px 32px;
+  }
+
+  .app-shell.shell-v2.app-page-wishlist .wishlist-head span:nth-child(5),
+  .app-shell.shell-v2.app-page-wishlist .wishlist-row > span:nth-child(5) {
+    display: none;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collection-card-strip {
+    grid-template-columns: repeat(2, minmax(190px, 1fr));
+  }
 }
 
-/* Make the Wishlist overview match Game Details density */
-.app-shell.shell-v2.app-page-wishlist .wishlist-context {
-  padding: 22px 26px 28px !important;
-  overflow-y: auto !important;
-}
+@media (max-width: 780px) {
+  .app-shell.shell-v2.app-page-wishlist .workspace.workspace-v2,
+  .app-shell.shell-v2.app-page-collections .workspace.workspace-v2 {
+    display: block;
+  }
 
-.app-shell.shell-v2.app-page-wishlist .wishlist-context h2 {
-  margin: 0 0 18px !important;
-  font-size: 12px !important;
-  letter-spacing: 0.07em !important;
-}
+  .app-shell.shell-v2.app-page-wishlist .wishlist-search,
+  .app-shell.shell-v2.app-page-wishlist .wishlist-list-heading,
+  .app-shell.shell-v2.app-page-collections .selected-collection-header,
+  .app-shell.shell-v2.app-page-collections .collection-detail-showcase,
+  .app-shell.shell-v2.app-page-collections .collection-create-inline {
+    display: block;
+  }
 
-/* Smaller overview rows */
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .stat-row {
-  min-height: 34px !important;
-  grid-template-columns: 24px minmax(0, 1fr) auto !important;
-  gap: 10px !important;
-  font-size: 12px !important;
-  font-weight: 760 !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .stat-icon {
-  width: 18px !important;
-  height: 18px !important;
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .stat-row strong {
-  font-size: 12px !important;
-}
-
-/* Stop the triple-separator effect */
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .overview-list {
-  padding-bottom: 14px !important;
-  border-bottom: 1px solid rgba(137, 97, 255, 0.12) !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .overview-list .stat-row:last-child {
-  border-bottom: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .sidebar-section-block {
-  margin-top: 22px !important;
-  padding-top: 0 !important;
-  border-top: 0 !important;
-}
-
-/* Priority section compact like Game Details */
-.app-shell.shell-v2.app-page-wishlist .wishlist-context .sidebar-section-block h3 {
-  margin: 0 0 12px !important;
-  font-size: 12px !important;
-  letter-spacing: 0.07em !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row {
-  min-height: 28px !important;
-  grid-template-columns: 14px minmax(0, 1fr) auto !important;
-  gap: 9px !important;
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row span {
-  width: 9px !important;
-  height: 9px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .priority-breakdown-row strong {
-  font-size: 12px !important;
-}
-
-/* View section compact */
-.app-shell.shell-v2.app-page-wishlist .wishlist-view-list {
-  gap: 3px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-view-row {
-  min-height: 36px !important;
-  padding: 0 10px !important;
-  grid-template-columns: 18px minmax(0, 1fr) auto !important;
-  font-size: 12px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-view-row strong {
-  font-size: 12px !important;
-}
-
-/* Open Vault button should stay, just smaller */
-.app-shell.shell-v2.app-page-wishlist .wishlist-vault-button {
-  margin-top: 22px !important;
-  min-height: 44px !important;
-  font-size: 13px !important;
-}
-
-/* Make the main wishlist content stop feeling inflated */
-.app-shell.shell-v2.app-page-wishlist .wishlist-redesign {
-  padding: 28px 30px 28px !important;
-  gap: 22px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-page-heading h1,
-.app-shell.shell-v2.app-page-wishlist .wishlist-list-heading h2 {
-  font-size: 24px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .add-steam-shell {
-  padding: 14px 16px !important;
-}
-
-.app-shell.shell-v2.app-page-wishlist .wishlist-search {
-  grid-template-columns: 32px minmax(0, 1fr) 160px !important;
-}
-/* =========================================================
-   Sidebar Overview spacing fix
-   Fixes: huge heading gap, triple separators, Switch to Vault spacing
-   ========================================================= */
-
-/* Overview panels should have Game Details-style density */
-.app-shell.shell-v2 .overview-context,
-.app-shell.shell-v2 .wishlist-context {
-  padding: 22px 26px 26px !important;
-}
-
-/* Reduce the massive gap under LIBRARY/WISHLIST OVERVIEW */
-.app-shell.shell-v2 .overview-context h2,
-.app-shell.shell-v2 .wishlist-context h2 {
-  margin: 0 0 14px !important;
-  font-size: 12px !important;
-  line-height: 1.2 !important;
-  letter-spacing: 0.07em !important;
-}
-
-/* Remove extra separators from the stat block */
-.app-shell.shell-v2 .overview-context .overview-list,
-.app-shell.shell-v2 .wishlist-context .overview-list {
-  padding: 0 !important;
-  margin: 0 !important;
-  border-top: 0 !important;
-  border-bottom: 0 !important;
-}
-
-/* Compact stat rows */
-.app-shell.shell-v2 .overview-context .stat-row,
-.app-shell.shell-v2 .wishlist-context .stat-row {
-  min-height: 34px !important;
-  grid-template-columns: 24px minmax(0, 1fr) auto !important;
-  gap: 10px !important;
-  font-size: 12px !important;
-  font-weight: 760 !important;
-}
-
-/* Keep only the row dividers, not extra block dividers */
-.app-shell.shell-v2 .overview-context .stat-row:last-child,
-.app-shell.shell-v2 .wishlist-context .stat-row:last-child {
-  border-bottom: 0 !important;
-}
-
-/* One clean divider before Switch to Vault / next section */
-.app-shell.shell-v2 .overview-context .canonical-vault-card,
-.app-shell.shell-v2 .wishlist-context .canonical-vault-card,
-.app-shell.shell-v2 .wishlist-context .sidebar-section-block:first-of-type {
-  margin-top: 18px !important;
-  padding-top: 18px !important;
-  border-top: 1px solid rgba(137, 97, 255, 0.14) !important;
-}
-
-/* Switch to Vault should not create a huge blocky spacer */
-.app-shell.shell-v2 .sidebar-shuffle.canonical-vault-card {
-  overflow: visible !important;
-  min-height: 0 !important;
-  padding-bottom: 0 !important;
-}
-
-/* Text spacing inside Switch to Vault */
-.app-shell.shell-v2 .sidebar-shuffle-copy h3 {
-  margin: 0 0 8px !important;
-  font-size: 15px !important;
-}
-
-.app-shell.shell-v2 .sidebar-shuffle-copy p {
-  max-width: 210px !important;
-  margin: 0 0 12px !important;
-  font-size: 12px !important;
-  line-height: 1.35 !important;
-}
-
-/* Stop the little vault image from awkwardly blocking the text */
-.app-shell.shell-v2 .sidebar-shuffle.canonical-vault-card > img {
-  position: absolute !important;
-  right: 4px !important;
-  top: 34px !important;
-  width: 92px !important;
-  height: 70px !important;
-  margin: 0 !important;
-  opacity: 0.9 !important;
-  pointer-events: none !important;
-}
-
-/* Give the text/button enough space around the image */
-.app-shell.shell-v2 .sidebar-shuffle.canonical-vault-card .vault-mode-row,
-.app-shell.shell-v2 .sidebar-shuffle.canonical-vault-card .sidebar-shuffle-button {
-  position: relative !important;
-  z-index: 2 !important;
-}
-
-/* Remove accidental extra divider before the vault section */
-.app-shell.shell-v2 .overview-context .overview-list + .sidebar-shuffle,
-.app-shell.shell-v2 .wishlist-context .overview-list + .sidebar-section-block {
-  border-top: 1px solid rgba(137, 97, 255, 0.14) !important;
-}
-
-/* Make the Open Vault button compact */
-.app-shell.shell-v2 .sidebar-shuffle-button {
-  min-height: 44px !important;
-  font-size: 13px !important;
+  .app-shell.shell-v2.app-page-wishlist .wishlist-head,
+  .app-shell.shell-v2.app-page-wishlist .wishlist-row,
+  .app-shell.shell-v2.app-page-collections .collection-game-head,
+  .app-shell.shell-v2.app-page-collections .collection-game-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
