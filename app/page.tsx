@@ -296,8 +296,28 @@ export default function HomePage() {
           </div>
 
           <div className="vs-hero-visual" aria-hidden="true">
-            <img className="vs-stage-art" src="/assets/landing/futuristic-vault-hero.png" alt="" />
-          </div>
+  <img className="vs-stage-art" src="/assets/landing/futuristic-vault-hero.png" alt="" />
+
+  <article className="vs-featured-game-card">
+    <img
+      className="vs-featured-game-art"
+      src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg"
+      alt=""
+    />
+
+    <div className="vs-featured-game-body">
+      <h2>Elden Ring</h2>
+
+      <div className="vs-featured-tags">
+        <span>RPG</span>
+        <span>Open World</span>
+        <span>Soulslike</span>
+      </div>
+
+      <p>Recommended based on your library &amp; playtime</p>
+    </div>
+  </article>
+</div>
         </section>
 
         <section className="vs-value-strip" aria-label="Why Vault Shuffle">
@@ -369,6 +389,10 @@ export default function HomePage() {
             </article>
           ))}
         </section>
+	<div className="vs-data-note">
+	<LandingIcon name="lock" />
+	<span>Steam handles sign-in securely. Vault Shuffle never sees your Steam password or login details.</span>
+        </div>
       </main>
     </>
   );
