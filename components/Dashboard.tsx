@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Game, GamePayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
+import type { Collection, CollectionGame, Game, GamePayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
 import {
-  LENGTH_HELP_TEXT,
   LENGTH_LABELS,
   displayStatus,
   gameProgress,
@@ -12,16 +11,14 @@ import {
   lengthBucket,
   statusFromCompletion
 } from "@/lib/game-classification";
-import { GameDetails } from "@/components/dashboard/GameDetails";
-import { GameCard, GameRow, GuestLibraryState } from "@/components/dashboard/GameListItems";
-import { LibrarySidebar, type StatAction } from "@/components/dashboard/LibrarySidebar";
-import { VaultShuffleModal } from "@/components/dashboard/VaultShuffleModal";
-import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
-import {
-  TOP_LEVEL_GENRES,
-  matchesTopLevelGenre,
-  topLevelGenresFor
-} from "@/lib/genres";
+import { AppTopNav, type AppPage } from "@/components/dashboard/AppTopNav";
+import { ContextSidebar, type SidebarTab, type StatAction } from "@/components/dashboard/ContextSidebar";
+import { LibraryWorkspace } from "@/components/dashboard/LibraryWorkspace";
+import { WishlistWorkspace } from "@/components/dashboard/WishlistWorkspace";
+import { CollectionsWorkspace } from "@/components/dashboard/CollectionsWorkspace";
+import { VaultShuffleModal, type VaultMode } from "@/components/dashboard/VaultShuffleModal";
+import { DEFAULT_THEME_ID, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
+import { TOP_LEVEL_GENRES, matchesTopLevelGenre, topLevelGenresFor } from "@/lib/genres";
 
 const emptyStats: StatsPayload = {
   total: 0,
@@ -37,7 +34,7 @@ const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
 const METADATA_SYNC_BATCH_SIZE = 50;
 const METADATA_SYNC_DELAY_MS = 5000;
 const METADATA_SYNC_MAX_BATCHES = 32;
-const SHUFFLE_ANIMATION_MS = 1450;
+const SHUFFLE_ANIMATION_MS = 1650;
 const FILTER_SEPARATOR = "||";
 const ANY_LENGTH_LABEL = "Any";
 const LENGTH_FILTER_OPTIONS = [...LENGTH_LABELS];
@@ -84,6 +81,8 @@ async function api<T>(path: string, options: RequestInit = {}) {
 }
 
 export function Dashboard() {
+  const [activePage, setActivePage] = useState<AppPage>("library");
+  const [sidebarTab, setSidebarTab] = useState<SidebarTab>("overview");
   const [games, setGames] = useState<Game[]>([]);
   const [stats, setStats] = useState<StatsPayload>(emptyStats);
   const [session, setSession] = useState<SessionPayload | null>(null);
@@ -100,21 +99,24 @@ export function Dashboard() {
   const [selectedTheme, setSelectedTheme] = useState<ThemeOptionId>(readSavedTheme);
   const [rowMenuId, setRowMenuId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
-  const [shuffleCount, setShuffleCount] = useState<1 | 2 | 3>(3);
+  const [vaultMode, setVaultMode] = useState<VaultMode>("draw");
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
-  const [shuffleMessage, setShuffleMessage] = useState("Shuffle the games currently visible in your library.");
+  const [shuffleMessage, setShuffleMessage] = useState("Open the vault when you are ready to draw from your current view.");
   const [shuffleVaultOpen, setShuffleVaultOpen] = useState(false);
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [shuffleAnimationKey, setShuffleAnimationKey] = useState(0);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
-  const [addSearchOpen, setAddSearchOpen] = useState(false);
   const [notice, setNotice] = useState("");
   const [guestPrompt, setGuestPrompt] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
-  const addSearchInputRef = useRef<HTMLInputElement>(null);
-  const addSearchRef = useRef<HTMLFormElement>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [collectionItems, setCollectionItems] = useState<CollectionGame[]>([]);
+  const [collectionName, setCollectionName] = useState("");
+  const [collectionDescription, setCollectionDescription] = useState("");
+  const [collectionGameId, setCollectionGameId] = useState("");
   const settingsRef = useRef<HTMLDivElement>(null);
   const metadataSyncingRef = useRef(false);
   const shuffleAnimationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -163,15 +165,6 @@ export function Dashboard() {
   }, [guestPrompt, isLoggedIn]);
 
   useEffect(() => {
-    if (!shuffleVaultOpen) return;
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setShuffleVaultOpen(false);
-    }
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [shuffleVaultOpen]);
-
-  useEffect(() => {
     const timer = window.setTimeout(() => {
       if (addQuery.trim().length >= 2) void searchSteam(addQuery);
       else setSteamResults([]);
@@ -185,20 +178,22 @@ export function Dashboard() {
   }, [games.length, isLoggedIn]);
 
   useEffect(() => {
+    if (isLoggedIn) void loadCollections();
+  }, [isLoggedIn]);
+
+  useEffect(() => {
     function closeLooseMenus(event: PointerEvent) {
       const target = event.target as Node | null;
       if (!target) return;
       if (settingsOpen && settingsRef.current && !settingsRef.current.contains(target)) setSettingsOpen(false);
-      if (addSearchOpen && addSearchRef.current && !addSearchRef.current.contains(target)) setAddSearchOpen(false);
       if (rowMenuId && !(target instanceof Element && target.closest(".row-menu-cell"))) setRowMenuId(null);
     }
 
     document.addEventListener("pointerdown", closeLooseMenus);
     return () => document.removeEventListener("pointerdown", closeLooseMenus);
-  }, [addSearchOpen, rowMenuId, settingsOpen]);
+  }, [rowMenuId, settingsOpen]);
 
   const genreOptions = useMemo(() => [...TOP_LEVEL_GENRES], []);
-
   const displayStats = useMemo(() => previewStats(games), [games]);
   const activeFilterCount = useMemo(
     () => filterCount(query, status, ownership, genreFilter, lengthFilter),
@@ -239,6 +234,7 @@ export function Dashboard() {
   const selected = games.find((game) => game.id === selectedId) ?? null;
   const shuffleEligibleCount = useMemo(() => filteredGames.filter((game) => !isCompleted(game)).length, [filteredGames]);
   const activeRulesLabel = activeFilterLabel(status, ownership, genreFilter, lengthFilter);
+  const wishlistGames = useMemo(() => games.filter((game) => game.ownership === "Wishlist"), [games]);
 
   useEffect(() => {
     if (!selected) {
@@ -258,8 +254,6 @@ export function Dashboard() {
       setSession(sessionPayload);
       setGames(previewGames);
       setStats(previewStats(previewGames));
-      setShuffleCards(pickShuffleGames(previewGames, shuffleCount));
-      setShuffleMessage(previewGames.length ? "Shuffle your temporary preview list, or sign in to import the real thing." : "Add a few Steam games to try the app, or sign in when you want your own library.");
       setSelectedId((current) => current ?? previewGames[0]?.id ?? null);
       setGuestPrompt(!previewGames.length);
       return;
@@ -272,7 +266,6 @@ export function Dashboard() {
     setSession(sessionPayload);
     setGames(nextGames);
     setStats(nextStats);
-    setShuffleCards(pickShuffleGames(nextGames, shuffleCount));
     setSelectedId((current) => current ?? nextGames[0]?.id ?? null);
 
     if (importAfterLogin && sessionPayload.has_steam_key) {
@@ -285,7 +278,6 @@ export function Dashboard() {
         const importedGames = freshGames.games;
         setGames(importedGames);
         setStats(importedStats);
-        setShuffleCards(pickShuffleGames(importedGames, shuffleCount));
         setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
         setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
         void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
@@ -304,7 +296,7 @@ export function Dashboard() {
     ]);
     setGames(nextGames);
     setStats(nextStats);
-    setShuffleCards((current) => current.filter((card) => nextGames.some((game) => game.id === card.id)).slice(0, shuffleCount));
+    setShuffleCards((current) => current.filter((card) => nextGames.some((game) => game.id === card.id)));
     setSelectedId((current) => {
       const preferred = preferredSelectedId ?? current;
       if (preferred && nextGames.some((game) => game.id === preferred)) return preferred;
@@ -335,6 +327,27 @@ export function Dashboard() {
     }
   }
 
+  async function loadCollections(nextSelectedId?: string | null) {
+    try {
+      const payload = await api<{ collections: Collection[] }>("/api/collections");
+      setCollections(payload.collections);
+      const selectedCollection = nextSelectedId
+        ? payload.collections.find((collection) => collection.id === nextSelectedId)
+        : payload.collections.find((collection) => collection.id === selectedCollectionId) ?? payload.collections[0];
+      setSelectedCollectionId(selectedCollection?.id ?? null);
+      if (selectedCollection) await loadCollectionGames(selectedCollection.id);
+      else setCollectionItems([]);
+    } catch {
+      setCollections([]);
+      setCollectionItems([]);
+    }
+  }
+
+  async function loadCollectionGames(collectionId: string) {
+    const payload = await api<{ collection: Collection; games: CollectionGame[] }>(`/api/collections/${collectionId}`);
+    setCollectionItems(payload.games);
+  }
+
   function clearFilters() {
     setQuery("");
     setStatus("All");
@@ -345,12 +358,8 @@ export function Dashboard() {
   }
 
   function revealLibrary() {
-    setQuery("");
-    setStatus("All");
-    setOwnership("All");
-    setGenreFilter("All genres");
-    setLengthFilter(ANY_LENGTH_LABEL);
-    setFiltersOpen(false);
+    clearFilters();
+    setActivePage("library");
   }
 
   function applyStatFilter(action: StatAction) {
@@ -360,12 +369,16 @@ export function Dashboard() {
     setGenreFilter("All genres");
     setLengthFilter(ANY_LENGTH_LABEL);
     setFiltersOpen(false);
+    setActivePage("library");
     if (action === "completed") setStatus("Completed");
     if (action === "progress") setStatus("In Progress");
     if (action === "sampled") setStatus("Sampled");
     if (action === "not_started") setStatus("Not Started");
     if (action === "owned") setOwnership("Owned");
-    if (action === "wishlist") setOwnership("Wishlist");
+    if (action === "wishlist") {
+      setOwnership("Wishlist");
+      setActivePage("wishlist");
+    }
   }
 
   function toggleSort(descSort: string, ascSort: string) {
@@ -374,7 +387,6 @@ export function Dashboard() {
 
   function submitAddSearch(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setAddSearchOpen(true);
     if (addQuery.trim().length >= 2) void searchSteam(addQuery);
   }
 
@@ -406,22 +418,16 @@ export function Dashboard() {
       const nextGames = upsertPreview(games, game);
       revealLibrary();
       applyPreviewGames(nextGames, game.id, "Added to your temporary preview list. Sign in with Steam when you want a saved library.");
-      setAddSearchOpen(false);
       setAddQuery("");
       return;
     }
     const { game } = await api<{ game: Game }>("/api/games", { method: "POST", body: JSON.stringify(payload) });
-    setAddSearchOpen(false);
     revealLibrary();
     await refreshLibrary(game.id);
     if (needsSteamMetadata(game)) void syncSteamMetadata(4);
     setAddQuery("");
     setSelectedId(game.id);
-  }
-
-  function focusAddSearch() {
-    addSearchInputRef.current?.focus();
-    setAddSearchOpen(true);
+    setSidebarTab("details");
   }
 
   async function patchGame(gameToPatch: Game, payload: Partial<GamePayload>) {
@@ -470,15 +476,16 @@ export function Dashboard() {
   }
 
   function openVault() {
+    setSidebarTab("vault");
     setShuffleVaultOpen(true);
     if (!shuffleCards.length) {
-      setShuffleMessage("Pick a draw size, then open the vault to pull from the games shown in your library.");
+      setShuffleMessage("Choose a mode, then open the vault to pull from the games shown in your library.");
     }
   }
 
-  async function shuffle() {
-    playShuffleAnimation();
-    const picks = pickShuffleGames(filteredGames, shuffleCount);
+  function shuffle() {
+    const count = vaultMode === "draw" ? 1 : 3;
+    const picks = pickShuffleGames(filteredGames, count);
     if (!picks.length) {
       const reason = isLoggedIn
         ? "No unfinished games match the current library view."
@@ -487,22 +494,28 @@ export function Dashboard() {
       setShuffleMessage(reason);
       return;
     }
-    setShuffleCards(picks);
-    setShuffleMessage(`${picks.length} random ${picks.length === 1 ? "pick" : "picks"} from the games shown below.`);
-    setSelectedId(picks[0].id);
+
+    playShuffleAnimation(() => {
+      setShuffleCards(picks);
+      setShuffleMessage(vaultMode === "draw" ? "One decisive pick from your current view." : "Three random options from your current view.");
+      setSelectedId(picks[0].id);
+    });
   }
 
-  function changeShuffleCount(count: 1 | 2 | 3) {
-    setShuffleCount(count);
-  }
-
-  function playShuffleAnimation() {
+  function playShuffleAnimation(onReveal: () => void) {
     if (shuffleAnimationTimerRef.current) clearTimeout(shuffleAnimationTimerRef.current);
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     setShuffleAnimationKey((key) => key + 1);
     setShuffleSpinning(true);
+    if (reducedMotion) {
+      setShuffleSpinning(false);
+      onReveal();
+      return;
+    }
     shuffleAnimationTimerRef.current = setTimeout(() => {
       setShuffleSpinning(false);
       shuffleAnimationTimerRef.current = null;
+      onReveal();
     }, SHUFFLE_ANIMATION_MS);
   }
 
@@ -545,95 +558,73 @@ export function Dashboard() {
     window.location.href = "/login";
   }
 
+  async function createCollection(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!collectionName.trim()) return;
+    const payload = await api<{ collection: Collection }>("/api/collections", {
+      method: "POST",
+      body: JSON.stringify({ name: collectionName, description: collectionDescription })
+    });
+    setCollectionName("");
+    setCollectionDescription("");
+    await loadCollections(payload.collection.id);
+  }
+
+  async function addGameToSelectedCollection() {
+    if (!selectedCollectionId || !collectionGameId) return;
+    await api(`/api/collections/${selectedCollectionId}/games`, {
+      method: "POST",
+      body: JSON.stringify({ game_id: collectionGameId })
+    });
+    setCollectionGameId("");
+    await Promise.all([loadCollections(selectedCollectionId), loadCollectionGames(selectedCollectionId)]);
+  }
+
+  async function removeGameFromSelectedCollection(gameId: string) {
+    if (!selectedCollectionId) return;
+    await api(`/api/collections/${selectedCollectionId}/games/${gameId}`, { method: "DELETE" });
+    await Promise.all([loadCollections(selectedCollectionId), loadCollectionGames(selectedCollectionId)]);
+  }
+
   function applyPreviewGames(nextGames: Game[], nextSelectedId: string | null, message?: string) {
     savePreviewGames(nextGames);
     setGames(nextGames);
     setStats(previewStats(nextGames));
-    setShuffleCards(pickShuffleGames(nextGames, shuffleCount));
+    setShuffleCards((current) => current.filter((card) => nextGames.some((game) => game.id === card.id)));
     setSelectedId(nextSelectedId);
     setGuestPrompt(!nextGames.length);
     if (message) setNotice(message);
   }
 
+  const filterControls = (
+    <div className="filter-popover">
+      <MultiFilterGroup allLabel="All" label="Status" onChange={setStatus} options={STATUS_FILTER_OPTIONS} value={status} />
+      <MultiFilterGroup allLabel="All" label="Library" onChange={setOwnership} options={OWNERSHIP_FILTER_OPTIONS} value={ownership} />
+      <MultiFilterGroup allLabel="All genres" label="Genre" onChange={setGenreFilter} options={genreOptions} value={genreFilter} />
+      <MultiFilterGroup allLabel={ANY_LENGTH_LABEL} label="Length" onChange={setLengthFilter} options={LENGTH_FILTER_OPTIONS} value={lengthFilter} />
+      <div className="filter-popover-actions">
+        <button onClick={clearFilters} type="button">Clear</button>
+        <button onClick={() => setFiltersOpen(false)} type="button">Done</button>
+      </div>
+    </div>
+  );
+
   return (
-    <div className={`app-shell app-theme-${selectedTheme}`}>
-      <header className="top-nav">
-        <div className="nav-brand">
-          <a className="brand-lockup" href="/" aria-label="Vault Shuffle home">
-            <img src="/assets/vault-shuffle-icon.png" alt="" />
-            <strong>Vault Shuffle</strong>
-          </a>
-        </div>
-        <form className="nav-search-group" onSubmit={submitAddSearch} ref={addSearchRef}>
-          <div className="search-box add-search-box">
-            <span>⌕</span>
-            <input
-              ref={addSearchInputRef}
-              value={addQuery}
-              onFocus={() => setAddSearchOpen(true)}
-              onChange={(event) => {
-                setAddQuery(event.target.value);
-                setAddSearchOpen(true);
-              }}
-              type="search"
-              placeholder="Add a Steam game..."
-            />
-            <button type="submit">Search</button>
-          </div>
-          {addSearchOpen && addQuery.trim().length >= 2 ? (
-            <div className="add-search-results">
-              {steamResults.length ? (
-                steamResults.map((result) => (
-                  <button className="add-search-result" key={result.appid} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => void addSteamGame(result)}>
-                    <span className="steam-result-art">{result.image ? <img src={result.image} alt="" /> : null}</span>
-                    <span>
-                      <strong>{result.name}</strong>
-                      <small>{result.genre ? `${result.genre} · ` : ""}Steam</small>
-                    </span>
-                    <b>Add</b>
-                  </button>
-                ))
-              ) : (
-                <p className="add-search-empty">No Steam games found yet.</p>
-              )}
-            </div>
-          ) : null}
-        </form>
-        <div className="nav-actions">
-          <span className="steam-profile">
-            {isLoggedIn && session?.avatar_url ? <img src={session.avatar_url} alt="" /> : <span className="steam-avatar-fallback">{isLoggedIn ? "S" : "?"}</span>}
-            <span>{isLoggedIn ? session?.display_name || "Steam user" : "Preview mode"}</span>
-          </span>
-          <button className="ghost sync-button" onClick={importSteamLibrary}>
-            {isLoggedIn ? "↻ Sync Steam" : "⇩ Import Steam"}
-          </button>
-          {isLoggedIn ? <button className="ghost subtle" onClick={logout}>Sign out</button> : null}
-          <div className="settings-wrap" ref={settingsRef}>
-            <button className={`nav-icon settings-button ${settingsOpen ? "active" : ""}`} onClick={() => setSettingsOpen((open) => !open)} type="button" aria-label="Settings">
-              ⚙
-            </button>
-            {settingsOpen ? (
-              <div className="settings-menu">
-                <strong>Theme</strong>
-                <div className="settings-theme-grid" role="list" aria-label="Theme options">
-                  {THEME_OPTIONS.map((theme) => (
-                    <button
-                      key={theme.id}
-                      className={`settings-theme-tile theme-${theme.id} ${selectedTheme === theme.id ? "active" : ""}`}
-                      onClick={() => setSelectedTheme(theme.id)}
-                      type="button"
-                      aria-pressed={selectedTheme === theme.id}
-                    >
-                      <span aria-hidden="true" />
-                      <b>{theme.name}</b>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </header>
+    <div className={`app-shell shell-v2 app-theme-${selectedTheme}`}>
+      <div ref={settingsRef}>
+        <AppTopNav
+          activePage={activePage}
+          isLoggedIn={isLoggedIn}
+          onImportSteam={importSteamLibrary}
+          onLogout={logout}
+          onPageChange={setActivePage}
+          onThemeChange={setSelectedTheme}
+          selectedTheme={selectedTheme}
+          session={session}
+          settingsOpen={settingsOpen}
+          setSettingsOpen={setSettingsOpen}
+        />
+      </div>
 
       {notice ? (
         <div className="app-notice" role="status">
@@ -659,131 +650,112 @@ export function Dashboard() {
         <VaultShuffleModal
           animationKey={shuffleAnimationKey}
           cards={shuffleCards}
-          count={shuffleCount}
           eligibleCount={shuffleEligibleCount}
+          filterLabel={activeRulesLabel}
           message={shuffleMessage}
+          mode={vaultMode}
           onClose={() => setShuffleVaultOpen(false)}
-          onCountChange={changeShuffleCount}
+          onModeChange={setVaultMode}
           onSelect={(game) => {
             setSelectedId(game.id);
+            setSidebarTab("details");
             setShuffleVaultOpen(false);
           }}
-          onShuffle={() => void shuffle()}
+          onShuffle={shuffle}
           spinning={shuffleSpinning}
         />
       ) : null}
 
-      <div className="workspace">
-        <LibrarySidebar
+      <div className="workspace workspace-v2">
+        <ContextSidebar
           activeRulesLabel={activeRulesLabel}
+          activeTab={sidebarTab}
           games={games}
+          onOpenNotes={() => setNotesOpen(true)}
           onOpenVault={openVault}
-          onShuffleCountChange={changeShuffleCount}
+          onPlay={startSelectedPlaying}
           onStatFilter={applyStatFilter}
-          shuffleCount={shuffleCount}
+          onTabChange={setSidebarTab}
+          onUpdateGame={patchSelected}
+          selected={selected}
+          setVaultMode={setVaultMode}
           shuffleEligibleCount={shuffleEligibleCount}
           stats={displayStats}
+          vaultMode={vaultMode}
         />
 
-        <main className="library-main">
-          <section className={`library-table ${viewMode === "grid" ? "grid-mode" : ""}`}>
-            <div className="table-toolbar">
-              <strong>{filteredGames.length} {filteredGames.length === 1 ? "game" : "games"}</strong>
-              <div className="toolbar-controls">
-                <label className="table-filter-search">
-                  <span>⌕</span>
-                  <input value={query} onChange={(event) => setQuery(event.target.value)} type="search" placeholder="Filter library..." />
-                </label>
-                <div className="filter-popover-wrap">
-                  <button className={`filter-button ${filtersOpen ? "active" : ""}`} onClick={() => setFiltersOpen((open) => !open)} type="button">
-                    Filter
-                    {activeFilterCount ? <span>{activeFilterCount}</span> : null}
-                  </button>
-                  {filtersOpen ? (
-                    <div className="filter-popover">
-                      <MultiFilterGroup allLabel="All" label="Status" onChange={setStatus} options={STATUS_FILTER_OPTIONS} value={status} />
-                      <MultiFilterGroup allLabel="All" label="Library" onChange={setOwnership} options={OWNERSHIP_FILTER_OPTIONS} value={ownership} />
-                      <MultiFilterGroup allLabel="All genres" label="Genre" onChange={setGenreFilter} options={genreOptions} value={genreFilter} />
-                      <MultiFilterGroup allLabel={ANY_LENGTH_LABEL} label="Length" onChange={setLengthFilter} options={LENGTH_FILTER_OPTIONS} value={lengthFilter} />
-                      <div className="filter-popover-actions">
-                        <button onClick={clearFilters} type="button">Clear</button>
-                        <button onClick={() => setFiltersOpen(false)} type="button">Done</button>
-                      </div>
-                    </div>
-                  ) : null}
-                </div>
-                <label>Sort by</label>
-                <select value={sort} onChange={(event) => setSort(event.target.value)}>
-                  {SORT_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </select>
-                <button className={`view-button ${viewMode === "list" ? "active" : ""}`} onClick={() => setViewMode("list")} type="button" aria-label="List view">☷</button>
-                <button className={`view-button ${viewMode === "grid" ? "active" : ""}`} onClick={() => setViewMode("grid")} type="button" aria-label="Cover view">▦</button>
-              </div>
-            </div>
+        <main className="library-main main-workspace">
+          {activePage === "library" ? (
+            <LibraryWorkspace
+              activeFilterCount={activeFilterCount}
+              filterControls={filterControls}
+              filteredGames={filteredGames}
+              filtersOpen={filtersOpen}
+              isLoggedIn={isLoggedIn}
+              onAdd={() => setActivePage("wishlist")}
+              onCompleted={(game) => void markGameCompleted(game)}
+              onDelete={(game) => void deleteGame(game)}
+              onSelect={(game) => {
+                setSelectedId(game.id);
+                setSidebarTab("details");
+                setRowMenuId(null);
+              }}
+              onSignIn={() => (window.location.href = "/login")}
+              onToggleMenu={(game) => setRowMenuId((current) => current === game.id ? null : game.id)}
+              query={query}
+              rowMenuId={rowMenuId}
+              selectedId={selectedId}
+              setFiltersOpen={setFiltersOpen}
+              setQuery={setQuery}
+              setSort={setSort}
+              setViewMode={setViewMode}
+              sort={sort}
+              sortOptions={SORT_OPTIONS}
+              toggleSort={toggleSort}
+              viewMode={viewMode}
+            />
+          ) : null}
 
-            <div className={`table-head ${viewMode === "grid" ? "hidden" : ""}`}>
-              <button onClick={() => toggleSort("title_asc", "title_desc")} type="button">Game</button>
-              <button onClick={() => toggleSort("hours_desc", "hours_asc")} type="button">Playtime</button>
-              <button onClick={() => toggleSort("progress_desc", "progress_asc")} type="button">Progress</button>
-              <span className="table-label">Status</span>
-              <span className="table-label">Genre</span>
-              <span className="table-label label-with-help">
-                Length
-                <button className="length-help" type="button" aria-label={LENGTH_HELP_TEXT} aria-describedby="length-tooltip">
-                  i
-                  <span className="length-tooltip" id="length-tooltip" role="tooltip">
-                    <strong>Length guide</strong>
-                    <span>Bitesize: under 5h</span>
-                    <span>Short: 5-10h</span>
-                    <span>Weekend: 10-20h</span>
-                    <span>Campaign: 20-40h</span>
-                    <span>Meaty: 40-80h</span>
-                    <span>Marathon: 80-120h</span>
-                    <span>Odyssey: 120h+</span>
-                    <span>Endless: replayable/live-service/sandbox</span>
-                  </span>
-                </button>
-              </span>
-              <button onClick={() => toggleSort("rating_desc", "rating_asc")} type="button">Rating</button>
-              <span className="actions-head">⋮</span>
-            </div>
-            <div className={`table-body ${viewMode === "grid" ? "grid-view" : ""}`}>
-              {filteredGames.length ? (
-                filteredGames.map((game) =>
-                  viewMode === "grid" ? (
-                    <GameCard game={game} key={game.id} selected={game.id === selectedId} onSelect={() => {
-                      setSelectedId(game.id);
-                      setRowMenuId(null);
-                    }} />
-                  ) : (
-                    <GameRow
-                      game={game}
-                      key={game.id}
-                      menuOpen={rowMenuId === game.id}
-                      selected={game.id === selectedId}
-                      onCompleted={() => void markGameCompleted(game)}
-                      onDelete={() => void deleteGame(game)}
-                      onSelect={() => {
-                        setSelectedId(game.id);
-                        setRowMenuId(null);
-                      }}
-                      onToggleMenu={() => setRowMenuId((current) => current === game.id ? null : game.id)}
-                    />
-                  )
-                )
-              ) : (
-                <GuestLibraryState loggedIn={isLoggedIn} onAdd={focusAddSearch} onSignIn={() => (window.location.href = "/login")} />
-              )}
-            </div>
-          </section>
+          {activePage === "wishlist" ? (
+            <WishlistWorkspace
+              addQuery={addQuery}
+              isLoggedIn={isLoggedIn}
+              onAddSteamGame={(result) => void addSteamGame(result)}
+              onSearchSubmit={submitAddSearch}
+              onSelectGame={(game) => {
+                setSelectedId(game.id);
+                setSidebarTab("details");
+              }}
+              onUpdateGame={(game, payload) => void patchGame(game, payload)}
+              setAddQuery={setAddQuery}
+              steamResults={steamResults}
+              wishlistGames={wishlistGames}
+            />
+          ) : null}
+
+          {activePage === "collections" ? (
+            <CollectionsWorkspace
+              collectionDescription={collectionDescription}
+              collectionGameId={collectionGameId}
+              collectionItems={collectionItems}
+              collectionName={collectionName}
+              collections={collections}
+              games={games}
+              isLoggedIn={isLoggedIn}
+              onAddGame={() => void addGameToSelectedCollection()}
+              onCreateCollection={(event) => void createCollection(event)}
+              onRemoveGame={(gameId) => void removeGameFromSelectedCollection(gameId)}
+              onSelectCollection={(collection) => {
+                setSelectedCollectionId(collection.id);
+                void loadCollectionGames(collection.id);
+              }}
+              selectedCollectionId={selectedCollectionId}
+              setCollectionDescription={setCollectionDescription}
+              setCollectionGameId={setCollectionGameId}
+              setCollectionName={setCollectionName}
+            />
+          ) : null}
         </main>
-
-        <aside className="details-panel">
-          <div className="details-header">
-            <h2>Game Details</h2>
-          </div>
-          <GameDetails game={selected} onOpenNotes={() => setNotesOpen(true)} onPlay={startSelectedPlaying} onUpdate={patchSelected} />
-        </aside>
       </div>
 
       {notesOpen && selected ? (
@@ -844,7 +816,7 @@ function activeFilterLabel(status: string, ownership: string, genre: string, len
     ...selectedOptions(genre, "All genres"),
     ...selectedOptions(length, ANY_LENGTH_LABEL)
   ].filter(Boolean);
-  return active.length ? active.join(" · ") : "All games are visible. Use Filter above the list to narrow things down.";
+  return active.length ? `Filtered: ${active.join(" · ")}` : "Filter: all games";
 }
 
 function selectedOptions(value: string, allLabel: string) {

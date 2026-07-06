@@ -1,6 +1,6 @@
 export type Ownership = "Owned" | "Wishlist";
 export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Completed";
-export type Priority = "Low" | "Medium" | "High";
+export type Priority = "Low" | "Medium" | "High" | "Must Play";
 
 export type Game = {
   id: string;
@@ -63,4 +63,23 @@ export type SteamSearchResult = {
   image: string;
   store_url: string;
   genre?: string;
+};
+
+export type Collection = {
+  id: string;
+  user_id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
+  game_count?: number;
+};
+
+export type CollectionGame = {
+  collection_id: string;
+  game_id: string;
+  notes: string | null;
+  position: number;
+  created_at: string;
+  game?: Game;
 };

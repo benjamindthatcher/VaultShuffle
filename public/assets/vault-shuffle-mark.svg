@@ -1,0 +1,39 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Vault Shuffle mark</title>
+  <defs>
+    <radialGradient id="gGlow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#F069FF" stop-opacity="0.95"/>
+      <stop offset="48%" stop-color="#7C5CFF" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#07172A" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="gStroke" x1="92" y1="70" x2="440" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8FDFFF"/>
+      <stop offset="0.38" stop-color="#BD6CFF"/>
+      <stop offset="1" stop-color="#6D4DFF"/>
+    </linearGradient>
+    <linearGradient id="gFill" x1="133" y1="108" x2="390" y2="404" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A3761"/>
+      <stop offset="0.42" stop-color="#361B68"/>
+      <stop offset="1" stop-color="#071426"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.75 0 0 0 0 0.28 0 0 0 0 1 0 0 0 0.9 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="#061426"/>
+  <circle cx="256" cy="258" r="208" fill="url(#gGlow)"/>
+  <path d="M256 60L420 154V344L256 452L92 344V154L256 60Z" fill="url(#gFill)" stroke="url(#gStroke)" stroke-width="22" filter="url(#softGlow)"/>
+  <path d="M133 177L256 106L379 177" stroke="#E6D6FF" stroke-opacity="0.78" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M379 177V270" stroke="#D84DFF" stroke-width="20" stroke-linecap="round"/>
+  <path d="M344 236L379 270L414 236" stroke="#D84DFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M379 335L256 406L133 335" stroke="#8F6CFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M133 335V243" stroke="#8F6CFF" stroke-width="20" stroke-linecap="round"/>
+  <path d="M98 277L133 243L168 277" stroke="#8F6CFF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="256" cy="260" r="86" fill="#111E3B" stroke="#A87CFF" stroke-width="12"/>
+  <circle cx="256" cy="260" r="48" fill="#0B1228" stroke="#CDEBFF" stroke-opacity="0.55" stroke-width="8"/>
+  <circle cx="256" cy="260" r="18" fill="#F5FBFF"/>
+  <path d="M256 154V216M256 304V366M150 260H212M300 260H362M181 185L225 229M287 291L331 335M331 185L287 229M225 291L181 335" stroke="url(#gStroke)" stroke-width="14" stroke-linecap="round"/>
+  <rect x="83" y="204" width="28" height="108" rx="8" fill="#9B69FF" stroke="#DCC6FF" stroke-opacity="0.45" stroke-width="4"/>
+</svg>

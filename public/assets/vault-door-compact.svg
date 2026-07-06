@@ -1,0 +1,35 @@
+<svg width="720" height="360" viewBox="0 0 720 360" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>Compact glowing vault artwork</title>
+  <defs>
+    <radialGradient id="bgGlow" cx="62%" cy="54%" r="55%">
+      <stop offset="0%" stop-color="#E657FF" stop-opacity="0.62"/>
+      <stop offset="46%" stop-color="#725DFF" stop-opacity="0.23"/>
+      <stop offset="100%" stop-color="#061426" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="metal" x1="184" y1="94" x2="435" y2="286" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#52729E"/>
+      <stop offset="0.42" stop-color="#1C2B4C"/>
+      <stop offset="1" stop-color="#080F21"/>
+    </linearGradient>
+    <linearGradient id="ring" x1="183" y1="87" x2="414" y2="295" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9FE8FF"/>
+      <stop offset="0.52" stop-color="#CE5CFF"/>
+      <stop offset="1" stop-color="#755BFF"/>
+    </linearGradient>
+    <filter id="purpleGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.8 0 0 0 0 0.24 0 0 0 0 1 0 0 0 1 0"/>
+      <feBlend in="SourceGraphic" mode="screen"/>
+    </filter>
+  </defs>
+  <rect width="720" height="360" fill="#061426"/>
+  <ellipse cx="380" cy="192" rx="264" ry="150" fill="url(#bgGlow)"/>
+  <ellipse cx="342" cy="302" rx="220" ry="24" fill="#9F45FF" opacity="0.22"/>
+  <circle cx="330" cy="176" r="104" fill="url(#metal)" stroke="url(#ring)" stroke-width="8" filter="url(#purpleGlow)"/>
+  <circle cx="330" cy="176" r="72" fill="#0A1327" stroke="#365C89" stroke-width="8"/>
+  <circle cx="330" cy="176" r="38" fill="#111B37" stroke="#B990FF" stroke-width="6"/>
+  <circle cx="330" cy="176" r="13" fill="#F8FDFF"/>
+  <path d="M330 100V145M330 207V253M254 176H300M360 176H406M276 122L308 154M352 198L384 230M384 122L352 154M308 198L276 230" stroke="#B66DFF" stroke-width="8" stroke-linecap="round"/>
+  <path d="M452 96C498 122 527 172 526 226" stroke="#D957FF" stroke-width="18" stroke-linecap="round" opacity="0.38" filter="url(#purpleGlow)"/>
+  <path d="M455 258C488 232 503 190 493 150" stroke="#8CDFFF" stroke-opacity="0.32" stroke-width="10" stroke-linecap="round"/>
+</svg>

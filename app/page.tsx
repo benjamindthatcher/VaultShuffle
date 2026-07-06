@@ -30,11 +30,26 @@ const productCards = [
     icon: "books",
     preview: "library",
     rows: [
-      ["Game Horizon", "120h"],
-      ["Neon Frontiers", "85h"],
-      ["Shattered Skies", "60h"],
-      ["Echoes of Ruin", "45h"],
-      ["Beyond the Gate", "30h"]
+      {
+        name: "Elden Ring",
+        meta: "292h",
+        appid: 1245620
+      },
+      {
+        name: "Baldur's Gate 3",
+        meta: "215h",
+        appid: 1086940
+      },
+      {
+        name: "Cyberpunk 2077",
+        meta: "80h",
+        appid: 1091500
+      },
+      {
+        name: "Red Dead Redemption 2",
+        meta: "43h",
+        appid: 1174180
+      }
     ]
   },
   {
@@ -45,11 +60,26 @@ const productCards = [
     icon: "bookmark",
     preview: "wishlist",
     rows: [
-      ["Astral Divide", ""],
-      ["Silent Vector", ""],
-      ["Project Aurora", ""],
-      ["Void Runner", ""],
-      ["Crimson Tides", ""]
+      {
+        name: "Hollow Knight",
+        meta: "-25%",
+        appid: 367520
+      },
+      {
+        name: "Persona 5 Royal",
+        meta: "-40%",
+        appid: 1687950
+      },
+      {
+        name: "Stardew Valley",
+        meta: "-30%",
+        appid: 413150
+      },
+      {
+        name: "Sekiro™: Shadows Die Twice",
+        meta: "-20%",
+        appid: 814380
+      }
     ]
   },
   {
@@ -60,14 +90,33 @@ const productCards = [
     icon: "layers",
     preview: "collections",
     rows: [
-      ["Backlog Essentials", "12 games"],
-      ["Co-op Nights", "8 games"],
-      ["Story Rich", "15 games"],
-      ["Quick Plays", "10 games"],
-      ["Chill & Relax", "7 games"]
+      {
+        name: "Backlog Essentials",
+        meta: "8 games",
+        appids: [1245620, 1086940, 632470]
+      },
+      {
+        name: "Co-op Nights",
+        meta: "12 games",
+        appids: [1172470, 239140, 548430]
+      },
+      {
+        name: "Strategy Sessions",
+        meta: "9 games",
+        appids: [1142710, 289070, 1158310]
+      },
+      {
+        name: "Cozy & Chill",
+        meta: "7 games",
+        appids: [413150, 1158160, 1472660]
+      }
     ]
   }
 ];
+
+function steamCapsule(appid: number) {
+  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_231x87.jpg`;
+}
 
 function LandingIcon({ name }: { name: string }) {
   const shared = {
@@ -173,14 +222,6 @@ function LandingIcon({ name }: { name: string }) {
     );
   }
 
-  if (name === "folder") {
-    return (
-      <svg {...shared}>
-        <path d="M3 7.5h6l2 2h10v8.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
-      </svg>
-    );
-  }
-
   return (
     <svg {...shared}>
       <circle cx="12" cy="12" r="8" />
@@ -194,12 +235,16 @@ export default function HomePage() {
   return (
     <>
       <link rel="stylesheet" href="/landing.css" />
+
       <main className="vs-landing">
         <nav className="vs-nav" aria-label="Vault Shuffle">
           <a className="vs-brand" href="/" aria-label="Vault Shuffle home">
             <img src="/assets/landing/vaultshuffle-logo-real.png" alt="" />
-            <span>Vault <strong>Shuffle</strong></span>
+            <span>
+              Vault <strong>Shuffle</strong>
+            </span>
           </a>
+
           <a className="vs-open-link" href="/app">
             Open Vault Shuffle <span aria-hidden="true">&rarr;</span>
           </a>
@@ -208,34 +253,41 @@ export default function HomePage() {
         <section className="vs-hero" aria-labelledby="landing-title">
           <div className="vs-hero-copy">
             <p className="vs-kicker">Focused play. Better games.</p>
+
             <h1 id="landing-title">
               Tonight&apos;s pick.
               <span>Finally decide.</span>
             </h1>
+
             <p className="vs-hero-text">
               Vault Shuffle cuts through the noise and helps you find the one game that fits your mood, time, and
               energy.
             </p>
+
             <div className="vs-cta-row" aria-label="Get started">
               <a className="vs-cta vs-cta-primary" href="/login">
                 <LandingIcon name="steam" />
                 Continue with Steam
                 <span aria-hidden="true">&rarr;</span>
               </a>
+
               <a className="vs-cta vs-cta-secondary" href="/app">
                 <LandingIcon name="guest" />
                 Try Guest Mode
               </a>
             </div>
+
             <div className="vs-trust-row" aria-label="Vault Shuffle promises">
               <span>
                 <LandingIcon name="shield" />
                 No spam
               </span>
+
               <span>
                 <LandingIcon name="lock" />
                 Private &amp; local
               </span>
+
               <span>
                 <LandingIcon name="players" />
                 You control your data
@@ -254,6 +306,7 @@ export default function HomePage() {
               <div className="vs-icon-box">
                 <LandingIcon name={item.icon} />
               </div>
+
               <div>
                 <h2>{item.title}</h2>
                 <p>{item.text}</p>
@@ -270,12 +323,15 @@ export default function HomePage() {
                   <LandingIcon name={card.icon} />
                   <h2>{card.title}</h2>
                 </div>
+
                 <p>{card.text}</p>
+
                 <ul>
                   {card.bullets.map((bullet) => (
                     <li key={bullet}>{bullet}</li>
                   ))}
                 </ul>
+
                 <a href="/app">
                   {card.action} <span aria-hidden="true">&rarr;</span>
                 </a>
@@ -286,15 +342,27 @@ export default function HomePage() {
                   {card.preview === "library"
                     ? "All Games"
                     : card.preview === "wishlist"
-                      ? "Your Wishlist (5)"
+                      ? "Your Wishlist (32)"
                       : "Your Collections"}
                 </h3>
+
                 {card.preview === "library" && <div className="vs-mini-search">Filter library...</div>}
-                {card.rows.map(([label, meta]) => (
-                  <div className="vs-mini-row" key={label}>
-                    <span className={card.preview === "collections" ? "vs-folder-mark" : "vs-thumb"} />
-                    <strong>{label}</strong>
-                    {meta && <small>{meta}</small>}
+
+                {card.rows.map((row) => (
+                  <div className="vs-mini-row" key={row.name}>
+                    {"appids" in row ? (
+                      <span className="vs-collection-stack">
+                        {row.appids.map((appid) => (
+                          <img key={appid} src={steamCapsule(appid)} alt="" />
+                        ))}
+                      </span>
+                    ) : (
+                      <img src={steamCapsule(row.appid)} alt="" />
+                    )}
+
+                    <strong>{row.name}</strong>
+
+                    {row.meta && <small>{row.meta}</small>}
                   </div>
                 ))}
               </div>
