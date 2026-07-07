@@ -8,9 +8,10 @@
 
 /* Shared page sizing */
 
+.app-shell.shell-v2.app-page-library .workspace.workspace-v2,
 .app-shell.shell-v2.app-page-wishlist .workspace.workspace-v2,
 .app-shell.shell-v2.app-page-collections .workspace.workspace-v2 {
-  grid-template-columns: 357px minmax(0, 1fr);
+  grid-template-columns: 365px minmax(0, 1fr);
 }
 
 .app-shell.shell-v2.app-page-wishlist .main-workspace,
