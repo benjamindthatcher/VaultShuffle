@@ -16,7 +16,8 @@ import { ContextSidebar, type SidebarTab, type StatAction } from "@/components/d
 import { LibraryWorkspace } from "@/components/dashboard/LibraryWorkspace";
 import { WishlistWorkspace } from "@/components/dashboard/WishlistWorkspace";
 import { CollectionsWorkspace } from "@/components/dashboard/CollectionsWorkspace";
-import { VaultShuffleModal, type VaultMode } from "@/components/dashboard/VaultShuffleModal";
+import type { VaultMode } from "@/components/dashboard/VaultShuffleModal";
+import { VaultWorkspace } from "@/components/dashboard/VaultWorkspace";
 import { DEFAULT_THEME_ID, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
 import { TOP_LEVEL_GENRES, matchesTopLevelGenre, topLevelGenresFor } from "@/lib/genres";
 
@@ -102,7 +103,6 @@ export function Dashboard() {
   const [vaultMode, setVaultMode] = useState<VaultMode>("draw");
   const [shuffleCards, setShuffleCards] = useState<Game[]>([]);
   const [shuffleMessage, setShuffleMessage] = useState("Open the vault when you are ready to draw from your current view.");
-  const [shuffleVaultOpen, setShuffleVaultOpen] = useState(false);
   const [shuffleSpinning, setShuffleSpinning] = useState(false);
   const [shuffleAnimationKey, setShuffleAnimationKey] = useState(0);
   const [steamResults, setSteamResults] = useState<SteamSearchResult[]>([]);
@@ -475,14 +475,6 @@ export function Dashboard() {
     await load();
   }
 
-  function openVault() {
-    setSidebarTab("vault");
-    setShuffleVaultOpen(true);
-    if (!shuffleCards.length) {
-      setShuffleMessage("Choose a mode, then open the vault to pull from the games shown in your library.");
-    }
-  }
-
   function shuffle() {
     const count = vaultMode === "draw" ? 1 : 3;
     const picks = pickShuffleGames(filteredGames, count);
@@ -617,7 +609,11 @@ export function Dashboard() {
           isLoggedIn={isLoggedIn}
           onImportSteam={importSteamLibrary}
           onLogout={logout}
-          onPageChange={setActivePage}
+          onPageChange={(page) => {
+            setActivePage(page);
+            setSettingsOpen(false);
+            if (page !== "vault") setSidebarTab("overview");
+          }}
           onThemeChange={setSelectedTheme}
           selectedTheme={selectedTheme}
           session={session}
@@ -646,47 +642,23 @@ export function Dashboard() {
         </div>
       ) : null}
 
-      {shuffleVaultOpen ? (
-        <VaultShuffleModal
-          animationKey={shuffleAnimationKey}
-          cards={shuffleCards}
-          eligibleCount={shuffleEligibleCount}
-          filterLabel={activeRulesLabel}
-          message={shuffleMessage}
-          mode={vaultMode}
-          onClose={() => setShuffleVaultOpen(false)}
-          onModeChange={setVaultMode}
-          onSelect={(game) => {
-            setSelectedId(game.id);
-            setSidebarTab("details");
-            setShuffleVaultOpen(false);
-          }}
-          onShuffle={shuffle}
-          spinning={shuffleSpinning}
-        />
-      ) : null}
-
-      <div className="workspace workspace-v2">
-        <ContextSidebar
-          activeRulesLabel={activeRulesLabel}
-          activeTab={sidebarTab}
-          games={games}
-          onOpenNotes={() => setNotesOpen(true)}
-          onOpenVault={openVault}
-          onPlay={startSelectedPlaying}
-          onStatFilter={applyStatFilter}
-          onTabChange={setSidebarTab}
-          onUpdateGame={patchSelected}
-          selected={selected}
-          setVaultMode={setVaultMode}
-          shuffleEligibleCount={shuffleEligibleCount}
-          stats={displayStats}
-          vaultMode={vaultMode}
-	  activePage={activePage}
-	  collections={collections}
-	  collectionItems={collectionItems}
-	  selectedCollectionId={selectedCollectionId}
-        />
+      <div className={`workspace workspace-v2 ${activePage === "vault" ? "vault-workspace-shell" : ""}`}>
+        {activePage !== "vault" ? (
+          <ContextSidebar
+            activeTab={sidebarTab}
+            games={games}
+            onOpenNotes={() => setNotesOpen(true)}
+            onPlay={startSelectedPlaying}
+            onStatFilter={applyStatFilter}
+            onTabChange={setSidebarTab}
+            onUpdateGame={patchSelected}
+            selected={selected}
+            stats={displayStats}
+            activePage={activePage}
+            collections={collections}
+            selectedCollectionId={selectedCollectionId}
+          />
+        ) : null}
 
         <main className="library-main main-workspace">
           {activePage === "library" ? (
@@ -757,6 +729,25 @@ export function Dashboard() {
               setCollectionDescription={setCollectionDescription}
               setCollectionGameId={setCollectionGameId}
               setCollectionName={setCollectionName}
+            />
+          ) : null}
+
+          {activePage === "vault" ? (
+            <VaultWorkspace
+              animationKey={shuffleAnimationKey}
+              cards={shuffleCards}
+              eligibleCount={shuffleEligibleCount}
+              filterLabel={activeRulesLabel}
+              message={shuffleMessage}
+              mode={vaultMode}
+              onModeChange={setVaultMode}
+              onSelect={(game) => {
+                setSelectedId(game.id);
+                setActivePage("library");
+                setSidebarTab("details");
+              }}
+              onShuffle={shuffle}
+              spinning={shuffleSpinning}
             />
           ) : null}
         </main>

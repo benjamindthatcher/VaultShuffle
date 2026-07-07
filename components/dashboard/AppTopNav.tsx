@@ -3,12 +3,13 @@
 import type { SessionPayload } from "@/lib/types";
 import { THEME_OPTIONS, type ThemeOptionId } from "@/lib/themes";
 
-export type AppPage = "library" | "wishlist" | "collections";
+export type AppPage = "library" | "wishlist" | "collections" | "vault";
 
 const NAV_ITEMS: Array<{ page: AppPage; label: string }> = [
   { page: "library", label: "Library" },
   { page: "wishlist", label: "Wishlist" },
-  { page: "collections", label: "Collections" }
+  { page: "collections", label: "Collections" },
+  { page: "vault", label: "Vault" }
 ];
 
 export function AppTopNav({

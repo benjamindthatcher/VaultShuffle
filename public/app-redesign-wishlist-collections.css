@@ -902,3 +902,374 @@
   background: linear-gradient(90deg, #8b5cff, #f25dff);
   box-shadow: 0 0 14px rgba(212, 93, 255, 0.55);
 }
+/* Vault as a top-level app page
+   Paste at the bottom of public/app-redesign-wishlist-collections.css */
+
+.app-shell.shell-v2.app-page-vault .workspace.workspace-v2,
+.app-shell.shell-v2.app-page-vault .workspace.workspace-v2.vault-workspace-shell {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.app-shell.shell-v2.app-page-vault .main-workspace {
+  grid-column: 1;
+  overflow: auto;
+}
+
+/* Give the fourth top-nav item room without changing the nav concept */
+.app-shell.shell-v2 .primary-nav {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* Main Vault page */
+.vault-workspace-page {
+  min-height: 100%;
+  display: grid;
+  gap: 22px;
+  align-content: start;
+  padding: 34px 38px 38px;
+}
+
+.vault-page-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  align-items: end;
+  gap: 24px;
+}
+
+.vault-page-hero h1 {
+  margin: 6px 0 8px;
+  color: #fff;
+  font-size: clamp(38px, 4.2vw, 66px);
+  line-height: 0.96;
+  letter-spacing: -0.052em;
+}
+
+.vault-page-hero p {
+  max-width: 650px;
+  margin: 0;
+  color: rgba(245, 242, 255, 0.66);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.vault-page-meta {
+  display: grid;
+  gap: 4px;
+  justify-items: end;
+  padding: 16px;
+  border: 1px solid rgba(137, 97, 255, 0.2);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(212, 93, 255, 0.14), transparent 42%),
+    rgba(7, 14, 31, 0.58);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.vault-page-meta strong {
+  color: #fff;
+  font-size: 34px;
+  line-height: 1;
+}
+
+.vault-page-meta span,
+.vault-page-meta small {
+  color: rgba(245, 242, 255, 0.62);
+  font-size: 12px;
+}
+
+.vault-page-meta small {
+  max-width: 170px;
+  text-align: right;
+}
+
+/* Mode controls */
+.vault-page-controls {
+  display: grid;
+  grid-template-columns: 210px 210px 180px;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.vault-page-controls button {
+  min-height: 58px;
+  padding: 12px 14px;
+  border: 1px solid rgba(137, 97, 255, 0.22);
+  border-radius: 14px;
+  color: rgba(245, 242, 255, 0.76);
+  background:
+    linear-gradient(180deg, rgba(137, 97, 255, 0.07), rgba(7, 14, 31, 0.58)),
+    rgba(7, 14, 31, 0.58);
+  text-align: left;
+  cursor: pointer;
+}
+
+.vault-page-controls button strong,
+.vault-page-controls button span {
+  display: block;
+}
+
+.vault-page-controls button strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.vault-page-controls button span {
+  margin-top: 4px;
+  color: rgba(245, 242, 255, 0.58);
+  font-size: 12px;
+}
+
+.vault-page-controls button.active {
+  border-color: rgba(212, 93, 255, 0.48);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(212, 93, 255, 0.20), transparent 52%),
+    rgba(180, 92, 255, 0.14);
+  box-shadow: 0 0 22px rgba(137, 97, 255, 0.10);
+}
+
+.vault-page-controls .vault-page-primary {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  border-color: rgba(212, 93, 255, 0.52);
+  background:
+    linear-gradient(135deg, rgba(137, 97, 255, 0.96), rgba(212, 93, 255, 0.82));
+  box-shadow: 0 16px 34px rgba(137, 97, 255, 0.24);
+}
+
+.vault-page-controls .vault-page-primary:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* Stage */
+.vault-page-stage {
+  min-height: 480px;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.82fr) minmax(420px, 1.18fr);
+  gap: 24px;
+  padding: 24px;
+  border: 1px solid rgba(137, 97, 255, 0.18);
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 30% 22%, rgba(180, 92, 255, 0.18), transparent 34%),
+    radial-gradient(circle at 78% 8%, rgba(85, 135, 255, 0.10), transparent 32%),
+    rgba(5, 9, 24, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 22px 70px rgba(0, 0, 0, 0.18);
+}
+
+.vault-page-door {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  overflow: hidden;
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at center, rgba(137, 97, 255, 0.14), transparent 54%),
+    rgba(3, 8, 22, 0.34);
+}
+
+.vault-page-door::before {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border-radius: 999px;
+  background: rgba(212, 93, 255, 0.10);
+  filter: blur(34px);
+}
+
+.vault-page-door img {
+  position: relative;
+  z-index: 1;
+  width: min(360px, 88%);
+  filter: drop-shadow(0 0 48px rgba(180, 92, 255, 0.28));
+}
+
+.vault-page-door.is-spinning img {
+  animation: vaultPagePulse 0.8s ease-in-out infinite alternate;
+}
+
+/* Results */
+.vault-page-results {
+  display: grid;
+  align-content: center;
+  gap: 14px;
+}
+
+.vault-page-empty {
+  display: grid;
+  place-items: center;
+  gap: 8px;
+  min-height: 260px;
+  padding: 28px;
+  border: 1px solid rgba(137, 97, 255, 0.18);
+  border-radius: 18px;
+  color: rgba(245, 242, 255, 0.66);
+  background:
+    linear-gradient(180deg, rgba(137, 97, 255, 0.06), rgba(7, 14, 31, 0.58)),
+    rgba(7, 14, 31, 0.58);
+  text-align: center;
+}
+
+.vault-page-empty strong {
+  color: #fff;
+  font-size: 20px;
+}
+
+.vault-page-empty span {
+  max-width: 420px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.vault-page-card {
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px;
+  border: 1px solid rgba(137, 97, 255, 0.24);
+  border-radius: 16px;
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(137, 97, 255, 0.08), rgba(7, 14, 31, 0.66)),
+    rgba(7, 14, 31, 0.68);
+  text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.vault-page-card:hover {
+  border-color: rgba(212, 93, 255, 0.46);
+  transform: translateY(-1px);
+}
+
+.vault-page-card-art {
+  height: 76px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.vault-page-card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vault-page-card-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.vault-page-card-copy span {
+  color: #d45dff;
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.vault-page-card-copy strong {
+  overflow: hidden;
+  color: #fff;
+  font-size: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-page-card-copy small,
+.vault-page-card-cta {
+  color: rgba(245, 242, 255, 0.62);
+  font-size: 13px;
+}
+
+.vault-page-card-cta {
+  padding-right: 4px;
+  white-space: nowrap;
+}
+
+/* Draw mode: make the single result feel more important */
+.vault-page-results.count-1 .vault-page-card {
+  grid-template-columns: 230px minmax(0, 1fr);
+  min-height: 180px;
+  align-items: end;
+}
+
+.vault-page-results.count-1 .vault-page-card-art {
+  height: 156px;
+}
+
+.vault-page-results.count-1 .vault-page-card-copy strong {
+  font-size: 26px;
+  white-space: normal;
+}
+
+.vault-page-results.count-1 .vault-page-card-cta {
+  grid-column: 2;
+}
+
+@keyframes vaultPagePulse {
+  from {
+    transform: scale(1);
+    opacity: 0.86;
+  }
+
+  to {
+    transform: scale(1.025);
+    opacity: 1;
+  }
+}
+
+/* Small screens */
+@media (max-width: 980px) {
+  .vault-page-hero,
+  .vault-page-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .vault-page-meta {
+    justify-items: start;
+  }
+
+  .vault-page-meta small {
+    max-width: none;
+    text-align: left;
+  }
+
+  .vault-page-controls {
+    grid-template-columns: 1fr;
+  }
+}
+/* Library/Wishlist sidebar tabs: now only two tabs */
+.app-shell.shell-v2.app-page-library .sidebar-tabs,
+.app-shell.shell-v2.app-page-wishlist .sidebar-tabs {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 68px;
+  flex-basis: 68px;
+  padding: 0 30px;
+}
+
+.app-shell.shell-v2.app-page-library .sidebar-tab,
+.app-shell.shell-v2.app-page-wishlist .sidebar-tab {
+  min-height: 68px;
+}
+
+/* Pull the panel content up slightly under the tabs */
+.app-shell.shell-v2.app-page-library .overview-context,
+.app-shell.shell-v2.app-page-library .game-details-context,
+.app-shell.shell-v2.app-page-wishlist .wishlist-context,
+.app-shell.shell-v2.app-page-wishlist .game-details-context {
+  padding-top: 24px;
+}
+/* Remove selected sidebar tab glow/card background */
+.app-shell.shell-v2.app-page-library .sidebar-tab.active,
+.app-shell.shell-v2.app-page-wishlist .sidebar-tab.active {
+  background: transparent;
+  box-shadow: none;
+}

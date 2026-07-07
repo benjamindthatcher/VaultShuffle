@@ -2,12 +2,11 @@
 
 import { displayStatus } from "@/lib/game-classification";
 import { topLevelGenresFor } from "@/lib/genres";
-import type { Collection, CollectionGame, Game, GamePayload, StatsPayload } from "@/lib/types";
+import type { Collection, Game, GamePayload, StatsPayload } from "@/lib/types";
 import { GameDetails } from "@/components/dashboard/GameDetails";
 import type { AppPage } from "@/components/dashboard/AppTopNav";
-import type { VaultMode } from "@/components/dashboard/VaultShuffleModal";
 
-export type SidebarTab = "overview" | "details" | "vault";
+export type SidebarTab = "overview" | "details";
 export type StatAction = "all" | "completed" | "progress" | "sampled" | "not_started" | "owned" | "wishlist";
 
 export function ContextSidebar({
@@ -16,36 +15,26 @@ export function ContextSidebar({
   collections = [],
   games,
   onOpenNotes,
-  onOpenVault,
   onPlay,
   onStatFilter,
   onTabChange,
   onUpdateGame,
   selected,
   selectedCollectionId,
-  setVaultMode,
-  shuffleEligibleCount,
-  stats,
-  vaultMode
+  stats
 }: {
-  activeRulesLabel: string;
   activePage?: AppPage;
   activeTab: SidebarTab;
   collections?: Collection[];
-  collectionItems?: CollectionGame[];
   games: Game[];
   onOpenNotes: () => void;
-  onOpenVault: () => void;
   onPlay: () => void;
   onStatFilter: (action: StatAction) => void;
   onTabChange: (tab: SidebarTab) => void;
   onUpdateGame: (payload: Partial<GamePayload>) => Promise<void>;
   selected: Game | null;
   selectedCollectionId?: string | null;
-  setVaultMode: (mode: VaultMode) => void;
-  shuffleEligibleCount: number;
   stats: StatsPayload;
-  vaultMode: VaultMode;
 }) {
   if (activePage === "collections") {
     return (
@@ -73,13 +62,6 @@ export function ContextSidebar({
           label="Game Details"
           onClick={() => onTabChange("details")}
         />
-
-        <SidebarTabButton
-          active={activeTab === "vault"}
-          icon="◇"
-          label="Vault"
-          onClick={() => onTabChange("vault")}
-        />
       </div>
 
       {activeTab === "overview" && activePage === "library" ? (
@@ -98,15 +80,6 @@ export function ContextSidebar({
         <div className="context-panel game-details-context">
           <GameDetails game={selected} onOpenNotes={onOpenNotes} onPlay={onPlay} onUpdate={onUpdateGame} />
         </div>
-      ) : null}
-
-      {activeTab === "vault" ? (
-        <VaultPanel
-          onOpenVault={onOpenVault}
-          setVaultMode={setVaultMode}
-          shuffleEligibleCount={shuffleEligibleCount}
-          vaultMode={vaultMode}
-        />
       ) : null}
     </aside>
   );
@@ -267,59 +240,6 @@ function CollectionsSidebar({
 
       </div>
     </aside>
-  );
-}
-
-
-
-function VaultPanel({
-  onOpenVault,
-  setVaultMode,
-  shuffleEligibleCount,
-  vaultMode
-}: {
-  onOpenVault: () => void;
-  setVaultMode: (mode: VaultMode) => void;
-  shuffleEligibleCount: number;
-  vaultMode: VaultMode;
-}) {
-  return (
-    <div className="context-panel vault-context">
-      <h2>Vault</h2>
-
-      <section className="sidebar-vault-feature">
-        <img src="/assets/vault-door-compact.svg" alt="" />
-
-        <h3>Crack open the vault.</h3>
-        <p>One game. Yours to play. Pull from the games currently visible in the library.</p>
-
-        <div className="vault-mode-stack">
-          <button className={vaultMode === "draw" ? "active" : ""} onClick={() => setVaultMode("draw")} type="button">
-            <strong>Vault Draw</strong>
-            <span>One decisive pick</span>
-          </button>
-
-          <button className={vaultMode === "choose" ? "active" : ""} onClick={() => setVaultMode("choose")} type="button">
-            <strong>Let Me Choose</strong>
-            <span>Three options</span>
-          </button>
-        </div>
-
-        <div className="sidebar-shuffle-meta">
-          <strong>{shuffleEligibleCount}</strong>
-          <span>eligible games</span>
-        </div>
-
-        <button className="shuffle-button sidebar-shuffle-button" onClick={onOpenVault} type="button">
-          Open Vault
-        </button>
-      </section>
-
-      <p className="shuffle-info">
-        <span aria-hidden="true">i</span>
-        Completed games are skipped automatically.
-      </p>
-    </div>
   );
 }
 
