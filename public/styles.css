@@ -7312,3 +7312,17 @@ body {
     34px;
   column-gap: 12px;
 }
+/* Library overview: remove duplicate bottom separator */
+.app-shell.shell-v2.app-page-library .overview-context .overview-list {
+  border-bottom: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.app-shell.shell-v2.app-page-library .overview-context .overview-list .stat-row:last-child {
+  border-bottom: 0;
+}
+
+.app-shell.shell-v2.app-page-library .overview-context .overview-list::after {
+  display: none;
+}

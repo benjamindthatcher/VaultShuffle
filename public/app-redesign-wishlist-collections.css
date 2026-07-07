@@ -461,7 +461,7 @@
 
 .app-shell.shell-v2.app-page-collections .collections-sidebar-panel .overview-list {
   padding-bottom: 18px;
-  border-bottom: 1px solid rgba(137, 97, 255, 0.14);
+  border-bottom: 0;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-sidebar-panel .stat-row {
@@ -847,4 +847,58 @@
     grid-template-columns: 1fr;
     gap: 8px;
   }
+}
+/* Sidebar title areas: make heading block consistent across all app pages */
+.app-shell.shell-v2.app-page-library .overview-context > h2,
+.app-shell.shell-v2.app-page-wishlist .wishlist-context > h2,
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel > h2 {
+  height: 6px;
+  margin: 0;
+  display: flex;
+  align-items: flex-start;
+}
+/* Sidebar tabs: premium text-nav style, matching the top nav */
+.app-shell.shell-v2 .sidebar-tabs {
+  flex: 0 0 72px;
+  min-height: 72px;
+  padding: 0 30px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: stretch;
+  border-bottom: 1px solid rgba(137, 97, 255, 0.16);
+}
+
+.app-shell.shell-v2 .sidebar-tab {
+  position: relative;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 0;
+  color: rgba(245, 242, 255, 0.62);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.app-shell.shell-v2 .sidebar-tab-icon {
+  display: none;
+}
+
+.app-shell.shell-v2 .sidebar-tab.active {
+  color: #ffffff;
+  background: transparent;
+}
+
+.app-shell.shell-v2 .sidebar-tab.active::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 0;
+  height: 3px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg, #8b5cff, #f25dff);
+  box-shadow: 0 0 14px rgba(212, 93, 255, 0.55);
 }
