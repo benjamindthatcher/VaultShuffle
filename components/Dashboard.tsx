@@ -486,7 +486,7 @@ export function Dashboard() {
       setShuffleMessage(reason);
       return;
     }
-
+    setShuffleCards([]);
     playShuffleAnimation(() => {
       setShuffleCards(picks);
       setShuffleMessage(vaultMode === "draw" ? "One decisive pick from your current view." : "Three random options from your current view.");
