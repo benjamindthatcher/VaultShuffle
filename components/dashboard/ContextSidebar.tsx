@@ -52,7 +52,6 @@ export function ContextSidebar({
       <CollectionsSidebar
         collections={collections}
         games={games}
-        onOpenVault={onOpenVault}
         selectedCollectionId={selectedCollectionId}
       />
     );
@@ -86,17 +85,13 @@ export function ContextSidebar({
       {activeTab === "overview" && activePage === "library" ? (
         <LibraryOverviewPanel
           games={games}
-          onOpenVault={onOpenVault}
           onStatFilter={onStatFilter}
-          setVaultMode={setVaultMode}
-          shuffleEligibleCount={shuffleEligibleCount}
           stats={stats}
-          vaultMode={vaultMode}
         />
       ) : null}
 
       {activeTab === "overview" && activePage === "wishlist" ? (
-        <WishlistOverviewPanel games={games} onOpenVault={onOpenVault} />
+        <WishlistOverviewPanel games={games} />
       ) : null}
 
       {activeTab === "details" ? (
@@ -140,12 +135,8 @@ function SidebarTabButton({
 
 function LibraryOverviewPanel({
   games,
-  onOpenVault,
   onStatFilter,
-  setVaultMode,
-  shuffleEligibleCount,
   stats,
-  vaultMode
 }: {
   games: Game[];
   onOpenVault: () => void;
@@ -175,17 +166,11 @@ function LibraryOverviewPanel({
         ))}
       </div>
 
-      <CompactVaultLauncher
-        count={shuffleEligibleCount}
-        mode={vaultMode}
-        onModeChange={setVaultMode}
-        onOpen={onOpenVault}
-      />
     </div>
   );
 }
 
-function WishlistOverviewPanel({ games, onOpenVault }: { games: Game[]; onOpenVault: () => void }) {
+function WishlistOverviewPanel({ games }: { games: Game[] }) {
   const wishlist = games.filter((game) => game.ownership === "Wishlist");
   const priorityCounts = {
     "Must Play": wishlist.filter((game) => game.priority === "Must Play").length,
@@ -233,9 +218,6 @@ function WishlistOverviewPanel({ games, onOpenVault }: { games: Game[]; onOpenVa
         </div>
       </section>
 
-      <button className="shuffle-button sidebar-shuffle-button wishlist-vault-button" onClick={onOpenVault} type="button">
-        Open Vault
-      </button>
     </div>
   );
 }
@@ -243,12 +225,10 @@ function WishlistOverviewPanel({ games, onOpenVault }: { games: Game[]; onOpenVa
 function CollectionsSidebar({
   collections,
   games,
-  onOpenVault,
   selectedCollectionId
 }: {
   collections: Collection[];
   games: Game[];
-  onOpenVault: () => void;
   selectedCollectionId?: string | null;
 }) {
   const totalGamesInCollections = collections.reduce((sum, collection) => sum + Number(collection.game_count || 0), 0);
@@ -289,64 +269,12 @@ function CollectionsSidebar({
           ＋ New Collection
         </button>
 
-        <section className="organise-vault-card">
-          <div>
-            <h3>Organise your vault</h3>
-            <p>Group your owned games into collections and shuffle what you feel like playing.</p>
-          </div>
-
-          <img src="/assets/vault-door-compact.svg" alt="" />
-        </section>
-
-        <button className="ghost collection-sidebar-open-vault" onClick={onOpenVault} type="button">
-          Open Vault
-        </button>
       </div>
     </aside>
   );
 }
 
-function CompactVaultLauncher({
-  count,
-  mode,
-  onModeChange,
-  onOpen
-}: {
-  count: number;
-  mode: VaultMode;
-  onModeChange: (mode: VaultMode) => void;
-  onOpen: () => void;
-}) {
-  return (
-    <section className="sidebar-shuffle canonical-vault-card">
-      <div className="sidebar-shuffle-copy">
-        <h3>Switch to Vault</h3>
-        <p>Crack the vault, draw games from your collection, and discover something new.</p>
-      </div>
 
-      <img src="/assets/vault-door-compact.svg" alt="" />
-
-      <div className="vault-mode-row" aria-label="Vault mode">
-        <button className={mode === "draw" ? "active" : ""} onClick={() => onModeChange("draw")} type="button">
-          Vault Draw
-        </button>
-
-        <button className={mode === "choose" ? "active" : ""} onClick={() => onModeChange("choose")} type="button">
-          3 Options
-        </button>
-      </div>
-
-      <div className="sidebar-shuffle-meta">
-        <strong>{count}</strong>
-        <span>eligible games</span>
-      </div>
-
-      <button className="shuffle-button sidebar-shuffle-button" onClick={onOpen} type="button">
-        Open Vault
-      </button>
-    </section>
-  );
-}
 
 function VaultPanel({
   onOpenVault,

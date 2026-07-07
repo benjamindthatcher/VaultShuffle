@@ -486,10 +486,23 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-sidebar-panel .wishlist-view-row {
-  min-height: 32px;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
   padding: 0;
   color: rgba(245, 242, 255, 0.76);
+  font-size: 13px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .wishlist-view-row p {
+  margin: 0;
+  min-width: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel .wishlist-view-row strong {
+  color: #fff;
   font-size: 13px;
 }
 

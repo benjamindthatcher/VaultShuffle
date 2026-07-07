@@ -170,7 +170,8 @@ img {
   font-size: clamp(58px, 5.35vw, 88px);
   font-weight: 980;
   line-height: 0.98;
-  letter-spacing: -0.06em;
+  letter-spacing: -0.012em;
+  word-spacing: 0.045em;
 }
 
 .vs-hero h1 span {
@@ -180,6 +181,8 @@ img {
   -webkit-background-clip: text;
   background-clip: text;
   text-shadow: 0 12px 54px rgba(146, 65, 255, 0.28);
+  letter-spacing: -0.012em;
+  word-spacing: 0.045em;
 }
 
 .vs-hero-text {
@@ -255,19 +258,37 @@ img {
 
 .vs-stage-art {
   position: absolute;
-  inset: -26px -38px -28px -64px;
-  width: calc(100% + 102px);
+  inset: -26px -120px -28px -64px;
+  width: calc(100% + 184px);
   height: calc(100% + 54px);
   object-fit: cover;
   object-position: 54% 50%;
   opacity: 0.98;
   filter: saturate(1.08) contrast(1.03);
   -webkit-mask-image:
-    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.18) 9%, rgba(0, 0, 0, 0.78) 22%, black 38%),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.18) 9%,
+      rgba(0, 0, 0, 0.78) 22%,
+      black 38%,
+      black 78%,
+      rgba(0, 0, 0, 0.55) 91%,
+      transparent 100%
+    ),
     linear-gradient(to bottom, transparent 0%, black 8%, black 88%, transparent 100%);
   -webkit-mask-composite: source-in;
   mask-image:
-    linear-gradient(to right, transparent 0%, rgba(0, 0, 0, 0.18) 9%, rgba(0, 0, 0, 0.78) 22%, black 38%),
+    linear-gradient(
+      to right,
+      transparent 0%,
+      rgba(0, 0, 0, 0.18) 9%,
+      rgba(0, 0, 0, 0.78) 22%,
+      black 38%,
+      black 78%,
+      rgba(0, 0, 0, 0.55) 91%,
+      transparent 100%
+    ),
     linear-gradient(to bottom, transparent 0%, black 8%, black 88%, transparent 100%);
   mask-composite: intersect;
 }
