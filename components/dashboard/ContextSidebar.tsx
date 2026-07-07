@@ -136,15 +136,11 @@ function SidebarTabButton({
 function LibraryOverviewPanel({
   games,
   onStatFilter,
-  stats,
+  stats
 }: {
   games: Game[];
-  onOpenVault: () => void;
   onStatFilter: (action: StatAction) => void;
-  setVaultMode: (mode: VaultMode) => void;
-  shuffleEligibleCount: number;
   stats: StatsPayload;
-  vaultMode: VaultMode;
 }) {
   return (
     <div className="context-panel overview-context">
