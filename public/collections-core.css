@@ -528,3 +528,33 @@
 .app-shell.shell-v2.app-page-collections .core-selected-collection-games > .collection-create-inline {
   display: none !important;
 }
+
+
+/* Position the New Collection popover above the sidebar button instead of sideways. */
+.app-shell.shell-v2.app-page-collections .new-collection-popover-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover {
+  left: 0 !important;
+  right: 0 !important;
+  bottom: calc(100% + 12px) !important;
+  width: auto !important;
+  max-width: none !important;
+  box-sizing: border-box;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover::before {
+  left: 42px !important;
+  bottom: -8px !important;
+  border-left: 0 !important;
+  border-bottom: 1px solid rgba(180, 92, 255, 0.46) !important;
+  border-right: 1px solid rgba(180, 92, 255, 0.46) !important;
+  border-top: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .context-sidebar,
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
+  overflow: visible !important;
+}
