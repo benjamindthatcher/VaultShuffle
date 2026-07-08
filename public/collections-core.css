@@ -1213,3 +1213,43 @@
     grid-template-columns: 28% 72% !important;
   }
 }
+
+
+/* Remove owner badges and tighten the selected-card description → game-count spacing. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
+  display: block !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
+  max-width: 100% !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
+  max-height: 62px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row small {
+  display: none !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 42px !important;
+  margin: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
+  display: none !important;
+  flex: 0 0 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
+  margin-top: -2px !important;
+}

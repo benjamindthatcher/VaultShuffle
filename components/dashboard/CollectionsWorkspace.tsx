@@ -106,7 +106,6 @@ export function CollectionsWorkspace({
 
               <span className="collection-card-title-row">
                 <strong>{collection.name}</strong>
-                <small>You</small>
               </span>
 
               {collection.description ? <p>{collection.description}</p> : <p className="collection-card-description-empty" aria-hidden="true" />}
@@ -122,7 +121,6 @@ export function CollectionsWorkspace({
 
           <h2>
             {selectedCollection?.name || "Select a collection"}
-            {selectedCollection ? <span>You</span> : null}
           </h2>
 
           {selectedCollection ? (
