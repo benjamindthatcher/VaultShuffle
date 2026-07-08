@@ -800,3 +800,31 @@
     width: 100%;
   }
 }
+
+
+/* Collection game row action menu: three-dots opens a Delete dropdown instead of deleting immediately. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell {
+  position: relative;
+  display: grid;
+  justify-items: end;
+  overflow: visible !important;
+  z-index: 6;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell .row-menu-button {
+  width: 34px;
+  height: 34px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu {
+  position: absolute;
+  top: 38px;
+  right: 0;
+  z-index: 80;
+  min-width: 112px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu button {
+  width: 100%;
+  text-align: left;
+}

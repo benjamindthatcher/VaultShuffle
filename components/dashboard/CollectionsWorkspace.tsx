@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { Collection, CollectionGame, Game } from "@/lib/types";
 import { displayGenres } from "@/lib/game-display";
 import { Cover } from "@/components/dashboard/GameArtwork";
@@ -36,6 +37,7 @@ export function CollectionsWorkspace({
   const selectedGameIds = new Set(collectionItems.map((item) => item.game_id));
   const availableGames = games.filter((game) => !selectedGameIds.has(game.id));
   const hasCollections = collections.length > 0;
+  const [rowMenuGameId, setRowMenuGameId] = useState<string | null>(null);
 
   if (!isLoggedIn) {
     return (
@@ -92,7 +94,10 @@ export function CollectionsWorkspace({
             <button
               className={`collection-showcase-card core-collection-card ${isActive ? "active" : ""}`}
               key={collection.id}
-              onClick={() => onSelectCollection(collection)}
+              onClick={() => {
+                setRowMenuGameId(null);
+                onSelectCollection(collection);
+              }}
               type="button"
             >
               <CollectionPreview games={preview} collectionName={collection.name} />
@@ -166,9 +171,31 @@ export function CollectionsWorkspace({
                 </span>
                 <span>{Number(item.game.hours_played || 0).toLocaleString()}h</span>
                 <span>{displayGenres(item.game)}</span>
-                <button className="row-menu-button" onClick={() => onRemoveGame(item.game_id)} type="button" aria-label={`Remove ${item.game.title}`}>
-                  ⋮
-                </button>
+                <span className="row-menu-cell collection-row-menu-cell">
+                  <button
+                    className="row-menu-button"
+                    onClick={() => setRowMenuGameId((current) => current === item.game_id ? null : item.game_id)}
+                    type="button"
+                    aria-label={`Actions for ${item.game.title}`}
+                    aria-expanded={rowMenuGameId === item.game_id}
+                  >
+                    ⋮
+                  </button>
+
+                  {rowMenuGameId === item.game_id ? (
+                    <span className="row-menu collection-row-menu">
+                      <button
+                        onClick={() => {
+                          setRowMenuGameId(null);
+                          onRemoveGame(item.game_id);
+                        }}
+                        type="button"
+                      >
+                        Delete
+                      </button>
+                    </span>
+                  ) : null}
+                </span>
               </div>
             ) : null) : <div className="workspace-empty">Add games to start this collection.</div>}
           </div>
