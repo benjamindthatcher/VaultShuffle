@@ -54,61 +54,89 @@ export function CollectionsWorkspace({
     );
   }
 
+  if (!hasCollections) {
+    return (
+      <div
+        className="collections-workspace collections-redesign"
+        style={{
+          gap: 16,
+          paddingTop: 28
+        }}
+      >
+        <section className="collections-main-heading">
+          <h1>Your Collections <span>(0)</span></h1>
+        </section>
+
+        <section
+          className="collection-detail-showcase"
+          style={{
+            minHeight: 280,
+            marginTop: 0
+          }}
+        >
+          <aside className="selected-collection-card">
+            <div className="selected-collection-icon" aria-hidden="true">♚</div>
+
+            <h2>Select a collection</h2>
+
+            <p>Create your first collection to organise games from your vault.</p>
+            <strong>0 games</strong>
+          </aside>
+
+          <div className="selected-collection-games">
+            <div className="selected-collection-header">
+              <h2>Create a collection</h2>
+            </div>
+
+            <form
+              className="create-collection-form collection-create-inline"
+              onSubmit={onCreateCollection}
+              style={{
+                marginTop: 0
+              }}
+            >
+              <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
+              <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
+              <button className="shuffle-button" type="submit">Create Collection</button>
+            </form>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="collections-workspace collections-redesign">
       <section className="collections-main-heading">
         <h1>Your Collections <span>({collections.length})</span></h1>
       </section>
 
-      {hasCollections ? (
-        <section className="collection-card-strip" aria-label="Collections">
-          {collections.slice(0, 4).map((collection, index) => (
-            <button
-              className={`collection-showcase-card ${collection.id === selectedCollection?.id ? "active" : ""}`}
-              key={collection.id}
-              onClick={() => onSelectCollection(collection)}
-              type="button"
-            >
-              <span className="collection-cover-stack">
-                {previewGames(games, index).map((game) => (
-                  <span key={`${collection.id}-${game.id}`}>
-                    <Cover game={game} />
-                  </span>
-                ))}
-              </span>
-
-              <strong>
-                {collection.name}
-                <small>You</small>
-              </strong>
-
-              <p>{collection.description || collectionDescriptionFor(collection.name)}</p>
-              <em>{collection.game_count ?? 0} games</em>
-            </button>
-          ))}
-        </section>
-      ) : (
-        <section
-          className="collection-card-strip"
-          aria-label="Collections"
-          style={{
-            display: "block",
-            minHeight: 0
-          }}
-        >
-          <div
-            className="workspace-empty"
-            style={{
-              maxWidth: "none",
-              margin: 0,
-              padding: 0,
-              textAlign: "left"
-            }}
+      <section className="collection-card-strip" aria-label="Collections">
+        {collections.slice(0, 4).map((collection, index) => (
+          <button
+            className={`collection-showcase-card ${collection.id === selectedCollection?.id ? "active" : ""}`}
+            key={collection.id}
+            onClick={() => onSelectCollection(collection)}
+            type="button"
           >
-            Create your first collection to get started.
-          </div>
-        </section>
-      )}
+            <span className="collection-cover-stack">
+              {previewGames(games, index).map((game) => (
+                <span key={`${collection.id}-${game.id}`}>
+                  <Cover game={game} />
+                </span>
+              ))}
+            </span>
+
+            <strong>
+              {collection.name}
+              <small>You</small>
+            </strong>
+
+            <p>{collection.description || collectionDescriptionFor(collection.name)}</p>
+            <em>{collection.game_count ?? 0} games</em>
+          </button>
+        ))}
+      </section>
 
       <section className="collection-detail-showcase">
         <aside className="selected-collection-card">
@@ -119,82 +147,59 @@ export function CollectionsWorkspace({
             {selectedCollection ? <span>You</span> : null}
           </h2>
 
-          <p>{selectedCollection?.description || "Create or select a collection to see the games inside it."}</p>
+          <p>{selectedCollection?.description || "Pick a collection above to see the games inside it."}</p>
           <strong>{collectionItems.length} games</strong>
 
-          {selectedCollection ? (
-            <>
-              <button className="shuffle-button" type="button">⟲ Play Shuffle</button>
-              <button className="ghost" type="button" onClick={() => document.querySelector<HTMLInputElement>(".create-collection-form input")?.focus()}>
-                ✎ Edit Collection
-              </button>
+          <button className="shuffle-button" type="button">⟲ Play Shuffle</button>
+          <button className="ghost" type="button" onClick={() => document.querySelector<HTMLInputElement>(".create-collection-form input")?.focus()}>
+            ✎ Edit Collection
+          </button>
 
-              <small>Last updated <b>Today</b></small>
-            </>
-          ) : null}
+          <small>Last updated <b>Today</b></small>
         </aside>
 
         <div className="selected-collection-games">
           <div className="selected-collection-header">
-            <h2>
-              {selectedCollection ? "Games in this collection" : "Create a collection"}{" "}
-              <span>{selectedCollection ? `(${collectionItems.length})` : ""}</span>
-            </h2>
+            <h2>Games in this collection <span>({collectionItems.length})</span></h2>
 
-            {selectedCollection ? (
-              <div className="collection-add-row">
-                <select value={collectionGameId} onChange={(event) => setCollectionGameId(event.target.value)}>
-                  <option value="">Add an existing game...</option>
-                  {availableGames.map((game) => <option value={game.id} key={game.id}>{game.title}</option>)}
-                </select>
+            <div className="collection-add-row">
+              <select value={collectionGameId} onChange={(event) => setCollectionGameId(event.target.value)}>
+                <option value="">Add an existing game...</option>
+                {availableGames.map((game) => <option value={game.id} key={game.id}>{game.title}</option>)}
+              </select>
 
-                <button className="ghost" onClick={onAddGame} type="button">Add Game</button>
-              </div>
-            ) : null}
+              <button className="ghost" onClick={onAddGame} type="button">Add Game</button>
+            </div>
           </div>
 
-          {!selectedCollection ? (
-            <form
-              className="create-collection-form collection-create-inline"
-              onSubmit={onCreateCollection}
-              style={{ marginTop: 0 }}
-            >
-              <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
-              <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
-              <button className="shuffle-button" type="submit">Create Collection</button>
-            </form>
-          ) : (
-            <>
-              <div className="collection-game-table">
-                <div className="collection-game-head">
-                  <span>Game</span>
-                  <span>Playtime</span>
-                  <span>Genre</span>
-                  <span />
-                </div>
+          <div className="collection-game-table">
+            <div className="collection-game-head">
+              <span>Game</span>
+              <span>Playtime</span>
+              <span>Genre</span>
+              <span />
+            </div>
 
-                {collectionItems.length ? collectionItems.map((item) => item.game ? (
-                  <div className="collection-game-row" key={item.game_id}>
-                    <span className="game-cell">
-                      <Cover game={item.game} />
-                      <strong>{item.game.title}</strong>
-                    </span>
-                    <span>{Number(item.game.hours_played || 0).toLocaleString()}h</span>
-                    <span>{displayGenres(item.game)}</span>
-                    <button className="row-menu-button" onClick={() => onRemoveGame(item.game_id)} type="button" aria-label={`Remove ${item.game.title}`}>
-                      ⋮
-                    </button>
-                  </div>
-                ) : null) : <div className="workspace-empty">Add games to start this collection.</div>}
+            {collectionItems.length ? collectionItems.map((item) => item.game ? (
+              <div className="collection-game-row" key={item.game_id}>
+                <span className="game-cell">
+                  <Cover game={item.game} />
+                  <strong>{item.game.title}</strong>
+                </span>
+                <span>{Number(item.game.hours_played || 0).toLocaleString()}h</span>
+                <span>{displayGenres(item.game)}</span>
+                <button className="row-menu-button" onClick={() => onRemoveGame(item.game_id)} type="button" aria-label={`Remove ${item.game.title}`}>
+                  ⋮
+                </button>
               </div>
+            ) : null) : <div className="workspace-empty">Add games to start this collection.</div>}
+          </div>
 
-              <form className="create-collection-form collection-create-inline" onSubmit={onCreateCollection}>
-                <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
-                <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
-                <button className="shuffle-button" type="submit">Create Collection</button>
-              </form>
-            </>
-          )}
+          <form className="create-collection-form collection-create-inline" onSubmit={onCreateCollection}>
+            <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
+            <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
+            <button className="shuffle-button" type="submit">Create Collection</button>
+          </form>
         </div>
       </section>
     </div>
