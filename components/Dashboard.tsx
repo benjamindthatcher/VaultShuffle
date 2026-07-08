@@ -234,7 +234,7 @@ export function Dashboard() {
   const selected = games.find((game) => game.id === selectedId) ?? null;
   const shuffleEligibleCount = useMemo(() => filteredGames.filter((game) => !isCompleted(game)).length, [filteredGames]);
   const activeRulesLabel = activeFilterLabel(status, ownership, genreFilter, lengthFilter);
-  const wishlistGames = useMemo(() => games.filter((game) => game.ownership === "Wishlist"), [games]);
+  const wishlistGames = useMemo(() => filteredGames.filter((game) => game.ownership === "Wishlist"), [filteredGames]);
 
   useEffect(() => {
     if (!selected) {
@@ -612,6 +612,7 @@ export function Dashboard() {
           onPageChange={(page) => {
             setActivePage(page);
             setSettingsOpen(false);
+            setFiltersOpen(false);
             if (page !== "vault") setSidebarTab("overview");
           }}
           onThemeChange={setSelectedTheme}
@@ -694,16 +695,25 @@ export function Dashboard() {
 
           {activePage === "wishlist" ? (
             <WishlistWorkspace
+              activeFilterCount={activeFilterCount}
               addQuery={addQuery}
+              filterControls={filterControls}
+              filtersOpen={filtersOpen}
               isLoggedIn={isLoggedIn}
               onAddSteamGame={(result) => void addSteamGame(result)}
+              onCompleted={(game) => void markGameCompleted(game)}
+              onDelete={(game) => void deleteGame(game)}
               onSearchSubmit={submitAddSearch}
               onSelectGame={(game) => {
                 setSelectedId(game.id);
                 setSidebarTab("details");
+                setRowMenuId(null);
               }}
+              onToggleMenu={(game) => setRowMenuId((current) => current === game.id ? null : game.id)}
               onUpdateGame={(game, payload) => void patchGame(game, payload)}
+              rowMenuId={rowMenuId}
               setAddQuery={setAddQuery}
+              setFiltersOpen={setFiltersOpen}
               steamResults={steamResults}
               wishlistGames={wishlistGames}
             />
@@ -734,10 +744,13 @@ export function Dashboard() {
 
           {activePage === "vault" ? (
             <VaultWorkspace
+              activeFilterCount={activeFilterCount}
               animationKey={shuffleAnimationKey}
               cards={shuffleCards}
               eligibleCount={shuffleEligibleCount}
+              filterControls={filterControls}
               filterLabel={activeRulesLabel}
+              filtersOpen={filtersOpen}
               message={shuffleMessage}
               mode={vaultMode}
               onModeChange={setVaultMode}
@@ -747,6 +760,7 @@ export function Dashboard() {
                 setSidebarTab("details");
               }}
               onShuffle={shuffle}
+              setFiltersOpen={setFiltersOpen}
               spinning={shuffleSpinning}
             />
           ) : null}

@@ -2112,3 +2112,475 @@
   filter: none !important;
   border-radius: 0 !important;
 }
+/* Vault bottom-left filter strip: make it behave like a real control */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip {
+  appearance: none;
+  width: 100%;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 30px;
+  border: 0;
+  border-top: 1px solid rgba(137, 97, 255, 0.18);
+  border-radius: 0;
+  color: rgba(245, 242, 255, 0.70);
+  background:
+    linear-gradient(90deg, rgba(8, 14, 32, 0.92), rgba(8, 14, 32, 0.72));
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip:hover {
+  transform: none;
+  color: #fff;
+  background:
+    linear-gradient(90deg, rgba(137, 97, 255, 0.16), rgba(8, 14, 32, 0.82));
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip span {
+  color: rgba(245, 242, 255, 0.78);
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip p {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(245, 242, 255, 0.72);
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip b {
+  color: #e678ff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip:focus-visible {
+  outline: 2px solid rgba(230, 120, 255, 0.75);
+  outline-offset: -3px;
+}
+/* =========================================================
+   Vault in-place filter panel
+   ========================================================= */
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-dock {
+  position: relative;
+  margin-top: auto;
+  z-index: 30;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip {
+  appearance: none;
+  width: 100%;
+  min-height: 50px;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 0 30px;
+  border: 0;
+  border-top: 1px solid rgba(137, 97, 255, 0.18);
+  border-radius: 0;
+  color: rgba(245, 242, 255, 0.72);
+  background:
+    linear-gradient(90deg, rgba(8, 14, 32, 0.94), rgba(8, 14, 32, 0.76));
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip:hover {
+  transform: none;
+  color: #fff;
+  background:
+    linear-gradient(90deg, rgba(137, 97, 255, 0.16), rgba(8, 14, 32, 0.86));
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip p {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: inherit;
+  font-size: 13px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip b {
+  color: #e678ff;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: 62px;
+  z-index: 40;
+  max-height: min(62vh, 560px);
+  overflow: auto;
+  border: 1px solid rgba(180, 92, 255, 0.26);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(180, 92, 255, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(12, 16, 38, 0.98), rgba(5, 8, 22, 0.98));
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.42),
+    0 0 36px rgba(137, 97, 255, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover {
+  position: static !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  padding: 16px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-group {
+  margin: 0 0 16px;
+  padding: 0;
+  border: 0;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-group:last-of-type {
+  margin-bottom: 10px;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover legend {
+  margin-bottom: 8px;
+  color: rgba(245, 242, 255, 0.72);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.075em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group button {
+  min-height: 31px;
+  padding: 0 11px;
+  border: 1px solid rgba(137, 97, 255, 0.22);
+  border-radius: 999px;
+  color: rgba(245, 242, 255, 0.72);
+  background: rgba(7, 14, 31, 0.62);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group button.active {
+  border-color: rgba(230, 120, 255, 0.54);
+  color: #fff;
+  background: linear-gradient(135deg, rgba(137, 97, 255, 0.72), rgba(212, 93, 255, 0.58));
+  box-shadow: 0 0 18px rgba(180, 92, 255, 0.18);
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover-actions button {
+  flex: 1;
+  min-height: 36px;
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(137, 97, 255, 0.16);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover-actions button:last-child {
+  background: linear-gradient(135deg, rgba(137, 97, 255, 0.92), rgba(212, 93, 255, 0.78));
+}
+/* Vault sidebar filter: place it as a normal control, not a bottom footer */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip {
+  position: relative !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  top: auto !important;
+
+  width: 100% !important;
+  min-height: 46px !important;
+  margin: 12px 0 16px !important;
+  padding: 0 16px !important;
+
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  border: 1px solid rgba(137, 97, 255, 0.22) !important;
+  border-radius: 12px !important;
+  background:
+    linear-gradient(180deg, rgba(137, 97, 255, 0.08), rgba(7, 14, 31, 0.62)),
+    rgba(7, 14, 31, 0.58) !important;
+
+  color: rgba(245, 242, 255, 0.72) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip:hover {
+  transform: none !important;
+  border-color: rgba(212, 93, 255, 0.38) !important;
+  background:
+    radial-gradient(circle at 16% 0%, rgba(212, 93, 255, 0.14), transparent 46%),
+    rgba(7, 14, 31, 0.68) !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip p {
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  color: rgba(245, 242, 255, 0.74) !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip b {
+  color: #e678ff !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip span {
+  color: rgba(245, 242, 255, 0.72) !important;
+}
+
+/* Stop any filter dock/footer styling from pushing it to the bottom */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-dock {
+  position: relative !important;
+  margin-top: 0 !important;
+}
+/* =========================================================
+   Vault filters: consistent Library-sized popover
+   Paste at the bottom of public/app-redesign-wishlist-collections.css
+   ========================================================= */
+
+/* Make the Vault page a safe positioning context for the floating filter panel */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-page {
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* The sidebar should not force the filter button into footer/status-bar styling */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-sidebar {
+  grid-template-rows: auto auto auto auto auto minmax(0, 1fr) !important;
+  gap: 14px !important;
+}
+
+/* Place the filter control as a real card directly below Eligible Games */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-dock {
+  position: relative !important;
+  z-index: 75 !important;
+  margin: -2px 0 10px !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip {
+  appearance: none !important;
+  align-self: auto !important;
+
+  width: 100% !important;
+  min-height: 48px !important;
+  margin: 0 !important;
+  padding: 0 16px !important;
+
+  display: grid !important;
+  grid-template-columns: 20px minmax(0, 1fr) auto !important;
+  align-items: center !important;
+  gap: 10px !important;
+
+  border: 1px solid rgba(137, 97, 255, 0.24) !important;
+  border-radius: 12px !important;
+
+  color: rgba(245, 242, 255, 0.74) !important;
+  background:
+    linear-gradient(180deg, rgba(137, 97, 255, 0.08), rgba(7, 14, 31, 0.62)),
+    rgba(7, 14, 31, 0.60) !important;
+
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035) !important;
+  text-align: left !important;
+  cursor: pointer !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip:hover {
+  transform: none !important;
+  border-color: rgba(212, 93, 255, 0.44) !important;
+  color: #fff !important;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(212, 93, 255, 0.16), transparent 48%),
+    rgba(7, 14, 31, 0.72) !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip span {
+  color: rgba(245, 242, 255, 0.72) !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip p {
+  min-width: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  color: inherit !important;
+  font-size: 12px !important;
+  font-weight: 850 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-strip b {
+  color: #e678ff !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+}
+
+/* The actual filter menu: wide like Library, floating over the stage, not trapped in the sidebar */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover {
+  position: absolute !important;
+  z-index: 90 !important;
+  top: 72px !important;
+  left: 392px !important;
+
+  width: min(620px, calc(100vw - 430px)) !important;
+  max-height: min(74vh, 680px) !important;
+  overflow: auto !important;
+
+  border: 1px solid rgba(180, 92, 255, 0.28) !important;
+  border-radius: 16px !important;
+
+  background:
+    radial-gradient(circle at 18% 0%, rgba(180, 92, 255, 0.18), transparent 42%),
+    linear-gradient(180deg, rgba(9, 24, 45, 0.98), rgba(5, 13, 28, 0.98)) !important;
+
+  box-shadow:
+    0 24px 70px rgba(0, 0, 0, 0.44),
+    0 0 40px rgba(62, 177, 255, 0.10),
+    0 0 34px rgba(180, 92, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+
+  backdrop-filter: blur(18px) !important;
+}
+
+/* Reset the reused Library filter component so it fills our floating shell cleanly */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover > .filter-popover {
+  position: static !important;
+  inset: auto !important;
+  transform: none !important;
+
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+
+  padding: 24px 30px 26px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Match the Library filter rhythm/size instead of the skinny sidebar version */
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-group {
+  margin: 0 0 24px !important;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-group:last-of-type {
+  margin-bottom: 20px !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover legend {
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+
+  color: rgba(245, 242, 255, 0.72) !important;
+  font-size: 15px !important;
+  font-weight: 950 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 10px !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group button {
+  min-height: 46px !important;
+  padding: 0 20px !important;
+
+  border: 1px solid rgba(94, 188, 255, 0.24) !important;
+  border-radius: 999px !important;
+
+  color: rgba(245, 242, 255, 0.78) !important;
+  background: rgba(7, 30, 52, 0.64) !important;
+
+  font-size: 15px !important;
+  font-weight: 900 !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group button:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(212, 93, 255, 0.42) !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-chip-group button.active {
+  border-color: rgba(230, 120, 255, 0.62) !important;
+  color: #fff !important;
+  background: linear-gradient(135deg, rgba(190, 82, 255, 0.92), rgba(220, 93, 255, 0.82)) !important;
+  box-shadow: 0 0 24px rgba(180, 92, 255, 0.22) !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover-actions {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 14px !important;
+  padding-top: 4px !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover-actions button {
+  min-height: 46px !important;
+  border: 1px solid rgba(94, 188, 255, 0.24) !important;
+  border-radius: 12px !important;
+  color: #fff !important;
+  background: rgba(110, 91, 170, 0.44) !important;
+  font-size: 15px !important;
+  font-weight: 750 !important;
+}
+
+.app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover .filter-popover-actions button:last-child {
+  background: rgba(94, 188, 255, 0.16) !important;
+}
+
+/* On narrower app widths, keep the popover usable rather than letting it overflow */
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-vault .vault-cinematic-filter-popover {
+    left: 24px !important;
+    right: 24px !important;
+    width: auto !important;
+    top: 84px !important;
+  }
+}

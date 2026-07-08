@@ -1,40 +1,67 @@
 "use client";
 
+import { cloneElement, isValidElement } from "react";
+import type { CSSProperties, Dispatch, ReactElement, ReactNode, SetStateAction } from "react";
 import type { Game } from "@/lib/types";
 import { displayStatus, lengthBucket } from "@/lib/game-classification";
 import { genreDisplayLabel } from "@/lib/genres";
 import { HeroArtwork } from "@/components/dashboard/GameArtwork";
 import type { VaultMode } from "@/components/dashboard/VaultShuffleModal";
 
+type FilterPopoverElementProps = {
+  className?: string;
+  style?: CSSProperties;
+};
+
 type VaultWorkspaceProps = {
+  activeFilterCount: number;
   animationKey: number;
   cards: Game[];
   eligibleCount: number;
+  filterControls: ReactNode;
   filterLabel: string;
+  filtersOpen: boolean;
   message: string;
   mode: VaultMode;
   onModeChange: (mode: VaultMode) => void;
   onSelect: (game: Game) => void;
   onShuffle: () => void;
+  setFiltersOpen: Dispatch<SetStateAction<boolean>>;
   spinning: boolean;
 };
 
 export function VaultWorkspace({
+  activeFilterCount,
   animationKey,
   cards,
   eligibleCount,
+  filterControls,
   filterLabel,
+  filtersOpen,
   message,
   mode,
   onModeChange,
   onSelect,
   onShuffle,
+  setFiltersOpen,
   spinning
 }: VaultWorkspaceProps) {
   const hasCards = cards.length > 0 && !spinning;
   const primaryCard = hasCards ? cards[0] : null;
   const stageState = spinning ? "is-opening" : hasCards ? "is-open" : "is-closed";
   const resultCount = mode === "draw" ? 1 : 3;
+  const vaultFilterControls = isValidElement(filterControls)
+    ? cloneElement(filterControls as ReactElement<FilterPopoverElementProps>, {
+        className: "filter-popover",
+        style: {
+          top: 0,
+          left: 0,
+          right: "auto",
+          width: 384,
+          maxWidth: "min(384px, calc(100vw - 48px))"
+        }
+      })
+    : filterControls;
 
   return (
     <section className={`vault-cinematic-page ${stageState} mode-${mode} result-count-${hasCards ? cards.length : resultCount}`}>
@@ -73,13 +100,31 @@ export function VaultWorkspace({
             <span aria-hidden="true">☷</span>
             <strong>Let Me Choose</strong>
           </button>
+
+          <button
+            className={filtersOpen ? "active" : ""}
+            onClick={() => setFiltersOpen((open) => !open)}
+            type="button"
+          >
+            <span aria-hidden="true">▽</span>
+            <strong>Filters</strong>
+            {activeFilterCount ? <em style={{ justifySelf: "end", fontStyle: "normal" }}>{activeFilterCount}</em> : null}
+          </button>
         </div>
 
-        <div className="vault-cinematic-filter-strip">
-          <span aria-hidden="true">▽</span>
-          <p>{filterLabel}</p>
-          <b>View</b>
-        </div>
+        {filtersOpen ? (
+          <div
+            className="filter-popover-wrap"
+            style={{
+              position: "absolute",
+              left: "calc(100% - 18px)",
+              top: 126,
+              zIndex: 80
+            }}
+          >
+            {vaultFilterControls}
+          </div>
+        ) : null}
       </aside>
 
       <main className="vault-cinematic-stage" aria-label="Vault Shuffle">
@@ -99,7 +144,12 @@ export function VaultWorkspace({
         </div>
 
         <header className="vault-cinematic-header">
-          <button className="vault-filter-pill" type="button">
+          <button
+            aria-expanded={filtersOpen}
+            className="vault-filter-pill"
+            onClick={() => setFiltersOpen((open) => !open)}
+            type="button"
+          >
             <span aria-hidden="true">▽</span>
             {filterLabel === "Filter: all games" ? "All games eligible" : "Filters active"}
           </button>
@@ -139,7 +189,7 @@ export function VaultWorkspace({
 
           {primaryCard && mode === "draw" ? (
             <button className="vault-secondary-action" onClick={() => onModeChange("choose")} type="button">
-              Show 3 more options
+              Let Me Choose
             </button>
           ) : null}
         </div>
@@ -192,4 +242,3 @@ function VaultResultCard({
     </button>
   );
 }
-

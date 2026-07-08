@@ -1,7 +1,7 @@
 "use client";
 
 import type { SessionPayload } from "@/lib/types";
-import { THEME_OPTIONS, type ThemeOptionId } from "@/lib/themes";
+import type { ThemeOptionId } from "@/lib/themes";
 
 export type AppPage = "library" | "wishlist" | "collections" | "vault";
 
@@ -12,18 +12,7 @@ const NAV_ITEMS: Array<{ page: AppPage; label: string }> = [
   { page: "vault", label: "Vault" }
 ];
 
-export function AppTopNav({
-  activePage,
-  isLoggedIn,
-  onImportSteam,
-  onLogout,
-  onPageChange,
-  onThemeChange,
-  selectedTheme,
-  session,
-  settingsOpen,
-  setSettingsOpen
-}: {
+type AppTopNavProps = {
   activePage: AppPage;
   isLoggedIn: boolean;
   onImportSteam: () => void;
@@ -34,7 +23,18 @@ export function AppTopNav({
   session: SessionPayload | null;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean | ((current: boolean) => boolean)) => void;
-}) {
+};
+
+export function AppTopNav({
+  activePage,
+  isLoggedIn,
+  onImportSteam,
+  onLogout,
+  onPageChange,
+  session,
+  settingsOpen,
+  setSettingsOpen
+}: AppTopNavProps) {
   return (
     <header className="top-nav redesign-top-nav">
       <a className="brand-lockup" href="/" aria-label="Vault Shuffle home">
@@ -88,25 +88,6 @@ export function AppTopNav({
                   Sign out
                 </button>
               ) : null}
-
-              <div className="menu-divider" />
-
-              <strong>Theme</strong>
-
-              <div className="settings-theme-grid compact-theme-grid" role="list" aria-label="Theme options">
-                {THEME_OPTIONS.map((theme) => (
-                  <button
-                    key={theme.id}
-                    className={`settings-theme-tile theme-${theme.id} ${selectedTheme === theme.id ? "active" : ""}`}
-                    onClick={() => onThemeChange(theme.id)}
-                    type="button"
-                    aria-pressed={selectedTheme === theme.id}
-                  >
-                    <span aria-hidden="true" />
-                    <b>{theme.name}</b>
-                  </button>
-                ))}
-              </div>
             </div>
           ) : null}
         </div>
