@@ -102,7 +102,7 @@ export function CollectionsWorkspace({
                 <small>You</small>
               </span>
 
-              <p>{collection.description || collectionDescriptionFor(collection.name)}</p>
+              {collection.description ? <p>{collection.description}</p> : <p className="collection-card-description-empty" aria-hidden="true" />}
               <em>{collection.game_count ?? 0} games</em>
             </button>
           );
@@ -118,7 +118,11 @@ export function CollectionsWorkspace({
             {selectedCollection ? <span>You</span> : null}
           </h2>
 
-          <p>{selectedCollection?.description || "Pick a collection above to see the games inside it."}</p>
+          {selectedCollection ? (
+            selectedCollection.description ? <p>{selectedCollection.description}</p> : null
+          ) : (
+            <p>Pick a collection above to see the games inside it.</p>
+          )}
           <strong>{collectionItems.length} games</strong>
 
           <button className="shuffle-button" type="button">Play Shuffle</button>
@@ -207,15 +211,6 @@ function previewGames(games: Game[], index: number) {
   const start = (index * 2) % games.length;
   const selected = [games[start], games[(start + 1) % games.length], games[(start + 2) % games.length]].filter(Boolean);
   return selected.length ? selected : games.slice(0, 3);
-}
-
-function collectionDescriptionFor(name: string) {
-  const lower = name.toLowerCase();
-  if (lower.includes("co-op") || lower.includes("coop")) return "Perfect picks for friends.";
-  if (lower.includes("strategy")) return "Tactical, thoughtful, and deep.";
-  if (lower.includes("story")) return "Great narratives, start to finish.";
-  if (lower.includes("backlog")) return "Shorter games, big fun.";
-  return "A focused set from your vault.";
 }
 
 function formatUpdatedAt(value?: string) {
