@@ -558,3 +558,245 @@
 .app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
   overflow: visible !important;
 }
+
+
+/* Collections fixed layout hardening.
+   Prevent long descriptions / many games / many cards from changing the core layout. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *::before,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *::after {
+  box-sizing: border-box;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Top cards: fixed card sizing with horizontal scroll rather than overlap/breakage. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
+  display: flex !important;
+  width: 100%;
+  min-width: 0;
+  gap: 16px;
+  align-items: stretch;
+  overflow-x: auto !important;
+  overflow-y: visible;
+  padding: 0 0 16px;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card {
+  flex: 0 0 clamp(220px, 23%, 280px);
+  width: clamp(220px, 23%, 280px);
+  min-width: 0;
+  overflow: hidden !important;
+  scroll-snap-align: start;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active > * {
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
+  width: 100%;
+  min-width: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
+  min-width: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
+  display: block;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p {
+  min-height: 18px;
+  max-height: 36px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Detail panel: fixed 25/75 split. Content cannot resize columns. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  width: 100%;
+  min-width: 0;
+  height: clamp(390px, calc(100vh - 430px), 520px);
+  min-height: 390px;
+  max-height: 520px;
+  display: grid !important;
+  grid-template-columns: 25% 75% !important;
+  overflow: hidden !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
+  grid-template-rows: auto auto auto auto auto auto 1fr;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p {
+  max-width: 100%;
+  max-height: 64px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Right side: header is fixed, table body scrolls internally. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  padding-bottom: 18px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+  min-width: 0;
+  margin-bottom: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
+  flex: 0 1 auto;
+  min-width: 220px;
+  max-width: 38%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
+  flex: 1 1 58%;
+  min-width: 300px;
+  max-width: 58%;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  min-height: 0 !important;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+  scrollbar-width: thin;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(7, 14, 31, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 52%) minmax(76px, 14%) minmax(0, 25%) 38px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  min-width: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
+  min-width: 0;
+  grid-template-columns: 78px minmax(0, 1fr);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
+  margin: 96px 0 0;
+}
+
+/* Keep any stale bottom create form hidden. Creation belongs in the sidebar popover. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games > .collection-create-inline,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-compact {
+  display: none !important;
+}
+
+/* Smaller desktops: keep the percentage split, just relax top cards. */
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+    grid-template-columns: 28% 72% !important;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
+    max-width: 100%;
+    width: 100%;
+  }
+}
