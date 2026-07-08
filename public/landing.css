@@ -1137,3 +1137,267 @@ body {
   color: rgba(245, 242, 255, 0.58) !important;
   font-size: 13px !important;
 }
+/* =========================================================
+   PUBLIC PAGES FLUID RESPONSIVE SYSTEM
+   Landing + Steam login
+   Uses percentages/fr/clamp instead of per-resolution hacks
+   ========================================================= */
+
+/* ---------- Landing page ---------- */
+
+.vs-landing {
+  width: 100%;
+  max-width: none;
+  padding-left: clamp(24px, 4vw, 72px);
+  padding-right: clamp(24px, 4vw, 72px);
+  overflow-x: hidden;
+}
+
+/* Keep content sensible on ultrawide / 4K */
+.vs-hero,
+.vs-value-strip,
+.vs-product-grid,
+.vs-data-note {
+  width: min(100%, 1720px);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.vs-hero {
+  grid-template-columns: minmax(0, 47%) minmax(0, 53%);
+  gap: clamp(20px, 4vw, 72px);
+  min-height: clamp(430px, 58vh, 620px);
+  align-items: center;
+}
+
+.vs-hero-copy {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+}
+
+.vs-kicker {
+  margin-bottom: clamp(14px, 2vh, 22px);
+  font-size: clamp(11px, 0.85vw, 13px);
+}
+
+.vs-hero h1 {
+  font-size: clamp(48px, min(5vw, 8vh), 92px);
+  line-height: 0.98;
+}
+
+.vs-hero-text {
+  max-width: min(100%, 620px);
+  margin-top: clamp(18px, 2.6vh, 24px);
+  font-size: clamp(14px, 1.05vw, 18px);
+  line-height: 1.55;
+}
+
+.vs-cta-row {
+  margin-top: clamp(22px, 3vh, 30px);
+}
+
+.vs-cta {
+  min-height: clamp(54px, 6.8vh, 64px);
+  padding-left: clamp(18px, 1.7vw, 24px);
+  padding-right: clamp(18px, 1.7vw, 24px);
+  font-size: clamp(14px, 1vw, 16px);
+}
+
+.vs-cta-primary {
+  min-width: clamp(230px, 19vw, 270px);
+}
+
+.vs-cta-secondary {
+  min-width: clamp(200px, 16vw, 230px);
+}
+
+.vs-trust-row {
+  gap: clamp(16px, 2.2vw, 30px);
+  margin-top: clamp(22px, 3vh, 32px);
+  font-size: clamp(12px, 0.9vw, 14px);
+}
+
+.vs-hero-visual {
+  min-height: clamp(360px, 50vh, 560px);
+  margin-right: 0;
+}
+
+.vs-stage-art {
+  inset: -5% -12% -6% -8%;
+  width: 120%;
+  height: 112%;
+}
+
+.vs-featured-game-card {
+  width: clamp(245px, 19vw, 315px);
+  min-height: auto;
+  padding: clamp(12px, 1vw, 15px);
+  transform: translate(-50%, -50%);
+}
+
+.vs-featured-game-art {
+  height: clamp(115px, 9vw, 145px);
+}
+
+.vs-featured-game-body h2 {
+  font-size: clamp(21px, 1.65vw, 26px);
+}
+
+.vs-value-strip {
+  margin-top: clamp(6px, 1.4vh, 18px);
+}
+
+.vs-value-item {
+  min-height: clamp(84px, 10vh, 108px);
+  padding: clamp(14px, 1.6vw, 28px);
+  gap: clamp(14px, 1.4vw, 20px);
+}
+
+.vs-icon-box {
+  width: clamp(48px, 4vw, 62px);
+  height: clamp(48px, 4vw, 62px);
+}
+
+.vs-icon-box svg {
+  width: clamp(24px, 2vw, 31px);
+  height: clamp(24px, 2vw, 31px);
+}
+
+.vs-product-grid {
+  gap: clamp(14px, 1.4vw, 18px);
+  margin-top: clamp(16px, 2vh, 20px);
+}
+
+.vs-product-card {
+  min-height: clamp(190px, 22vh, 245px);
+  padding: clamp(16px, 1.4vw, 20px);
+}
+
+/* ---------- Steam login page ---------- */
+
+.steam-login-page.trust-login-page {
+  grid-template-columns: minmax(0, 42%) minmax(0, 58%);
+  min-height: 100vh;
+}
+
+.trust-login-copy {
+  padding-left: clamp(34px, 5vw, 76px);
+  padding-right: clamp(34px, 5vw, 76px);
+  padding-top: clamp(34px, 5vh, 56px);
+  padding-bottom: clamp(34px, 5vh, 56px);
+  gap: clamp(14px, 2vh, 24px);
+}
+
+.trust-login-heading h1 {
+  font-size: clamp(44px, min(5.2vw, 8vh), 78px);
+  line-height: 0.95;
+}
+
+.trust-login-heading > p:not(.trust-login-kicker) {
+  font-size: clamp(14px, 1vw, 16px);
+  line-height: 1.5;
+}
+
+.trust-login-benefits {
+  gap: clamp(8px, 1.4vh, 12px);
+}
+
+.trust-login-benefit {
+  min-height: clamp(50px, 7vh, 72px);
+  padding: clamp(8px, 1.1vh, 12px) 14px;
+}
+
+.trust-steam-button {
+  min-height: clamp(54px, 7vh, 64px);
+  font-size: clamp(14px, 1vw, 16px);
+}
+
+.trust-login-vault {
+  min-width: 0;
+}
+
+.trust-login-vault-frame {
+  background-position: center;
+  background-size: cover;
+}
+
+/* ---------- When desktop gets genuinely narrow, stack ---------- */
+
+@media (max-width: 1120px) {
+  .vs-hero {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .vs-hero-copy {
+    max-width: 760px;
+  }
+
+  .vs-hero-visual {
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+  }
+
+  .vs-value-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .vs-product-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .steam-login-page.trust-login-page {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-login-copy {
+    min-height: auto;
+  }
+
+  .trust-login-vault {
+    min-height: 420px;
+  }
+}
+
+/* ---------- Mobile / tiny browser widths ---------- */
+
+@media (max-width: 760px) {
+  .vs-landing {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .vs-hero h1 {
+    font-size: clamp(46px, 15vw, 62px);
+  }
+
+  .vs-cta-row {
+    flex-direction: column;
+  }
+
+  .vs-cta {
+    width: 100%;
+  }
+
+  .vs-trust-row {
+    gap: 16px;
+  }
+
+  .vs-value-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .vs-product-card {
+    grid-template-columns: 1fr;
+  }
+
+  .trust-login-copy {
+    padding: 28px 20px;
+  }
+
+  .trust-login-heading h1 {
+    font-size: clamp(42px, 13vw, 58px);
+  }
+}
