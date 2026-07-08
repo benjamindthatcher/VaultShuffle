@@ -572,6 +572,19 @@ export function Dashboard() {
     await Promise.all([loadCollections(selectedCollectionId), loadCollectionGames(selectedCollectionId)]);
   }
 
+  async function deleteSelectedCollection(collection: Collection) {
+    const nextCollectionId = collections.find((item) => item.id !== collection.id)?.id ?? null;
+    try {
+      await api(`/api/collections/${collection.id}`, { method: "DELETE" });
+      setSelectedCollectionId(nextCollectionId);
+      if (!nextCollectionId) setCollectionItems([]);
+      await loadCollections(nextCollectionId);
+      setNotice("Collection deleted.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not delete collection.");
+    }
+  }
+
   async function removeGameFromSelectedCollection(gameId: string) {
     if (!selectedCollectionId) return;
     await api(`/api/collections/${selectedCollectionId}/games/${gameId}`, { method: "DELETE" });
@@ -735,6 +748,7 @@ export function Dashboard() {
               isLoggedIn={isLoggedIn}
               onAddGame={() => void addGameToSelectedCollection()}
               onCreateCollection={(event) => void createCollection(event)}
+              onDeleteCollection={(collection) => void deleteSelectedCollection(collection)}
               onRemoveGame={(gameId) => void removeGameFromSelectedCollection(gameId)}
               onSelectCollection={(collection) => {
                 setSelectedCollectionId(collection.id);

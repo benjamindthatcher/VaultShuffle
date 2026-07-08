@@ -830,18 +830,31 @@
 }
 
 
-/* Rendered collection cards are no longer capped at four; keep the full lane scrollable. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
-  overflow-y: visible !important;
-  overscroll-behavior-x: contain;
-  -webkit-overflow-scrolling: touch;
+/* Keep collection cards from jumping upward on hover and clipping their active border. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:hover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:focus-visible,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+  transform: none !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card {
-  flex: 0 0 260px !important;
-  min-width: 260px !important;
-  max-width: 260px !important;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
+  padding-top: 3px !important;
+}
+
+/* Selected collection actions: Edit first, Delete below. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger {
+  border-color: rgba(255, 95, 148, 0.58);
+  color: #ffd7e5;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255, 95, 148, 0.16), transparent 62%),
+    rgba(22, 8, 26, 0.70);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger:hover {
+  border-color: rgba(255, 95, 148, 0.86);
+  color: #ffffff;
+  background:
+    linear-gradient(135deg, rgba(255, 95, 148, 0.22), rgba(180, 92, 255, 0.12)),
+    rgba(28, 9, 32, 0.82);
 }

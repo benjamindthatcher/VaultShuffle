@@ -12,6 +12,7 @@ export function CollectionsWorkspace({
   games,
   isLoggedIn,
   onAddGame,
+  onDeleteCollection,
   onRemoveGame,
   onSelectCollection,
   selectedCollectionId,
@@ -26,6 +27,7 @@ export function CollectionsWorkspace({
   isLoggedIn: boolean;
   onAddGame: () => void;
   onCreateCollection: (event: React.FormEvent<HTMLFormElement>) => void;
+  onDeleteCollection: (collection: Collection) => void;
   onRemoveGame: (gameId: string) => void;
   onSelectCollection: (collection: Collection) => void;
   selectedCollectionId: string | null;
@@ -86,7 +88,7 @@ export function CollectionsWorkspace({
       </section>
 
       <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
-        {collections.map((collection, index) => {
+        {collections.slice(0, 4).map((collection, index) => {
           const isActive = collection.id === selectedCollection?.id;
           const preview = previewGamesForCollection(collection, isActive ? selectedItems : [], games, index);
 
@@ -130,9 +132,15 @@ export function CollectionsWorkspace({
           )}
           <strong>{collectionItems.length} games</strong>
 
-          <button className="shuffle-button" type="button">Play Shuffle</button>
           <button className="ghost" type="button">
             Edit Collection
+          </button>
+          <button
+            className="ghost danger"
+            onClick={() => selectedCollection && onDeleteCollection(selectedCollection)}
+            type="button"
+          >
+            Delete Collection
           </button>
 
           <small>
