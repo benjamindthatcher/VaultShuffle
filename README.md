@@ -54,18 +54,6 @@ Preview mode is deliberately separate: guest games stay in browser storage and a
 - **Shared game classification:** status, progress, length, and endless-game logic are centralised so the app and API agree.
 - **Hosted environment:** secrets such as the Steam API key and Supabase service role key live in Vercel environment variables.
 
-## Environment
-
-The app expects these variables in Vercel:
-
-```bash
-NEXT_PUBLIC_SITE_URL=
-NEXT_PUBLIC_SUPABASE_URL=
-NEXT_PUBLIC_SUPABASE_ANON_KEY=
-SUPABASE_SERVICE_ROLE_KEY=
-STEAM_API_KEY=
-SESSION_SECRET=
-```
 
 Local development is possible with the same variables, but the public project is intended to be reviewed through the live deployment.
 
