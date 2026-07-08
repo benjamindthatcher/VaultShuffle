@@ -1,0 +1,428 @@
+/* Collections core polish — loaded after the main app CSS.
+   Scope is intentionally limited to the middle Collections workspace. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  min-height: 100%;
+  padding: 28px 30px 28px;
+  display: grid;
+  gap: 14px;
+  align-content: start;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collections-main-heading h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 25px;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collections-main-heading h1 span {
+  color: rgba(245, 242, 255, 0.72);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(190px, 1fr));
+  gap: 16px;
+  align-items: stretch;
+  overflow: visible;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card {
+  position: relative;
+  min-height: 210px;
+  display: grid;
+  grid-template-rows: 98px auto auto auto;
+  gap: 8px;
+  padding: 10px 14px 14px;
+  border: 1px solid rgba(137, 97, 255, 0.20);
+  border-radius: 11px;
+  color: rgba(245, 242, 255, 0.76);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(180, 92, 255, 0.10), transparent 46%),
+    rgba(7, 14, 31, 0.58);
+  text-align: left;
+  overflow: visible;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+  border-color: rgba(212, 93, 255, 0.92);
+  box-shadow:
+    0 0 0 1px rgba(212, 93, 255, 0.18),
+    0 18px 44px rgba(72, 24, 132, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(180, 92, 255, 0.20), transparent 48%),
+    rgba(7, 14, 31, 0.66);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -17px;
+  width: 30px;
+  height: 30px;
+  transform: translateX(-50%) rotate(45deg);
+  border-left: 1px solid rgba(212, 93, 255, 0.92);
+  border-top: 1px solid rgba(212, 93, 255, 0.92);
+  border-radius: 3px 0 0 0;
+  background: rgba(20, 14, 52, 0.94);
+  z-index: 2;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
+  height: 98px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  overflow: hidden;
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(180, 92, 255, 0.18), rgba(57, 184, 255, 0.10)),
+    rgba(3, 8, 23, 0.78);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile {
+  min-width: 0;
+  height: 98px;
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  object-fit: cover;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-empty {
+  place-items: center;
+  gap: 0;
+  border: 1px solid rgba(137, 97, 255, 0.18);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-empty span {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: rgba(245, 242, 255, 0.78);
+  font-size: 18px;
+  font-weight: 950;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(212, 93, 255, 0.22), transparent 58%),
+    rgba(12, 18, 41, 0.78);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
+  min-width: 0;
+  color: #fff;
+  font-size: 19px;
+  line-height: 1.1;
+  font-weight: 900;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row small,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
+  display: inline-grid;
+  place-items: center;
+  padding: 4px 9px;
+  border: 1px solid rgba(137, 97, 255, 0.28);
+  border-radius: 999px;
+  color: rgba(245, 242, 255, 0.88);
+  background: rgba(38, 21, 83, 0.78);
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 850;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
+  margin: 0;
+  color: rgba(245, 242, 255, 0.64);
+  font-size: 13px;
+  line-height: 1.35;
+  font-style: normal;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  position: relative;
+  min-height: 420px;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  margin-top: 0;
+  border: 1px solid rgba(212, 93, 255, 0.82);
+  border-radius: 13px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 4% 0%, rgba(180, 92, 255, 0.16), transparent 34%),
+    rgba(7, 14, 31, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 20px 54px rgba(8, 6, 25, 0.18);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 34px 24px 22px;
+  border-right: 1px solid rgba(137, 97, 255, 0.18);
+  background:
+    radial-gradient(circle at 50% 12%, rgba(180, 92, 255, 0.18), transparent 36%),
+    rgba(14, 14, 42, 0.60);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-icon {
+  width: 82px;
+  height: 82px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 12px;
+  border-radius: 24px;
+  color: #fff;
+  background: linear-gradient(180deg, rgba(180, 92, 255, 0.92), rgba(137, 97, 255, 0.56));
+  box-shadow: 0 16px 36px rgba(137, 97, 255, 0.26);
+  font-size: 42px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 22px;
+  line-height: 1.05;
+  font-weight: 950;
+  letter-spacing: -0.04em;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
+  margin-left: 9px;
+  vertical-align: middle;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p {
+  margin: 0;
+  color: rgba(245, 242, 255, 0.66);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .shuffle-button,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost {
+  width: 100%;
+  min-height: 48px;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost {
+  color: #f5f2ff;
+  background: rgba(6, 13, 31, 0.58);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  color: rgba(245, 242, 255, 0.52);
+  font-size: 12px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small b {
+  color: #fff;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  padding: 22px 26px 24px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 19px;
+  line-height: 1.2;
+  font-weight: 850;
+  text-transform: none;
+  letter-spacing: -0.02em;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 span {
+  color: rgba(245, 242, 255, 0.72);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 470px;
+  flex: 1 1 auto;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select {
+  min-width: 0;
+  flex: 1 1 auto;
+  min-height: 38px;
+  border-radius: 8px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row button {
+  min-height: 38px;
+  border-radius: 8px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  min-height: 240px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 1.35fr) 110px minmax(180px, .9fr) 38px;
+  align-items: center;
+  column-gap: 16px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
+  min-height: 38px;
+  color: rgba(245, 242, 255, 0.54);
+  border-bottom: 1px solid rgba(137, 97, 255, 0.16);
+  font-size: 11px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  min-height: 50px;
+  border-bottom: 1px solid rgba(137, 97, 255, 0.10);
+  color: rgba(245, 242, 255, 0.82);
+  font-size: 14px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .cover img {
+  width: 78px;
+  height: 42px;
+  border-radius: 7px;
+  object-fit: cover;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row strong {
+  overflow: hidden;
+  color: #fff;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
+  max-width: none;
+  margin: 76px 0 0;
+  text-align: center;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-compact {
+  margin-top: 14px;
+  opacity: 0.72;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-compact:focus-within {
+  opacity: 1;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  gap: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline input,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline button {
+  min-height: 38px;
+  border-radius: 8px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3.collections-empty-core {
+  gap: 16px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-detail-empty {
+  min-height: 280px;
+  margin-top: 0;
+  border-color: rgba(137, 97, 255, 0.22);
+}
+
+@media (max-width: 1220px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
+    grid-template-columns: repeat(2, minmax(190px, 1fr));
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active::after {
+    display: none;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+    display: block;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline input,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline button {
+    margin-top: 10px;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

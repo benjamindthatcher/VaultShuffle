@@ -44,7 +44,7 @@ export function CollectionsWorkspace({
 
   if (!isLoggedIn) {
     return (
-      <section className="workspace-panel collections-workspace collections-redesign">
+      <section className="workspace-panel collections-workspace collections-redesign collections-core-v3">
         <div className="workspace-empty">
           <h1>Collections</h1>
           <p>Sign in with Steam to create collections that sync between visits.</p>
@@ -56,29 +56,15 @@ export function CollectionsWorkspace({
 
   if (!hasCollections) {
     return (
-      <div
-        className="collections-workspace collections-redesign"
-        style={{
-          gap: 16,
-          paddingTop: 28
-        }}
-      >
+      <div className="collections-workspace collections-redesign collections-core-v3 collections-empty-core">
         <section className="collections-main-heading">
           <h1>Your Collections <span>(0)</span></h1>
         </section>
 
-        <section
-          className="collection-detail-showcase"
-          style={{
-            minHeight: 280,
-            marginTop: 0
-          }}
-        >
+        <section className="collection-detail-showcase collection-detail-empty">
           <aside className="selected-collection-card">
             <div className="selected-collection-icon" aria-hidden="true">♚</div>
-
             <h2>Select a collection</h2>
-
             <p>Create your first collection to organise games from your vault.</p>
             <strong>0 games</strong>
           </aside>
@@ -88,13 +74,7 @@ export function CollectionsWorkspace({
               <h2>Create a collection</h2>
             </div>
 
-            <form
-              className="create-collection-form collection-create-inline"
-              onSubmit={onCreateCollection}
-              style={{
-                marginTop: 0
-              }}
-            >
+            <form className="create-collection-form collection-create-inline" onSubmit={onCreateCollection}>
               <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
               <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
               <button className="shuffle-button" type="submit">Create Collection</button>
@@ -105,41 +85,44 @@ export function CollectionsWorkspace({
     );
   }
 
+  const selectedItems = collectionItems
+    .map((item) => item.game)
+    .filter((game): game is Game => Boolean(game));
+
   return (
-    <div className="collections-workspace collections-redesign">
+    <div className="collections-workspace collections-redesign collections-core-v3">
       <section className="collections-main-heading">
         <h1>Your Collections <span>({collections.length})</span></h1>
       </section>
 
-      <section className="collection-card-strip" aria-label="Collections">
-        {collections.slice(0, 4).map((collection, index) => (
-          <button
-            className={`collection-showcase-card ${collection.id === selectedCollection?.id ? "active" : ""}`}
-            key={collection.id}
-            onClick={() => onSelectCollection(collection)}
-            type="button"
-          >
-            <span className="collection-cover-stack">
-              {previewGames(games, index).map((game) => (
-                <span key={`${collection.id}-${game.id}`}>
-                  <Cover game={game} />
-                </span>
-              ))}
-            </span>
+      <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
+        {collections.slice(0, 4).map((collection, index) => {
+          const isActive = collection.id === selectedCollection?.id;
+          const preview = previewGamesForCollection(collection, isActive ? selectedItems : [], games, index);
 
-            <strong>
-              {collection.name}
-              <small>You</small>
-            </strong>
+          return (
+            <button
+              className={`collection-showcase-card core-collection-card ${isActive ? "active" : ""}`}
+              key={collection.id}
+              onClick={() => onSelectCollection(collection)}
+              type="button"
+            >
+              <CollectionPreview games={preview} collectionName={collection.name} />
 
-            <p>{collection.description || collectionDescriptionFor(collection.name)}</p>
-            <em>{collection.game_count ?? 0} games</em>
-          </button>
-        ))}
+              <span className="collection-card-title-row">
+                <strong>{collection.name}</strong>
+                <small>You</small>
+              </span>
+
+              <p>{collection.description || collectionDescriptionFor(collection.name)}</p>
+              <em>{collection.game_count ?? 0} games</em>
+            </button>
+          );
+        })}
       </section>
 
-      <section className="collection-detail-showcase">
-        <aside className="selected-collection-card">
+      <section className="collection-detail-showcase core-collection-detail">
+        <aside className="selected-collection-card core-selected-collection-card">
           <div className="selected-collection-icon" aria-hidden="true">♚</div>
 
           <h2>
@@ -150,15 +133,18 @@ export function CollectionsWorkspace({
           <p>{selectedCollection?.description || "Pick a collection above to see the games inside it."}</p>
           <strong>{collectionItems.length} games</strong>
 
-          <button className="shuffle-button" type="button">⟲ Play Shuffle</button>
+          <button className="shuffle-button" type="button">Play Shuffle</button>
           <button className="ghost" type="button" onClick={() => document.querySelector<HTMLInputElement>(".create-collection-form input")?.focus()}>
-            ✎ Edit Collection
+            Edit Collection
           </button>
 
-          <small>Last updated <b>Today</b></small>
+          <small>
+            <span>Last updated</span>
+            <b>{formatUpdatedAt(selectedCollection?.updated_at)}</b>
+          </small>
         </aside>
 
-        <div className="selected-collection-games">
+        <div className="selected-collection-games core-selected-collection-games">
           <div className="selected-collection-header">
             <h2>Games in this collection <span>({collectionItems.length})</span></h2>
 
@@ -195,7 +181,7 @@ export function CollectionsWorkspace({
             ) : null) : <div className="workspace-empty">Add games to start this collection.</div>}
           </div>
 
-          <form className="create-collection-form collection-create-inline" onSubmit={onCreateCollection}>
+          <form className="create-collection-form collection-create-inline collection-create-compact" onSubmit={onCreateCollection}>
             <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
             <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
             <button className="shuffle-button" type="submit">Create Collection</button>
@@ -204,6 +190,34 @@ export function CollectionsWorkspace({
       </section>
     </div>
   );
+}
+
+function CollectionPreview({ games, collectionName }: { games: Game[]; collectionName: string }) {
+  if (!games.length) {
+    return (
+      <span className="collection-preview-mosaic collection-preview-empty" aria-hidden="true">
+        <span>{initials(collectionName)}</span>
+        <span>♚</span>
+        <span>VS</span>
+      </span>
+    );
+  }
+
+  return (
+    <span className="collection-preview-mosaic" aria-hidden="true">
+      {games.slice(0, 3).map((game) => (
+        <span className="collection-preview-tile" key={game.id}>
+          <Cover game={game} />
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function previewGamesForCollection(collection: Collection, selectedItems: Game[], allGames: Game[], index: number) {
+  if (selectedItems.length) return selectedItems.slice(0, 3);
+  if (!collection.game_count) return [];
+  return previewGames(allGames, index);
 }
 
 function previewGames(games: Game[], index: number) {
@@ -220,4 +234,29 @@ function collectionDescriptionFor(name: string) {
   if (lower.includes("story")) return "Great narratives, start to finish.";
   if (lower.includes("backlog")) return "Shorter games, big fun.";
   return "A focused set from your vault.";
+}
+
+function formatUpdatedAt(value?: string) {
+  if (!value) return "Today";
+  const updated = new Date(value);
+  if (Number.isNaN(updated.getTime())) return "Today";
+
+  const now = new Date();
+  const sameDay = updated.toDateString() === now.toDateString();
+  if (sameDay) return "Today";
+
+  return updated.toLocaleDateString("en-GB", { day: "2-digit", month: "short" });
+}
+
+function initials(value: string) {
+  return (
+    value
+      .replace(/[^a-zA-Z0-9 ]/g, " ")
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((word) => word[0])
+      .join("")
+      .toUpperCase() || "VS"
+  );
 }

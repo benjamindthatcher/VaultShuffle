@@ -5,6 +5,7 @@ export default async function AppPage() {
     <>
       <link rel="stylesheet" href="/styles.css" />
       <link rel="stylesheet" href="/app-redesign-wishlist-collections.css" />
+      <link rel="stylesheet" href="/collections-core.css" />
       <Dashboard />
     </>
   );
