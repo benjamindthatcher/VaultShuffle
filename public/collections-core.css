@@ -860,11 +860,356 @@
 }
 
 
-/* Delete Collection should visually match the normal secondary collection button. */
+/* Locked Collections core layout.
+   This makes the collection detail area stable: descriptions/cards cannot resize it,
+   and only the games list scrolls when the collection has many games. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *::before,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *::after {
+  box-sizing: border-box;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  width: 100%;
+  min-width: 0;
+  height: calc(100vh - 128px);
+  min-height: 680px;
+  max-height: calc(100vh - 128px);
+  display: grid !important;
+  grid-template-rows: auto 230px minmax(0, 1fr);
+  gap: 12px;
+  align-content: stretch;
+  overflow: hidden !important;
+}
+
+/* The collection strip is a fixed-height horizontal lane. It never pushes the detail panel down. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 230px !important;
+  min-height: 230px !important;
+  max-height: 230px !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 3px 0 22px !important;
+  margin: 0 !important;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 88, 255, 0.82) rgba(19, 20, 54, 0.72);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar {
+  display: block !important;
+  height: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(19, 20, 54, 0.72);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(137, 97, 255, 0.92), rgba(212, 93, 255, 0.92));
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:hover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:focus-visible,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+  flex: 0 0 260px !important;
+  width: 260px !important;
+  min-width: 260px !important;
+  max-width: 260px !important;
+  height: 210px !important;
+  min-height: 210px !important;
+  max-height: 210px !important;
+  transform: none !important;
+  scroll-snap-align: start;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active > * {
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
+  width: 100%;
+  height: 98px !important;
+  min-height: 98px !important;
+  max-height: 98px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
+  min-width: 0;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
+  display: block;
+  min-width: 0;
+  max-width: 176px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-description-empty {
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The bottom detail panel fills the remaining page space and never resizes because of content. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  width: 100%;
+  min-width: 0;
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: 25% 75% !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+}
+
+/* Left selected collection card: fixed structure; Last updated is pinned to the bottom. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex !important;
+  flex-direction: column;
+  align-content: initial !important;
+  gap: 12px;
+  overflow: hidden !important;
+  padding: 28px 24px 22px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-icon {
+  flex: 0 0 82px;
+  width: 82px;
+  height: 82px;
+  min-height: 82px;
+  margin: 0 auto 10px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  max-height: 56px;
+  margin: 0 !important;
+  overflow: hidden;
+  display: block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
+  display: inline-grid;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
+  flex: 0 0 44px;
+  height: 44px !important;
+  min-height: 44px !important;
+  max-height: 44px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
+  flex: 0 0 auto;
+  min-height: 18px;
+  margin: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .shuffle-button {
+  flex: 0 0 48px;
+  width: 100%;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  border-color: rgba(180, 92, 255, 0.58) !important;
+  color: #f5f2ff !important;
+  background: rgba(6, 13, 31, 0.58) !important;
+  box-shadow: none !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+  margin-top: auto !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  overflow: hidden;
+}
+
+/* Right panel: add/search row stays fixed; only the games table scrolls. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  min-width: 0;
+  max-width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: grid !important;
+  grid-template-rows: 52px minmax(0, 1fr);
+  overflow: hidden !important;
+  padding: 22px 26px 18px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+  min-width: 0;
+  height: 52px !important;
+  min-height: 52px !important;
+  max-height: 52px !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: start !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin: 0 !important;
+  overflow: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
+  flex: 0 1 42%;
+  min-width: 0 !important;
+  max-width: 42% !important;
+  margin: 8px 0 0 !important;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
+  flex: 0 1 58% !important;
+  min-width: 0 !important;
+  max-width: 58% !important;
+  width: 58% !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 10px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row button {
+  min-width: 0;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  min-height: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 8px;
+  scrollbar-width: thin;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: rgba(7, 14, 31, 0.98);
+  backdrop-filter: blur(10px);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  width: 100%;
+  min-width: 0;
+  display: grid !important;
+  grid-template-columns: minmax(0, 52%) minmax(80px, 14%) minmax(0, 25%) 38px !important;
+  column-gap: 16px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
+  min-width: 0;
+  grid-template-columns: 78px minmax(0, 1fr);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
+  margin: 0 !important;
+  height: calc(100% - 42px);
+  display: grid;
+  place-items: center;
+}
+
+/* Keep old red delete styling disabled. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger:hover {
   border-color: rgba(180, 92, 255, 0.58) !important;
   color: #f5f2ff !important;
   background: rgba(6, 13, 31, 0.58) !important;
   box-shadow: none !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 {
+    min-height: 720px;
+    height: auto;
+    max-height: none;
+    overflow: visible !important;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+    height: 470px !important;
+    grid-template-columns: 28% 72% !important;
+  }
 }

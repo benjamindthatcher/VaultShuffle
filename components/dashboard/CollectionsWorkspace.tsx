@@ -88,7 +88,7 @@ export function CollectionsWorkspace({
       </section>
 
       <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
-        {collections.slice(0, 4).map((collection, index) => {
+        {collections.map((collection, index) => {
           const isActive = collection.id === selectedCollection?.id;
           const preview = previewGamesForCollection(collection, isActive ? selectedItems : [], games, index);
 
@@ -126,7 +126,9 @@ export function CollectionsWorkspace({
           </h2>
 
           {selectedCollection ? (
-            selectedCollection.description ? <p>{selectedCollection.description}</p> : null
+            <p className={!selectedCollection.description ? "collection-selected-description-empty" : undefined}>
+              {selectedCollection.description || ""}
+            </p>
           ) : (
             <p>Pick a collection above to see the games inside it.</p>
           )}
@@ -136,7 +138,7 @@ export function CollectionsWorkspace({
             Edit Collection
           </button>
           <button
-            className="ghost danger"
+            className="ghost"
             onClick={() => selectedCollection && onDeleteCollection(selectedCollection)}
             type="button"
           >
