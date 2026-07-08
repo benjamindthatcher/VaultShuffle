@@ -5,21 +5,16 @@ import { displayGenres } from "@/lib/game-display";
 import { Cover } from "@/components/dashboard/GameArtwork";
 
 export function CollectionsWorkspace({
-  collectionDescription,
   collectionGameId,
   collectionItems,
-  collectionName,
   collections,
   games,
   isLoggedIn,
   onAddGame,
-  onCreateCollection,
   onRemoveGame,
   onSelectCollection,
   selectedCollectionId,
-  setCollectionDescription,
-  setCollectionGameId,
-  setCollectionName
+  setCollectionGameId
 }: {
   collectionDescription: string;
   collectionGameId: string;
@@ -65,20 +60,13 @@ export function CollectionsWorkspace({
           <aside className="selected-collection-card">
             <div className="selected-collection-icon" aria-hidden="true">♚</div>
             <h2>Select a collection</h2>
-            <p>Create your first collection to organise games from your vault.</p>
+            <p>Use the + New Collection button on the left to create your first collection.</p>
             <strong>0 games</strong>
           </aside>
 
-          <div className="selected-collection-games">
-            <div className="selected-collection-header">
-              <h2>Create a collection</h2>
-            </div>
-
-            <form className="create-collection-form collection-create-inline" onSubmit={onCreateCollection}>
-              <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
-              <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
-              <button className="shuffle-button" type="submit">Create Collection</button>
-            </form>
+          <div className="selected-collection-games empty-collection-prompt">
+            <h2>Create a collection from the sidebar</h2>
+            <p>Collections you create will appear here, then you can add games to them.</p>
           </div>
         </section>
       </div>
@@ -134,7 +122,7 @@ export function CollectionsWorkspace({
           <strong>{collectionItems.length} games</strong>
 
           <button className="shuffle-button" type="button">Play Shuffle</button>
-          <button className="ghost" type="button" onClick={() => document.querySelector<HTMLInputElement>(".create-collection-form input")?.focus()}>
+          <button className="ghost" type="button">
             Edit Collection
           </button>
 
@@ -180,12 +168,6 @@ export function CollectionsWorkspace({
               </div>
             ) : null) : <div className="workspace-empty">Add games to start this collection.</div>}
           </div>
-
-          <form className="create-collection-form collection-create-inline collection-create-compact" onSubmit={onCreateCollection}>
-            <input value={collectionName} onChange={(event) => setCollectionName(event.target.value)} placeholder="New collection name" />
-            <input value={collectionDescription} onChange={(event) => setCollectionDescription(event.target.value)} placeholder="Description" />
-            <button className="shuffle-button" type="submit">Create Collection</button>
-          </form>
         </div>
       </section>
     </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { displayStatus } from "@/lib/game-classification";
 import { topLevelGenresFor } from "@/lib/genres";
 import type { Collection, Game, GamePayload, StatsPayload } from "@/lib/types";
@@ -12,8 +13,11 @@ export type StatAction = "all" | "completed" | "progress" | "sampled" | "not_sta
 export function ContextSidebar({
   activePage = "library",
   activeTab,
+  collectionDescription = "",
+  collectionName = "",
   collections = [],
   games,
+  onCreateCollection,
   onOpenNotes,
   onPlay,
   onStatFilter,
@@ -21,12 +25,17 @@ export function ContextSidebar({
   onUpdateGame,
   selected,
   selectedCollectionId,
+  setCollectionDescription,
+  setCollectionName,
   stats
 }: {
   activePage?: AppPage;
   activeTab: SidebarTab;
+  collectionDescription?: string;
+  collectionName?: string;
   collections?: Collection[];
   games: Game[];
+  onCreateCollection?: (event: React.FormEvent<HTMLFormElement>) => void;
   onOpenNotes: () => void;
   onPlay: () => void;
   onStatFilter: (action: StatAction) => void;
@@ -34,14 +43,21 @@ export function ContextSidebar({
   onUpdateGame: (payload: Partial<GamePayload>) => Promise<void>;
   selected: Game | null;
   selectedCollectionId?: string | null;
+  setCollectionDescription?: (value: string) => void;
+  setCollectionName?: (value: string) => void;
   stats: StatsPayload;
 }) {
   if (activePage === "collections") {
     return (
       <CollectionsSidebar
+        collectionDescription={collectionDescription}
+        collectionName={collectionName}
         collections={collections}
         games={games}
+        onCreateCollection={onCreateCollection}
         selectedCollectionId={selectedCollectionId}
+        setCollectionDescription={setCollectionDescription}
+        setCollectionName={setCollectionName}
       />
     );
   }
@@ -192,22 +208,48 @@ function WishlistOverviewPanel({ games }: { games: Game[] }) {
 }
 
 function CollectionsSidebar({
+  collectionDescription,
+  collectionName,
   collections,
   games,
-  selectedCollectionId
+  onCreateCollection,
+  selectedCollectionId,
+  setCollectionDescription,
+  setCollectionName
 }: {
+  collectionDescription: string;
+  collectionName: string;
   collections: Collection[];
   games: Game[];
+  onCreateCollection?: (event: React.FormEvent<HTMLFormElement>) => void;
   selectedCollectionId?: string | null;
+  setCollectionDescription?: (value: string) => void;
+  setCollectionName?: (value: string) => void;
 }) {
+  const [createOpen, setCreateOpen] = useState(false);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const totalGamesInCollections = collections.reduce((sum, collection) => sum + Number(collection.game_count || 0), 0);
   const selected = collections.find((collection) => collection.id === selectedCollectionId) ?? collections[0] ?? null;
   const shortCount = Math.min(5, games.length);
   const longCount = Math.min(2, games.length);
   const coopCount = Math.min(4, games.length);
 
-  function focusCreateForm() {
-    document.querySelector<HTMLInputElement>(".create-collection-form input")?.focus();
+  useEffect(() => {
+    if (!createOpen) return;
+
+    function closeOnOutside(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (target && popoverRef.current && !popoverRef.current.contains(target)) setCreateOpen(false);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutside);
+    return () => document.removeEventListener("pointerdown", closeOnOutside);
+  }, [createOpen]);
+
+  function submitCreate(event: React.FormEvent<HTMLFormElement>) {
+    if (!collectionName.trim()) return;
+    onCreateCollection?.(event);
+    setCreateOpen(false);
   }
 
   return (
@@ -234,9 +276,37 @@ function CollectionsSidebar({
           </div>
         </section>
 
-        <button className="shuffle-button sidebar-shuffle-button new-collection-button" onClick={focusCreateForm} type="button">
-          ＋ New Collection
-        </button>
+        <div className="new-collection-popover-wrap" ref={popoverRef}>
+          <button
+            aria-expanded={createOpen}
+            className="shuffle-button sidebar-shuffle-button new-collection-button"
+            onClick={() => setCreateOpen((open) => !open)}
+            type="button"
+          >
+            ＋ New Collection
+          </button>
+
+          {createOpen ? (
+            <form className="create-collection-form new-collection-popover" onSubmit={submitCreate}>
+              <strong>Create collection</strong>
+              <input
+                autoFocus
+                value={collectionName}
+                onChange={(event) => setCollectionName?.(event.target.value)}
+                placeholder="Collection name"
+              />
+              <input
+                value={collectionDescription}
+                onChange={(event) => setCollectionDescription?.(event.target.value)}
+                placeholder="Description"
+              />
+              <div>
+                <button className="ghost" onClick={() => setCreateOpen(false)} type="button">Cancel</button>
+                <button className="shuffle-button" disabled={!collectionName.trim()} type="submit">Create</button>
+              </div>
+            </form>
+          ) : null}
+        </div>
 
       </div>
     </aside>

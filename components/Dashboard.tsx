@@ -656,8 +656,13 @@ export function Dashboard() {
             selected={selected}
             stats={displayStats}
             activePage={activePage}
+            collectionDescription={collectionDescription}
+            collectionName={collectionName}
             collections={collections}
+            onCreateCollection={(event) => void createCollection(event)}
             selectedCollectionId={selectedCollectionId}
+            setCollectionDescription={setCollectionDescription}
+            setCollectionName={setCollectionName}
           />
         ) : null}
 

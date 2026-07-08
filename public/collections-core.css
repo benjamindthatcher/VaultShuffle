@@ -426,3 +426,105 @@
     gap: 8px;
   }
 }
+
+
+/* New collection creation lives in a sidebar popover, not the bottom detail panel. */
+.app-shell.shell-v2.app-page-collections .context-sidebar,
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
+  overflow: visible;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover-wrap {
+  position: relative;
+  overflow: visible;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover {
+  position: absolute;
+  left: calc(100% + 14px);
+  bottom: 0;
+  z-index: 140;
+  width: 350px;
+  display: grid;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(180, 92, 255, 0.46);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(180, 92, 255, 0.22), transparent 44%),
+    rgba(7, 14, 31, 0.96);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.38),
+    0 0 34px rgba(180, 92, 255, 0.18);
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  bottom: 22px;
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg);
+  border-left: 1px solid rgba(180, 92, 255, 0.46);
+  border-bottom: 1px solid rgba(180, 92, 255, 0.46);
+  background: rgba(7, 14, 31, 0.96);
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(137, 97, 255, 0.26);
+  border-radius: 9px;
+  color: #f5f2ff;
+  background: rgba(5, 12, 29, 0.76);
+  font: inherit;
+  box-sizing: border-box;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover button {
+  min-height: 40px;
+  border-radius: 9px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt h2 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 20px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt p {
+  max-width: 420px;
+  margin: 0;
+  color: rgba(245, 242, 255, 0.64);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+/* Defensive: hide any older bottom create form if a stale component is still cached. */
+.app-shell.shell-v2.app-page-collections .core-selected-collection-games > .collection-create-inline {
+  display: none !important;
+}
