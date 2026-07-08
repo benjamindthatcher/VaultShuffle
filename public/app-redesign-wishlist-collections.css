@@ -2100,3 +2100,15 @@
   opacity: 0 !important;
   display: none !important;
 }
+/* App header logo: remove forced rounded/glow treatment */
+.app-shell.shell-v2 .brand-lockup img,
+.top-nav .brand-lockup img,
+.redesign-top-nav .brand-lockup img {
+  width: 48px !important;
+  height: 48px !important;
+  object-fit: contain !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  filter: none !important;
+  border-radius: 0 !important;
+}
