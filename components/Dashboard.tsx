@@ -112,6 +112,7 @@ export function Dashboard() {
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [collectionPreviewGames, setCollectionPreviewGames] = useState<Record<string, Game[]>>({});
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [collectionItems, setCollectionItems] = useState<CollectionGame[]>([]);
   const [collectionName, setCollectionName] = useState("");
@@ -330,22 +331,59 @@ export function Dashboard() {
   async function loadCollections(nextSelectedId?: string | null) {
     try {
       const payload = await api<{ collections: Collection[] }>("/api/collections");
-      setCollections(payload.collections);
+      const nextCollections = payload.collections;
+      setCollections(nextCollections);
+      void loadCollectionPreviews(nextCollections);
+
       const selectedCollection = nextSelectedId
-        ? payload.collections.find((collection) => collection.id === nextSelectedId)
-        : payload.collections.find((collection) => collection.id === selectedCollectionId) ?? payload.collections[0];
+        ? nextCollections.find((collection) => collection.id === nextSelectedId)
+        : nextCollections.find((collection) => collection.id === selectedCollectionId) ?? nextCollections[0];
+
       setSelectedCollectionId(selectedCollection?.id ?? null);
       if (selectedCollection) await loadCollectionGames(selectedCollection.id);
       else setCollectionItems([]);
     } catch {
       setCollections([]);
       setCollectionItems([]);
+      setCollectionPreviewGames({});
     }
+  }
+
+  async function loadCollectionPreviews(nextCollections: Collection[]) {
+    if (!nextCollections.length) {
+      setCollectionPreviewGames({});
+      return;
+    }
+
+    const entries = await Promise.all(nextCollections.map(async (collection) => {
+      if (!collection.game_count) return [collection.id, [] as Game[]] as const;
+
+      try {
+        const payload = await api<{ collection: Collection; games: CollectionGame[] }>(`/api/collections/${collection.id}`);
+        const previewGames = payload.games
+          .map((item) => item.game)
+          .filter((game): game is Game => Boolean(game))
+          .slice(0, 3);
+
+        return [collection.id, previewGames] as const;
+      } catch {
+        return [collection.id, [] as Game[]] as const;
+      }
+    }));
+
+    setCollectionPreviewGames(Object.fromEntries(entries) as Record<string, Game[]>);
   }
 
   async function loadCollectionGames(collectionId: string) {
     const payload = await api<{ collection: Collection; games: CollectionGame[] }>(`/api/collections/${collectionId}`);
     setCollectionItems(payload.games);
+    setCollectionPreviewGames((current) => ({
+      ...current,
+      [collectionId]: payload.games
+        .map((item) => item.game)
+        .filter((game): game is Game => Boolean(game))
+        .slice(0, 3)
+    }));
   }
 
   function clearFilters() {
@@ -743,6 +781,7 @@ export function Dashboard() {
               collectionGameId={collectionGameId}
               collectionItems={collectionItems}
               collectionName={collectionName}
+              collectionPreviewGames={collectionPreviewGames}
               collections={collections}
               games={games}
               isLoggedIn={isLoggedIn}

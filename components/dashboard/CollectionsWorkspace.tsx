@@ -8,6 +8,7 @@ import { Cover } from "@/components/dashboard/GameArtwork";
 export function CollectionsWorkspace({
   collectionGameId,
   collectionItems,
+  collectionPreviewGames,
   collections,
   games,
   isLoggedIn,
@@ -22,6 +23,7 @@ export function CollectionsWorkspace({
   collectionGameId: string;
   collectionItems: CollectionGame[];
   collectionName: string;
+  collectionPreviewGames: Record<string, Game[]>;
   collections: Collection[];
   games: Game[];
   isLoggedIn: boolean;
@@ -88,9 +90,11 @@ export function CollectionsWorkspace({
       </section>
 
       <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
-        {collections.map((collection, index) => {
+        {collections.map((collection) => {
           const isActive = collection.id === selectedCollection?.id;
-          const preview = previewGamesForCollection(collection, isActive ? selectedItems : [], games, index);
+          const preview = isActive
+            ? selectedItems.slice(0, 3)
+            : collectionPreviewGames[collection.id] ?? [];
 
           return (
             <button
@@ -231,19 +235,6 @@ function CollectionPreview({ games, collectionName }: { games: Game[]; collectio
       ))}
     </span>
   );
-}
-
-function previewGamesForCollection(collection: Collection, selectedItems: Game[], allGames: Game[], index: number) {
-  if (selectedItems.length) return selectedItems.slice(0, 3);
-  if (!collection.game_count) return [];
-  return previewGames(allGames, index);
-}
-
-function previewGames(games: Game[], index: number) {
-  if (!games.length) return [];
-  const start = (index * 2) % games.length;
-  const selected = [games[start], games[(start + 1) % games.length], games[(start + 2) % games.length]].filter(Boolean);
-  return selected.length ? selected : games.slice(0, 3);
 }
 
 function formatUpdatedAt(value?: string) {
