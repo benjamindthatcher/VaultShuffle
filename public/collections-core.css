@@ -858,3 +858,13 @@
     linear-gradient(135deg, rgba(255, 95, 148, 0.22), rgba(180, 92, 255, 0.12)),
     rgba(28, 9, 32, 0.82);
 }
+
+
+/* Delete Collection should visually match the normal secondary collection button. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger:hover {
+  border-color: rgba(180, 92, 255, 0.58) !important;
+  color: #f5f2ff !important;
+  background: rgba(6, 13, 31, 0.58) !important;
+  box-shadow: none !important;
+}
