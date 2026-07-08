@@ -117,8 +117,6 @@ export function CollectionsWorkspace({
 
       <section className="collection-detail-showcase core-collection-detail">
         <aside className="selected-collection-card core-selected-collection-card">
-          <div className="selected-collection-icon" aria-hidden="true">♚</div>
-
           <h2>
             {selectedCollection?.name || "Select a collection"}
           </h2>
