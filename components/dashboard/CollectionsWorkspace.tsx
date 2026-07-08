@@ -86,7 +86,7 @@ export function CollectionsWorkspace({
       </section>
 
       <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
-        {collections.slice(0, 4).map((collection, index) => {
+        {collections.map((collection, index) => {
           const isActive = collection.id === selectedCollection?.id;
           const preview = previewGamesForCollection(collection, isActive ? selectedItems : [], games, index);
 

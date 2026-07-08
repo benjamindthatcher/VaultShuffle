@@ -830,50 +830,18 @@
 }
 
 
-/* Make the Your Collections card lane a real, visible horizontal scroll area. */
+/* Rendered collection cards are no longer capped at four; keep the full lane scrollable. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
   display: flex !important;
   flex-wrap: nowrap !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  gap: 16px !important;
-  align-items: stretch !important;
-  overflow-x: scroll !important;
+  overflow-x: auto !important;
   overflow-y: visible !important;
-  padding: 0 0 24px !important;
-  margin-bottom: -2px;
-  scroll-snap-type: x mandatory;
-  scrollbar-width: auto;
-  scrollbar-color: rgba(196, 88, 255, 0.82) rgba(19, 20, 54, 0.72);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar {
-  display: block !important;
-  height: 12px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-track {
-  border-radius: 999px;
-  background: rgba(19, 20, 54, 0.72);
-  border: 1px solid rgba(137, 97, 255, 0.18);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(137, 97, 255, 0.92), rgba(212, 93, 255, 0.92));
-  border: 2px solid rgba(19, 20, 54, 0.92);
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card {
   flex: 0 0 260px !important;
-  width: 260px !important;
   min-width: 260px !important;
   max-width: 260px !important;
-  scroll-snap-align: start;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::after {
-  content: "";
-  flex: 0 0 4px;
 }
