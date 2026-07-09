@@ -853,3 +853,108 @@
     max-height: 430px !important;
   }
 }
+
+
+/* Compact the lower collection table area without reintroducing discarded changes.
+   Keeps Last updated, keeps the no-arrow fix, and does not use cache-busting. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  grid-template-rows: auto 232px 405px !important;
+  gap: 12px !important;
+  align-content: start !important;
+  padding-bottom: 22px !important;
+}
+
+/* Lower panel: still useful, but not oversized. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  height: 405px !important;
+  min-height: 405px !important;
+  max-height: 405px !important;
+}
+
+/* Give the right side a compact fixed header and make only the list area flex. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  display: grid !important;
+  grid-template-rows: 48px minmax(0, 1fr) !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  padding-top: 20px !important;
+  padding-bottom: 16px !important;
+  overflow: hidden !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
+  align-items: flex-start !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
+  margin-top: 8px !important;
+  line-height: 1.15 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row button {
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+}
+
+/* The column-label bar should be a compact row, not a huge black block. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  display: grid !important;
+  grid-template-rows: 40px minmax(0, 1fr) !important;
+  min-height: 0 !important;
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 8px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  align-items: center !important;
+  background: rgba(5, 10, 25, 0.84) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head span {
+  line-height: 40px !important;
+}
+
+/* Rows stay readable but don't balloon. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  min-height: 52px !important;
+  max-height: 52px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
+  height: 100% !important;
+  margin: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Keep left side aligned inside the slightly shorter panel. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
+  padding-top: 26px !important;
+  padding-bottom: 20px !important;
+  gap: 9px !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 {
+    grid-template-rows: auto 232px 405px !important;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+    height: 405px !important;
+    min-height: 405px !important;
+    max-height: 405px !important;
+  }
+}
