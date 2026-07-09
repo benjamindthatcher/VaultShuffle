@@ -112,6 +112,7 @@ export function Dashboard() {
   const [notesEditing, setNotesEditing] = useState(false);
   const [notesDraft, setNotesDraft] = useState("");
   const [collections, setCollections] = useState<Collection[]>([]);
+  const [collectionsLoaded, setCollectionsLoaded] = useState(false);
   const [collectionPreviewGames, setCollectionPreviewGames] = useState<Record<string, Game[]>>({});
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [collectionItems, setCollectionItems] = useState<CollectionGame[]>([]);
@@ -332,6 +333,7 @@ export function Dashboard() {
     try {
       const payload = await api<{ collections: Collection[] }>("/api/collections");
       const nextCollections = payload.collections;
+      setCollectionsLoaded(true);
       setCollections(nextCollections);
       void loadCollectionPreviews(nextCollections);
 
@@ -343,6 +345,7 @@ export function Dashboard() {
       if (selectedCollection) await loadCollectionGames(selectedCollection.id);
       else setCollectionItems([]);
     } catch {
+      setCollectionsLoaded(true);
       setCollections([]);
       setCollectionItems([]);
       setCollectionPreviewGames({});
@@ -783,6 +786,7 @@ export function Dashboard() {
               collectionName={collectionName}
               collectionPreviewGames={collectionPreviewGames}
               collections={collections}
+              collectionsLoaded={collectionsLoaded}
               games={games}
               isLoggedIn={isLoggedIn}
               onAddGame={() => void addGameToSelectedCollection()}

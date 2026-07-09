@@ -10,6 +10,7 @@ export function CollectionsWorkspace({
   collectionItems,
   collectionPreviewGames,
   collections,
+  collectionsLoaded,
   games,
   isLoggedIn,
   onAddGame,
@@ -25,6 +26,7 @@ export function CollectionsWorkspace({
   collectionName: string;
   collectionPreviewGames: Record<string, Game[]>;
   collections: Collection[];
+  collectionsLoaded: boolean;
   games: Game[];
   isLoggedIn: boolean;
   onAddGame: () => void;
@@ -52,6 +54,28 @@ export function CollectionsWorkspace({
           <a className="shuffle-button link-button" href="/login">Sign in with Steam</a>
         </div>
       </section>
+    );
+  }
+
+  if (!collectionsLoaded) {
+    return (
+      <div className="collections-workspace collections-redesign collections-core-v3 collections-loading-core">
+        <section className="collections-main-heading">
+          <h1>Your Collections</h1>
+        </section>
+
+        <section className="collection-detail-showcase collection-detail-empty">
+          <aside className="selected-collection-card">
+            <h2>Loading collections</h2>
+            <p>Your collections are being loaded.</p>
+          </aside>
+
+          <div className="selected-collection-games empty-collection-prompt">
+            <h2>Loading your vault…</h2>
+            <p>This should only take a moment.</p>
+          </div>
+        </section>
+      </div>
     );
   }
 
