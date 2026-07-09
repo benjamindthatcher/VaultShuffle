@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Collection, CollectionGame, Game } from "@/lib/types";
 import { displayGenres } from "@/lib/game-display";
 import { CollectionPreviewArtwork, Cover } from "@/components/dashboard/GameArtwork";
@@ -44,6 +44,54 @@ export function CollectionsWorkspace({
   const availableGames = games.filter((game) => !selectedGameIds.has(game.id));
   const hasCollections = collections.length > 0;
   const [rowMenuGameId, setRowMenuGameId] = useState<string | null>(null);
+  const collectionCarouselRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollCollectionsLeft, setCanScrollCollectionsLeft] = useState(false);
+  const [canScrollCollectionsRight, setCanScrollCollectionsRight] = useState(false);
+
+  const updateCollectionCarouselButtons = useCallback(() => {
+    const carousel = collectionCarouselRef.current;
+    if (!carousel) {
+      setCanScrollCollectionsLeft(false);
+      setCanScrollCollectionsRight(false);
+      return;
+    }
+
+    const maxScrollLeft = Math.max(0, carousel.scrollWidth - carousel.clientWidth);
+    setCanScrollCollectionsLeft(carousel.scrollLeft > 4);
+    setCanScrollCollectionsRight(carousel.scrollLeft < maxScrollLeft - 4);
+  }, []);
+
+  const scrollCollectionCarousel = useCallback((direction: "left" | "right") => {
+    const carousel = collectionCarouselRef.current;
+    if (!carousel) return;
+
+    const firstCard = carousel.querySelector<HTMLElement>(".core-collection-card");
+    const styles = window.getComputedStyle(carousel);
+    const gap = Number.parseFloat(styles.columnGap || styles.gap || "0") || 0;
+    const cardWidth = firstCard?.getBoundingClientRect().width || carousel.clientWidth / 3;
+
+    carousel.scrollBy({
+      left: direction === "right" ? cardWidth + gap : -(cardWidth + gap),
+      behavior: "smooth",
+    });
+  }, []);
+
+  useEffect(() => {
+    updateCollectionCarouselButtons();
+    const carousel = collectionCarouselRef.current;
+    if (!carousel) return;
+
+    const refresh = () => updateCollectionCarouselButtons();
+    const timer = window.setTimeout(refresh, 0);
+    carousel.addEventListener("scroll", refresh, { passive: true });
+    window.addEventListener("resize", refresh);
+
+    return () => {
+      window.clearTimeout(timer);
+      carousel.removeEventListener("scroll", refresh);
+      window.removeEventListener("resize", refresh);
+    };
+  }, [collections.length, updateCollectionCarouselButtons]);
 
   if (!isLoggedIn) {
     return (
@@ -110,32 +158,54 @@ export function CollectionsWorkspace({
         <h1>Your Collections <span>({collections.length})</span></h1>
       </section>
 
-      <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
-        {collections.map((collection) => {
-          const isActive = collection.id === selectedCollection?.id;
-          const preview = collectionPreviewGames[collection.id] ?? [];
+      <section className="collection-carousel-shell" aria-label="Collections">
+        <div className="collection-card-strip core-collection-card-strip" ref={collectionCarouselRef}>
+          {collections.map((collection) => {
+            const isActive = collection.id === selectedCollection?.id;
+            const preview = collectionPreviewGames[collection.id] ?? [];
 
-          return (
-            <button
-              className={`collection-showcase-card core-collection-card ${isActive ? "active" : ""}`}
-              key={collection.id}
-              onClick={() => {
-                setRowMenuGameId(null);
-                onSelectCollection(collection);
-              }}
-              type="button"
-            >
-              <CollectionPreview games={preview} collectionName={collection.name} />
+            return (
+              <button
+                className={`collection-showcase-card core-collection-card ${isActive ? "active" : ""}`}
+                key={collection.id}
+                onClick={() => {
+                  setRowMenuGameId(null);
+                  onSelectCollection(collection);
+                }}
+                type="button"
+              >
+                <CollectionPreview games={preview} collectionName={collection.name} />
 
-              <span className="collection-card-title-row">
-                <strong>{collection.name}</strong>
-              </span>
+                <span className="collection-card-title-row">
+                  <strong>{collection.name}</strong>
+                </span>
 
-              {collection.description ? <p>{collection.description}</p> : <p className="collection-card-description-empty" aria-hidden="true" />}
-              <em>{collection.game_count ?? 0} games</em>
-            </button>
-          );
-        })}
+                {collection.description ? <p>{collection.description}</p> : <p className="collection-card-description-empty" aria-hidden="true" />}
+                <em>{collection.game_count ?? 0} games</em>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="collection-carousel-arrow collection-carousel-arrow-left"
+          onClick={() => scrollCollectionCarousel("left")}
+          disabled={!canScrollCollectionsLeft}
+          aria-label="Show previous collection"
+        >
+          ‹
+        </button>
+
+        <button
+          type="button"
+          className="collection-carousel-arrow collection-carousel-arrow-right"
+          onClick={() => scrollCollectionCarousel("right")}
+          disabled={!canScrollCollectionsRight}
+          aria-label="Show next collection"
+        >
+          ›
+        </button>
       </section>
 
       <section className="collection-detail-showcase core-collection-detail">

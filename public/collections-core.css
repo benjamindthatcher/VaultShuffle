@@ -1271,3 +1271,98 @@
   padding-right: 10px !important;
   box-sizing: border-box !important;
 }
+
+
+/* Fixed three-card carousel implementation.
+   The previous patch added the CSS but the TSX wrapper did not get inserted,
+   so these selectors never matched. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell {
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  overflow: visible !important;
+  padding-bottom: 18px !important;
+}
+
+/* Show exactly 3 collection cards at a time. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell > .core-collection-card-strip {
+  --collection-carousel-gap: 16px;
+  display: flex !important;
+  grid-template-columns: none !important;
+  gap: var(--collection-carousel-gap) !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scroll-behavior: smooth !important;
+  scroll-snap-type: x mandatory !important;
+  scrollbar-width: none !important;
+  padding: 3px 0 12px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell > .core-collection-card-strip::-webkit-scrollbar {
+  display: none !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell > .core-collection-card-strip > .core-collection-card,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell > .core-collection-card-strip > .core-collection-card:hover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell > .core-collection-card-strip > .core-collection-card:focus-visible,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell > .core-collection-card-strip > .core-collection-card.active {
+  flex: 0 0 calc((100% - (var(--collection-carousel-gap) * 2)) / 3) !important;
+  width: calc((100% - (var(--collection-carousel-gap) * 2)) / 3) !important;
+  min-width: calc((100% - (var(--collection-carousel-gap) * 2)) / 3) !important;
+  max-width: calc((100% - (var(--collection-carousel-gap) * 2)) / 3) !important;
+  scroll-snap-align: start !important;
+}
+
+/* Arrows sit in the gap between the top carousel and the bottom module,
+   rather than taking/covering space in the top cards. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow {
+  position: absolute !important;
+  top: auto !important;
+  bottom: -14px !important;
+  z-index: 30 !important;
+  width: 38px !important;
+  height: 38px !important;
+  display: grid !important;
+  place-items: center !important;
+  border: 1px solid rgba(198, 83, 255, 0.58) !important;
+  border-radius: 999px !important;
+  background:
+    linear-gradient(135deg, rgba(16, 9, 36, 0.98), rgba(21, 43, 70, 0.96)) !important;
+  color: rgba(246, 238, 255, 0.95) !important;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.34), 0 0 22px rgba(190, 77, 255, 0.18) !important;
+  font-size: 30px !important;
+  font-weight: 950 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow-left {
+  left: 10px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow-right {
+  right: 10px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+  border-color: rgba(225, 115, 255, 0.86) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38), 0 0 28px rgba(209, 89, 255, 0.28) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow:disabled {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* Keep the GAME column inset. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  padding-left: 18px !important;
+  padding-right: 10px !important;
+  box-sizing: border-box !important;
+}
