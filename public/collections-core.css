@@ -1404,3 +1404,65 @@
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow-right {
   right: 14px !important;
 }
+
+
+/* Collection game row 3-dot menu fix.
+   A later row rule sets direct span children to overflow:hidden, which clipped
+   the row-menu cell and hid the Delete dropdown. Keep text cells clipped, but
+   allow the menu cell and popup to overflow normally. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > .row-menu-cell,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > .collection-row-menu-cell {
+  position: relative !important;
+  overflow: visible !important;
+  z-index: 50 !important;
+  display: grid !important;
+  justify-items: end !important;
+  align-items: center !important;
+  min-width: 42px !important;
+  width: 42px !important;
+  height: 100% !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell .row-menu-button {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  max-width: 38px !important;
+  max-height: 38px !important;
+  box-sizing: border-box !important;
+  border-radius: 12px !important;
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell .row-menu-button[aria-expanded="true"],
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell .row-menu-button:focus-visible {
+  outline: none !important;
+  border-color: rgba(203, 82, 255, 0.78) !important;
+  box-shadow:
+    0 0 0 1px rgba(203, 82, 255, 0.28) inset,
+    0 0 18px rgba(203, 82, 255, 0.22) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu {
+  position: absolute !important;
+  top: 42px !important;
+  right: 0 !important;
+  z-index: 500 !important;
+  min-width: 116px !important;
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu button {
+  width: 100% !important;
+  min-height: 34px !important;
+  text-align: left !important;
+  white-space: nowrap !important;
+}
