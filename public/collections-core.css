@@ -958,3 +958,88 @@
     max-height: 405px !important;
   }
 }
+
+
+/* Fix collection game rows.
+   The previous compact table patch made .collection-game-table a 2-row grid,
+   which caused multiple game rows to spread across the whole panel.
+   This restores normal vertical row flow while keeping the compact sizing. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  display: block !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 8px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 5 !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 52%) minmax(80px, 14%) minmax(0, 25%) 38px !important;
+  column-gap: 16px !important;
+  align-items: center !important;
+  width: 100% !important;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: rgba(5, 10, 25, 0.88) !important;
+  border-bottom: 1px solid rgba(137, 97, 255, 0.16) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head span {
+  line-height: 40px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 52%) minmax(80px, 14%) minmax(0, 25%) 38px !important;
+  column-gap: 16px !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 56px !important;
+  height: 56px !important;
+  max-height: 56px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(137, 97, 255, 0.10) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
+  display: grid !important;
+  grid-template-columns: 78px minmax(0, 1fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+  min-width: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Empty collections should still show the empty message centered in the available table area. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
+  height: calc(100% - 40px) !important;
+  min-height: 190px !important;
+  margin: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  text-align: center !important;
+}
