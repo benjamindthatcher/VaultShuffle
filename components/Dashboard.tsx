@@ -21,16 +21,6 @@ import { VaultWorkspace } from "@/components/dashboard/VaultWorkspace";
 import { DEFAULT_THEME_ID, THEME_STORAGE_KEY, isThemeOptionId, type ThemeOptionId } from "@/lib/themes";
 import { TOP_LEVEL_GENRES, matchesTopLevelGenre, topLevelGenresFor } from "@/lib/genres";
 
-const emptyStats: StatsPayload = {
-  total: 0,
-  completed: 0,
-  in_progress: 0,
-  wishlist: 0,
-  hours: 0,
-  avg_rating: 0,
-  avg_completion: 0
-};
-
 const PREVIEW_STORAGE_KEY = "vaultshuffle.preview.games";
 const METADATA_SYNC_BATCH_SIZE = 50;
 const METADATA_SYNC_DELAY_MS = 5000;
@@ -85,7 +75,6 @@ export function Dashboard() {
   const [activePage, setActivePage] = useState<AppPage>("library");
   const [sidebarTab, setSidebarTab] = useState<SidebarTab>("overview");
   const [games, setGames] = useState<Game[]>([]);
-  const [stats, setStats] = useState<StatsPayload>(emptyStats);
   const [session, setSession] = useState<SessionPayload | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [addQuery, setAddQuery] = useState("");
@@ -255,31 +244,25 @@ export function Dashboard() {
       const previewGames = loadPreviewGames();
       setSession(sessionPayload);
       setGames(previewGames);
-      setStats(previewStats(previewGames));
       setSelectedId((current) => current ?? previewGames[0]?.id ?? null);
       setGuestPrompt(!previewGames.length);
       return;
     }
     setGuestPrompt(false);
-    const [{ games: nextGames }, nextStats] = await Promise.all([
-      api<{ games: Game[] }>("/api/games"),
-      api<StatsPayload>("/api/stats")
-    ]);
-    setSession(sessionPayload);
-    setGames(nextGames);
-    setStats(nextStats);
+    const { games: nextGames } = await api<{ games: Game[] }>("/api/games");
+
+setSession(sessionPayload);
+setGames(nextGames);
     setSelectedId((current) => current ?? nextGames[0]?.id ?? null);
 
     if (importAfterLogin && sessionPayload.has_steam_key) {
       try {
         const result = await api<{ imported: number; games?: Game[] }>("/api/steam/owned-games", { method: "POST", body: "{}" });
         const [freshGames, importedStats] = await Promise.all([
-          result.games ? Promise.resolve({ games: result.games }) : api<{ games: Game[] }>("/api/games"),
-          api<StatsPayload>("/api/stats")
+          result.games ? Promise.resolve({ games: result.games }) : api<{ games: Game[] }>("/api/games")
         ]);
         const importedGames = freshGames.games;
         setGames(importedGames);
-        setStats(importedStats);
         setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
         setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
         void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
@@ -292,12 +275,9 @@ export function Dashboard() {
   }
 
   async function refreshLibrary(preferredSelectedId?: string | null) {
-    const [{ games: nextGames }, nextStats] = await Promise.all([
-      api<{ games: Game[] }>("/api/games"),
-      api<StatsPayload>("/api/stats")
-    ]);
-    setGames(nextGames);
-    setStats(nextStats);
+    const { games: nextGames } = await api<{ games: Game[] }>("/api/games");
+
+setGames(nextGames);
     setShuffleCards((current) => current.filter((card) => nextGames.some((game) => game.id === card.id)));
     setSelectedId((current) => {
       const preferred = preferredSelectedId ?? current;
@@ -567,19 +547,21 @@ export function Dashboard() {
       return;
     }
     try {
-      const result = await api<{ imported: number; games?: Game[] }>("/api/steam/owned-games", { method: "POST", body: "{}" });
-      if (result.games) {
-        setGames(result.games);
-        setSelectedId((current) => current && result.games?.some((game) => game.id === current) ? current : result.games?.[0]?.id ?? null);
-      } else {
-        await refreshLibrary(selectedId);
-      }
-      setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
-      void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Steam library import failed.");
-    }
-  }
+      const result = await api<{ imported: number; games?: Game[] }>("/api/steam/owned-games", {
+  method: "POST",
+  body: "{}"
+});
+
+const freshGames = result.games
+  ? { games: result.games }
+  : await api<{ games: Game[] }>("/api/games");
+
+const importedGames = freshGames.games;
+
+setGames(importedGames);
+setSelectedId((current) => current ?? importedGames[0]?.id ?? null);
+setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
+void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
 
   async function logout() {
     if (!isLoggedIn) {
@@ -634,7 +616,6 @@ export function Dashboard() {
   function applyPreviewGames(nextGames: Game[], nextSelectedId: string | null, message?: string) {
     savePreviewGames(nextGames);
     setGames(nextGames);
-    setStats(previewStats(nextGames));
     setShuffleCards((current) => current.filter((card) => nextGames.some((game) => game.id === card.id)));
     setSelectedId(nextSelectedId);
     setGuestPrompt(!nextGames.length);
