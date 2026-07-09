@@ -1144,10 +1144,13 @@
 }
 
 
-/* Top collection preview crop v3.
-   Reverts the wider/overlapping slot change.
-   Keeps the same three equal preview slots, but crops each artwork less aggressively
-   inside its own slot so more of the artwork is visible. */
+/* Top collection previews: match row artwork source and keep full-height centred crops.
+   This intentionally reverses the header-art/contain crop experiment:
+   - same Cover/capsule artwork as "Games in this collection"
+   - equal-sized preview slots
+   - full vertical height
+   - centred crop inside each slot
+*/
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) {
   position: relative !important;
@@ -1172,32 +1175,10 @@
   max-width: none !important;
   overflow: hidden !important;
   border-radius: 0 !important;
-  background:
-    radial-gradient(circle at 50% 50%, rgba(180, 92, 255, 0.10), transparent 62%),
-    rgba(3, 8, 23, 0.88) !important;
+  background: rgba(3, 8, 23, 0.88) !important;
 }
 
-/* HeroArtwork renders as a direct img. Cover fallback renders as .cover > img.
-   These rules show a wider crop of the same artwork inside the same slot. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: auto !important;
-  min-width: 100% !important;
-  max-width: none !important;
-  height: 80% !important;
-  min-height: 80% !important;
-  max-height: 80% !important;
-  object-fit: contain !important;
-  object-position: center center !important;
-  transform: translate(-50%, -50%) !important;
-  transform-origin: center center !important;
-  border-radius: 0 !important;
-  image-rendering: auto !important;
-}
-
+/* Cover renders as .cover > img. Keep it filling the whole preview tile. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover {
   position: absolute !important;
   inset: 0 !important;
@@ -1205,64 +1186,53 @@
   width: 100% !important;
   height: 100% !important;
   min-width: 0 !important;
+  max-width: none !important;
   border-radius: 0 !important;
   overflow: hidden !important;
   background: transparent !important;
 }
 
-/* Keep fallback initials centred if a game has no image. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
+  transform: none !important;
+  transform-origin: center center !important;
+  image-rendering: auto !important;
+}
+
+/* Keep placeholder/fallback initials filling the same full-height tile. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .fallback-initials {
   position: absolute !important;
   inset: 0 !important;
   display: grid !important;
   place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0 !important;
 }
 
-/* Keep only the outer corners rounded; internal tile edges stay clean. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child {
+/* Keep only the outer mosaic corners rounded. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child .cover img {
   border-top-left-radius: 9px !important;
   border-bottom-left-radius: 9px !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child {
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child .cover img {
   border-top-right-radius: 9px !important;
   border-bottom-right-radius: 9px !important;
-}
-
-
-/* Top collection preview crop v4 — large zoom-out test.
-   Keeps equal-sized preview slots, but shows much more of each artwork.
-   This is intentionally more aggressive so we can find the visual breakpoint. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
-  height: 58% !important;
-  min-height: 58% !important;
-  max-height: 58% !important;
-  width: auto !important;
-  min-width: 100% !important;
-  max-width: none !important;
-  object-fit: contain !important;
-  object-position: center center !important;
-  transform: translate(-50%, -50%) !important;
-}
-
-
-/* Top collection preview crop v5 — centred artwork crop.
-   Keeps the equal preview slots, but anchors each image from the centre of the
-   artwork so the visible slice is taken from the middle rather than an edge. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
-  position: absolute !important;
-  top: 50% !important;
-  left: 50% !important;
-  width: auto !important;
-  min-width: 100% !important;
-  max-width: none !important;
-  height: 72% !important;
-  min-height: 72% !important;
-  max-height: 72% !important;
-  object-fit: contain !important;
-  object-position: 50% 50% !important;
-  transform: translate(-50%, -50%) !important;
-  transform-origin: center center !important;
 }
