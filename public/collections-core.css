@@ -1144,93 +1144,87 @@
 }
 
 
-/* Show more of the top collection preview artwork.
-   Keeps the higher-res header artwork, but reduces the zoom/crop by about 25%. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
-  transform: scale(1.02) !important;
-  object-fit: cover !important;
-  object-position: center center !important;
-}
-
-
-/* Top collection preview crop v2.
-   The earlier zoom-out did not visually help because each image was still trapped
-   inside a very narrow 1/3-width tile. This changes the crop method instead:
-   images become wider overlapping slices, so each game shows more artwork. */
+/* Top collection preview crop v3.
+   Reverts the wider/overlapping slot change.
+   Keeps the same three equal preview slots, but crops each artwork less aggressively
+   inside its own slot so more of the artwork is visible. */
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) {
   position: relative !important;
-  display: block !important;
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  grid-auto-flow: initial !important;
   overflow: hidden !important;
 }
 
-/* Each preview tile gets a wider art window, then overlaps the next tile. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile {
-  position: absolute !important;
-  top: 0 !important;
-  bottom: 0 !important;
-  width: 54% !important;
+  position: relative !important;
+  inset: auto !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  display: block !important;
+  width: 100% !important;
   height: 100% !important;
   min-width: 0 !important;
   max-width: none !important;
   overflow: hidden !important;
   border-radius: 0 !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(180, 92, 255, 0.10), transparent 62%),
+    rgba(3, 8, 23, 0.88) !important;
 }
 
-/* Three-image layout. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:nth-child(1) {
-  left: 0 !important;
-  z-index: 1 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:nth-child(2) {
-  left: 23% !important;
-  z-index: 2 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:nth-child(3) {
-  left: 46% !important;
-  z-index: 3 !important;
-}
-
-/* If there are only one or two games, avoid leaving the preview looking too empty. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:only-child {
-  left: 0 !important;
-  width: 100% !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child:nth-last-child(2) {
-  left: 0 !important;
-  width: 62% !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child:nth-last-child(2) ~ .collection-preview-tile {
-  left: 38% !important;
-  width: 62% !important;
-}
-
-/* The art itself should fill the wider slice naturally. */
+/* HeroArtwork renders as a direct img. Cover fallback renders as .cover > img.
+   These rules show a wider crop of the same artwork inside the same slot. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: auto !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  height: 80% !important;
+  min-height: 80% !important;
+  max-height: 80% !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  transform: translate(-50%, -50%) !important;
+  transform-origin: center center !important;
+  border-radius: 0 !important;
+  image-rendering: auto !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
   width: 100% !important;
   height: 100% !important;
-  max-width: none !important;
-  object-fit: cover !important;
-  object-position: center center !important;
-  transform: none !important;
+  min-width: 0 !important;
+  border-radius: 0 !important;
+  overflow: hidden !important;
+  background: transparent !important;
 }
 
-/* Keep the outer mosaic rounded even though the internal slices overlap. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child img {
+/* Keep fallback initials centred if a game has no image. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .fallback-initials {
+  position: absolute !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+}
+
+/* Keep only the outer corners rounded; internal tile edges stay clean. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child {
   border-top-left-radius: 9px !important;
   border-bottom-left-radius: 9px !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child img {
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child {
   border-top-right-radius: 9px !important;
   border-bottom-right-radius: 9px !important;
 }
