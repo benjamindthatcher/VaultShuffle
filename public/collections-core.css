@@ -1142,3 +1142,13 @@
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
   min-width: 0 !important;
 }
+
+
+/* Show more of the top collection preview artwork.
+   Keeps the higher-res header artwork, but reduces the zoom/crop by about 25%. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  transform: scale(1.02) !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+}
