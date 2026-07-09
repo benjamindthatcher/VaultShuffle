@@ -1152,3 +1152,85 @@
   object-fit: cover !important;
   object-position: center center !important;
 }
+
+
+/* Top collection preview crop v2.
+   The earlier zoom-out did not visually help because each image was still trapped
+   inside a very narrow 1/3-width tile. This changes the crop method instead:
+   images become wider overlapping slices, so each game shows more artwork. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) {
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+
+/* Each preview tile gets a wider art window, then overlaps the next tile. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile {
+  position: absolute !important;
+  top: 0 !important;
+  bottom: 0 !important;
+  width: 54% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+}
+
+/* Three-image layout. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:nth-child(1) {
+  left: 0 !important;
+  z-index: 1 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:nth-child(2) {
+  left: 23% !important;
+  z-index: 2 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:nth-child(3) {
+  left: 46% !important;
+  z-index: 3 !important;
+}
+
+/* If there are only one or two games, avoid leaving the preview looking too empty. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:only-child {
+  left: 0 !important;
+  width: 100% !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child:nth-last-child(2) {
+  left: 0 !important;
+  width: 62% !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child:nth-last-child(2) ~ .collection-preview-tile {
+  left: 38% !important;
+  width: 62% !important;
+}
+
+/* The art itself should fill the wider slice naturally. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+  transform: none !important;
+}
+
+/* Keep the outer mosaic rounded even though the internal slices overlap. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child img {
+  border-top-left-radius: 9px !important;
+  border-bottom-left-radius: 9px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child img {
+  border-top-right-radius: 9px !important;
+  border-bottom-right-radius: 9px !important;
+}
