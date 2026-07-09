@@ -1228,3 +1228,20 @@
   border-top-right-radius: 9px !important;
   border-bottom-right-radius: 9px !important;
 }
+
+
+/* Top collection preview crop v4 — large zoom-out test.
+   Keeps equal-sized preview slots, but shows much more of each artwork.
+   This is intentionally more aggressive so we can find the visual breakpoint. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  height: 58% !important;
+  min-height: 58% !important;
+  max-height: 58% !important;
+  width: auto !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  transform: translate(-50%, -50%) !important;
+}
