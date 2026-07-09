@@ -1466,3 +1466,52 @@
   text-align: left !important;
   white-space: nowrap !important;
 }
+
+
+/* Collection row menu stacking fix.
+   The Delete popup was opening, but the next row's 3-dot button painted above it.
+   Raise only the row/cell containing an open menu so the popup overlays later rows. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  overflow-y: auto !important;
+  overflow-x: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
+  position: relative !important;
+  z-index: 1 !important;
+  overflow: visible !important;
+}
+
+/* Modern Chromium/Brave supports :has — use it to raise the active/open row only. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row:has(.collection-row-menu),
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row:has(.row-menu-button[aria-expanded="true"]) {
+  z-index: 3000 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .row-menu-cell {
+  position: relative !important;
+  z-index: 2 !important;
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell:has(.collection-row-menu),
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .row-menu-cell:has(.collection-row-menu),
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell:has(.row-menu-button[aria-expanded="true"]),
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .row-menu-cell:has(.row-menu-button[aria-expanded="true"]) {
+  z-index: 4000 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu {
+  z-index: 5000 !important;
+  top: 40px !important;
+  right: 0 !important;
+}
+
+/* Keep closed 3-dot buttons below any open popup from another row. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell:not(:has(.collection-row-menu)) .row-menu-button,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .row-menu-cell:not(:has(.collection-row-menu)) .row-menu-button {
+  position: relative !important;
+  z-index: 1 !important;
+}
