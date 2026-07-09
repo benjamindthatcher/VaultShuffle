@@ -1236,3 +1236,68 @@
   border-top-right-radius: 9px !important;
   border-bottom-right-radius: 9px !important;
 }
+
+
+/* Top collection previews: zoomed-out capsule crop.
+   Keeps:
+   - same equal-width preview slots
+   - same Cover/capsule artwork as the game rows
+   - centred crop
+   But stops the capsules being blown up to fill the full tile height. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img {
+  position: absolute !important;
+  inset: 0 !important;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  border-radius: 0 !important;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(180, 92, 255, 0.08), transparent 58%),
+    rgba(3, 8, 23, 0.92) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  inset: auto !important;
+  width: 165% !important;
+  min-width: 165% !important;
+  max-width: none !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+  transform: translate(-50%, -50%) !important;
+  transform-origin: center center !important;
+  border-radius: 0 !important;
+  image-rendering: auto !important;
+}
+
+/* Keep fallback initials full-height if a tile has no image. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .fallback-initials {
+  position: absolute !important;
+  inset: 0 !important;
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Keep only the outside corners rounded. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child .cover {
+  border-top-left-radius: 9px !important;
+  border-bottom-left-radius: 9px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child .cover {
+  border-top-right-radius: 9px !important;
+  border-bottom-right-radius: 9px !important;
+}
