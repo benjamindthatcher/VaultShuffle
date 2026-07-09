@@ -7,3 +7,4 @@ node_modules/
 .env.*.local
 pnpm-workspace.yaml
 .DS_Store
+next-env.d.ts
