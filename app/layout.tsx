@@ -13,12 +13,24 @@ try {
 }
 `;
 
-export const metadata: Metadata = {
-  title: "Vault Shuffle",
-  description: "Pick your next Steam game without staring at your backlog all night.",
-  icons: {
-    icon: "/assets/landing/vaultshuffle-logo-real.png",
-    apple: "/assets/landing/vaultshuffle-logo-real.png"
+export const metadata = {
+  metadataBase: new URL("https://vaultshuffle.com"),
+  title: {
+    default: "Vault Shuffle - Pick What to Play From Your Steam Library",
+    template: "%s | Vault Shuffle"
+  },
+  description:
+    "Vault Shuffle helps you organise your Steam library, build collections, manage your wishlist, and randomly pick what to play next.",
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: "Vault Shuffle",
+    description:
+      "Organise your Steam library and pick what to play next.",
+    url: "https://vaultshuffle.com",
+    siteName: "Vault Shuffle",
+    type: "website"
   }
 };
 
@@ -44,23 +56,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   );
 }
-export const metadata = {
-  metadataBase: new URL("https://vaultshuffle.com"),
-  title: {
-    default: "Vault Shuffle - Pick What to Play From Your Steam Library",
-    template: "%s | Vault Shuffle"
-  },
-  description:
-    "Vault Shuffle helps you organise your Steam library, build collections, manage your wishlist, and randomly pick what to play next.",
-  alternates: {
-    canonical: "/"
-  },
-  openGraph: {
-    title: "Vault Shuffle",
-    description:
-      "Organise your Steam library and pick what to play next.",
-    url: "https://vaultshuffle.com",
-    siteName: "Vault Shuffle",
-    type: "website"
-  }
-};
