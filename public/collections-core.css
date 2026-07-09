@@ -795,3 +795,61 @@
     min-height: 520px !important;
   }
 }
+
+
+/* Rein in the lower "Games in this collection" panel.
+   Based on the accepted no-arrow/spacing version.
+   Keeps Last updated, keeps the no-arrow fix, and does not use cache-busting. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  grid-template-rows: auto 232px 430px !important;
+  align-content: start !important;
+  overflow: visible !important;
+  padding-bottom: 24px !important;
+}
+
+/* Keep the lower panel a controlled fixed height instead of filling the whole viewport. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  height: 430px !important;
+  min-height: 430px !important;
+  max-height: 430px !important;
+  overflow: hidden !important;
+}
+
+/* Left panel still keeps its internal structure and Last updated at the bottom. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
+  height: 100% !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Right panel: add-game header is fixed; only the game list scrolls. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  height: 100% !important;
+  min-height: 0 !important;
+  grid-template-rows: 54px minmax(0, 1fr) !important;
+  overflow: hidden !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 {
+    grid-template-rows: auto 232px 430px !important;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+    height: 430px !important;
+    min-height: 430px !important;
+    max-height: 430px !important;
+  }
+}
