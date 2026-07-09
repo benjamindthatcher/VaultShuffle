@@ -1245,3 +1245,24 @@
   object-position: center center !important;
   transform: translate(-50%, -50%) !important;
 }
+
+
+/* Top collection preview crop v5 — centred artwork crop.
+   Keeps the equal preview slots, but anchors each image from the centre of the
+   artwork so the visible slice is taken from the middle rather than an edge. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  position: absolute !important;
+  top: 50% !important;
+  left: 50% !important;
+  width: auto !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  height: 72% !important;
+  min-height: 72% !important;
+  max-height: 72% !important;
+  object-fit: contain !important;
+  object-position: 50% 50% !important;
+  transform: translate(-50%, -50%) !important;
+  transform-origin: center center !important;
+}
