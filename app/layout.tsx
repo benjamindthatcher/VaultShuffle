@@ -3,7 +3,26 @@ import type { ReactNode } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY } from "@/lib/themes";
-
+export const metadata = {
+  metadataBase: new URL("https://vaultshuffle.com"),
+  title: {
+    default: "Vault Shuffle - Pick What to Play From Your Steam Library",
+    template: "%s | Vault Shuffle"
+  },
+  description:
+    "Vault Shuffle helps you organise your Steam library, build collections, manage your wishlist, and randomly pick what to play next.",
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: "Vault Shuffle",
+    description:
+      "Organise your Steam library and pick what to play next.",
+    url: "https://vaultshuffle.com",
+    siteName: "Vault Shuffle",
+    type: "website"
+  }
+};
 const themeBootScript = `
 try {
   var themes = ${JSON.stringify(THEME_OPTIONS.map((theme) => theme.id))};
