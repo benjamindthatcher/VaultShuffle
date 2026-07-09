@@ -670,3 +670,128 @@
     width: 100% !important;
   }
 }
+
+
+/* Collections spacing/height fix + remove the stray pointer arrow.
+   Top cards: keep the game count inside the border.
+   Bottom panel: stretch down to use the available page space.
+   Pointer arrows: removed entirely. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  height: calc(100dvh - 104px) !important;
+  min-height: 760px !important;
+  grid-template-rows: auto 232px minmax(460px, 1fr) !important;
+  gap: 12px !important;
+  padding-bottom: 14px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
+  height: 232px !important;
+  min-height: 232px !important;
+  max-height: 232px !important;
+  padding: 3px 0 18px !important;
+  overflow-y: hidden !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:hover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:focus-visible,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+  height: 210px !important;
+  min-height: 210px !important;
+  max-height: 210px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  padding: 12px 14px 13px !important;
+  overflow: hidden !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
+  flex: 0 0 104px !important;
+  height: 104px !important;
+  min-height: 104px !important;
+  max-height: 104px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
+  flex: 0 0 28px !important;
+  height: 28px !important;
+  min-height: 28px !important;
+  max-height: 28px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
+  height: 28px !important;
+  line-height: 28px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p {
+  flex: 0 0 auto !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 20px !important;
+  margin: 0 !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
+  white-space: nowrap !important;
+  text-overflow: ellipsis !important;
+  display: block !important;
+  overflow: hidden !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-description-empty {
+  display: none !important;
+  flex: 0 0 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  max-height: 0 !important;
+  margin: 0 !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
+  flex: 0 0 18px !important;
+  height: 18px !important;
+  min-height: 18px !important;
+  max-height: 18px !important;
+  margin-top: 0 !important;
+  line-height: 18px !important;
+}
+
+/* Remove every collection-card pointer/arrow, including the stray one appearing at the bottom. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active::after,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-showcase-card.active::after,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card::after,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-showcase-card::after {
+  content: none !important;
+  display: none !important;
+}
+
+/* Make the lower core area use the spare vertical space. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  height: 100% !important;
+  min-height: 460px !important;
+  max-height: none !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
+  padding-top: 30px !important;
+  padding-bottom: 24px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
+  padding-bottom: 22px !important;
+}
+
+@media (max-width: 1180px) {
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 {
+    height: auto !important;
+    min-height: 760px !important;
+    grid-template-rows: auto 232px 520px !important;
+  }
+
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+    height: 520px !important;
+    min-height: 520px !important;
+  }
+}
