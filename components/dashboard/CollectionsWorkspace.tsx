@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { Collection, CollectionGame, Game } from "@/lib/types";
 import { displayGenres } from "@/lib/game-display";
-import { Cover, HeroArtwork } from "@/components/dashboard/GameArtwork";
+import { Cover } from "@/components/dashboard/GameArtwork";
 
 export function CollectionsWorkspace({
   collectionGameId,
@@ -249,7 +249,7 @@ function CollectionPreview({ games, collectionName }: { games: Game[]; collectio
     <span className="collection-preview-mosaic" aria-hidden="true">
       {games.slice(0, 3).map((game) => (
         <span className="collection-preview-tile" key={game.id}>
-          <HeroArtwork game={game} />
+          <Cover game={game} />
         </span>
       ))}
     </span>
