@@ -1043,3 +1043,102 @@
   place-items: center !important;
   text-align: center !important;
 }
+
+
+/* Artwork sizing polish.
+   Keeps the current accepted Collections layout, Last updated, and no-arrow behaviour.
+   Only changes preview-art crop/quality and the game-row thumbnail sizing. */
+
+/* Top "Your Collections" preview mosaics:
+   Use the higher-res header artwork from the TSX change and crop it slightly
+   so it shows recognisable title/art fragments without trying to show the full title. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
+  isolation: isolate;
+  background:
+    linear-gradient(135deg, rgba(180, 92, 255, 0.14), rgba(57, 184, 255, 0.08)),
+    rgba(3, 8, 23, 0.84) !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile {
+  position: relative;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  background: rgba(3, 8, 23, 0.82);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  border-radius: 0 !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
+  transform: scale(1.08);
+  transform-origin: center;
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
+
+/* Stop the third preview tile from visually blending into the card background
+   when there are only one or two preview games. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) {
+  grid-auto-flow: column;
+}
+
+/* "Games in this collection" row thumbnails:
+   Make them true Steam-capsule proportions instead of tall/cropped blocks. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
+  grid-template-columns: 94px minmax(0, 1fr) !important;
+  gap: 12px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .cover {
+  display: block !important;
+  width: 94px !important;
+  min-width: 94px !important;
+  max-width: 94px !important;
+  height: 36px !important;
+  min-height: 36px !important;
+  max-height: 36px !important;
+  border-radius: 7px !important;
+  overflow: hidden !important;
+  background: rgba(3, 8, 23, 0.86);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .cover img {
+  display: block !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  border-radius: 7px !important;
+  object-fit: cover !important;
+  object-position: center center !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .cover .fallback-initials {
+  display: grid !important;
+  place-items: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 7px !important;
+  font-size: 12px !important;
+  font-weight: 950 !important;
+}
+
+/* Give the text column enough room after the wider thumbnail. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
+  min-width: 0 !important;
+}
