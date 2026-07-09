@@ -1142,3 +1142,28 @@
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
   min-width: 0 !important;
 }
+
+
+/* High-res Steam collection previews.
+   Top collection cards now use Steam capsule_616x353 artwork through CollectionPreviewArtwork.
+   This keeps the existing equal preview slots, but avoids enlarging the tiny 184x69 row thumbnail. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .collection-preview-artwork {
+  display: block !important;
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: none !important;
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
+  border-radius: 0 !important;
+  image-rendering: auto !important;
+}
+
+/* Keep the normal row thumbnails untouched. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .cover img {
+  object-fit: cover !important;
+  object-position: center center !important;
+}

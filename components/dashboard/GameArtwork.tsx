@@ -19,6 +19,29 @@ export function HeroArtwork({ game }: { game: Game }) {
   return <img src={src} alt="" loading="lazy" onError={() => setImageIndex((current) => current + 1)} />;
 }
 
+export function CollectionPreviewArtwork({ game }: { game: Game }) {
+  const candidates = useMemo(() => {
+    return [...steamImageCandidates(game, "capsuleLarge"), ...steamImageCandidates(game, "capsule")];
+  }, [game.capsule_url, game.id, game.steam_appid]);
+  const [imageIndex, setImageIndex] = useState(0);
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [game.capsule_url, game.id, game.steam_appid]);
+
+  const src = candidates[imageIndex];
+  if (!src) return <Cover game={game} />;
+  return (
+    <img
+      className="collection-preview-artwork"
+      src={src}
+      alt=""
+      loading="lazy"
+      onError={() => setImageIndex((current) => current + 1)}
+    />
+  );
+}
+
 export function Cover({ game, title }: { game?: Game; title?: string }) {
   const displayTitle = title || game?.title || "Game";
   const candidates = useMemo(() => steamImageCandidates(game, "capsule"), [game?.capsule_url, game?.id, game?.steam_appid]);
