@@ -1238,10 +1238,14 @@
 }
 
 
-/* Top collection previews: balanced centred capsule crop.
-   Reverts the bad width-based zoom-out test.
-   Keeps equal-width preview slots and the same Cover/capsule artwork as the rows.
-   The image remains centred and visually fills the tile, with a small controlled zoom-out. */
+/* Top collection previews: sane centred capsule crop.
+   This replaces the broken zoom-out experiments.
+   It keeps:
+   - equal-sized preview slots
+   - same Cover/capsule artwork as the game rows
+   - centred crop
+   - controlled zoom-out without the images collapsing into tiny strips
+*/
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) {
   display: grid !important;
@@ -1255,27 +1259,34 @@
   width: 100% !important;
   height: 100% !important;
   min-width: 0 !important;
+  max-width: none !important;
   overflow: hidden !important;
   border-radius: 0 !important;
   background:
-    radial-gradient(circle at 50% 50%, rgba(180, 92, 255, 0.08), transparent 58%),
+    radial-gradient(circle at 50% 50%, rgba(180, 92, 255, 0.10), transparent 58%),
     rgba(3, 8, 23, 0.92) !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover {
+/* Force the Cover wrapper to actually fill the preview tile.
+   This prevents the capsule from inheriting the small row-thumbnail sizing. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile > .cover {
   position: absolute !important;
   inset: 0 !important;
   display: block !important;
   width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
   height: 100% !important;
-  min-width: 0 !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
   overflow: hidden !important;
   border-radius: 0 !important;
   background: transparent !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile > img {
+/* This is the actual crop:
+   82% height is a controlled zoom-out from full-height cover, centred vertically/horizontally. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile > .cover > img {
   position: absolute !important;
   top: 50% !important;
   left: 50% !important;
@@ -1284,19 +1295,19 @@
   width: auto !important;
   min-width: 0 !important;
   max-width: none !important;
-  height: 100% !important;
-  min-height: 100% !important;
-  max-height: none !important;
+  height: 82% !important;
+  min-height: 82% !important;
+  max-height: 82% !important;
   object-fit: contain !important;
   object-position: 50% 50% !important;
-  transform: translate(-50%, -50%) scale(0.90) !important;
+  transform: translate(-50%, -50%) !important;
   transform-origin: center center !important;
   border-radius: 0 !important;
   image-rendering: auto !important;
 }
 
-/* Keep fallback initials full-height if a tile has no image. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .fallback-initials {
+/* Fallback initials still fill the whole slot. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile .fallback-initials {
   position: absolute !important;
   inset: 0 !important;
   display: grid !important;
@@ -1305,17 +1316,15 @@
   height: 100% !important;
 }
 
-/* Keep only the outside mosaic corners rounded. */
+/* Keep only outside mosaic corners rounded. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child .cover,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child .cover img {
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:first-child > .cover {
   border-top-left-radius: 9px !important;
   border-bottom-left-radius: 9px !important;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child .cover,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child .cover img {
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic:not(.collection-preview-empty) .collection-preview-tile:last-child > .cover {
   border-top-right-radius: 9px !important;
   border-bottom-right-radius: 9px !important;
 }
