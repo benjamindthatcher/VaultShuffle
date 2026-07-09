@@ -1366,3 +1366,41 @@
   padding-right: 10px !important;
   box-sizing: border-box !important;
 }
+
+
+/* Carousel arrow + lower module spacing tweak.
+   Keeps the 3-card carousel and GAME column inset.
+   Moves the lower "Games in this collection" module down slightly and centres
+   the carousel arrows more cleanly in the gap so they do not clip the panel. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 {
+  row-gap: 18px !important;
+}
+
+/* Give the carousel row a little breathing room below the cards. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-shell {
+  padding-bottom: 22px !important;
+}
+
+/* Nudge the whole lower detail module down slightly. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
+  margin-top: 6px !important;
+}
+
+/* Put arrows in the gap, centred better vertically and away from the lower border. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow {
+  bottom: -20px !important;
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 28px !important;
+}
+
+/* Keep the right arrow slightly inward so it feels centred against the carousel edge,
+   rather than floating on the hard outside corner. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow-left {
+  left: 14px !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-carousel-arrow-right {
+  right: 14px !important;
+}
