@@ -333,15 +333,17 @@ export function Dashboard() {
     try {
       const payload = await api<{ collections: Collection[] }>("/api/collections");
       const nextCollections = payload.collections;
-      setCollectionsLoaded(true);
-      setCollections(nextCollections);
-      void loadCollectionPreviews(nextCollections);
+      const previews = await getCollectionPreviews(nextCollections);
 
       const selectedCollection = nextSelectedId
         ? nextCollections.find((collection) => collection.id === nextSelectedId)
         : nextCollections.find((collection) => collection.id === selectedCollectionId) ?? nextCollections[0];
 
+      setCollectionPreviewGames(previews);
+      setCollections(nextCollections);
+      setCollectionsLoaded(true);
       setSelectedCollectionId(selectedCollection?.id ?? null);
+
       if (selectedCollection) await loadCollectionGames(selectedCollection.id);
       else setCollectionItems([]);
     } catch {
@@ -352,11 +354,8 @@ export function Dashboard() {
     }
   }
 
-  async function loadCollectionPreviews(nextCollections: Collection[]) {
-    if (!nextCollections.length) {
-      setCollectionPreviewGames({});
-      return;
-    }
+  async function getCollectionPreviews(nextCollections: Collection[]) {
+    if (!nextCollections.length) return {} as Record<string, Game[]>;
 
     const entries = await Promise.all(nextCollections.map(async (collection) => {
       if (!collection.game_count) return [collection.id, [] as Game[]] as const;
@@ -374,7 +373,7 @@ export function Dashboard() {
       }
     }));
 
-    setCollectionPreviewGames(Object.fromEntries(entries) as Record<string, Game[]>);
+    return Object.fromEntries(entries) as Record<string, Game[]>;
   }
 
   async function loadCollectionGames(collectionId: string) {
@@ -795,6 +794,7 @@ export function Dashboard() {
               onRemoveGame={(gameId) => void removeGameFromSelectedCollection(gameId)}
               onSelectCollection={(collection) => {
                 setSelectedCollectionId(collection.id);
+                setCollectionItems([]);
                 void loadCollectionGames(collection.id);
               }}
               selectedCollectionId={selectedCollectionId}

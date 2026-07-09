@@ -1,12 +1,24 @@
-/* Collections core polish — loaded after the main app CSS.
-   Scope is intentionally limited to the middle Collections workspace. */
+/* Final Collections core layout.
+   This file is intentionally scoped to the Collections page only. */
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *::before,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 *::after {
+  box-sizing: border-box;
+}
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 {
-  min-height: 100%;
-  padding: 28px 30px 28px;
-  display: grid;
-  gap: 14px;
-  align-content: start;
+  width: 100%;
+  min-width: 0;
+  height: calc(100dvh - 126px);
+  min-height: 690px;
+  display: grid !important;
+  grid-template-rows: auto 244px minmax(0, 1fr);
+  gap: 12px;
+  align-content: stretch;
+  overflow: hidden !important;
+  padding: 28px 30px 22px !important;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collections-main-heading h1 {
@@ -14,37 +26,73 @@
   color: #fff;
   font-size: 25px;
   line-height: 1.1;
-  font-weight: 900;
+  font-weight: 950;
   letter-spacing: -0.04em;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collections-main-heading h1 span {
-  color: rgba(245, 242, 255, 0.72);
+  color: rgba(245, 242, 255, 0.70);
 }
 
+/* Top collection cards: fixed horizontal lane, real per-collection previews only. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(190px, 1fr));
-  gap: 16px;
-  align-items: stretch;
-  overflow: visible;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 244px !important;
+  min-height: 244px !important;
+  max-height: 244px !important;
+  gap: 16px !important;
+  align-items: stretch !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  padding: 3px 0 24px !important;
+  margin: 0 !important;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(196, 88, 255, 0.82) rgba(19, 20, 54, 0.72);
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card {
-  position: relative;
-  min-height: 210px;
-  display: grid;
-  grid-template-rows: 98px auto auto auto;
-  gap: 8px;
-  padding: 10px 14px 14px;
-  border: 1px solid rgba(137, 97, 255, 0.20);
-  border-radius: 11px;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar {
+  display: block !important;
+  height: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(19, 20, 54, 0.72);
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(137, 97, 255, 0.92), rgba(212, 93, 255, 0.92));
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:hover,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:focus-visible {
+  flex: 0 0 276px !important;
+  width: 276px !important;
+  min-width: 276px !important;
+  max-width: 276px !important;
+  height: 220px !important;
+  min-height: 220px !important;
+  max-height: 220px !important;
+  display: grid !important;
+  grid-template-rows: 112px 30px 34px 18px !important;
+  gap: 7px !important;
+  padding: 12px 14px 16px !important;
+  border: 1px solid rgba(137, 97, 255, 0.22);
+  border-radius: 12px;
   color: rgba(245, 242, 255, 0.76);
   background:
     radial-gradient(circle at 20% 0%, rgba(180, 92, 255, 0.10), transparent 46%),
     rgba(7, 14, 31, 0.58);
   text-align: left;
-  overflow: visible;
+  transform: none !important;
+  overflow: hidden !important;
+  scroll-snap-align: start;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
@@ -56,13 +104,18 @@
   background:
     radial-gradient(circle at 50% 0%, rgba(180, 92, 255, 0.20), transparent 48%),
     rgba(7, 14, 31, 0.66);
+  overflow: visible !important;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active > * {
+  overflow: hidden;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active::after {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -17px;
+  bottom: -15px;
   width: 30px;
   height: 30px;
   transform: translateX(-50%) rotate(45deg);
@@ -74,7 +127,10 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
-  height: 98px;
+  width: 100%;
+  height: 112px !important;
+  min-height: 112px !important;
+  max-height: 112px !important;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   overflow: hidden;
@@ -84,16 +140,12 @@
     rgba(3, 8, 23, 0.78);
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile {
-  min-width: 0;
-  height: 98px;
-  overflow: hidden;
-}
-
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-tile .cover img {
   width: 100%;
   height: 100%;
+  min-width: 0;
   border-radius: 0;
   object-fit: cover;
 }
@@ -118,55 +170,77 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  display: block !important;
+  min-width: 0;
+  height: 30px !important;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
-  min-width: 0;
-  color: #fff;
-  font-size: 19px;
-  line-height: 1.1;
-  font-weight: 900;
+  display: block;
+  width: 100%;
+  max-width: 100% !important;
+  height: 30px;
   overflow: hidden;
+  color: #fff;
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 950;
+  letter-spacing: -0.03em;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row small,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
-  display: inline-grid;
-  place-items: center;
-  padding: 4px 9px;
-  border: 1px solid rgba(137, 97, 255, 0.28);
-  border-radius: 999px;
-  color: rgba(245, 242, 255, 0.88);
-  background: rgba(38, 21, 83, 0.78);
-  font-size: 11px;
-  line-height: 1;
-  font-weight: 850;
+  display: none !important;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
-  margin: 0;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-description-empty {
+  height: 34px !important;
+  min-height: 34px !important;
+  max-height: 34px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
   color: rgba(245, 242, 255, 0.64);
   font-size: 13px;
-  line-height: 1.35;
-  font-style: normal;
+  line-height: 17px;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-description-empty {
+  visibility: hidden;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
+  height: 18px !important;
+  margin: 0;
+  overflow: hidden;
+  color: rgba(245, 242, 255, 0.66);
+  font-size: 13px;
+  font-style: normal;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Bottom detail panel: static shell; only games table scrolls. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
-  position: relative;
-  min-height: 420px;
-  display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
-  margin-top: 0;
+  width: 100%;
+  min-width: 0;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  display: grid !important;
+  grid-template-columns: 25% 75% !important;
+  margin: 0 !important;
   border: 1px solid rgba(212, 93, 255, 0.82);
   border-radius: 13px;
-  overflow: hidden;
+  overflow: hidden !important;
   background:
     radial-gradient(circle at 4% 0%, rgba(180, 92, 255, 0.16), transparent 34%),
     rgba(7, 14, 31, 0.58);
@@ -176,104 +250,158 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
-  display: grid;
-  align-content: start;
-  gap: 14px;
-  padding: 34px 24px 22px;
+  height: 100% !important;
+  min-height: 0 !important;
+  min-width: 0;
+  display: grid !important;
+  grid-template-rows: 58px 24px 22px 48px 48px minmax(0, 1fr) 24px !important;
+  gap: 10px !important;
+  align-content: stretch !important;
+  padding: 34px 24px 22px !important;
   border-right: 1px solid rgba(137, 97, 255, 0.18);
+  overflow: hidden !important;
   background:
     radial-gradient(circle at 50% 12%, rgba(180, 92, 255, 0.18), transparent 36%),
     rgba(14, 14, 42, 0.60);
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-icon {
-  width: 82px;
-  height: 82px;
-  display: grid;
-  place-items: center;
-  margin: 0 auto 12px;
-  border-radius: 24px;
-  color: #fff;
-  background: linear-gradient(180deg, rgba(180, 92, 255, 0.92), rgba(137, 97, 255, 0.56));
-  box-shadow: 0 16px 36px rgba(137, 97, 255, 0.26);
-  font-size: 42px;
+  display: none !important;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
-  margin: 0;
+  grid-row: 1;
+  align-self: end;
+  height: 58px !important;
+  min-height: 58px !important;
+  max-height: 58px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
   color: #fff;
   font-size: 22px;
-  line-height: 1.05;
+  line-height: 1.06;
   font-weight: 950;
   letter-spacing: -0.04em;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
-  margin-left: 9px;
-  vertical-align: middle;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p {
-  margin: 0;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
+  grid-row: 2;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  margin: 0 !important;
+  overflow: hidden !important;
   color: rgba(245, 242, 255, 0.66);
   font-size: 14px;
-  line-height: 1.45;
+  line-height: 24px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
+  visibility: hidden;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
+  grid-row: 3;
+  height: 22px !important;
+  min-height: 22px !important;
+  max-height: 22px !important;
+  margin: 0 !important;
   color: #fff;
   font-size: 14px;
   font-weight: 900;
+  line-height: 22px;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .shuffle-button,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost {
-  width: 100%;
-  min-height: 48px;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost,
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .shuffle-button {
+  width: 100% !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  max-height: 48px !important;
+  margin: 0 !important;
   border-radius: 10px;
+  border-color: rgba(180, 92, 255, 0.58) !important;
+  color: #f5f2ff !important;
+  background: rgba(6, 13, 31, 0.58) !important;
+  box-shadow: none !important;
   font-size: 15px;
   font-weight: 900;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost {
-  color: #f5f2ff;
-  background: rgba(6, 13, 31, 0.58);
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost:nth-of-type(1) {
+  grid-row: 4;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost:nth-of-type(2) {
+  grid-row: 5;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
-  display: flex;
+  grid-row: 7;
+  align-self: end;
+  width: 100%;
+  height: 24px !important;
+  min-height: 24px !important;
+  max-height: 24px !important;
+  display: flex !important;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-top: 10px;
+  gap: 12px;
+  margin: 0 !important;
   color: rgba(245, 242, 255, 0.52);
   font-size: 12px;
+  overflow: hidden;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small b {
   color: #fff;
 }
 
+/* Right panel: add row fixed at top, table scrolls. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
-  padding: 22px 26px 24px;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  display: grid !important;
+  grid-template-rows: 54px minmax(0, 1fr);
+  padding: 22px 26px 18px !important;
+  overflow: hidden !important;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 12px;
+  height: 54px !important;
+  min-height: 54px !important;
+  max-height: 54px !important;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 14px !important;
+  margin: 0 !important;
+  overflow: hidden;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
-  margin: 0;
+  flex: 0 1 42%;
+  min-width: 0 !important;
+  max-width: 42% !important;
+  margin: 9px 0 0 !important;
+  overflow: hidden;
   color: #fff;
-  font-size: 19px;
+  font-size: 20px;
   line-height: 1.2;
-  font-weight: 850;
-  text-transform: none;
+  font-weight: 900;
   letter-spacing: -0.02em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 span {
@@ -281,35 +409,48 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  max-width: 470px;
-  flex: 1 1 auto;
+  flex: 0 1 58% !important;
+  min-width: 0 !important;
+  max-width: 58% !important;
+  width: 58% !important;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  gap: 10px !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select {
-  min-width: 0;
-  flex: 1 1 auto;
-  min-height: 38px;
-  border-radius: 8px;
-}
-
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row button {
-  min-height: 38px;
+  min-width: 0;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px !important;
   border-radius: 8px;
-  padding: 0 16px;
-  white-space: nowrap;
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
-  min-height: 240px;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding-right: 8px;
+  scrollbar-width: thin;
+}
+
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: rgba(7, 14, 31, 0.98);
+  backdrop-filter: blur(10px);
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
-  display: grid;
-  grid-template-columns: minmax(280px, 1.35fr) 110px minmax(180px, .9fr) 38px;
+  width: 100%;
+  min-width: 0;
+  display: grid !important;
+  grid-template-columns: minmax(0, 52%) minmax(80px, 14%) minmax(0, 25%) 38px !important;
   align-items: center;
   column-gap: 16px;
 }
@@ -325,13 +466,21 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
-  min-height: 50px;
+  min-height: 54px;
   border-bottom: 1px solid rgba(137, 97, 255, 0.10);
   color: rgba(245, 242, 255, 0.82);
   font-size: 14px;
 }
 
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
+  min-width: 0;
   display: grid;
   grid-template-columns: 78px minmax(0, 1fr);
   align-items: center;
@@ -346,7 +495,9 @@
   object-fit: cover;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row strong {
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
+  min-width: 0;
+  max-width: 100%;
   overflow: hidden;
   color: #fff;
   font-weight: 760;
@@ -355,454 +506,14 @@
 }
 
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
-  max-width: none;
-  margin: 76px 0 0;
+  margin: 0 !important;
+  height: calc(100% - 42px);
+  display: grid;
+  place-items: center;
   text-align: center;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-compact {
-  margin-top: 14px;
-  opacity: 0.72;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-compact:focus-within {
-  opacity: 1;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
-  gap: 10px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline input,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline button {
-  min-height: 38px;
-  border-radius: 8px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3.collections-empty-core {
-  gap: 16px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-detail-empty {
-  min-height: 280px;
-  margin-top: 0;
-  border-color: rgba(137, 97, 255, 0.22);
-}
-
-@media (max-width: 1220px) {
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
-    grid-template-columns: repeat(2, minmax(190px, 1fr));
-  }
-
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active::after {
-    display: none;
-  }
-
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
-    grid-template-columns: 260px minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 860px) {
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
-    display: block;
-  }
-
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline input,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-inline button {
-    margin-top: 10px;
-  }
-
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-}
-
-
-/* New collection creation lives in a sidebar popover, not the bottom detail panel. */
-.app-shell.shell-v2.app-page-collections .context-sidebar,
-.app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
-  overflow: visible;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover-wrap {
-  position: relative;
-  overflow: visible;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover {
-  position: absolute;
-  left: calc(100% + 14px);
-  bottom: 0;
-  z-index: 140;
-  width: 350px;
-  display: grid;
-  gap: 10px;
-  padding: 14px;
-  border: 1px solid rgba(180, 92, 255, 0.46);
-  border-radius: 14px;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(180, 92, 255, 0.22), transparent 44%),
-    rgba(7, 14, 31, 0.96);
-  box-shadow:
-    0 22px 60px rgba(0, 0, 0, 0.38),
-    0 0 34px rgba(180, 92, 255, 0.18);
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  bottom: 22px;
-  width: 16px;
-  height: 16px;
-  transform: rotate(45deg);
-  border-left: 1px solid rgba(180, 92, 255, 0.46);
-  border-bottom: 1px solid rgba(180, 92, 255, 0.46);
-  background: rgba(7, 14, 31, 0.96);
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover strong {
-  color: #fff;
-  font-size: 13px;
-  font-weight: 950;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover input {
-  width: 100%;
-  min-height: 40px;
-  padding: 0 12px;
-  border: 1px solid rgba(137, 97, 255, 0.26);
-  border-radius: 9px;
-  color: #f5f2ff;
-  background: rgba(5, 12, 29, 0.76);
-  font: inherit;
-  box-sizing: border-box;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover > div {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover button {
-  min-height: 40px;
-  border-radius: 9px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt {
-  display: grid;
-  align-content: center;
-  justify-items: center;
-  padding: 24px;
-  text-align: center;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt h2 {
-  margin: 0 0 8px;
-  color: #fff;
-  font-size: 20px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt p {
-  max-width: 420px;
-  margin: 0;
-  color: rgba(245, 242, 255, 0.64);
-  font-size: 14px;
-  line-height: 1.45;
-}
-
-/* Defensive: hide any older bottom create form if a stale component is still cached. */
-.app-shell.shell-v2.app-page-collections .core-selected-collection-games > .collection-create-inline {
-  display: none !important;
-}
-
-
-/* Position the New Collection popover above the sidebar button instead of sideways. */
-.app-shell.shell-v2.app-page-collections .new-collection-popover-wrap {
-  position: relative;
-  overflow: visible;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover {
-  left: 0 !important;
-  right: 0 !important;
-  bottom: calc(100% + 12px) !important;
-  width: auto !important;
-  max-width: none !important;
-  box-sizing: border-box;
-}
-
-.app-shell.shell-v2.app-page-collections .new-collection-popover::before {
-  left: 42px !important;
-  bottom: -8px !important;
-  border-left: 0 !important;
-  border-bottom: 1px solid rgba(180, 92, 255, 0.46) !important;
-  border-right: 1px solid rgba(180, 92, 255, 0.46) !important;
-  border-top: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .context-sidebar,
-.app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
-  overflow: visible !important;
-}
-
-
-/* Collections fixed layout hardening.
-   Prevent long descriptions / many games / many cards from changing the core layout. */
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 *,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 *::before,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 *::after {
-  box-sizing: border-box;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 {
-  width: 100%;
-  min-width: 0;
-  overflow: hidden;
-}
-
-/* Top cards: fixed card sizing with horizontal scroll rather than overlap/breakage. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
-  display: flex !important;
-  width: 100%;
-  min-width: 0;
-  gap: 16px;
-  align-items: stretch;
-  overflow-x: auto !important;
-  overflow-y: visible;
-  padding: 0 0 16px;
-  scrollbar-width: thin;
-  scroll-snap-type: x proximity;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card {
-  flex: 0 0 clamp(220px, 23%, 280px);
-  width: clamp(220px, 23%, 280px);
-  min-width: 0;
-  overflow: hidden !important;
-  scroll-snap-align: start;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
-  overflow: visible !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active > * {
-  overflow: hidden;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
-  width: 100%;
-  min-width: 0;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
-  min-width: 0;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
-  display: block;
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p {
-  min-height: 18px;
-  max-height: 36px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Detail panel: fixed 25/75 split. Content cannot resize columns. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
-  width: 100%;
-  min-width: 0;
-  height: clamp(390px, calc(100vh - 430px), 520px);
-  min-height: 390px;
-  max-height: 520px;
-  display: grid !important;
-  grid-template-columns: 25% 75% !important;
-  overflow: hidden !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
-  grid-template-rows: auto auto auto auto auto auto 1fr;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
-  min-width: 0;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p {
-  max-width: 100%;
-  max-height: 64px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Right side: header is fixed, table body scrolls internally. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  height: 100%;
-  padding-bottom: 18px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
-  min-width: 0;
-  margin-bottom: 10px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
-  flex: 0 1 auto;
-  min-width: 220px;
-  max-width: 38%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
-  flex: 1 1 58%;
-  min-width: 300px;
-  max-width: 58%;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
-  min-height: 0 !important;
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 8px;
-  scrollbar-width: thin;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: rgba(7, 14, 31, 0.96);
-  backdrop-filter: blur(10px);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
-  width: 100%;
-  min-width: 0;
-  grid-template-columns: minmax(0, 52%) minmax(76px, 14%) minmax(0, 25%) 38px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
-  min-width: 0;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
-  min-width: 0;
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
-  margin: 96px 0 0;
-}
-
-/* Keep any stale bottom create form hidden. Creation belongs in the sidebar popover. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games > .collection-create-inline,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-create-compact {
-  display: none !important;
-}
-
-/* Smaller desktops: keep the percentage split, just relax top cards. */
-@media (max-width: 1180px) {
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
-    grid-template-columns: 28% 72% !important;
-  }
-
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2,
-  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
-    max-width: 100%;
-    width: 100%;
-  }
-}
-
-
-/* Collection game row action menu: three-dots opens a Delete dropdown instead of deleting immediately. */
+/* Collection game row menu. */
 .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-row-menu-cell {
   position: relative;
   display: grid;
@@ -829,382 +540,117 @@
   text-align: left;
 }
 
-
-/* Keep collection cards from jumping upward on hover and clipping their active border. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:hover,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:focus-visible,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
-  transform: none !important;
+/* Empty/loading states. */
+.app-shell.shell-v2.app-page-collections .collections-core-v3.collections-empty-core,
+.app-shell.shell-v2.app-page-collections .collections-core-v3.collections-loading-core {
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
-  padding-top: 3px !important;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-detail-empty {
+  min-height: 280px;
 }
 
-/* Selected collection actions: Edit first, Delete below. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger {
-  border-color: rgba(255, 95, 148, 0.58);
-  color: #ffd7e5;
-  background:
-    radial-gradient(circle at 50% 0%, rgba(255, 95, 148, 0.16), transparent 62%),
-    rgba(22, 8, 26, 0.70);
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 24px;
+  text-align: center;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger:hover {
-  border-color: rgba(255, 95, 148, 0.86);
-  color: #ffffff;
-  background:
-    linear-gradient(135deg, rgba(255, 95, 148, 0.22), rgba(180, 92, 255, 0.12)),
-    rgba(28, 9, 32, 0.82);
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt h2 {
+  margin: 0 0 8px;
+  color: #fff;
+  font-size: 20px;
 }
 
-
-/* Locked Collections core layout.
-   This makes the collection detail area stable: descriptions/cards cannot resize it,
-   and only the games list scrolls when the collection has many games. */
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 *,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 *::before,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 *::after {
-  box-sizing: border-box;
+.app-shell.shell-v2.app-page-collections .collections-core-v3 .empty-collection-prompt p {
+  max-width: 420px;
+  margin: 0;
+  color: rgba(245, 242, 255, 0.64);
+  font-size: 14px;
+  line-height: 1.45;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 {
-  width: 100%;
-  min-width: 0;
-  height: calc(100vh - 128px);
-  min-height: 680px;
-  max-height: calc(100vh - 128px);
-  display: grid !important;
-  grid-template-rows: auto 230px minmax(0, 1fr);
-  gap: 12px;
-  align-content: stretch;
-  overflow: hidden !important;
-}
-
-/* The collection strip is a fixed-height horizontal lane. It never pushes the detail panel down. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip {
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  width: 100% !important;
-  max-width: 100% !important;
-  min-width: 0 !important;
-  height: 230px !important;
-  min-height: 230px !important;
-  max-height: 230px !important;
-  gap: 16px !important;
-  align-items: stretch !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  padding: 3px 0 22px !important;
-  margin: 0 !important;
-  scroll-snap-type: x proximity;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(196, 88, 255, 0.82) rgba(19, 20, 54, 0.72);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar {
-  display: block !important;
-  height: 10px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-track {
-  border-radius: 999px;
-  background: rgba(19, 20, 54, 0.72);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card-strip::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: linear-gradient(90deg, rgba(137, 97, 255, 0.92), rgba(212, 93, 255, 0.92));
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:hover,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card:focus-visible,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
-  flex: 0 0 260px !important;
-  width: 260px !important;
-  min-width: 260px !important;
-  max-width: 260px !important;
-  height: 210px !important;
-  min-height: 210px !important;
-  max-height: 210px !important;
-  transform: none !important;
-  scroll-snap-align: start;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active {
+/* New collection sidebar popover from ContextSidebar. */
+.app-shell.shell-v2.app-page-collections .context-sidebar,
+.app-shell.shell-v2.app-page-collections .collections-sidebar-panel {
   overflow: visible !important;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card.active > * {
-  overflow: hidden;
+.app-shell.shell-v2.app-page-collections .new-collection-popover-wrap {
+  position: relative;
+  overflow: visible;
 }
 
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-preview-mosaic {
-  width: 100%;
-  height: 98px !important;
-  min-height: 98px !important;
-  max-height: 98px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
-  min-width: 0;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
-  display: block;
-  min-width: 0;
-  max-width: 176px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card p,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-description-empty {
-  height: 36px !important;
-  min-height: 36px !important;
-  max-height: 36px !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-card em {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* The bottom detail panel fills the remaining page space and never resizes because of content. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-collection-detail {
-  width: 100%;
-  min-width: 0;
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: none !important;
-  display: grid !important;
-  grid-template-columns: 25% 75% !important;
-  overflow: hidden !important;
-  margin: 0 !important;
-}
-
-/* Left selected collection card: fixed structure; Last updated is pinned to the bottom. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
-  min-width: 0;
-  max-width: 100%;
-  height: 100%;
-  min-height: 0;
-  display: flex !important;
-  flex-direction: column;
-  align-content: initial !important;
-  gap: 12px;
-  overflow: hidden !important;
-  padding: 28px 24px 22px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-icon {
-  flex: 0 0 82px;
-  width: 82px;
-  height: 82px;
-  min-height: 82px;
-  margin: 0 auto 10px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
-  flex: 0 0 auto;
-  width: 100%;
-  min-width: 0;
-  max-width: 100%;
-  max-height: 56px;
-  margin: 0 !important;
-  overflow: hidden;
-  display: block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span {
-  display: inline-grid;
-  white-space: nowrap;
-  vertical-align: middle;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
-  flex: 0 0 44px;
-  height: 44px !important;
-  min-height: 44px !important;
-  max-height: 44px !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
-  flex: 0 0 auto;
-  min-height: 18px;
-  margin: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .shuffle-button {
-  flex: 0 0 48px;
-  width: 100%;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  margin: 0 !important;
-  border-color: rgba(180, 92, 255, 0.58) !important;
-  color: #f5f2ff !important;
-  background: rgba(6, 13, 31, 0.58) !important;
-  box-shadow: none !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
-  flex: 0 0 auto;
-  width: 100%;
-  min-width: 0;
-  margin-top: auto !important;
-  display: flex !important;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  overflow: hidden;
-}
-
-/* Right panel: add/search row stays fixed; only the games table scrolls. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
-  min-width: 0;
-  max-width: 100%;
-  height: 100%;
-  min-height: 0;
-  display: grid !important;
-  grid-template-rows: 52px minmax(0, 1fr);
-  overflow: hidden !important;
-  padding: 22px 26px 18px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
-  min-width: 0;
-  height: 52px !important;
-  min-height: 52px !important;
-  max-height: 52px !important;
-  display: flex !important;
-  flex-wrap: nowrap !important;
-  align-items: start !important;
-  justify-content: space-between !important;
-  gap: 14px !important;
-  margin: 0 !important;
-  overflow: hidden;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2 {
-  flex: 0 1 42%;
-  min-width: 0 !important;
-  max-width: 42% !important;
-  margin: 8px 0 0 !important;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
-  flex: 0 1 58% !important;
-  min-width: 0 !important;
-  max-width: 58% !important;
-  width: 58% !important;
-  display: grid !important;
-  grid-template-columns: minmax(0, 1fr) 104px;
-  gap: 10px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row select,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row button {
-  min-width: 0;
-  height: 40px !important;
-  min-height: 40px !important;
-  max-height: 40px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
-  min-height: 0 !important;
-  height: 100% !important;
-  max-height: 100% !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  padding-right: 8px;
-  scrollbar-width: thin;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  background: rgba(7, 14, 31, 0.98);
-  backdrop-filter: blur(10px);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-head,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row {
-  width: 100%;
-  min-width: 0;
-  display: grid !important;
-  grid-template-columns: minmax(0, 52%) minmax(80px, 14%) minmax(0, 25%) 38px !important;
-  column-gap: 16px;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row > span {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell {
-  min-width: 0;
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-row .game-cell strong {
-  min-width: 0;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table .workspace-empty {
-  margin: 0 !important;
-  height: calc(100% - 42px);
+.app-shell.shell-v2.app-page-collections .new-collection-popover {
+  position: absolute;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: calc(100% + 12px) !important;
+  z-index: 140;
+  width: auto !important;
+  max-width: none !important;
   display: grid;
-  place-items: center;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(180, 92, 255, 0.46);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(180, 92, 255, 0.22), transparent 44%),
+    rgba(7, 14, 31, 0.96);
+  box-shadow:
+    0 22px 60px rgba(0, 0, 0, 0.38),
+    0 0 34px rgba(180, 92, 255, 0.18);
 }
 
-/* Keep old red delete styling disabled. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost.danger:hover {
-  border-color: rgba(180, 92, 255, 0.58) !important;
-  color: #f5f2ff !important;
-  background: rgba(6, 13, 31, 0.58) !important;
-  box-shadow: none !important;
+.app-shell.shell-v2.app-page-collections .new-collection-popover::before {
+  content: "";
+  position: absolute;
+  left: 42px !important;
+  bottom: -8px !important;
+  width: 16px;
+  height: 16px;
+  transform: rotate(45deg);
+  border-right: 1px solid rgba(180, 92, 255, 0.46);
+  border-bottom: 1px solid rgba(180, 92, 255, 0.46);
+  background: rgba(7, 14, 31, 0.96);
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover strong {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover input {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid rgba(137, 97, 255, 0.26);
+  border-radius: 9px;
+  color: #f5f2ff;
+  background: rgba(5, 12, 29, 0.76);
+  font: inherit;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.app-shell.shell-v2.app-page-collections .new-collection-popover button {
+  min-height: 40px;
+  border-radius: 9px;
 }
 
 @media (max-width: 1180px) {
   .app-shell.shell-v2.app-page-collections .collections-core-v3 {
-    min-height: 720px;
     height: auto;
-    max-height: none;
+    min-height: 720px;
     overflow: visible !important;
   }
 
@@ -1212,145 +658,15 @@
     height: 470px !important;
     grid-template-columns: 28% 72% !important;
   }
-}
 
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 
-/* Remove owner badges and tighten the selected-card description → game-count spacing. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row {
-  display: block !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row strong {
-  max-width: 100% !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
-  max-height: 62px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 span,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-card-title-row small {
-  display: none !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p {
-  flex: 0 0 auto !important;
-  height: auto !important;
-  min-height: 0 !important;
-  max-height: 42px !important;
-  margin: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
-  display: none !important;
-  flex: 0 0 0 !important;
-  height: 0 !important;
-  min-height: 0 !important;
-  max-height: 0 !important;
-  margin: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
-  margin-top: -2px !important;
-}
-
-
-/* Static selected-collection panel: no crown icon, no content-driven movement. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card .selected-collection-icon {
-  display: none !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-card {
-  display: grid !important;
-  grid-template-rows: 58px 36px 24px 48px 48px minmax(0, 1fr) 24px !important;
-  align-content: stretch !important;
-  gap: 10px !important;
-  height: 100% !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-  padding: 34px 24px 22px !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card h2 {
-  grid-row: 1;
-  align-self: end;
-  height: 58px !important;
-  min-height: 58px !important;
-  max-height: 58px !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card p,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
-  grid-row: 2;
-  height: 36px !important;
-  min-height: 36px !important;
-  max-height: 36px !important;
-  margin: 0 !important;
-  overflow: hidden !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-selected-description-empty {
-  visibility: hidden !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > strong {
-  grid-row: 3;
-  align-self: start;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  margin: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost,
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .shuffle-button {
-  width: 100% !important;
-  height: 48px !important;
-  min-height: 48px !important;
-  max-height: 48px !important;
-  margin: 0 !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost:nth-of-type(1) {
-  grid-row: 4;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card .ghost:nth-of-type(2) {
-  grid-row: 5;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-card > small {
-  grid-row: 7;
-  align-self: end;
-  width: 100%;
-  height: 24px !important;
-  min-height: 24px !important;
-  max-height: 24px !important;
-  margin: 0 !important;
-}
-
-/* Keep the right game area as the only area that changes/scrolls. */
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .core-selected-collection-games {
-  height: 100% !important;
-  min-height: 0 !important;
-  overflow: hidden !important;
-}
-
-.app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-game-table {
-  min-height: 0 !important;
-  height: 100% !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .selected-collection-header h2,
+  .app-shell.shell-v2.app-page-collections .collections-core-v3 .collection-add-row {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
 }

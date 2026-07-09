@@ -88,7 +88,6 @@ export function CollectionsWorkspace({
 
         <section className="collection-detail-showcase collection-detail-empty">
           <aside className="selected-collection-card">
-            <div className="selected-collection-icon" aria-hidden="true">♚</div>
             <h2>Select a collection</h2>
             <p>Use the + New Collection button on the left to create your first collection.</p>
             <strong>0 games</strong>
@@ -103,9 +102,7 @@ export function CollectionsWorkspace({
     );
   }
 
-  const selectedItems = collectionItems
-    .map((item) => item.game)
-    .filter((game): game is Game => Boolean(game));
+  const selectedGameCount = selectedCollection?.game_count ?? collectionItems.length;
 
   return (
     <div className="collections-workspace collections-redesign collections-core-v3">
@@ -116,9 +113,7 @@ export function CollectionsWorkspace({
       <section className="collection-card-strip core-collection-card-strip" aria-label="Collections">
         {collections.map((collection) => {
           const isActive = collection.id === selectedCollection?.id;
-          const preview = isActive
-            ? selectedItems.slice(0, 3)
-            : collectionPreviewGames[collection.id] ?? [];
+          const preview = collectionPreviewGames[collection.id] ?? [];
 
           return (
             <button
@@ -156,7 +151,7 @@ export function CollectionsWorkspace({
           ) : (
             <p>Pick a collection above to see the games inside it.</p>
           )}
-          <strong>{collectionItems.length} games</strong>
+          <strong>{selectedGameCount} games</strong>
 
           <button className="ghost" type="button">
             Edit Collection
@@ -177,7 +172,7 @@ export function CollectionsWorkspace({
 
         <div className="selected-collection-games core-selected-collection-games">
           <div className="selected-collection-header">
-            <h2>Games in this collection <span>({collectionItems.length})</span></h2>
+            <h2>Games in this collection <span>({selectedGameCount})</span></h2>
 
             <div className="collection-add-row">
               <select value={collectionGameId} onChange={(event) => setCollectionGameId(event.target.value)}>
