@@ -75,10 +75,14 @@ export type Collection = {
   user_id: string;
   name: string;
   description: string | null;
+  kind: "custom" | "smart";
+  rules: { preset?: SmartCollectionPreset };
   created_at: string;
   updated_at: string;
   game_count?: number;
 };
+
+export type SmartCollectionPreset = "backlog" | "in-progress" | "must-play" | "short" | "unplayed";
 
 export type CollectionGame = {
   collection_id: string;

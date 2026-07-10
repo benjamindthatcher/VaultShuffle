@@ -13,6 +13,7 @@ export type DemoCollection = {
   description: string;
   artworkUrl: string;
   accent: string;
+  smartPreset?: import("@/lib/types").SmartCollectionPreset;
 };
 
 export type DemoGame = {

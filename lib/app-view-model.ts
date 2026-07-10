@@ -35,11 +35,14 @@ export function mapLiveCollections(details: CollectionDetailPayload[]): DemoColl
 
     return {
       id: collection.id,
-      kind: "custom" as const,
+      kind: collection.kind,
       name: collection.name,
-      description: collection.description || "Custom collection from your live VaultShuffle library.",
+      description: collection.description || (collection.kind === "smart"
+        ? "Automatically updated from your live VaultShuffle library."
+        : "Custom collection from your live VaultShuffle library."),
       artworkUrl,
-      accent: `${games.length} game${games.length === 1 ? "" : "s"} currently assigned.`
+      accent: `${games.length} game${games.length === 1 ? "" : "s"} currently assigned.`,
+      smartPreset: collection.rules?.preset
     };
   });
 

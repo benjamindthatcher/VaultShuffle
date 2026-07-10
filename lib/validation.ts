@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const prioritySchema = z.enum(["Low", "Medium", "High", "Must Play"]);
+export const smartCollectionPresetSchema = z.enum(["backlog", "in-progress", "must-play", "short", "unplayed"]);
 
 export const gamePayloadSchema = z.object({
   title: z.string().trim().min(1).max(220),
@@ -30,7 +31,13 @@ export const patchGameSchema = z.object({
 
 export const collectionPayloadSchema = z.object({
   name: z.string().trim().min(1).max(90),
-  description: z.string().trim().max(280).optional().default("")
+  description: z.string().trim().max(280).optional().default(""),
+  kind: z.enum(["custom", "smart"]).optional().default("custom"),
+  rules: z.object({ preset: smartCollectionPresetSchema }).optional()
+}).superRefine((value, context) => {
+  if (value.kind === "smart" && !value.rules?.preset) {
+    context.addIssue({ code: "custom", message: "Choose a rule for this smart collection.", path: ["rules", "preset"] });
+  }
 });
 
 export const collectionGamePayloadSchema = z.object({

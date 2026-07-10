@@ -42,7 +42,8 @@
 
 .primaryAction,
 .secondaryAction,
-.field input {
+.field input,
+.field select {
   min-height: 50px;
   border-radius: 16px;
 }
@@ -96,12 +97,24 @@
   color: var(--vault-text-muted);
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   padding: 0 16px;
   border: 1px solid rgba(145, 105, 255, 0.18);
   background: rgba(15, 20, 46, 0.72);
   color: var(--vault-text);
+}
+
+.field small,
+.ruleNote {
+  color: var(--vault-text-soft);
+  line-height: 1.5;
+}
+
+.ruleNote {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
 }
 
 .composerActions {

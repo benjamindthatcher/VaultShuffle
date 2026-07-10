@@ -4,8 +4,10 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { guestSession, mapLiveCollections, mapLiveGames, type CollectionDetailPayload } from "@/lib/app-view-model";
-import type { Collection, Game, SessionPayload, SteamSearchResult } from "@/lib/types";
+import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
+
+type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
 const emptyVaultState: VaultState = { pinnedIds: [], snoozedIds: [], currentPickId: null };
 
@@ -21,8 +23,8 @@ type AppDataContextValue = {
   syncSteamLibrary: () => Promise<number>;
   refreshSteamMetadata: () => Promise<number>;
   signOut: () => Promise<void>;
-  createCollection: (payload: { name: string; description: string }) => Promise<void>;
-  updateCollection: (collectionId: string, payload: { name: string; description: string }) => Promise<void>;
+  createCollection: (payload: CollectionInput) => Promise<void>;
+  updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
   searchSteam: (query: string) => Promise<SteamSearchResult[]>;
   addWishlistGame: (payload: { title: string; genre: string; steamAppId?: string; image?: string }) => Promise<void>;
@@ -131,7 +133,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     window.location.assign("/login");
   }
 
-  async function createCollection(payload: { name: string; description: string }) {
+  async function createCollection(payload: CollectionInput) {
     if (isLive) {
       await api("/api/collections", {
         method: "POST",
@@ -143,17 +145,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     const nextCollection: DemoCollection = {
       id: `custom-${payload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-      kind: "custom",
+      kind: payload.kind || "custom",
       name: payload.name,
       description: payload.description || "Freshly created and ready for curating.",
       artworkUrl: "/assets/vault/vault-stage-open.png",
-      accent: "New collection draft."
+      accent: payload.kind === "smart" ? "Automatically updated from your library." : "New collection draft.",
+      smartPreset: payload.rules?.preset
     };
 
     setGuestCollections((current) => [nextCollection, ...current]);
   }
 
-  async function updateCollection(collectionId: string, payload: { name: string; description: string }) {
+  async function updateCollection(collectionId: string, payload: CollectionInput) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) });
       await load();
@@ -162,7 +165,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGuestCollections((current) => current.map((collection) => collection.id === collectionId ? {
       ...collection,
       name: payload.name,
-      description: payload.description
+      description: payload.description,
+      kind: payload.kind ?? collection.kind,
+      smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
     } : collection));
   }
 

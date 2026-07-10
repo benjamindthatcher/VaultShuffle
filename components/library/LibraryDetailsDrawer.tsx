@@ -92,7 +92,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           <fieldset className={styles.collectionSection}>
             <p className={styles.sectionLabel}>Collections</p>
             <div className={styles.collectionRow}>
-              {collections.filter((collection) => collection.kind !== "system").map((collection) => {
+              {collections.filter((collection) => collection.kind === "custom").map((collection) => {
                 const assigned = game.collectionIds.includes(collection.id);
                 return (
                   <label key={collection.id} className={assigned ? `${styles.collectionPill} ${styles.collectionPillActive}` : styles.collectionPill}>

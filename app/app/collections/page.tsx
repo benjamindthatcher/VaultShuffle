@@ -5,6 +5,8 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
+import { matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
+import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
 
 export default function CollectionsPage() {
@@ -14,6 +16,8 @@ export default function CollectionsPage() {
   const [composerOpen, setComposerOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
+  const [kindDraft, setKindDraft] = useState<"custom" | "smart">("custom");
+  const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("backlog");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +35,9 @@ export default function CollectionsPage() {
       new Map(
         baseCollections.map((collection) => [
           collection.id,
-          ownedGames.filter((game) => game.collectionIds.includes(collection.id))
+          ownedGames.filter((game) => collection.kind === "smart" && collection.smartPreset
+            ? matchesSmartPreset(game, collection.smartPreset)
+            : game.collectionIds.includes(collection.id))
         ])
       ),
     [baseCollections, ownedGames]
@@ -41,13 +47,16 @@ export default function CollectionsPage() {
   const selectedGames = selectedCollection ? collectionGameMap.get(selectedCollection.id) ?? [] : [];
 
   const stats = useMemo(
-    () => ({
-      total: baseCollections.length,
-      smart: baseCollections.filter((collection) => collection.kind === "smart").length,
-      custom: baseCollections.filter((collection) => collection.kind === "custom").length,
-      inCollections: ownedGames.filter((game) => game.collectionIds.length > 0).length
-    }),
-    [baseCollections, ownedGames]
+    () => {
+      const collectedIds = new Set([...collectionGameMap.values()].flat().map((game) => game.id));
+      return {
+        total: baseCollections.length,
+        smart: baseCollections.filter((collection) => collection.kind === "smart").length,
+        custom: baseCollections.filter((collection) => collection.kind === "custom").length,
+        inCollections: collectedIds.size
+      };
+    },
+    [baseCollections, collectionGameMap]
   );
 
   async function handleCreateCollection() {
@@ -55,17 +64,23 @@ export default function CollectionsPage() {
     if (!trimmedName) return;
     await createCollection({
       name: trimmedName,
-      description: descriptionDraft.trim()
+      description: descriptionDraft.trim(),
+      kind: kindDraft,
+      rules: kindDraft === "smart" ? { preset: presetDraft } : undefined
     });
     setComposerOpen(false);
     setNameDraft("");
     setDescriptionDraft("");
+    setKindDraft("custom");
+    setPresetDraft("backlog");
   }
 
   function beginEdit() {
     if (!selectedCollection) return;
     setNameDraft(selectedCollection.name);
     setDescriptionDraft(selectedCollection.description);
+    setKindDraft(selectedCollection.kind === "smart" ? "smart" : "custom");
+    setPresetDraft(selectedCollection.smartPreset || "backlog");
     setEditing(true);
     setComposerOpen(true);
   }
@@ -74,7 +89,12 @@ export default function CollectionsPage() {
     if (!selectedCollection || !nameDraft.trim()) return;
     setSaving(true);
     try {
-      await updateCollection(selectedCollection.id, { name: nameDraft.trim(), description: descriptionDraft.trim() });
+      await updateCollection(selectedCollection.id, {
+        name: nameDraft.trim(),
+        description: descriptionDraft.trim(),
+        kind: kindDraft,
+        rules: kindDraft === "smart" ? { preset: presetDraft } : undefined
+      });
       setComposerOpen(false);
       setEditing(false);
       setNameDraft("");
@@ -103,7 +123,7 @@ export default function CollectionsPage() {
           <h1 className={styles.title}>Collections</h1>
           <p className={styles.description}>Create, organise and play your way.</p>
         </div>
-        <button type="button" className={styles.primaryAction} onClick={() => { setEditing(false); setNameDraft(""); setDescriptionDraft(""); setComposerOpen((current) => !current); }}>
+        <button type="button" className={styles.primaryAction} onClick={() => { setEditing(false); setNameDraft(""); setDescriptionDraft(""); setKindDraft("custom"); setPresetDraft("backlog"); setComposerOpen((current) => !current); }}>
           New Collection
         </button>
       </header>
@@ -115,6 +135,22 @@ export default function CollectionsPage() {
               <span>Name</span>
               <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Backlog Essentials" />
             </label>
+            <label className={styles.field}>
+              <span>Collection type</span>
+              <select value={kindDraft} onChange={(event) => setKindDraft(event.target.value as "custom" | "smart")}>
+                <option value="custom">Custom collection</option>
+                <option value="smart">Smart collection</option>
+              </select>
+            </label>
+            {kindDraft === "smart" ? (
+              <label className={styles.field}>
+                <span>Automatic rule</span>
+                <select value={presetDraft} onChange={(event) => setPresetDraft(event.target.value as SmartCollectionPreset)}>
+                  {smartCollectionPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+                </select>
+                <small>{smartCollectionPresets.find((preset) => preset.id === presetDraft)?.description}</small>
+              </label>
+            ) : null}
             <label className={styles.field}>
               <span>Description</span>
               <input
@@ -163,6 +199,7 @@ export default function CollectionsPage() {
               <p className={styles.sectionEyebrow}>Selected collection</p>
               <h2 className={styles.sectionTitle}>{selectedCollection.name}</h2>
               <p className={styles.sectionCopy}>{selectedCollection.description}</p>
+              {selectedCollection.kind === "smart" ? <p className={styles.ruleNote}>Updates automatically from your library.</p> : null}
             </div>
             <div className={styles.selectedActions}>
               <button type="button" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
@@ -175,7 +212,9 @@ export default function CollectionsPage() {
             ) : (
               <div className={styles.emptyState}>
                 <h3 className={styles.emptyTitle}>No games in this collection yet.</h3>
-                <p className={styles.emptyCopy}>Open a game from Library and select this collection to add it here.</p>
+                <p className={styles.emptyCopy}>{selectedCollection.kind === "smart"
+                  ? "No owned games currently match this automatic rule."
+                  : "Open a game from Library and select this collection to add it here."}</p>
               </div>
             )}
           </div>
