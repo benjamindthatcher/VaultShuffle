@@ -1,0 +1,87 @@
+.grid {
+  display: grid;
+  gap: 10px;
+}
+
+.card {
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid rgba(146, 107, 255, 0.18);
+  background: rgba(10, 15, 35, 0.88);
+  box-shadow: var(--vault-shadow);
+}
+
+.cardHighlighted {
+  border-color: rgba(192, 139, 255, 0.7);
+  box-shadow:
+    0 0 0 1px rgba(192, 139, 255, 0.22),
+    0 0 36px rgba(128, 85, 255, 0.18);
+}
+
+.cardArt {
+  position: relative;
+  aspect-ratio: 16 / 7.5;
+  overflow: hidden;
+}
+
+.cardArt img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cardBody {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.cardTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cardTitle {
+  margin: 0;
+  font-size: 1.06rem;
+}
+
+.cardStatus {
+  flex: 0 0 auto;
+  color: #d09aff;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cardCopy {
+  margin: 0;
+  color: var(--vault-text-muted);
+  line-height: 1.6;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: var(--vault-text-soft);
+  font-size: 0.88rem;
+}
+
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .cardBody {
+    display: none;
+  }
+}

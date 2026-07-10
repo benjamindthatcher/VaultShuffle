@@ -1,0 +1,99 @@
+.wrap {
+  display: grid;
+  gap: 14px;
+}
+
+.heroCard {
+  overflow: hidden;
+  min-height: 125px;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: center;
+  gap: 18px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(158, 111, 255, 0.34);
+  background-color: rgba(8, 12, 29, 0.9);
+  box-shadow: 0 0 0 1px rgba(164, 119, 255, 0.12), var(--vault-shadow);
+}
+
+.artwork {
+  position: relative;
+  height: 102px;
+  overflow: hidden;
+  border-radius: 7px;
+}
+
+.artwork img {
+  object-fit: cover;
+}
+
+.content {
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0 0 10px;
+  color: #d89aff;
+  font-size: 0.76rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(1.25rem, 3vw, 1.65rem);
+}
+
+@media (max-width: 720px) {
+  .heroCard {
+    grid-template-columns: 1fr;
+  }
+
+  .artwork {
+    height: auto;
+    aspect-ratio: 16 / 7.5;
+  }
+}
+
+.description,
+.accent {
+  max-width: 36rem;
+  margin: 10px 0 0;
+  color: var(--vault-text-muted);
+  line-height: 1.6;
+}
+
+.chooser {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.chooser::-webkit-scrollbar {
+  display: none;
+}
+
+.choiceButton {
+  flex: 0 0 auto;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(144, 104, 255, 0.18);
+  background: rgba(15, 20, 46, 0.68);
+  color: var(--vault-text-muted);
+}
+
+.choiceButtonActive {
+  border-color: rgba(181, 130, 255, 0.62);
+  background: rgba(43, 27, 91, 0.92);
+  color: var(--vault-text);
+}
+
+@media (min-width: 1080px) {
+  .chooser {
+    display: none;
+  }
+}

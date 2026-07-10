@@ -1,0 +1,130 @@
+.libraryPage {
+  display: grid;
+  gap: 10px;
+}
+
+.header {
+  display: grid;
+  gap: 12px;
+  min-height: 290px;
+  align-items: center;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: 0;
+  border: 1px solid rgba(104, 139, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(7, 10, 26, 0.08), rgba(7, 10, 26, 0.58)),
+    url("/assets/vault/vault-stage-closed.png");
+  background-position: center 48%;
+  background-size: cover;
+  box-shadow: var(--vault-shadow);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #8ab4ff;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+}
+
+.description {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--vault-text-muted);
+  line-height: 1.7;
+}
+
+.statsGrid {
+  display: grid;
+  gap: 14px;
+}
+
+.sectionCard {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(8, 13, 31, 0.82);
+  box-shadow: var(--vault-shadow);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionEyebrow {
+  margin: 0;
+  color: #cf9fff;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  margin: 8px 0 0;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.recentRow {
+  display: grid;
+  gap: 10px;
+}
+
+.recentCard {
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(12, 17, 40, 0.78);
+  text-align: left;
+}
+
+.recentArtwork {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 7.5;
+}
+
+.recentArtwork img {
+  object-fit: cover;
+}
+
+.recentBody {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.recentBody span {
+  color: var(--vault-text-muted);
+}
+
+@media (min-width: 720px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recentRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .statsGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .recentRow {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

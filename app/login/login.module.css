@@ -1,0 +1,68 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.card {
+  width: min(560px, 100%);
+  display: grid;
+  gap: 18px;
+  padding: 40px 32px;
+  border-radius: 32px;
+  border: 1px solid rgba(146, 107, 255, 0.28);
+  background: rgba(8, 12, 31, 0.9);
+  box-shadow: var(--vault-shadow);
+}
+
+.brandRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.word {
+  color: rgba(244, 247, 255, 0.96);
+}
+
+.accent {
+  background: linear-gradient(90deg, #d66eff, #4e8dff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  margin: 4px 0 0;
+  color: #d7a2ff;
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.copy {
+  margin: 0;
+  color: var(--vault-text-muted);
+  line-height: 1.7;
+}
+
+.steamButton {
+  display: inline-flex;
+  width: fit-content;
+}

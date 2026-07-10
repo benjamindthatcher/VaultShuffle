@@ -1,0 +1,121 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.hero {
+  width: min(980px, 100%);
+  min-height: 680px;
+  display: grid;
+  align-content: end;
+  gap: 28px;
+  padding: clamp(28px, 5vw, 52px);
+  border-radius: 36px;
+  border: 1px solid rgba(145, 105, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(7, 10, 26, 0.12), rgba(7, 10, 26, 0.9)),
+    url("/assets/vault/vault-stage-open.png");
+  background-position: center;
+  background-size: cover;
+  box-shadow: var(--vault-shadow);
+}
+
+.brandRow {
+  display: inline-flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.icon {
+  border-radius: 18px;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  font-size: clamp(1.2rem, 2vw, 1.45rem);
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.word {
+  color: rgba(244, 247, 255, 0.96);
+}
+
+.accent {
+  background: linear-gradient(90deg, #d66eff, #4e8dff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.copy {
+  max-width: 44rem;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: #d9a5ff;
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(3rem, 9vw, 5.6rem);
+  line-height: 0.92;
+}
+
+.description {
+  max-width: 40rem;
+  margin: 18px 0 0;
+  color: var(--vault-text-muted);
+  font-size: clamp(1rem, 2vw, 1.12rem);
+  line-height: 1.7;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.primaryAction,
+.secondaryAction {
+  min-height: 52px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
+  border-radius: 999px;
+}
+
+.primaryAction {
+  background: linear-gradient(90deg, #8a4dff, #3151ff);
+  color: white;
+}
+
+.secondaryAction {
+  border: 1px solid rgba(145, 105, 255, 0.2);
+  background: rgba(14, 18, 44, 0.76);
+}
+
+@media (max-width: 640px) {
+  .hero {
+    min-height: 560px;
+  }
+
+  .brandRow {
+    flex-wrap: wrap;
+  }
+
+  .wordmark {
+    gap: 8px;
+    font-size: 1.02rem;
+  }
+}

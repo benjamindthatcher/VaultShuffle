@@ -1,0 +1,80 @@
+.group {
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(142, 102, 255, 0.18);
+  background: rgba(8, 13, 31, 0.78);
+  box-shadow: var(--vault-shadow);
+}
+
+.headingRow {
+  margin-bottom: 12px;
+}
+
+.stepLabel {
+  margin: 0;
+  color: var(--vault-text);
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.optionGrid {
+  display: grid;
+  gap: 6px;
+}
+
+.optionButton {
+  min-height: 48px;
+  display: grid;
+  justify-items: start;
+  gap: 0;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(146, 107, 255, 0.18);
+  background: rgba(15, 20, 46, 0.68);
+  text-align: left;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.optionButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(159, 117, 255, 0.42);
+}
+
+.optionButtonActive {
+  border-color: rgba(184, 132, 255, 0.72);
+  background: linear-gradient(180deg, rgba(37, 23, 82, 0.92), rgba(14, 21, 49, 0.92));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 0 1px rgba(162, 117, 255, 0.24),
+    0 0 28px rgba(121, 86, 255, 0.18);
+}
+
+.optionLabel {
+  font-size: 1rem;
+}
+
+.optionCaption {
+  color: var(--vault-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+@media (min-width: 1080px) {
+  .optionCaption {
+    display: none;
+  }
+
+  .optionLabel {
+    font-size: 0.84rem;
+  }
+}
+
+@media (min-width: 720px) {
+  .optionGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

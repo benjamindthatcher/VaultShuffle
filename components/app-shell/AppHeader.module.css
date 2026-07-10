@@ -1,0 +1,281 @@
+.headerWrap {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 0 24px;
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid rgba(142, 102, 255, 0.14);
+  background: rgba(4, 7, 20, 0.94);
+}
+
+.header {
+  width: var(--vault-content-width);
+  min-height: var(--vault-header-height);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 20px;
+  margin: 0 auto;
+  padding: 8px 8px;
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.brandMark {
+  width: 46px;
+  height: 46px;
+  display: inline-grid;
+  place-items: center;
+}
+
+.brandWordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brandWord {
+  color: rgba(244, 247, 255, 0.94);
+}
+
+.brandAccent {
+  background: linear-gradient(90deg, #d66eff, #4e8dff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brandIcon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.nav {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.nav::-webkit-scrollbar {
+  display: none;
+}
+
+.navLink {
+  position: relative;
+  padding: 18px 20px;
+  border-radius: 999px;
+  color: var(--vault-text-muted);
+  font-weight: 600;
+  white-space: nowrap;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    transform 160ms ease;
+}
+
+.navLink:hover {
+  color: var(--vault-text);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.navLinkActive {
+  color: var(--vault-text);
+}
+
+.navLinkActive::after {
+  content: "";
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  bottom: -8px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vault-accent), #da74ff, var(--vault-accent-strong));
+  box-shadow: 0 0 18px rgba(143, 88, 255, 0.82);
+}
+
+.profileMenu {
+  position: relative;
+  justify-self: end;
+}
+
+.profilePill {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 14px 8px 10px;
+  border: 1px solid rgba(142, 102, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(18, 24, 52, 0.88);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.profilePill::-webkit-details-marker {
+  display: none;
+}
+
+.profileAvatar {
+  width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(160, 72, 255, 0.92), rgba(50, 75, 255, 0.92));
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.profileImage {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profileName {
+  font-weight: 700;
+}
+
+.profileChevron {
+  color: var(--vault-text-soft);
+  transition: transform 160ms ease;
+}
+
+.profileMenu[open] .profileChevron {
+  transform: rotate(180deg);
+}
+
+.profilePopover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  width: min(280px, calc(100vw - 40px));
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(142, 102, 255, 0.28);
+  border-radius: 20px;
+  background: rgba(8, 12, 29, 0.98);
+  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.48);
+}
+
+.accountSummary {
+  display: grid;
+  gap: 4px;
+  padding: 8px 10px 12px;
+  border-bottom: 1px solid rgba(142, 102, 255, 0.16);
+}
+
+.accountSummary span,
+.accountMessage {
+  color: var(--vault-text-muted);
+  font-size: 0.82rem;
+}
+
+.menuAction {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 12px;
+  color: var(--vault-text);
+  background: transparent;
+  text-align: left;
+  font-weight: 650;
+}
+
+.menuAction:hover {
+  background: rgba(143, 88, 255, 0.12);
+}
+
+.menuAction:disabled {
+  cursor: wait;
+  opacity: 0.58;
+}
+
+.dangerAction {
+  color: #ff9db1;
+}
+
+.accountMessage {
+  margin: 4px 8px 2px;
+  line-height: 1.45;
+}
+
+@media (max-width: 860px) {
+  .header {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .brand {
+    justify-self: start;
+  }
+
+  .profileMenu {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: end;
+  }
+
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 540px) {
+  .headerWrap {
+    padding-inline: 12px;
+  }
+
+  .header {
+    padding: 16px;
+    border-radius: 24px;
+  }
+
+  .brandWordmark {
+    display: none;
+  }
+
+  .nav {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px;
+    overflow: visible;
+  }
+
+  .navLink {
+    min-width: 0;
+    padding: 11px 4px;
+    text-align: center;
+    font-size: 0.78rem;
+  }
+
+  .navLinkActive::after {
+    left: 8px;
+    right: 8px;
+  }
+}

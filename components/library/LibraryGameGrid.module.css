@@ -1,0 +1,20 @@
+.grid {
+  display: grid;
+  gap: 10px;
+}
+
+.gridList {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 760px) {
+  .grid:not(.gridList) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1180px) {
+  .grid:not(.gridList) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}

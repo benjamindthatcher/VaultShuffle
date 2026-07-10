@@ -1,12 +1,5 @@
-import { Dashboard } from "@/components/Dashboard";
+import { redirect } from "next/navigation";
 
-export default async function AppPage() {
-  return (
-    <>
-      <link rel="stylesheet" href="/styles.css" />
-      <link rel="stylesheet" href="/app-redesign-wishlist-collections.css" />
-      <link rel="stylesheet" href="/collections-core.css" />
-      <Dashboard />
-    </>
-  );
+export default function AppIndexPage() {
+  redirect("/app/vault");
 }

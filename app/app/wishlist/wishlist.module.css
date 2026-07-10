@@ -1,0 +1,217 @@
+.wishlistPage {
+  display: grid;
+  gap: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 145px;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: 0;
+  border: 1px solid rgba(190, 110, 255, 0.24);
+  background:
+    linear-gradient(180deg, rgba(7, 10, 26, 0.18), rgba(7, 10, 26, 0.72)),
+    url("/assets/vault/vault-stage-closed.png");
+  background-position: center 44%;
+  background-size: cover;
+  box-shadow: var(--vault-shadow);
+}
+
+.eyebrow {
+  margin: 0;
+  color: #da8fff;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.76rem;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(2.4rem, 6vw, 4rem);
+}
+
+.description {
+  max-width: 48rem;
+  margin: 0;
+  color: var(--vault-text-muted);
+  line-height: 1.7;
+}
+
+.primaryAction,
+.secondaryAction,
+.field input,
+.searchField input,
+.selectField select {
+  min-height: 50px;
+  border-radius: 16px;
+}
+
+.primaryAction,
+.secondaryAction {
+  padding: 0 18px;
+  border-radius: 999px;
+}
+
+.primaryAction {
+  border: 0;
+  background: linear-gradient(90deg, #8a4dff, #3151ff);
+  color: white;
+}
+
+.secondaryAction {
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(14, 18, 44, 0.76);
+  color: var(--vault-text);
+}
+
+.composerCard,
+.toolbar,
+.sectionCard {
+  display: grid;
+  gap: 16px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(8, 13, 31, 0.82);
+  box-shadow: var(--vault-shadow);
+}
+
+.composerGrid,
+.statsGrid,
+.rowList,
+.saleGrid {
+  display: grid;
+  gap: 16px;
+}
+
+.field,
+.selectField {
+  display: grid;
+  gap: 8px;
+  color: var(--vault-text-muted);
+}
+
+.field input,
+.searchField input,
+.selectField select {
+  width: 100%;
+  padding: 0 16px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(15, 20, 46, 0.72);
+  color: var(--vault-text);
+}
+
+.composerActions,
+.toolbarControls {
+  display: flex;
+  gap: 12px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionEyebrow {
+  margin: 0;
+  color: #d59eff;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  margin: 8px 0 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.saleCardWrap {
+  display: grid;
+  gap: 10px;
+}
+
+.saleMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--vault-text-muted);
+}
+
+@media (max-width: 760px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .composerActions,
+  .toolbarControls {
+    flex-direction: column;
+  }
+}
+
+@media (min-width: 720px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .saleGrid,
+  .composerGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .saleGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .toolbar {
+    grid-template-columns: minmax(0, 1.4fr) auto;
+    align-items: end;
+  }
+}
+
+.searchResults {
+  display: grid;
+  gap: 8px;
+}
+
+.searchResult {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  border-radius: 16px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(12, 17, 40, 0.82);
+  color: var(--vault-text);
+  text-align: left;
+}
+
+.searchResult small {
+  display: block;
+  margin-top: 4px;
+  color: var(--vault-text-muted);
+}
+
+.searchArtwork {
+  position: relative;
+  aspect-ratio: 184 / 69;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.searchArtwork img {
+  object-fit: cover;
+}
