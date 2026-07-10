@@ -5,11 +5,15 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { guestSession, mapLiveCollections, mapLiveGames, type CollectionDetailPayload } from "@/lib/app-view-model";
 import type { Collection, Game, SessionPayload, SteamSearchResult } from "@/lib/types";
+import type { VaultAction, VaultState } from "@/lib/vault-state";
+
+const emptyVaultState: VaultState = { pinnedIds: [], snoozedIds: [], currentPickId: null };
 
 type AppDataContextValue = {
   session: SessionPayload;
   games: DemoGame[];
   collections: DemoCollection[];
+  vaultState: VaultState;
   isLive: boolean;
   isLoading: boolean;
   isSyncing: boolean;
@@ -24,6 +28,7 @@ type AppDataContextValue = {
   updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"] }) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
   removeGame: (gameId: string) => Promise<void>;
+  recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -49,6 +54,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(demoCollections);
   const [liveGames, setLiveGames] = useState<DemoGame[]>([]);
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>([]);
+  const [guestVaultState, setGuestVaultState] = useState<VaultState>(emptyVaultState);
+  const [liveVaultState, setLiveVaultState] = useState<VaultState>(emptyVaultState);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -64,8 +71,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const { games } = await api<{ games: Game[] }>("/api/games");
-      const { collections } = await api<{ collections: Collection[] }>("/api/collections");
+      const [{ games }, { collections }, nextVaultState] = await Promise.all([
+        api<{ games: Game[] }>("/api/games"),
+        api<{ collections: Collection[] }>("/api/collections"),
+        api<VaultState>("/api/vault/state")
+      ]);
 
       const details = await Promise.all(
         collections.map((collection) =>
@@ -78,6 +88,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
       setLiveCollections(mapLiveCollections(details));
       setLiveGames(mapLiveGames(games, details));
+      setLiveVaultState(nextVaultState);
       setIsLive(true);
     } catch {
       setSession(guestSession);
@@ -274,11 +285,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGuestGames((current) => current.filter((game) => game.id !== gameId));
   }
 
+  async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
+    if (isLive) {
+      const nextState = await api<VaultState>("/api/vault/state", {
+        method: "POST",
+        body: JSON.stringify({ action, game_id: gameId, context })
+      });
+      setLiveVaultState(nextState);
+      return;
+    }
+
+    setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId));
+  }
+
   const value = useMemo<AppDataContextValue>(
     () => ({
       session,
       games: isLive ? liveGames : guestGames,
       collections: isLive ? liveCollections : guestCollections,
+      vaultState: isLive ? liveVaultState : guestVaultState,
       isLive,
       isLoading,
       isSyncing,
@@ -292,12 +317,30 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       addWishlistGame,
       updateGame,
       setGameCollection,
-      removeGame
+      removeGame,
+      recordVaultAction
     }),
-    [session, isLive, isLoading, isSyncing, liveGames, liveCollections, guestGames, guestCollections]
+    [session, isLive, isLoading, isSyncing, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
+}
+
+function reduceGuestVaultState(state: VaultState, action: VaultAction, gameId: string): VaultState {
+  const pinnedIds = new Set(state.pinnedIds);
+  const snoozedIds = new Set(state.snoozedIds);
+  let currentPickId = state.currentPickId;
+
+  if (action === "drawn") currentPickId = gameId;
+  if (action === "pinned") pinnedIds.add(gameId);
+  if (action === "unpinned") pinnedIds.delete(gameId);
+  if (action === "snoozed") {
+    snoozedIds.add(gameId);
+    if (currentPickId === gameId) currentPickId = null;
+  }
+  if (action === "unsnoozed") snoozedIds.delete(gameId);
+
+  return { pinnedIds: [...pinnedIds], snoozedIds: [...snoozedIds], currentPickId };
 }
 
 export function useAppData() {

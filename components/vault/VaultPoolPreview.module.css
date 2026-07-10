@@ -4,11 +4,21 @@
 }
 
 .card {
+  width: 100%;
+  padding: 0;
   overflow: hidden;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
   border-radius: 8px;
   border: 1px solid rgba(146, 107, 255, 0.18);
   background: rgba(10, 15, 35, 0.88);
   box-shadow: var(--vault-shadow);
+}
+
+.card:focus-visible {
+  outline: 2px solid #c08bff;
+  outline-offset: 3px;
 }
 
 .cardHighlighted {

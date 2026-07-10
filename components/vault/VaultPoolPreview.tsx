@@ -5,18 +5,22 @@ import styles from "./VaultPoolPreview.module.css";
 type VaultPoolPreviewProps = {
   games: DemoGame[];
   highlightedId?: string | null;
+  onSelect?: (gameId: string) => void;
 };
 
-export function VaultPoolPreview({ games, highlightedId = null }: VaultPoolPreviewProps) {
+export function VaultPoolPreview({ games, highlightedId = null, onSelect }: VaultPoolPreviewProps) {
   return (
     <div className={styles.grid}>
       {games.map((game) => {
         const isHighlighted = highlightedId === game.id;
         return (
-          <article
+          <button
+            type="button"
             key={game.id}
             className={isHighlighted ? `${styles.card} ${styles.cardHighlighted}` : styles.card}
             id={`vault-card-${game.id}`}
+            onClick={() => onSelect?.(game.id)}
+            aria-label={`View details for ${game.title}`}
           >
             <div className={styles.cardArt}>
               <Artwork src={game.bannerUrl} sizes="(max-width: 720px) 44vw, 210px" />
@@ -32,7 +36,7 @@ export function VaultPoolPreview({ games, highlightedId = null }: VaultPoolPrevi
                 <span>{game.genres.slice(0, 2).join(" · ")}</span>
               </div>
             </div>
-          </article>
+          </button>
         );
       })}
     </div>

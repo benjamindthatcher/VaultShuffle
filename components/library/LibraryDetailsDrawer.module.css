@@ -2,6 +2,9 @@
   position: fixed;
   inset: 0;
   z-index: 39;
+  width: 100%;
+  padding: 0;
+  border: 0;
   background: rgba(1, 4, 18, 0.72);
 }
 
@@ -64,6 +67,20 @@
   margin: 0;
   color: var(--vault-text-muted);
   line-height: 1.7;
+}
+
+.metadataRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.metadataRow span {
+  padding: 6px 10px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  border-radius: 999px;
+  color: var(--vault-text-soft);
+  font-size: 0.78rem;
 }
 
 .closeButton,
@@ -178,13 +195,30 @@
 
 .actionRow {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   justify-content: flex-end;
 }
 
-.saveButton {
+.saveButton,
+.steamButton {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 18px;
   border-radius: 999px;
+}
+
+.saveButton {
   border: 0;
   background: linear-gradient(90deg, #8a4dff, #3151ff);
   color: white;
+}
+
+.steamButton {
+  border: 1px solid rgba(145, 105, 255, 0.28);
+  background: rgba(14, 18, 44, 0.76);
+  color: var(--vault-text);
+  text-decoration: none;
 }

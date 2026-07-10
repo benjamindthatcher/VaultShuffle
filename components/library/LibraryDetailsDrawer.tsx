@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Artwork } from "@/components/shared/Artwork";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
+import { steamStoreUrl } from "@/lib/steam-images";
 import styles from "./LibraryDetailsDrawer.module.css";
 
 type LibraryDetailsDrawerProps = {
@@ -31,14 +32,23 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
     setPriority(game.priority);
   }, [game]);
 
+  useEffect(() => {
+    if (!game) return;
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [game, onClose]);
+
   if (!game) return null;
 
   const relatedCollections = collections.filter((collection) => game.collectionIds.includes(collection.id));
 
   return (
     <>
-      <div className={styles.overlay} onClick={onClose} />
-      <aside className={styles.drawer}>
+      <button type="button" className={styles.overlay} onClick={onClose} aria-label="Close game details" />
+      <aside className={styles.drawer} role="dialog" aria-modal="true" aria-label={`${game.title} details`}>
         <div className={styles.hero}>
           <Artwork src={game.bannerUrl} sizes="(max-width: 520px) 100vw, 520px" priority />
         </div>
@@ -54,6 +64,11 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           </div>
 
           <p className={styles.copy}>{game.description}</p>
+
+          <div className={styles.metadataRow}>
+            {game.genres.map((genre) => <span key={genre}>{genre}</span>)}
+            <span>{game.addedLabel}</span>
+          </div>
 
           <dl className={styles.statGrid}>
             <div>
@@ -105,7 +120,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           <div className={styles.editorGrid}>
             <label className={styles.field}>
               <span>Status</span>
-              <select value={status} onChange={(event) => setStatus(event.target.value as DemoGame["status"])}>
+              <select aria-label="Edit status" value={status} onChange={(event) => setStatus(event.target.value as DemoGame["status"])}>
                 <option value="Not Started">Not Started</option>
                 <option value="In Progress">In Progress</option>
                 <option value="Completed">Completed</option>
@@ -113,15 +128,15 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             </label>
             <label className={styles.field}>
               <span>Completion %</span>
-              <input type="number" min={0} max={100} value={completion} onChange={(event) => setCompletion(Number(event.target.value))} />
+              <input aria-label="Edit completion percentage" type="number" min={0} max={100} value={completion} onChange={(event) => setCompletion(Number(event.target.value))} />
             </label>
             <label className={styles.field}>
               <span>Hours played</span>
-              <input type="number" min={0} value={hours} onChange={(event) => setHours(Number(event.target.value))} />
+              <input aria-label="Edit hours played" type="number" min={0} value={hours} onChange={(event) => setHours(Number(event.target.value))} />
             </label>
             <label className={styles.field}>
               <span>Priority</span>
-              <select value={priority} onChange={(event) => setPriority(event.target.value as DemoGame["priority"])}>
+              <select aria-label="Edit priority" value={priority} onChange={(event) => setPriority(event.target.value as DemoGame["priority"])}>
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
                 <option value="Must Play">Must Play</option>
@@ -129,11 +144,19 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             </label>
             <label className={`${styles.field} ${styles.fieldWide}`}>
               <span>Notes</span>
-              <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} />
+              <textarea aria-label="Edit notes" value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} />
             </label>
           </div>
 
           <div className={styles.actionRow}>
+            <a
+              className={styles.steamButton}
+              href={steamStoreUrl(game.steamAppId)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open on Steam
+            </a>
             <button
               type="button"
               className={styles.saveButton}

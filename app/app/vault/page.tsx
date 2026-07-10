@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
+import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
@@ -21,19 +22,19 @@ import { steamStoreUrl } from "@/lib/steam-images";
 import styles from "./vault.module.css";
 
 export default function VaultPage() {
-  const { games, collections } = useAppData();
+  const { games, collections, vaultState, recordVaultAction, updateGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId>("evening");
   const [mood, setMood] = useState<VaultMoodId>("story");
   const [goal, setGoal] = useState<VaultGoalId>("new");
   const [selectedCollectionId, setSelectedCollectionId] = useState("cosmic-odyssey");
   const [selectedGenres, setSelectedGenres] = useState<string[]>(["Sci-Fi", "Adventure"]);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [currentPickId, setCurrentPickId] = useState<string | null>(null);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
-  const [pinnedIds, setPinnedIds] = useState<string[]>([]);
-  const [snoozedIds, setSnoozedIds] = useState<Set<string>>(() => new Set());
+  const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
+  const [savingGameId, setSavingGameId] = useState<string | null>(null);
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
+  const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
   const genreOptions = useMemo(() => availableVaultGenres(ownedGames), [ownedGames]);
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? collections[0];
 
@@ -60,12 +61,19 @@ export default function VaultPage() {
     [goal, mood, ownedGames, selectedCollectionId, selectedGenres, session, snoozedIds]
   );
 
-  const currentPick = pool.find((entry) => entry.game.id === currentPickId)?.game ?? null;
+  const currentPick = ownedGames.find((game) => game.id === vaultState.currentPickId) ?? null;
+  const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
 
-  function handleOpenVault() {
+  async function handleOpenVault() {
     const nextPick = drawVaultGame(pool);
     if (!nextPick) return;
-    setCurrentPickId(nextPick.id);
+    await recordVaultAction("drawn", nextPick.id, {
+      session,
+      mood,
+      goal,
+      collection_id: selectedCollectionId,
+      genres: selectedGenres
+    });
     setHighlightedGameId(nextPick.id);
   }
 
@@ -79,25 +87,14 @@ export default function VaultPage() {
     setSelectedGenres([]);
   }
 
-  function togglePin(id: string) {
-    setPinnedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  async function togglePin(id: string) {
+    await recordVaultAction(vaultState.pinnedIds.includes(id) ? "unpinned" : "pinned", id);
   }
 
-  function snoozeCurrentPick() {
+  async function snoozeCurrentPick() {
     if (!currentPick) return;
-    setSnoozedIds((current) => {
-      const next = new Set(current);
-      next.add(currentPick.id);
-      return next;
-    });
-    setCurrentPickId(null);
+    await recordVaultAction("snoozed", currentPick.id);
     setHighlightedGameId(null);
-  }
-
-  function focusPickInPool() {
-    if (!currentPick) return;
-    setHighlightedGameId(currentPick.id);
-    document.getElementById(`vault-card-${currentPick.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
   return (
@@ -154,7 +151,11 @@ export default function VaultPage() {
         </div>
 
         {pool.length ? (
-          <VaultPoolPreview games={pool.map((entry) => entry.game)} highlightedId={highlightedGameId} />
+          <VaultPoolPreview
+            games={pool.map((entry) => entry.game)}
+            highlightedId={highlightedGameId}
+            onSelect={setDetailsGameId}
+          />
         ) : (
           <div className={styles.emptyState}>
             <h3 className={styles.emptyTitle}>No games matched that combination.</h3>
@@ -166,7 +167,7 @@ export default function VaultPage() {
         )}
       </section>
 
-      <button type="button" className={styles.ctaButton} onClick={handleOpenVault} disabled={!pool.length}>
+      <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!pool.length}>
         Open the Vault
       </button>
 
@@ -188,16 +189,16 @@ export default function VaultPage() {
               <a href={steamStoreUrl(currentPick.steamAppId)} className={styles.primaryAction} target="_blank" rel="noreferrer">
                 Open on Steam
               </a>
-              <button type="button" className={styles.secondaryAction} onClick={() => togglePin(currentPick.id)}>
-                {pinnedIds.includes(currentPick.id) ? "Pinned" : "Pin This Pick"}
+              <button type="button" className={styles.secondaryAction} onClick={() => void togglePin(currentPick.id)}>
+                {vaultState.pinnedIds.includes(currentPick.id) ? "Pinned" : "Pin This Pick"}
               </button>
-              <button type="button" className={styles.secondaryAction} onClick={handleOpenVault}>
+              <button type="button" className={styles.secondaryAction} onClick={() => void handleOpenVault()}>
                 Draw Again
               </button>
-              <button type="button" className={styles.secondaryAction} onClick={snoozeCurrentPick}>
+              <button type="button" className={styles.secondaryAction} onClick={() => void snoozeCurrentPick()}>
                 Not Now
               </button>
-              <button type="button" className={styles.secondaryAction} onClick={focusPickInPool}>
+              <button type="button" className={styles.secondaryAction} onClick={() => setDetailsGameId(currentPick.id)}>
                 View Details
               </button>
             </div>
@@ -212,6 +213,26 @@ export default function VaultPage() {
         onToggleGenre={toggleGenre}
         onClose={() => setDrawerOpen(false)}
         onClear={clearGenres}
+      />
+
+      <LibraryDetailsDrawer
+        game={detailsGame}
+        collections={collections}
+        saving={savingGameId === detailsGame?.id}
+        onSave={async (patch) => {
+          if (!detailsGame) return;
+          setSavingGameId(detailsGame.id);
+          try {
+            await updateGame(detailsGame.id, patch);
+          } finally {
+            setSavingGameId(null);
+          }
+        }}
+        onToggleCollection={async (collectionId, assigned) => {
+          if (!detailsGame) return;
+          await setGameCollection(detailsGame.id, collectionId, assigned);
+        }}
+        onClose={() => setDetailsGameId(null)}
       />
     </section>
   );
