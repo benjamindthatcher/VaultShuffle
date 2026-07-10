@@ -10,12 +10,8 @@ type GameCardProps = {
 
 export function GameCard({ game, layout = "grid", onClick }: GameCardProps) {
   const isList = layout === "list";
-  return (
-    <button
-      type="button"
-      className={isList ? `${styles.card} ${styles.cardList}` : styles.card}
-      onClick={onClick}
-    >
+  const content = (
+    <>
       <div className={isList ? `${styles.artwork} ${styles.artworkList}` : styles.artwork}>
         <Artwork src={game.artworkUrl} sizes={isList ? "260px" : "(max-width: 720px) 100vw, 33vw"} />
       </div>
@@ -30,6 +26,20 @@ export function GameCard({ game, layout = "grid", onClick }: GameCardProps) {
           <span>{game.completionPercent}% complete</span>
         </div>
       </div>
+    </>
+  );
+
+  if (!onClick) {
+    return <article className={isList ? `${styles.card} ${styles.cardList}` : styles.card}>{content}</article>;
+  }
+
+  return (
+    <button
+      type="button"
+      className={isList ? `${styles.card} ${styles.cardList}` : styles.card}
+      onClick={onClick}
+    >
+      {content}
     </button>
   );
 }

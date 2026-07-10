@@ -18,13 +18,20 @@ export const metadata: Metadata = {
       "Organise your Steam library, shape your collections, and unlock the right game for tonight.",
     siteName: "Vault Shuffle",
     type: "website",
-    url: "https://vaultshuffle.com"
+    url: "https://vaultshuffle.com",
+    images: [{
+      url: "/assets/vault/vault-stage-closed.png",
+      width: 1536,
+      height: 864,
+      alt: "The Vault Shuffle game vault"
+    }]
   },
   twitter: {
     card: "summary_large_image",
     title: "Vault Shuffle",
     description:
-      "Organise your Steam library, shape your collections, and unlock the right game for tonight."
+      "Organise your Steam library, shape your collections, and unlock the right game for tonight.",
+    images: ["/assets/vault/vault-stage-closed.png"]
   },
   alternates: {
     canonical: "/"

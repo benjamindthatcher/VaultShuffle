@@ -229,7 +229,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         bannerUrl: payload.image || "/assets/vault/vault-stage-open.png",
         lastPlayedLabel: "Wishlist",
         addedLabel: "Added just now",
-        salePrice: "TBD",
         collectionIds: [],
         sessionFit: ["evening"],
         moodTags: ["story"]
