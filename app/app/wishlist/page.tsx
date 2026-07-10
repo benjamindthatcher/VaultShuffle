@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GameCard } from "@/components/shared/GameCard";
 import { Artwork } from "@/components/shared/Artwork";
@@ -10,7 +10,7 @@ import styles from "./wishlist.module.css";
 import type { SteamSearchResult } from "@/lib/types";
 
 export default function WishlistPage() {
-  const { games, searchSteam, addWishlistGame, updateGame, removeGame } = useAppData();
+  const { games, isLive, searchSteam, addWishlistGame, updateGame, removeGame, refreshSteamMetadata } = useAppData();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("added");
   const [filter, setFilter] = useState("all");
@@ -19,7 +19,14 @@ export default function WishlistPage() {
   const [searchResults, setSearchResults] = useState<SteamSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const refreshStarted = useRef(false);
   const wishlistGames = useMemo(() => games.filter((game) => game.ownership === "Wishlist"), [games]);
+
+  useEffect(() => {
+    if (!isLive || refreshStarted.current) return;
+    refreshStarted.current = true;
+    void refreshSteamMetadata();
+  }, [isLive, refreshSteamMetadata]);
 
   const filteredWishlist = useMemo(() => {
     const queryText = query.trim().toLowerCase();

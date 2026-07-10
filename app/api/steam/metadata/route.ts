@@ -9,7 +9,8 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
     const limit = Number(body?.limit ?? 12);
     const force = Boolean(body?.force);
-    const result = await enrichSteamMetadataForUser(user.id, limit, force);
+    const wishlistOnly = Boolean(body?.wishlist_only);
+    const result = await enrichSteamMetadataForUser(user.id, limit, force, wishlistOnly);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();

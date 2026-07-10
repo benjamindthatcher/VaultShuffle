@@ -77,11 +77,26 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       bannerUrl: game.header_url || steamHeaderImage(game.steam_appid || 753640),
       lastPlayedLabel: game.last_played_at ? formatDateLabel(game.last_played_at) : "Not played recently",
       addedLabel: game.date_added ? `Added ${game.date_added}` : "Added recently",
+      salePrice: formatSteamPrice(game.price_final, game.price_currency, game.is_free),
+      saleOriginalPrice: Number(game.discount_percent || 0) > 0
+        ? formatSteamPrice(game.price_initial, game.price_currency, false)
+        : undefined,
+      saleDiscount: Number(game.discount_percent || 0) > 0 ? `-${game.discount_percent}%` : undefined,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
       sessionFit: deriveSessionFit(game),
       moodTags: deriveMoodTags(game, genres)
     };
   });
+}
+
+function formatSteamPrice(amount: number | null | undefined, currency: string | null | undefined, isFree = false) {
+  if (isFree) return "Free";
+  if (amount == null || !currency) return undefined;
+  try {
+    return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amount / 100);
+  } catch {
+    return `${currency} ${(amount / 100).toFixed(2)}`;
+  }
 }
 
 function normaliseGenres(game: Game) {

@@ -20,6 +20,11 @@ export type Game = {
   steam_appid: string | null;
   capsule_url?: string | null;
   header_url?: string | null;
+  price_currency?: string | null;
+  price_initial?: number | null;
+  price_final?: number | null;
+  discount_percent?: number | null;
+  is_free?: boolean;
   created_at?: string;
   updated_at?: string;
 };

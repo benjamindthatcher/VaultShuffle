@@ -32,6 +32,7 @@ export type DemoGame = {
   lastPlayedLabel: string;
   addedLabel: string;
   salePrice?: string;
+  saleOriginalPrice?: string;
   saleDiscount?: string;
   collectionIds: string[];
   sessionFit: VaultSessionId[];

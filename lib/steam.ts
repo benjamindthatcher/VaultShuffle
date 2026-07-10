@@ -14,6 +14,11 @@ type SteamAppDetails = Partial<GamePayload> & {
   review_score_desc?: string;
   review_total?: number;
   review_positive?: number;
+  price_currency?: string;
+  price_initial?: number;
+  price_final?: number;
+  discount_percent?: number;
+  is_free?: boolean;
 };
 const appDetailCache = new Map<string, CacheEntry<SteamAppDetails | null>>();
 
@@ -218,7 +223,6 @@ async function fetchSteamAppDetailsBatch(appids: string[]) {
 async function fetchSingleSteamAppDetail(appid: string): Promise<[string, SteamAppDetails | null]> {
   const params = new URLSearchParams({
     appids: appid,
-    filters: "basic,genres",
     cc: "GB",
     l: "en"
   });
@@ -286,6 +290,9 @@ async function fetchSteamReviewSummary(appid: string): Promise<SteamAppDetails |
 
 function steamDetailPayload(appid: string, data: Record<string, unknown>): SteamAppDetails {
   const headerImage = String(data.header_image ?? "").trim();
+  const price = data.price_overview && typeof data.price_overview === "object"
+    ? data.price_overview as Record<string, unknown>
+    : null;
   return {
     title: String(data.name ?? "").trim() || undefined,
     genre: steamGenreLabel(data, String(data.name ?? "")) || undefined,
@@ -293,8 +300,23 @@ function steamDetailPayload(appid: string, data: Record<string, unknown>): Steam
     notes: "",
     steam_appid: appid,
     capsule_url: steamImageUrl(appid, "capsule"),
-    header_url: headerImage || steamImageUrl(appid, "header")
+    header_url: headerImage || steamImageUrl(appid, "header"),
+    price_currency: cleanCurrency(price?.currency),
+    price_initial: cleanMinorUnits(price?.initial),
+    price_final: cleanMinorUnits(price?.final),
+    discount_percent: clamp(Math.round(Number(price?.discount_percent || 0)), 0, 100),
+    is_free: Boolean(data.is_free)
   };
+}
+
+function cleanCurrency(value: unknown) {
+  const currency = String(value ?? "").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(currency) ? currency : undefined;
+}
+
+function cleanMinorUnits(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : undefined;
 }
 
 function steamLastPlayedDate(value: unknown) {

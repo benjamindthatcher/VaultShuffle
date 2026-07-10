@@ -34,7 +34,11 @@ export function WishlistRow({ game, liked, onToggleLike, onRemove, removing }: W
       </div>
       <div className={styles.meta}>
         <span>{game.addedLabel}</span>
-        <strong>{game.salePrice ?? "TBD"}</strong>
+        <div className={styles.priceRow}>
+          {game.saleDiscount ? <span className={styles.discount}>{game.saleDiscount}</span> : null}
+          {game.saleOriginalPrice ? <s>{game.saleOriginalPrice}</s> : null}
+          <strong>{game.salePrice ?? "Price unavailable"}</strong>
+        </div>
       </div>
     </article>
   );

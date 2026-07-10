@@ -19,6 +19,7 @@ type AppDataContextValue = {
   isSyncing: boolean;
   refresh: () => Promise<void>;
   syncSteamLibrary: () => Promise<number>;
+  refreshSteamMetadata: () => Promise<number>;
   signOut: () => Promise<void>;
   createCollection: (payload: { name: string; description: string }) => Promise<void>;
   updateCollection: (collectionId: string, payload: { name: string; description: string }) => Promise<void>;
@@ -113,6 +114,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSyncing(false);
     }
+  }
+
+  async function refreshSteamMetadata() {
+    if (!isLive) return 0;
+    const result = await api<{ updated: number }>("/api/steam/metadata", {
+      method: "POST",
+      body: JSON.stringify({ limit: 24, wishlist_only: true })
+    });
+    if (result.updated > 0) await load();
+    return result.updated;
   }
 
   async function signOut() {
@@ -309,6 +320,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       isSyncing,
       refresh: load,
       syncSteamLibrary,
+      refreshSteamMetadata,
       signOut,
       createCollection,
       updateCollection,

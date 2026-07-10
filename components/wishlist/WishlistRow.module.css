@@ -87,6 +87,27 @@
   color: var(--vault-text-muted);
 }
 
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.priceRow s {
+  color: var(--vault-text-soft);
+  font-size: 0.82rem;
+}
+
+.discount {
+  padding: 4px 7px;
+  border: 1px solid rgba(218, 111, 255, 0.38);
+  border-radius: 6px;
+  color: #dc8fff;
+  font-size: 0.76rem;
+}
+
 @media (min-width: 920px) {
   .row {
     grid-template-columns: 240px minmax(0, 1fr) auto;
