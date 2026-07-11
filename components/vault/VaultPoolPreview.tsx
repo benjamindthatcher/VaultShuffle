@@ -1,5 +1,6 @@
 import type { DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
+import { candidateFallback } from "@/lib/vaultshuffle-assets";
 import styles from "./VaultPoolPreview.module.css";
 
 type VaultPoolPreviewProps = {
@@ -11,7 +12,7 @@ type VaultPoolPreviewProps = {
 export function VaultPoolPreview({ games, highlightedId = null, onSelect }: VaultPoolPreviewProps) {
   return (
     <div className={styles.grid}>
-      {games.map((game) => {
+      {games.map((game, index) => {
         const isHighlighted = highlightedId === game.id;
         return (
           <button
@@ -23,7 +24,7 @@ export function VaultPoolPreview({ games, highlightedId = null, onSelect }: Vaul
             aria-label={`View details for ${game.title}`}
           >
             <div className={styles.cardArt}>
-              <Artwork src={game.bannerUrl} sizes="(max-width: 720px) 44vw, 210px" />
+              <Artwork src={game.bannerUrl} fallbackSrc={candidateFallback(index)} sizes="(max-width: 720px) 44vw, 210px" />
             </div>
             <div className={styles.cardBody}>
               <div className={styles.cardTopRow}>

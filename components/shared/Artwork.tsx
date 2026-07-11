@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 
 type ArtworkProps = {
   src: string;
+  fallbackSrc?: string;
   alt?: string;
   className?: string;
   sizes: string;
@@ -13,12 +14,12 @@ type ArtworkProps = {
 
 const FALLBACK_ARTWORK = "/assets/vault/vault-stage-open.png";
 
-export function Artwork({ src, alt = "", className, sizes, priority = false }: ArtworkProps) {
-  const [resolvedSrc, setResolvedSrc] = useState(src || FALLBACK_ARTWORK);
+export function Artwork({ src, fallbackSrc = FALLBACK_ARTWORK, alt = "", className, sizes, priority = false }: ArtworkProps) {
+  const [resolvedSrc, setResolvedSrc] = useState(src || fallbackSrc);
 
   useEffect(() => {
-    setResolvedSrc(src || FALLBACK_ARTWORK);
-  }, [src]);
+    setResolvedSrc(src || fallbackSrc);
+  }, [fallbackSrc, src]);
 
   return (
     <Image
@@ -28,7 +29,7 @@ export function Artwork({ src, alt = "", className, sizes, priority = false }: A
       sizes={sizes}
       priority={priority}
       className={className}
-      onError={() => setResolvedSrc(FALLBACK_ARTWORK)}
+      onError={() => setResolvedSrc(fallbackSrc)}
     />
   );
 }

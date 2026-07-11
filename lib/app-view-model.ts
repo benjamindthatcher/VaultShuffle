@@ -3,6 +3,7 @@ import { splitGenres, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
 import type { DemoCollection, DemoGame, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
+import { collectionBanner } from "@/lib/vaultshuffle-assets";
 
 export type CollectionDetailPayload = {
   collection: Collection;
@@ -29,7 +30,7 @@ export function mapLiveCollections(details: CollectionDetailPayload[]): DemoColl
 
   const mapped = details.map(({ collection, games }) => {
     const firstGame = games[0]?.game;
-    const artworkUrl =
+    const artworkUrl = collectionBanner(collection.name) ||
       firstGame?.header_url ||
       (firstGame?.steam_appid ? steamHeaderImage(firstGame.steam_appid) : "/assets/vault/vault-stage-open.png");
 

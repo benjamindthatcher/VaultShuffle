@@ -1,4 +1,5 @@
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
+import { collectionBanner } from "@/lib/vaultshuffle-assets";
 
 export type DemoOwnership = "Owned" | "Wishlist";
 export type DemoStatus = "Not Started" | "In Progress" | "Completed";
@@ -54,7 +55,7 @@ export const demoCollections: DemoCollection[] = [
     kind: "custom",
     name: "Cosmic Odyssey",
     description: "Curated adventures across the stars, the void, and the strange unknown.",
-    artworkUrl: steamHeaderImage(753640),
+    artworkUrl: collectionBanner("Cosmic Odyssey") || steamHeaderImage(753640),
     accent: "Sci-fi worlds and atmosphere-first journeys."
   },
   {
@@ -62,7 +63,7 @@ export const demoCollections: DemoCollection[] = [
     kind: "smart",
     name: "Story Rich",
     description: "Unforgettable writing, heavy choices, and worlds worth disappearing into.",
-    artworkUrl: steamHeaderImage(632470),
+    artworkUrl: collectionBanner("Story Rich") || steamHeaderImage(632470),
     accent: "Narrative-led picks for deeper sessions."
   },
   {
@@ -70,7 +71,7 @@ export const demoCollections: DemoCollection[] = [
     kind: "smart",
     name: "Short & Sweet",
     description: "High-payoff games that fit neatly into busy evenings.",
-    artworkUrl: steamHeaderImage(383870),
+    artworkUrl: collectionBanner("Short & Sweet") || steamHeaderImage(383870),
     accent: "Faster wins without sacrificing vibe."
   },
   {
@@ -78,7 +79,7 @@ export const demoCollections: DemoCollection[] = [
     kind: "custom",
     name: "Comfort Games",
     description: "Reliable favourites for low-friction nights and soft landings.",
-    artworkUrl: steamHeaderImage(413150),
+    artworkUrl: collectionBanner("Comfort Games") || steamHeaderImage(413150),
     accent: "Chill energy and familiar joy."
   }
 ];
