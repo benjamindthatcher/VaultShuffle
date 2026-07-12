@@ -4,7 +4,7 @@ import { collectionBanner } from "@/lib/vaultshuffle-assets";
 export type DemoOwnership = "Owned" | "Wishlist";
 export type DemoStatus = "Not Started" | "In Progress" | "Completed";
 export type VaultSessionId = "short" | "evening" | "weekend";
-export type VaultMoodId = "chill" | "story" | "intense" | "brain-off";
+export type VaultMoodId = "chill" | "intense" | "brain-off";
 export type VaultGoalId = "new" | "finish" | "surprise";
 
 export type DemoCollection = {
@@ -102,7 +102,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 9 Jan, 2025",
     collectionIds: ["cosmic-odyssey", "story-rich"],
     sessionFit: ["evening", "weekend"],
-    moodTags: ["story", "intense"]
+    moodTags: ["intense"]
   },
   {
     id: "disco-elysium",
@@ -121,7 +121,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 18 Feb, 2025",
     collectionIds: ["story-rich"],
     sessionFit: ["evening", "weekend"],
-    moodTags: ["story", "chill"]
+    moodTags: ["chill"]
   },
   {
     id: "hades",
@@ -178,7 +178,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 12 May, 2025",
     collectionIds: ["cosmic-odyssey", "story-rich"],
     sessionFit: ["evening", "weekend"],
-    moodTags: ["story", "chill"]
+    moodTags: ["chill"]
   },
   {
     id: "control",
@@ -197,7 +197,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 30 May, 2025",
     collectionIds: ["cosmic-odyssey"],
     sessionFit: ["evening", "weekend"],
-    moodTags: ["intense", "story"]
+    moodTags: ["intense"]
   },
   {
     id: "firewatch",
@@ -216,7 +216,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 4 Jun, 2025",
     collectionIds: ["story-rich", "short-sweet"],
     sessionFit: ["short", "evening"],
-    moodTags: ["story", "chill"]
+    moodTags: ["chill"]
   },
   {
     id: "ori-will-of-the-wisps",
@@ -235,7 +235,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 17 Jun, 2025",
     collectionIds: ["short-sweet", "comfort-games"],
     sessionFit: ["short", "evening"],
-    moodTags: ["chill", "story"]
+    moodTags: ["chill"]
   },
   {
     id: "hollow-knight",
@@ -273,7 +273,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 1 Jul, 2025",
     collectionIds: ["story-rich"],
     sessionFit: ["weekend"],
-    moodTags: ["story"]
+    moodTags: []
   },
   {
     id: "dead-cells",
@@ -330,7 +330,7 @@ export const demoGames: DemoGame[] = [
     addedLabel: "Added 8 Jul, 2025",
     collectionIds: ["cosmic-odyssey", "story-rich"],
     sessionFit: ["weekend"],
-    moodTags: ["story"]
+    moodTags: []
   },
   {
     id: "returnal",
@@ -410,7 +410,7 @@ export const demoGames: DemoGame[] = [
     saleDiscount: "-10%",
     collectionIds: [],
     sessionFit: ["weekend"],
-    moodTags: ["story"]
+    moodTags: []
   },
   {
     id: "black-myth-wukong",

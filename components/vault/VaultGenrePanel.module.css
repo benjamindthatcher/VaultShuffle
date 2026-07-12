@@ -20,6 +20,11 @@
   margin: 0;
 }
 
+.heading p strong {
+  color: #d89aff;
+  font-weight: 700;
+}
+
 .heading h2 {
   color: var(--vault-text);
   font-size: 1rem;
@@ -85,6 +90,14 @@
 
 .clear:disabled {
   opacity: 0.45;
+}
+
+.limitMessage {
+  min-height: 1.2em;
+  margin: 0 0 0 auto;
+  color: #e0a4ff;
+  font-size: 0.76rem;
+  text-align: right;
 }
 
 @media (max-width: 520px) {

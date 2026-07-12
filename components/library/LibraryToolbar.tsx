@@ -26,6 +26,7 @@ export function LibraryToolbar({
     <section className={styles.toolbar}>
       <label className={styles.searchField}>
         <span className={styles.hiddenLabel}>Search games</span>
+        <VaultIcon name="search" size={20} />
         <input
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
@@ -59,6 +60,7 @@ export function LibraryToolbar({
             type="button"
             className={viewMode === "grid" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}
             onClick={() => onViewModeChange("grid")}
+            aria-pressed={viewMode === "grid"}
           >
             <VaultIcon name="grid" /> <span>Grid</span>
           </button>
@@ -66,6 +68,7 @@ export function LibraryToolbar({
             type="button"
             className={viewMode === "list" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}
             onClick={() => onViewModeChange("list")}
+            aria-pressed={viewMode === "list"}
           >
             <VaultIcon name="list" /> <span>List</span>
           </button>

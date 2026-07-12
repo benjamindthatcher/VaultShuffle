@@ -40,35 +40,10 @@
   text-align: center;
 }
 
-.header > div {
-  display: grid;
-  justify-items: center;
-}
-
 .header > .primaryAction {
   position: absolute;
   right: clamp(24px, 4vw, 36px);
   bottom: clamp(24px, 4vw, 36px);
-}
-
-.eyebrow {
-  margin: 0;
-  color: #da8fff;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-size: 0.76rem;
-}
-
-.title {
-  margin: 0;
-  font-size: clamp(2.4rem, 6vw, 4rem);
-}
-
-.description {
-  max-width: 48rem;
-  margin: 0;
-  color: var(--vault-text-muted);
-  line-height: 1.7;
 }
 
 .primaryAction,
@@ -114,6 +89,14 @@
   box-shadow: var(--vault-shadow);
 }
 
+.toolbar {
+  padding: 16px;
+  border-color: rgba(158, 102, 255, 0.3);
+  background:
+    linear-gradient(135deg, rgba(17, 23, 56, 0.94), rgba(8, 12, 34, 0.96)),
+    radial-gradient(circle at 0% 50%, rgba(151, 72, 255, 0.14), transparent 34%);
+}
+
 .composerGrid,
 .statsGrid,
 .rowList,
@@ -150,6 +133,38 @@
   color: var(--vault-text);
 }
 
+.searchField {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 58px;
+  padding: 0 18px;
+  border: 1px solid rgba(145, 105, 255, 0.24);
+  border-radius: 16px;
+  background: rgba(10, 15, 42, 0.82);
+  color: #c881ff;
+}
+
+.searchField input {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  outline: 0;
+}
+
+.selectField select {
+  min-width: 210px;
+  border-color: rgba(145, 105, 255, 0.3);
+  background: rgba(10, 15, 42, 0.9);
+}
+
+.controlLabel {
+  color: #d5d8ef;
+  font-weight: 700;
+}
+
 .composerActions,
 .toolbarControls {
   display: flex;
@@ -177,8 +192,45 @@
 }
 
 .saleCardWrap {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(145, 105, 255, 0.25);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(18, 23, 52, 0.96), rgba(8, 12, 31, 0.98));
+}
+
+.saleArtwork {
+  position: relative;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+}
+
+.saleArtwork img {
+  object-fit: cover;
+}
+
+.saleBody {
   display: grid;
   gap: 10px;
+  padding: 16px;
+}
+
+.saleBody h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.saleBody a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 42px;
+  margin-top: 2px;
+  padding: 0 13px;
+  border: 1px solid rgba(188, 93, 255, 0.34);
+  border-radius: 11px;
+  color: #e2b3ff;
+  text-decoration: none;
 }
 
 .saleMeta {
@@ -187,6 +239,43 @@
   justify-content: space-between;
   gap: 12px;
   color: var(--vault-text-muted);
+}
+
+.discountBadge {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  right: 12px;
+  padding: 6px 9px;
+  border: 1px solid rgba(227, 103, 255, 0.52);
+  border-radius: 8px;
+  background: rgba(31, 8, 46, 0.9);
+  color: #ef9dff;
+  font-weight: 800;
+}
+
+.saleIntro {
+  margin: 8px 0 0;
+  color: var(--vault-text-muted);
+}
+
+.priceTools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  color: var(--vault-text-muted);
+  font-size: 0.82rem;
+}
+
+.saleEmpty {
+  grid-column: 1 / -1;
+  padding: 28px;
+  border: 1px dashed rgba(145, 105, 255, 0.28);
+  border-radius: 14px;
+  color: var(--vault-text-muted);
+  text-align: center;
 }
 
 @media (max-width: 760px) {

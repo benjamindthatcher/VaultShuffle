@@ -52,40 +52,6 @@
   }
 }
 
-.eyebrow {
-  margin: 0 0 12px;
-  color: var(--vault-text-muted);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-size: 0.76rem;
-}
-
-.title {
-  max-width: none;
-  margin: 0;
-  font-size: clamp(2.5rem, 4vw, 3.25rem);
-  line-height: 1.05;
-  text-align: center;
-}
-
-.description {
-  max-width: 52rem;
-  margin: 18px 0 0;
-  color: var(--vault-text-muted);
-  font-size: clamp(1rem, 2vw, 1.18rem);
-  line-height: 1.7;
-  text-align: center;
-}
-
-.heroCopy {
-  max-width: 62rem;
-  text-align: center;
-}
-
-.heroCopy .eyebrow {
-  display: none;
-}
-
 .optionStack {
   display: grid;
   gap: var(--vault-top-card-gap);
@@ -98,7 +64,6 @@
   gap: 12px;
 }
 
-.filterRail,
 .poolSection,
 .resultCard {
   padding: 14px;
@@ -108,14 +73,6 @@
   box-shadow: var(--vault-shadow);
 }
 
-.filterRail {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.filterLabel,
 .poolLabel,
 .resultEyebrow {
   margin: 0;
@@ -125,14 +82,12 @@
   text-transform: uppercase;
 }
 
-.filterHint,
 .resultCopy {
   margin: 0;
   color: var(--vault-text-muted);
   line-height: 1.6;
 }
 
-.filterButton,
 .secondaryAction,
 .primaryAction,
 .ctaButton {
@@ -140,7 +95,15 @@
   border-radius: 999px;
 }
 
-.filterButton,
+.setupStatus {
+  min-height: 1.4em;
+  margin: -4px 4px 0;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  text-align: center;
+}
+
 .secondaryAction {
   padding: 0 18px;
   border: 1px solid rgba(144, 104, 255, 0.22);
@@ -158,6 +121,14 @@
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035), 0 0 28px rgba(104, 45, 220, 0.12);
 }
 
+.poolControls {
+  height: 96px;
+  display: grid;
+  grid-template-rows: 40px 36px;
+  gap: 8px;
+  overflow: hidden;
+}
+
 .poolLabel {
   color: #cf61ff;
   font-weight: 700;
@@ -165,12 +136,11 @@
 
 .poolHeader {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
 }
 
-.poolTitle,
 .resultTitle,
 .emptyTitle {
   margin: 8px 0 0;
@@ -179,9 +149,17 @@
 
 .pillRow {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
 }
+
+.pillRow::-webkit-scrollbar { display: none; }
+.pillRow > * { flex: 0 0 auto; }
+.noFilters { display: inline-flex; align-items: center; color: var(--vault-text-soft); font-size: 0.78rem; }
 
 .matchBadge {
   flex: 0 0 auto;
@@ -195,13 +173,14 @@
 }
 
 .ctaButton {
-  width: 100%;
+  width: min(100%, 320px);
+  justify-self: center;
   border: 0;
   border-radius: 12px;
   background: linear-gradient(180deg, #6a2dff 0%, #7c38ff 40%, #5b21f6 100%);
   color: #fff;
-  min-height: 64px;
-  font-size: 1.55rem;
+  min-height: 52px;
+  font-size: 1.08rem;
   font-weight: 700;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 0 30px rgba(151, 71, 255, 0.42);
 }
@@ -209,6 +188,9 @@
 .resultCard {
   display: grid;
   gap: 18px;
+  padding: 14px;
+  border-color: rgba(155, 106, 255, 0.3);
+  background: linear-gradient(135deg, rgba(9, 13, 34, 0.98), rgba(6, 10, 27, 0.95));
 }
 
 .resultRevealed {
@@ -234,8 +216,28 @@
 .resultArtwork {
   position: relative;
   overflow: hidden;
-  border-radius: 22px;
+  min-height: 340px;
+  border-radius: 12px;
   aspect-ratio: 16 / 7.5;
+}
+
+.currentPickBadge {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border: 1px solid rgba(208, 107, 255, 0.54);
+  border-radius: 6px;
+  background: rgba(51, 24, 88, 0.88);
+  color: #e7a4ff;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .resultArtwork img {
@@ -247,7 +249,32 @@
 .resultBody {
   display: grid;
   gap: 14px;
+  align-content: center;
+  padding: 8px 4px;
 }
+
+.resultSummary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summaryItem {
+  min-width: 0;
+  min-height: 68px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(130, 96, 244, 0.22);
+  border-radius: 9px;
+  background: rgba(15, 21, 50, 0.72);
+  color: #bd7cff;
+}
+
+.summaryItem span { min-width: 0; display: grid; gap: 3px; }
+.summaryItem small { color: var(--vault-text-soft); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.summaryItem strong { overflow: hidden; color: #eef1ff; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .resultReasonRow {
   display: flex;
@@ -256,10 +283,40 @@
 }
 
 .resultActions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
 }
+
+.actionsLabel {
+  margin: 2px 0 -5px;
+  color: #d392ff;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.resultAction {
+  min-width: 0;
+  min-height: 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 6px;
+  padding: 13px;
+  border: 1px solid rgba(145, 105, 255, 0.28);
+  border-radius: 9px;
+  background: linear-gradient(145deg, rgba(18, 24, 54, 0.94), rgba(8, 12, 29, 0.96));
+  color: #a975ff;
+  text-align: left;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.resultAction:hover { transform: translateY(-2px); border-color: rgba(198, 104, 255, 0.65); box-shadow: 0 12px 26px rgba(82, 39, 170, 0.2); }
+.resultAction strong { color: #f5f6ff; font-size: 0.84rem; line-height: 1.2; }
+.resultAction span { color: var(--vault-text-soft); font-size: 0.68rem; }
+.resultActionPrimary { background: linear-gradient(145deg, rgba(99, 45, 218, 0.92), rgba(48, 38, 130, 0.94)); }
 
 .primaryAction {
   display: inline-flex;
@@ -283,11 +340,15 @@
 }
 
 @media (max-width: 720px) {
-  .filterRail,
   .poolHeader {
     align-items: flex-start;
     flex-direction: column;
   }
+
+  .resultSummary,
+  .resultActions { grid-template-columns: 1fr; }
+
+  .resultAction { min-height: 78px; }
 }
 
 @media (min-width: 1080px) {
@@ -300,7 +361,7 @@
   }
 
   .workspace {
-    grid-template-columns: minmax(320px, 0.42fr) minmax(0, 1fr);
+    grid-template-columns: minmax(410px, 0.48fr) minmax(0, 1fr);
     align-items: stretch;
   }
 

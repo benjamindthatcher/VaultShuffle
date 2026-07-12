@@ -1,5 +1,9 @@
+"use client";
+
+import { useRef } from "react";
 import type { DemoCollection } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./VaultCollectionCard.module.css";
 
 type VaultCollectionCardProps = {
@@ -13,6 +17,12 @@ export function VaultCollectionCard({
   collections,
   onSelect
 }: VaultCollectionCardProps) {
+  const chooserRef = useRef<HTMLDivElement>(null);
+
+  function moveChooser(direction: -1 | 1) {
+    chooserRef.current?.scrollBy({ left: direction * 240, behavior: "smooth" });
+  }
+
   return (
     <section className={styles.wrap}>
       <div className={styles.heroCard}>
@@ -26,23 +36,26 @@ export function VaultCollectionCard({
           <h2 className={styles.title}>{selectedCollection?.name ?? "Choose a collection"}</h2>
           <p className={styles.description}>{selectedCollection?.description ?? "Optional. Leave blank to search across your full library."}</p>
         </div>
-        <span className={styles.chevron} aria-hidden="true">›</span>
       </div>
 
-      <div className={styles.chooser}>
-        {collections.map((collection) => {
-          const isActive = collection.id === selectedCollection?.id;
-          return (
-            <button
-              key={collection.id}
-              type="button"
-              className={isActive ? `${styles.choiceButton} ${styles.choiceButtonActive}` : styles.choiceButton}
-              onClick={() => onSelect(collection.id)}
-            >
-              {collection.name}
-            </button>
-          );
-        })}
+      <div className={styles.chooserShell}>
+        <button type="button" className={styles.chooserArrow} onClick={() => moveChooser(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" size={18} /></button>
+        <div className={styles.chooser} ref={chooserRef}>
+          {collections.map((collection) => {
+            const isActive = collection.id === selectedCollection?.id;
+            return (
+              <button
+                key={collection.id}
+                type="button"
+                className={isActive ? `${styles.choiceButton} ${styles.choiceButtonActive}` : styles.choiceButton}
+                onClick={() => onSelect(collection.id)}
+              >
+                {collection.name}
+              </button>
+            );
+          })}
+        </div>
+        <button type="button" className={styles.chooserArrow} onClick={() => moveChooser(1)} aria-label="Next collections"><VaultIcon name="chevron-right" size={18} /></button>
       </div>
     </section>
   );

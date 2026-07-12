@@ -231,7 +231,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         addedLabel: "Added just now",
         collectionIds: [],
         sessionFit: ["evening"],
-        moodTags: ["story"]
+        moodTags: []
       },
       ...current
     ]);

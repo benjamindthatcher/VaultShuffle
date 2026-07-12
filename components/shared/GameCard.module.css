@@ -1,11 +1,12 @@
 .card {
+  appearance: none;
   width: 100%;
   display: grid;
   gap: 8px;
   padding: 8px;
   border-radius: 10px;
   border: 1px solid rgba(145, 105, 255, 0.18);
-  background: rgba(8, 13, 31, 0.82);
+  background-color: rgba(8, 13, 31, 0.94);
   text-align: left;
   box-shadow: var(--vault-shadow);
   transition:

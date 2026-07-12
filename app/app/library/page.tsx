@@ -110,13 +110,15 @@ export default function LibraryPage() {
         </div>
       </section>
 
-      <section className={styles.sectionCard}>
+      <section className={`${styles.sectionCard} ${styles.gamesSection}`}>
         <div className={styles.sectionHeader}>
           <div>
-            <h2 className={styles.sectionTitle}>All Games</h2>
+            <h2 className={styles.sectionTitle}>All Games <span className={styles.sectionCount}>({filteredGames.length})</span></h2>
           </div>
         </div>
-        <LibraryGameGrid games={filteredGames} viewMode={viewMode} onSelect={setSelectedGameId} />
+        <div className={styles.gamesScroller} tabIndex={0} aria-label={`${filteredGames.length} games`}>
+          <LibraryGameGrid games={filteredGames} viewMode={viewMode} onSelect={setSelectedGameId} />
+        </div>
       </section>
 
       <LibraryDetailsDrawer

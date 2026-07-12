@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
-import { GameCard } from "@/components/shared/GameCard";
 import { Artwork } from "@/components/shared/Artwork";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
@@ -20,6 +19,8 @@ export default function WishlistPage() {
   const [searchResults, setSearchResults] = useState<SteamSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [refreshingPrices, setRefreshingPrices] = useState(false);
+  const [priceMessage, setPriceMessage] = useState("");
   const refreshStarted = useRef(false);
   const wishlistGames = useMemo(() => games.filter((game) => game.ownership === "Wishlist"), [games]);
 
@@ -48,6 +49,7 @@ export default function WishlistPage() {
       })
       .sort((left, right) => {
         if (sort === "price") return Number.parseFloat(left.salePrice?.replace(/[^\d.]/g, "") || "999") - Number.parseFloat(right.salePrice?.replace(/[^\d.]/g, "") || "999");
+        if (sort === "discount") return Number.parseInt(right.saleDiscount || "0", 10) - Number.parseInt(left.saleDiscount || "0", 10);
         if (sort === "title") return left.title.localeCompare(right.title);
         return right.priority.localeCompare(left.priority);
       });
@@ -91,6 +93,19 @@ export default function WishlistPage() {
     setComposerOpen(false);
     setNameDraft("");
     setSearchResults([]);
+  }
+
+  async function refreshPrices() {
+    setRefreshingPrices(true);
+    setPriceMessage("");
+    try {
+      const updated = await refreshSteamMetadata();
+      setPriceMessage(updated ? `${updated} Steam listing${updated === 1 ? "" : "s"} refreshed.` : "Steam prices are already current.");
+    } catch {
+      setPriceMessage("Steam pricing could not be refreshed right now.");
+    } finally {
+      setRefreshingPrices(false);
+    }
   }
 
   return (
@@ -141,6 +156,7 @@ export default function WishlistPage() {
 
       <section className={styles.toolbar}>
         <label className={styles.searchField}>
+          <VaultIcon name="search" size={20} />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your wishlist..." />
         </label>
         <div className={styles.toolbarControls}>
@@ -150,6 +166,7 @@ export default function WishlistPage() {
               <option value="added">Priority</option>
               <option value="title">Title A-Z</option>
               <option value="price">Lowest visible price</option>
+              <option value="discount">Biggest discount</option>
             </select>
           </label>
           <label className={styles.selectField}>
@@ -195,18 +212,31 @@ export default function WishlistPage() {
           <div>
             <p className={styles.sectionEyebrow}>On Sale</p>
             <h2 className={styles.sectionTitle}>{onSaleGames.length} discounted picks</h2>
+            <p className={styles.saleIntro}>Current Steam pricing for games you already want.</p>
+          </div>
+          <div className={styles.priceTools}>
+            {priceMessage ? <span role="status">{priceMessage}</span> : null}
+            <button type="button" className={styles.secondaryAction} disabled={!isLive || refreshingPrices} onClick={() => void refreshPrices()}>
+              {refreshingPrices ? "Refreshing…" : "Refresh Steam prices"}
+            </button>
           </div>
         </div>
         <div className={styles.saleGrid}>
           {onSaleGames.map((game) => (
-            <div key={game.id} className={styles.saleCardWrap}>
-              <GameCard game={game} />
-              <div className={styles.saleMeta}>
-                <span>{game.saleDiscount}</span>
-                <strong>{game.salePrice}</strong>
+            <article key={game.id} className={styles.saleCardWrap}>
+              <div className={styles.saleArtwork}><Artwork src={game.bannerUrl} sizes="(max-width: 720px) 100vw, 360px" /></div>
+              <div className={styles.saleBody}>
+                <span className={styles.discountBadge}>{game.saleDiscount}</span>
+                <h3>{game.title}</h3>
+                <div className={styles.saleMeta}>
+                  <span>{game.saleOriginalPrice ? <s>{game.saleOriginalPrice}</s> : "Steam sale"}</span>
+                  <strong>{game.salePrice}</strong>
+                </div>
+                <a href={`https://store.steampowered.com/app/${game.steamAppId}`} target="_blank" rel="noreferrer">View on Steam <span aria-hidden="true">↗</span></a>
               </div>
-            </div>
+            </article>
           ))}
+          {!onSaleGames.length ? <div className={styles.saleEmpty}>No tracked games are discounted right now. Refresh prices later and we’ll keep this area current.</div> : null}
         </div>
       </section>
     </section>

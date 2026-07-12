@@ -5,6 +5,7 @@
 
 .gridList {
   grid-template-columns: 1fr;
+  background: transparent;
 }
 
 @media (min-width: 760px) {

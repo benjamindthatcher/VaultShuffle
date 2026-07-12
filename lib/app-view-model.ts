@@ -127,12 +127,10 @@ function deriveMoodTags(game: Game, genres: string[]): VaultMoodId[] {
   const joined = `${game.title} ${genres.join(" ")} ${game.notes}`.toLowerCase();
   const moods = new Set<VaultMoodId>();
 
-  if (/(story|narrative|adventure|rpg|visual novel|dialogue)/.test(joined)) moods.add("story");
   if (/(cozy|sim|simulation|puzzle|casual|farm|relax|chill)/.test(joined)) moods.add("chill");
   if (/(action|shooter|souls|horror|roguelike|combat|intense)/.test(joined)) moods.add("intense");
   if (/(arcade|casual|cozy|sim|sandbox|roguelike)/.test(joined)) moods.add("brain-off");
 
-  if (!moods.size) moods.add("story");
   return [...moods];
 }
 

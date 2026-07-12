@@ -39,26 +39,6 @@
   box-shadow: none;
 }
 
-.eyebrow {
-  margin: 0;
-  color: #8ab4ff;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-size: 0.76rem;
-}
-
-.title {
-  margin: 0;
-  font-size: clamp(2.4rem, 6vw, 4rem);
-}
-
-.description {
-  max-width: 48rem;
-  margin: 0;
-  color: var(--vault-text-muted);
-  line-height: 1.7;
-}
-
 .statsGrid {
   margin-top: -26px;
   display: grid;
@@ -104,6 +84,11 @@
   margin: 8px 0 0;
   font-size: clamp(1.4rem, 4vw, 2rem);
 }
+
+.sectionCount { color: #d089ff; font-size: 0.7em; font-weight: 650; }
+.gamesSection { min-height: 0; }
+.gamesScroller { max-height: 720px; overflow-y: auto; overscroll-behavior: contain; padding-right: 5px; scrollbar-color: rgba(166, 87, 255, 0.72) rgba(26, 31, 61, 0.72); scrollbar-width: thin; }
+.gamesScroller:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
 
 .recentRow {
   display: grid;

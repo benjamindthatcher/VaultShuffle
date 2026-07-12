@@ -20,7 +20,7 @@
 .stepLabel {
   margin: 0;
   color: #f5f7ff;
-  font-size: 1.08rem;
+  font-size: 1rem;
   font-weight: 700;
 }
 
@@ -31,10 +31,10 @@
 }
 
 .optionButton {
-  min-height: 58px;
+  min-height: 62px;
   height: 100%;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
+  grid-template-columns: 30px minmax(0, 1fr);
   align-items: center;
   gap: 2px 9px;
   padding: 10px;
@@ -53,8 +53,8 @@
 .optionIcon {
   grid-row: 1 / span 2;
   color: #d47cff;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
 }
 
 .optionButton:hover {
@@ -91,7 +91,7 @@
 
   .optionLabel {
     min-width: 0;
-    font-size: 0.86rem;
+    font-size: 0.92rem;
     line-height: 1.15;
     overflow-wrap: anywhere;
   }

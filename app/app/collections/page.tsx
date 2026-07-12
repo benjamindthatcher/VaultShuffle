@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
@@ -21,6 +21,8 @@ export default function CollectionsPage() {
   const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("backlog");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const composerRef = useRef<HTMLElement>(null);
+  const collectionRailRef = useRef<HTMLDivElement>(null);
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
 
@@ -76,6 +78,29 @@ export default function CollectionsPage() {
     setPresetDraft("backlog");
   }
 
+  function revealComposer() {
+    requestAnimationFrame(() => composerRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
+  }
+
+  function openNewComposer() {
+    setEditing(false);
+    setNameDraft("");
+    setDescriptionDraft("");
+    setKindDraft("custom");
+    setPresetDraft("backlog");
+    setComposerOpen(true);
+    revealComposer();
+  }
+
+  function closeComposer() {
+    setComposerOpen(false);
+    setEditing(false);
+  }
+
+  function scrollCollections(direction: -1 | 1) {
+    collectionRailRef.current?.scrollBy({ left: direction * 520, behavior: "smooth" });
+  }
+
   function beginEdit() {
     if (!selectedCollection) return;
     setNameDraft(selectedCollection.name);
@@ -84,6 +109,7 @@ export default function CollectionsPage() {
     setPresetDraft(selectedCollection.smartPreset || "backlog");
     setEditing(true);
     setComposerOpen(true);
+    revealComposer();
   }
 
   async function handleUpdateCollection() {
@@ -120,13 +146,22 @@ export default function CollectionsPage() {
     <section className={styles.collectionsPage}>
       <header className={styles.header}>
         <h1 className="visually-hidden">Collections</h1>
-        <button type="button" className={styles.primaryAction} onClick={() => { setEditing(false); setNameDraft(""); setDescriptionDraft(""); setKindDraft("custom"); setPresetDraft("backlog"); setComposerOpen((current) => !current); }}>
+        <button type="button" className={styles.primaryAction} onClick={openNewComposer}>
           <VaultIcon name="new" /> New Collection
         </button>
       </header>
 
       {composerOpen ? (
-        <section className={styles.composerCard}>
+        <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">
+          <div className={styles.composerHeader}>
+            <div>
+              <p className={styles.sectionEyebrow}>{editing ? "Editing collection" : "Create a collection"}</p>
+              <h2 id="collection-composer-title" className={styles.composerTitle}>{editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}</h2>
+              <p className={styles.composerCopy}>{editing
+                ? "Update its identity or change how its games are gathered."
+                : "Choose a hand-picked shelf or an automatic collection that stays current for you."}</p>
+            </div>
+          </div>
           <div className={styles.composerGrid}>
             <label className={styles.field}>
               <span>Name</span>
@@ -158,10 +193,10 @@ export default function CollectionsPage() {
             </label>
           </div>
           <div className={styles.composerActions}>
-            <button type="button" className={styles.secondaryAction} onClick={() => { setComposerOpen(false); setEditing(false); }}>
+            <button type="button" className={styles.secondaryAction} onClick={closeComposer}>
               Cancel
             </button>
-            <button type="button" className={styles.primaryAction} disabled={saving} onClick={() => void (editing ? handleUpdateCollection() : handleCreateCollection())}>
+            <button type="button" className={styles.primaryAction} disabled={saving || !nameDraft.trim()} onClick={() => void (editing ? handleUpdateCollection() : handleCreateCollection())}>
               {saving ? "Saving…" : editing ? "Save Collection" : "Create Collection"}
             </button>
           </div>
@@ -176,8 +211,17 @@ export default function CollectionsPage() {
       </div>
 
       <section className={styles.collectionPanel}>
-        <h2 className={styles.collectionPanelTitle}>Your Collections</h2>
-        <div className={styles.collectionGrid}>
+        <div className={styles.collectionPanelHeader}>
+          <div>
+            <h2 className={styles.collectionPanelTitle}>Your Collections</h2>
+            <p className={styles.collectionPanelCopy}>Browse every shelf in your vault.</p>
+          </div>
+          <div className={styles.railActions} aria-label="Browse collections">
+            <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
+            <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
+          </div>
+        </div>
+        <div ref={collectionRailRef} className={styles.collectionGrid} tabIndex={0} aria-label="Your collections">
           {baseCollections.map((collection) => (
             <CollectionCard
               key={collection.id}
