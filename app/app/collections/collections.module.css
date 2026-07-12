@@ -1,23 +1,54 @@
 .collectionsPage {
+  position: relative;
   display: grid;
-  gap: 14px;
+  gap: 12px;
+}
+
+.collectionsPage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  height: 350px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(66, 91, 210, 0.18), transparent 48%),
+    linear-gradient(180deg, rgba(3, 5, 16, 0.24), rgba(4, 7, 20, 0.22) 58%, var(--vault-bg) 100%),
+    url("/assets/vault/vault-header.png") center 54% / cover no-repeat;
+}
+
+.collectionsPage > * {
+  position: relative;
+  z-index: 1;
 }
 
 .header {
+  position: relative;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: center;
   gap: 18px;
-  min-height: 145px;
+  min-height: 290px;
   padding: clamp(24px, 4vw, 36px);
   border-radius: 0;
-  border: 1px solid rgba(163, 101, 255, 0.22);
-  background:
-    linear-gradient(180deg, rgba(7, 10, 26, 0.18), rgba(7, 10, 26, 0.72)),
-    url("/assets/vault/vault-stage-closed.png");
-  background-position: center 44%;
-  background-size: cover;
-  box-shadow: var(--vault-shadow);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.header > div {
+  display: grid;
+  justify-items: center;
+}
+
+.header > .primaryAction {
+  position: absolute;
+  right: clamp(24px, 4vw, 36px);
+  bottom: clamp(24px, 4vw, 36px);
 }
 
 .eyebrow {
@@ -50,6 +81,10 @@
 
 .primaryAction,
 .secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   padding: 0 18px;
   border-radius: 999px;
 }
@@ -89,6 +124,11 @@
 .selectedGames {
   display: grid;
   gap: 16px;
+}
+
+.statsGrid {
+  margin-top: -26px;
+  gap: var(--vault-top-card-gap);
 }
 
 .field {
@@ -177,8 +217,27 @@
 
 @media (max-width: 760px) {
   .header {
-    align-items: flex-start;
+    align-items: center;
     flex-direction: column;
+    min-height: 250px;
+  }
+
+  .statsGrid {
+    margin-top: -12px;
+  }
+
+  .header > .primaryAction {
+    position: static;
+  }
+
+  .header .primaryAction,
+  .composerActions > *,
+  .selectedActions {
+    width: 100%;
+  }
+
+  .selectedActions > * {
+    flex: 1 1 0;
   }
 
   .composerActions {

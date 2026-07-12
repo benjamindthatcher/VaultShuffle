@@ -9,7 +9,7 @@ type StatCardProps = {
 
 export function StatCard({ label, value, note }: StatCardProps) {
   return (
-    <article className={styles.card}>
+    <article className={`${styles.card} ${styles.cardGlass}`}>
       <span className={styles.icon}><StatIcon label={label} /></span>
       <div className={styles.content}>
         <p className={styles.label}>{label}</p>

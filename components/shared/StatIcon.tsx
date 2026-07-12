@@ -1,26 +1,14 @@
-import type { CSSProperties } from "react";
+import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 
 type StatIconProps = {
   label: string;
 };
 
-const ICON_ROOT = "/assets/vaultshuffle/icons";
-
 export function StatIcon({ label }: StatIconProps) {
-  const url = `${ICON_ROOT}/${iconName(label)}.svg`;
-  const style = {
-    width: 31,
-    height: 31,
-    display: "block",
-    backgroundColor: "currentColor",
-    mask: `url(${url}) center / contain no-repeat`,
-    WebkitMask: `url(${url}) center / contain no-repeat`
-  } as CSSProperties;
-
-  return <span aria-hidden="true" style={style} />;
+  return <VaultIcon name={iconName(label)} size={31} />;
 }
 
-function iconName(label: string) {
+function iconName(label: string): VaultIconName {
   const key = label.toLowerCase();
   if (key.includes("all games")) return "all-games";
   if (key.includes("played")) return "played";

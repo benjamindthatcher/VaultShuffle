@@ -1,4 +1,5 @@
 import styles from "./LibraryToolbar.module.css";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 
 type LibraryToolbarProps = {
   query: string;
@@ -34,7 +35,7 @@ export function LibraryToolbar({
 
       <div className={styles.controlRow}>
         <label className={styles.selectField}>
-          <span>Sort</span>
+          <span className={styles.controlLabel}><VaultIcon name="sort" size={18} />Sort</span>
           <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
             <option value="recent">Recently played</option>
             <option value="title">Title A-Z</option>
@@ -44,7 +45,7 @@ export function LibraryToolbar({
         </label>
 
         <label className={styles.selectField}>
-          <span>Filter</span>
+          <span className={styles.controlLabel}><VaultIcon name="filter" size={18} />Filter</span>
           <select value={status} onChange={(event) => onStatusChange(event.target.value)}>
             <option value="all">All statuses</option>
             <option value="not-started">Not Started</option>
@@ -59,14 +60,14 @@ export function LibraryToolbar({
             className={viewMode === "grid" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}
             onClick={() => onViewModeChange("grid")}
           >
-            Grid
+            <VaultIcon name="grid" /> <span>Grid</span>
           </button>
           <button
             type="button"
             className={viewMode === "list" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}
             onClick={() => onViewModeChange("list")}
           >
-            List
+            <VaultIcon name="list" /> <span>List</span>
           </button>
         </div>
       </div>

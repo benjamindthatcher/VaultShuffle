@@ -1,6 +1,5 @@
 .headerWrap {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 20;
   padding: 0 24px;
   backdrop-filter: blur(18px);
@@ -14,9 +13,9 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 20px;
+  column-gap: clamp(36px, 4vw, 64px);
   margin: 0 auto;
-  padding: 8px 8px;
+  padding: 0 8px;
   border-radius: 0;
   border: 0;
   background: transparent;
@@ -66,10 +65,12 @@
 }
 
 .nav {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: stretch;
+  align-self: stretch;
+  gap: 0;
   min-width: 0;
   overflow-x: auto;
   scrollbar-width: none;
@@ -81,10 +82,14 @@
 
 .navLink {
   position: relative;
-  padding: 18px 20px;
-  border-radius: 999px;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 18px;
   color: var(--vault-text-muted);
-  font-weight: 600;
+  font-size: 1.02rem;
+  font-weight: 750;
   white-space: nowrap;
   transition:
     color 160ms ease,
@@ -94,7 +99,7 @@
 
 .navLink:hover {
   color: var(--vault-text);
-  background: rgba(255, 255, 255, 0.04);
+  background: linear-gradient(180deg, transparent, rgba(142, 77, 255, 0.07));
 }
 
 .navLinkActive {
@@ -104,10 +109,10 @@
 .navLinkActive::after {
   content: "";
   position: absolute;
-  left: 16px;
-  right: 16px;
-  bottom: -8px;
-  height: 3px;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 5px;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--vault-accent), #da74ff, var(--vault-accent-strong));
   box-shadow: 0 0 18px rgba(143, 88, 255, 0.82);
@@ -242,7 +247,7 @@
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
-    justify-content: flex-start;
+    min-height: 48px;
   }
 }
 
@@ -277,5 +282,7 @@
   .navLinkActive::after {
     left: 8px;
     right: 8px;
+    bottom: -16px;
+    height: 4px;
   }
 }

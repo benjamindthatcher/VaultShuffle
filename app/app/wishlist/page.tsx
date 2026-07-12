@@ -5,6 +5,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GameCard } from "@/components/shared/GameCard";
 import { Artwork } from "@/components/shared/Artwork";
 import { StatCard } from "@/components/shared/StatCard";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import { WishlistRow } from "@/components/wishlist/WishlistRow";
 import styles from "./wishlist.module.css";
 import type { SteamSearchResult } from "@/lib/types";
@@ -95,13 +96,9 @@ export default function WishlistPage() {
   return (
     <section className={styles.wishlistPage}>
       <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Wishlist</p>
-          <h1 className={styles.title}>Wishlist</h1>
-          <p className={styles.description}>Keep track of games you want to play.</p>
-        </div>
+        <h1 className="visually-hidden">Wishlist</h1>
         <button type="button" className={styles.primaryAction} onClick={() => setComposerOpen((current) => !current)}>
-          Add Game
+          <VaultIcon name="new" /> Add Game
         </button>
       </header>
 
@@ -148,7 +145,7 @@ export default function WishlistPage() {
         </label>
         <div className={styles.toolbarControls}>
           <label className={styles.selectField}>
-            <span>Sort</span>
+            <span className={styles.controlLabel}><VaultIcon name="sort" size={18} />Sort</span>
             <select value={sort} onChange={(event) => setSort(event.target.value)}>
               <option value="added">Priority</option>
               <option value="title">Title A-Z</option>
@@ -156,7 +153,7 @@ export default function WishlistPage() {
             </select>
           </label>
           <label className={styles.selectField}>
-            <span>Filter</span>
+            <span className={styles.controlLabel}><VaultIcon name="filter" size={18} />Filter</span>
             <select value={filter} onChange={(event) => setFilter(event.target.value)}>
               <option value="all">All tags</option>
               <option value="sale">On sale</option>

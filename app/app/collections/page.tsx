@@ -5,6 +5,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import { matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
@@ -118,13 +119,9 @@ export default function CollectionsPage() {
   return (
     <section className={styles.collectionsPage}>
       <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Collections</p>
-          <h1 className={styles.title}>Collections</h1>
-          <p className={styles.description}>Create, organise and play your way.</p>
-        </div>
+        <h1 className="visually-hidden">Collections</h1>
         <button type="button" className={styles.primaryAction} onClick={() => { setEditing(false); setNameDraft(""); setDescriptionDraft(""); setKindDraft("custom"); setPresetDraft("backlog"); setComposerOpen((current) => !current); }}>
-          New Collection
+          <VaultIcon name="new" /> New Collection
         </button>
       </header>
 

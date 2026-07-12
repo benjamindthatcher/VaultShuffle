@@ -67,11 +67,7 @@ export default function LibraryPage() {
   return (
     <section className={styles.libraryPage}>
       <header className={styles.header}>
-        <div>
-          <p className={styles.eyebrow}>Library</p>
-          <h1 className={styles.title}>Library</h1>
-          <p className={styles.description}>Your games. All in one place.</p>
-        </div>
+        <h1 className="visually-hidden">Library</h1>
       </header>
 
       <div className={styles.statsGrid}>

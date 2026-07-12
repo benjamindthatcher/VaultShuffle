@@ -7,10 +7,9 @@ export const vaultSessionOptions = [
 ] satisfies ReadonlyArray<{ id: VaultSessionId; label: string; caption: string }>;
 
 export const vaultMoodOptions = [
+  { id: "brain-off", label: "Brain-Off", caption: "Easy to drop into and play." },
   { id: "chill", label: "Chill", caption: "Low-friction, softer energy." },
-  { id: "story", label: "Story", caption: "Writing, characters, or worldbuilding." },
-  { id: "intense", label: "Intense", caption: "Momentum, combat, or pressure." },
-  { id: "brain-off", label: "Brain-Off", caption: "Easy to drop into and play." }
+  { id: "intense", label: "Intense", caption: "Momentum, combat, or pressure." }
 ] satisfies ReadonlyArray<{ id: VaultMoodId; label: string; caption: string }>;
 
 export const vaultGoalOptions = [
@@ -39,19 +38,19 @@ export function buildVaultPool({
   snoozedIds
 }: {
   games: DemoGame[];
-  session: VaultSessionId;
-  mood: VaultMoodId;
-  goal: VaultGoalId;
-  selectedCollectionId: string;
+  session: VaultSessionId | null;
+  mood: VaultMoodId | null;
+  goal: VaultGoalId | null;
+  selectedCollectionId: string | null;
   selectedGenres: string[];
   snoozedIds: Set<string>;
 }) {
   return games
     .filter((game) => game.ownership === "Owned")
     .filter((game) => !snoozedIds.has(game.id))
-    .filter((game) => (selectedCollectionId === "all" ? true : game.collectionIds.includes(selectedCollectionId)))
-    .filter((game) => game.sessionFit.includes(session))
-    .filter((game) => (selectedGenres.length ? selectedGenres.every((genre) => game.genres.includes(genre)) : true))
+    .filter((game) => (!selectedCollectionId || selectedCollectionId === "all" ? true : game.collectionIds.includes(selectedCollectionId)))
+    .filter((game) => (session ? game.sessionFit.includes(session) : true))
+    .filter((game) => (selectedGenres.length ? selectedGenres.some((genre) => game.genres.includes(genre)) : true))
     .map((game) => scoreVaultGame(game, mood, goal, selectedGenres))
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
@@ -59,17 +58,45 @@ export function buildVaultPool({
     });
 }
 
-export function drawVaultGame(pool: VaultPoolEntry[]) {
+export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string | null) {
   if (!pool.length) return null;
-  const finalists = pool.slice(0, Math.min(pool.length, 4));
-  return finalists[Math.floor(Math.random() * finalists.length)].game;
+  const eligible = pool.length > 1 && previousWinnerId
+    ? pool.filter((entry) => entry.game.id !== previousWinnerId)
+    : pool;
+  const finalistCount = Math.max(1, Math.ceil(eligible.length * 0.4));
+  const finalists = eligible.slice(0, finalistCount);
+  const floor = Math.min(...finalists.map((entry) => entry.score));
+  const weights = finalists.map((entry) => Math.max(1, entry.score - floor + 1));
+  let draw = Math.random() * weights.reduce((total, weight) => total + weight, 0);
+
+  for (let index = 0; index < finalists.length; index += 1) {
+    draw -= weights[index];
+    if (draw <= 0) return finalists[index].game;
+  }
+
+  return finalists[finalists.length - 1].game;
 }
 
-function scoreVaultGame(game: DemoGame, mood: VaultMoodId, goal: VaultGoalId, selectedGenres: string[]): VaultPoolEntry {
+export function buildVaultAnimationSequence(pool: VaultPoolEntry[], winnerId: string) {
+  const winner = pool.find((entry) => entry.game.id === winnerId);
+  if (!winner) return [];
+  if (pool.length === 1) return [winner];
+
+  const decoys = pool
+    .filter((entry) => entry.game.id !== winnerId)
+    .map((entry) => ({ entry, order: Math.random() }))
+    .sort((left, right) => left.order - right.order)
+    .slice(0, Math.min(7, pool.length - 1))
+    .map(({ entry }) => entry);
+
+  return [...decoys, winner];
+}
+
+function scoreVaultGame(game: DemoGame, mood: VaultMoodId | null, goal: VaultGoalId | null, selectedGenres: string[]): VaultPoolEntry {
   let score = 0;
   const reasons: string[] = [];
 
-  if (game.moodTags.includes(mood)) {
+  if (mood && game.moodTags.includes(mood)) {
     score += 5;
     reasons.push(`${labelForMood(mood)} fit`);
   }

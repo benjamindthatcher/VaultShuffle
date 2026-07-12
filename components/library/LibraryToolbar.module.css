@@ -11,8 +11,18 @@
 .searchField input,
 .selectField select,
 .toggleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-height: 50px;
   border-radius: 16px;
+}
+
+.controlLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
 }
 
 .searchField input,

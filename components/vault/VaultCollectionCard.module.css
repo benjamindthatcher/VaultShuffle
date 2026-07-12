@@ -7,7 +7,7 @@
   overflow: hidden;
   min-height: 125px;
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
+  grid-template-columns: 220px minmax(0, 1fr) auto;
   align-items: center;
   gap: 18px;
   padding: 10px;
@@ -17,11 +17,24 @@
   box-shadow: 0 0 0 1px rgba(164, 119, 255, 0.12), var(--vault-shadow);
 }
 
+.chevron {
+  color: var(--vault-text);
+  font-size: 2rem;
+  font-weight: 300;
+}
+
 .artwork {
   position: relative;
   height: 102px;
   overflow: hidden;
   border-radius: 7px;
+}
+
+.emptyArtwork {
+  height: 102px;
+  border-radius: 7px;
+  border: 1px dashed rgba(158, 111, 255, 0.3);
+  background: radial-gradient(circle at center, rgba(126, 76, 255, 0.14), rgba(7, 11, 29, 0.72));
 }
 
 .artwork img {
@@ -47,10 +60,12 @@
 
 @media (max-width: 720px) {
   .heroCard {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr auto;
   }
 
-  .artwork {
+  .artwork,
+  .emptyArtwork {
+    grid-column: 1 / -1;
     height: auto;
     aspect-ratio: 16 / 7.5;
   }
@@ -93,7 +108,8 @@
 }
 
 @media (min-width: 1080px) {
-  .chooser {
-    display: none;
+  .heroCard {
+    grid-template-columns: 190px minmax(0, 1fr) auto;
   }
+
 }

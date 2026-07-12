@@ -1,19 +1,21 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
-import { VaultGenreDrawer } from "@/components/vault/VaultGenreDrawer";
+import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
 import {
   availableVaultGenres,
+  buildVaultAnimationSequence,
   buildVaultPool,
   drawVaultGame,
+  type VaultPoolEntry,
   vaultGoalOptions,
   vaultMoodOptions,
   vaultSessionOptions
@@ -21,31 +23,28 @@ import {
 import { steamStoreUrl } from "@/lib/steam-images";
 import styles from "./vault.module.css";
 
+type VaultDrawState = "idle" | "preparing" | "shuffling" | "settling" | "revealing" | "revealed" | "error";
+
 export default function VaultPage() {
   const { games, collections, vaultState, recordVaultAction, updateGame, setGameCollection } = useAppData();
-  const [session, setSession] = useState<VaultSessionId>("evening");
-  const [mood, setMood] = useState<VaultMoodId>("story");
-  const [goal, setGoal] = useState<VaultGoalId>("new");
-  const [selectedCollectionId, setSelectedCollectionId] = useState("cosmic-odyssey");
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(["Sci-Fi", "Adventure"]);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [session, setSession] = useState<VaultSessionId | null>(null);
+  const [mood, setMood] = useState<VaultMoodId | null>(null);
+  const [goal, setGoal] = useState<VaultGoalId | null>(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
   const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
   const [savingGameId, setSavingGameId] = useState<string | null>(null);
+  const [drawState, setDrawState] = useState<VaultDrawState>("idle");
+  const [drawWinnerId, setDrawWinnerId] = useState<string | null>(null);
+  const [animationEntries, setAnimationEntries] = useState<VaultPoolEntry[]>([]);
+  const [drawMessage, setDrawMessage] = useState("");
+  const drawingRef = useRef(false);
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
   const genreOptions = useMemo(() => availableVaultGenres(ownedGames), [ownedGames]);
-  const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? collections[0];
-
-  useEffect(() => {
-    if (!collections.length) return;
-    const exists = collections.some((collection) => collection.id === selectedCollectionId);
-    if (!exists) {
-      const preferred = collections.find((collection) => collection.kind !== "system") ?? collections[0];
-      setSelectedCollectionId(preferred.id);
-    }
-  }, [collections, selectedCollectionId]);
+  const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? null;
 
   const pool = useMemo(
     () =>
@@ -65,16 +64,50 @@ export default function VaultPage() {
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
 
   async function handleOpenVault() {
-    const nextPick = drawVaultGame(pool);
+    if (drawingRef.current || !pool.length) return;
+    const nextPick = drawVaultGame(pool, currentPick?.id);
     if (!nextPick) return;
-    await recordVaultAction("drawn", nextPick.id, {
-      session,
-      mood,
-      goal,
-      collection_id: selectedCollectionId,
-      genres: selectedGenres
-    });
-    setHighlightedGameId(nextPick.id);
+
+    drawingRef.current = true;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setDrawWinnerId(nextPick.id);
+    setAnimationEntries(buildVaultAnimationSequence(pool, nextPick.id));
+    setHighlightedGameId(null);
+    setDrawMessage("Opening the Vault.");
+    setDrawState("preparing");
+
+    try {
+      if (reducedMotion || pool.length === 1) {
+        await wait(180);
+        setDrawState("revealing");
+      } else {
+        await wait(120);
+        setDrawState("shuffling");
+        setDrawMessage("Narrowing down your choices.");
+        await wait(580);
+        setDrawState("settling");
+        await wait(400);
+        setDrawState("revealing");
+        await wait(250);
+      }
+
+      await recordVaultAction("drawn", nextPick.id, {
+        session,
+        mood,
+        goal,
+        collection_id: selectedCollectionId,
+        genres: selectedGenres
+      });
+      setHighlightedGameId(nextPick.id);
+      setDrawState("revealed");
+      setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
+    } catch (error) {
+      console.error("Vault draw failed", error);
+      setDrawState("error");
+      setDrawMessage("The Vault could not complete the draw. Please try again.");
+    } finally {
+      drawingRef.current = false;
+    }
   }
 
   function toggleGenre(genre: string) {
@@ -100,13 +133,7 @@ export default function VaultPage() {
   return (
     <section className={styles.vaultPage}>
       <div className={styles.heroPanel}>
-        <div className={styles.heroCopy}>
-          <p className={styles.eyebrow}>Vault</p>
-          <h1 className={styles.title}>What should we unlock tonight?</h1>
-          <p className={styles.description}>
-            Set your preferences and let the vault find the perfect game for you.
-          </p>
-        </div>
+        <h1 className="visually-hidden">Vault</h1>
       </div>
 
       <div className={styles.optionStack}>
@@ -115,36 +142,37 @@ export default function VaultPage() {
         <VaultOptionGroup title="3. Goal" options={vaultGoalOptions} selectedId={goal} onSelect={(id) => setGoal(id as VaultGoalId)} />
       </div>
 
-      <VaultCollectionCard
-        selectedCollection={selectedCollection}
-        collections={collections}
-        onSelect={(id) => setSelectedCollectionId(id)}
-      />
-
-      <section className={styles.filterRail}>
-        <div>
-          <p className={styles.filterLabel}>Genre filters</p>
-          <p className={styles.filterHint}>Optional. Refine your pool.</p>
+      <div className={styles.workspace}>
+        <div className={styles.workspaceSidebar}>
+          <VaultCollectionCard
+            selectedCollection={selectedCollection}
+            collections={collections}
+            onSelect={(id) => setSelectedCollectionId(id)}
+          />
+          <VaultGenrePanel
+            genres={genreOptions}
+            selectedGenres={selectedGenres}
+            onToggleGenre={toggleGenre}
+            onClear={clearGenres}
+          />
+          <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!pool.length || drawingRef.current} aria-busy={drawingRef.current}>
+            {drawState === "preparing" || drawState === "shuffling" || drawState === "settling" || drawState === "revealing" ? "Opening the Vault…" : "Open the Vault"}
+          </button>
         </div>
-        <button type="button" className={styles.filterButton} onClick={() => setDrawerOpen(true)}>
-          {selectedGenres.length ? `${selectedGenres.length} selected` : "Select genres"}
-        </button>
-      </section>
 
-      <section className={styles.poolSection} id="vault-pool">
+        <section className={styles.poolSection} id="vault-pool">
         <div className={styles.poolHeader}>
           <div>
             <p className={styles.poolLabel}>Your Pool (Filters)</p>
-            <h2 className={styles.poolTitle}>{pool.length} matches ready</h2>
           </div>
           <span className={styles.matchBadge}>{pool.length} Matches</span>
         </div>
 
         <div className={styles.pillRow}>
-          <FilterPill label={selectedCollection.name} />
-          <FilterPill label={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Session"} />
-          <FilterPill label={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Mood"} />
-          <FilterPill label={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Goal"} />
+          {selectedCollection ? <FilterPill label={selectedCollection.name} /> : null}
+          {session ? <FilterPill label={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Session"} /> : null}
+          {mood ? <FilterPill label={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Mood"} /> : null}
+          {goal ? <FilterPill label={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Goal"} /> : null}
           {selectedGenres.map((genre) => (
             <FilterPill key={genre} label={genre} removable onRemove={() => toggleGenre(genre)} />
           ))}
@@ -152,9 +180,13 @@ export default function VaultPage() {
 
         {pool.length ? (
           <VaultPoolPreview
-            games={pool.map((entry) => entry.game)}
+            entries={drawState === "preparing" || drawState === "shuffling" || drawState === "settling" || drawState === "revealing" ? animationEntries : pool}
+            drawState={drawState}
+            winnerId={drawWinnerId}
             highlightedId={highlightedGameId}
             onSelect={setDetailsGameId}
+            pinnedIds={vaultState.pinnedIds}
+            onTogglePin={(id) => void togglePin(id)}
           />
         ) : (
           <div className={styles.emptyState}>
@@ -165,14 +197,13 @@ export default function VaultPage() {
             </button>
           </div>
         )}
-      </section>
+        </section>
+      </div>
 
-      <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!pool.length}>
-        Open the Vault
-      </button>
+      <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
 
       {currentPick ? (
-        <section className={styles.resultCard}>
+        <section className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`}>
           <div className={styles.resultArtwork}>
             <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority />
           </div>
@@ -206,15 +237,6 @@ export default function VaultPage() {
         </section>
       ) : null}
 
-      <VaultGenreDrawer
-        open={drawerOpen}
-        genres={genreOptions}
-        selectedGenres={selectedGenres}
-        onToggleGenre={toggleGenre}
-        onClose={() => setDrawerOpen(false)}
-        onClear={clearGenres}
-      />
-
       <LibraryDetailsDrawer
         game={detailsGame}
         collections={collections}
@@ -236,4 +258,8 @@ export default function VaultPage() {
       />
     </section>
   );
+}
+
+function wait(duration: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, duration));
 }

@@ -1,18 +1,25 @@
 .group {
-  padding: 16px;
-  border-radius: 14px;
-  border: 1px solid rgba(142, 102, 255, 0.18);
-  background: rgba(8, 13, 31, 0.78);
-  box-shadow: var(--vault-shadow);
+  min-height: var(--vault-top-card-height);
+  display: grid;
+  grid-template-rows: auto 1fr;
+  padding: 18px 22px;
+  border-radius: 12px;
+  border: 1px solid rgba(174, 116, 255, 0.56);
+  background: rgba(8, 13, 31, 0.58);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 0 1px rgba(118, 73, 230, 0.12),
+    0 0 24px rgba(117, 65, 224, 0.14),
+    var(--vault-shadow);
 }
 
 .headingRow {
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .stepLabel {
   margin: 0;
-  color: var(--vault-text);
+  color: #f5f7ff;
   font-size: 1.08rem;
   font-weight: 700;
 }
@@ -20,23 +27,34 @@
 .optionGrid {
   display: grid;
   gap: 6px;
+  align-items: stretch;
 }
 
 .optionButton {
-  min-height: 48px;
+  min-height: 58px;
+  height: 100%;
   display: grid;
-  justify-items: start;
-  gap: 0;
+  grid-template-columns: 24px minmax(0, 1fr);
+  align-items: center;
+  gap: 2px 9px;
   padding: 10px;
   border-radius: 10px;
-  border: 1px solid rgba(146, 107, 255, 0.18);
-  background: rgba(15, 20, 46, 0.68);
+  border: 1px solid rgba(155, 111, 255, 0.38);
+  background: rgba(7, 11, 29, 0.94);
+  color: #f5f7ff;
   text-align: left;
   transition:
     transform 160ms ease,
     border-color 160ms ease,
     box-shadow 160ms ease,
     background-color 160ms ease;
+}
+
+.optionIcon {
+  grid-row: 1 / span 2;
+  color: #d47cff;
+  width: 26px;
+  height: 26px;
 }
 
 .optionButton:hover {
@@ -54,11 +72,14 @@
 }
 
 .optionLabel {
+  color: #f5f7ff;
   font-size: 1rem;
+  font-weight: 750;
 }
 
 .optionCaption {
-  color: var(--vault-text-muted);
+  grid-column: 2;
+  color: #b9bfd9;
   font-size: 0.9rem;
   line-height: 1.5;
 }
@@ -69,12 +90,32 @@
   }
 
   .optionLabel {
-    font-size: 0.84rem;
+    min-width: 0;
+    font-size: 0.86rem;
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .optionButton {
+    min-width: 0;
+    gap: 2px 6px;
+    padding-inline: 9px;
+  }
+}
+
+@media (max-width: 719px) {
+  .group {
+    min-height: auto;
+    padding: 16px;
+  }
+
+  .optionButton {
+    min-height: 54px;
   }
 }
 
 @media (min-width: 720px) {
   .optionGrid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--option-count), minmax(0, 1fr));
   }
 }
