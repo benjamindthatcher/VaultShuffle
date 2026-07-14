@@ -45,6 +45,7 @@ export type AppUser = {
 
 export type SessionPayload = {
   logged_in: boolean;
+  user_id: string;
   steam_id: string;
   display_name: string;
   avatar_url: string;

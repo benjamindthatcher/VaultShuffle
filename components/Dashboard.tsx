@@ -1,5 +1,6 @@
 "use client";
 
+import posthog from "posthog-js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Collection, CollectionGame, Game, GamePayload, SessionPayload, StatsPayload, SteamSearchResult } from "@/lib/types";
 import {
@@ -266,6 +267,9 @@ export function Dashboard() {
       api<StatsPayload>("/api/stats")
     ]);
     setSession(sessionPayload);
+    if (sessionPayload.user_id) {
+      posthog.identify(sessionPayload.user_id);
+    }
     setGames(nextGames);
     setStats(nextStats);
     setSelectedId((current) => current ?? nextGames[0]?.id ?? null);
@@ -462,6 +466,11 @@ export function Dashboard() {
       return;
     }
     const { game } = await api<{ game: Game }>("/api/games", { method: "POST", body: JSON.stringify(payload) });
+    posthog.capture("game_added_to_wishlist", {
+      genre: game.genre,
+      store: game.store,
+      has_steam_appid: Boolean(game.steam_appid),
+    });
     revealLibrary();
     await refreshLibrary(game.id);
     if (needsSteamMetadata(game)) void syncSteamMetadata(4);
@@ -489,6 +498,11 @@ export function Dashboard() {
 
   async function markGameCompleted(gameToComplete: Game) {
     setRowMenuId(null);
+    posthog.capture("game_marked_completed", {
+      genre: gameToComplete.genre,
+      hours_played: gameToComplete.hours_played,
+      store: gameToComplete.store,
+    });
     await patchGame(gameToComplete, { status: "Completed", completion_percentage: 100 });
   }
 
@@ -511,6 +525,11 @@ export function Dashboard() {
       return;
     }
     await api(`/api/games/${gameToDelete.id}`, { method: "DELETE" });
+    posthog.capture("game_deleted", {
+      genre: gameToDelete.genre,
+      store: gameToDelete.store,
+      ownership: gameToDelete.ownership,
+    });
     if (selectedId === gameToDelete.id) setSelectedId(null);
     await load();
   }
@@ -518,6 +537,11 @@ export function Dashboard() {
   function shuffle() {
     const count = vaultMode === "draw" ? 1 : 3;
     const picks = pickShuffleGames(filteredGames, count);
+    posthog.capture("vault_draw_triggered", {
+      mode: vaultMode,
+      eligible_count: shuffleEligibleCount,
+      active_filter_count: activeFilterCount,
+    });
     if (!picks.length) {
       const reason = isLoggedIn
         ? "No unfinished games match the current library view."
@@ -554,6 +578,9 @@ export function Dashboard() {
   async function saveNotes() {
     if (!selected) return;
     await patchSelected({ notes: notesDraft });
+    posthog.capture("notes_saved", {
+      has_notes: Boolean(notesDraft.trim()),
+    });
     setNotesEditing(false);
   }
 
@@ -574,9 +601,13 @@ export function Dashboard() {
       } else {
         await refreshLibrary(selectedId);
       }
+      posthog.capture("steam_library_imported", {
+        imported_count: result.imported,
+      });
       setNotice(`Steam library import complete: ${result.imported} games added or updated.`);
       void syncSteamMetadata(METADATA_SYNC_MAX_BATCHES, true);
     } catch (error) {
+      posthog.captureException(error instanceof Error ? error : new Error(String(error)));
       setNotice(error instanceof Error ? error.message : "Steam library import failed.");
     }
   }
@@ -587,6 +618,7 @@ export function Dashboard() {
       return;
     }
     await api("/api/logout", { method: "POST", body: "{}" });
+    posthog.reset();
     window.location.href = "/login";
   }
 
@@ -596,6 +628,9 @@ export function Dashboard() {
     const payload = await api<{ collection: Collection }>("/api/collections", {
       method: "POST",
       body: JSON.stringify({ name: collectionName, description: collectionDescription })
+    });
+    posthog.capture("collection_created", {
+      has_description: Boolean(collectionDescription.trim()),
     });
     setCollectionName("");
     setCollectionDescription("");
@@ -608,6 +643,7 @@ export function Dashboard() {
       method: "POST",
       body: JSON.stringify({ game_id: collectionGameId })
     });
+    posthog.capture("game_added_to_collection");
     setCollectionGameId("");
     await Promise.all([loadCollections(selectedCollectionId), loadCollectionGames(selectedCollectionId)]);
   }
@@ -616,6 +652,9 @@ export function Dashboard() {
     const nextCollectionId = collections.find((item) => item.id !== collection.id)?.id ?? null;
     try {
       await api(`/api/collections/${collection.id}`, { method: "DELETE" });
+      posthog.capture("collection_deleted", {
+        game_count: collection.game_count ?? 0,
+      });
       setSelectedCollectionId(nextCollectionId);
       if (!nextCollectionId) setCollectionItems([]);
       await loadCollections(nextCollectionId);
@@ -628,6 +667,7 @@ export function Dashboard() {
   async function removeGameFromSelectedCollection(gameId: string) {
     if (!selectedCollectionId) return;
     await api(`/api/collections/${selectedCollectionId}/games/${gameId}`, { method: "DELETE" });
+    posthog.capture("game_removed_from_collection");
     await Promise.all([loadCollections(selectedCollectionId), loadCollectionGames(selectedCollectionId)]);
   }
 
@@ -817,6 +857,12 @@ export function Dashboard() {
               mode={vaultMode}
               onModeChange={setVaultMode}
               onSelect={(game) => {
+                posthog.capture("vault_game_selected", {
+                  mode: vaultMode,
+                  genre: game.genre,
+                  hours_played: game.hours_played,
+                  store: game.store,
+                });
                 setSelectedId(game.id);
                 setActivePage("library");
                 setSidebarTab("details");

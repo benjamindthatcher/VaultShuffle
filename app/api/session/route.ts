@@ -14,6 +14,7 @@ export async function GET() {
 
   return NextResponse.json({
     logged_in: Boolean(session),
+    user_id: user?.id ?? "",
     steam_id: user?.steam_id ?? "",
     display_name: user?.display_name ?? "",
     avatar_url: user?.avatar_url ?? "",

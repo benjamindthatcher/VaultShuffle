@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { attachSessionCookie, createSessionForSteamId } from "@/lib/auth";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 
 function describeError(error: unknown) {
@@ -37,9 +38,26 @@ export async function GET(request: Request) {
     const profile = process.env.STEAM_WEB_API_KEY
       ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY)
       : null;
-    const { token } = await createSessionForSteamId(steamId, profile);
+    const { token, user } = await createSessionForSteamId(steamId, profile);
     const redirectUrl = new URL(`${baseUrl}/app`);
     redirectUrl.searchParams.set("steam_connected", "1");
+
+    const posthog = getPostHogClient();
+    posthog.identify({
+      distinctId: user.id,
+      properties: {
+        steam_id: steamId,
+        ...(profile?.display_name ? { display_name: profile.display_name } : {}),
+      },
+    });
+    posthog.capture({
+      distinctId: user.id,
+      event: "steam_login_completed",
+      properties: {
+        has_display_name: Boolean(profile?.display_name),
+      },
+    });
+    await posthog.flush();
 
     const response = NextResponse.redirect(redirectUrl);
     return attachSessionCookie(response, token);
