@@ -1,0 +1,34 @@
+.layer { position: fixed; z-index: 1100; inset: 0; display: grid; place-items: center; padding: 18px; isolation: isolate; overflow: hidden; }
+.backdrop { position: absolute; inset: 0; border: 0; background: rgba(2, 4, 15, .78); backdrop-filter: blur(6px); }
+.dialog { position: relative; width: min(540px, 100%); max-height: calc(100dvh - 36px); overflow-y: auto; overscroll-behavior: contain; padding: 24px; border: 1px solid rgba(187, 112, 255, .5); border-radius: 20px; background: linear-gradient(150deg, rgba(16, 20, 49, .99), rgba(6, 9, 26, .99)); box-shadow: 0 30px 100px rgba(0, 0, 0, .68), 0 0 38px rgba(117, 66, 220, .12); }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.header p, .header h2 { margin: 0; }
+.header p { margin-bottom: 5px; color: #d88dff; font-size: .72rem; font-weight: 750; letter-spacing: .15em; text-transform: uppercase; }
+.header h2 { font-size: 1.75rem; }
+.header > button { width: 40px; height: 40px; flex: 0 0 auto; border: 1px solid rgba(151, 105, 255, .3); border-radius: 50%; background: rgba(19, 23, 53, .9); font-size: 1.4rem; }
+.form { display: grid; gap: 16px; margin-top: 12px; }
+.intro, .contextNote { margin: 0; color: var(--vault-text-muted); line-height: 1.55; }
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; padding: 5px; border: 1px solid rgba(145, 105, 255, .2); border-radius: 13px; background: rgba(7, 11, 29, .82); }
+.segmented button { min-height: 42px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--vault-text-muted); font-weight: 750; }
+.segmented button[aria-pressed="true"] { border-color: rgba(190, 112, 255, .5); background: rgba(106, 57, 187, .34); color: var(--vault-text); }
+.field { display: grid; gap: 7px; color: #e6e8f6; font-size: .85rem; font-weight: 700; }
+.field em { color: var(--vault-text-soft); font-size: .78rem; font-style: normal; font-weight: 500; }
+.field textarea, .field input { width: 100%; border: 1px solid rgba(145, 105, 255, .28); border-radius: 12px; background: rgba(8, 12, 33, .9); color: var(--vault-text); outline: 0; }
+.field textarea { min-height: 150px; resize: vertical; padding: 13px 14px; line-height: 1.5; }
+.field input { min-height: 46px; padding: 0 14px; }
+.field textarea:focus, .field input:focus { border-color: rgba(198, 123, 255, .75); box-shadow: 0 0 0 3px rgba(153, 82, 255, .12); }
+.field small { justify-self: end; color: var(--vault-text-soft); font-weight: 500; }
+.contextNote { padding: 10px 12px; border-left: 2px solid #b460ff; background: rgba(126, 67, 209, .08); font-size: .78rem; }
+.checkbox { display: flex; align-items: center; gap: 10px; color: var(--vault-text-muted); font-size: .86rem; }
+.checkbox input { width: 18px; height: 18px; accent-color: #a74fff; }
+.actions { display: flex; justify-content: flex-end; gap: 10px; }
+.actions button, .success button { min-height: 44px; padding: 0 17px; border: 1px solid rgba(151, 105, 255, .32); border-radius: 999px; background: rgba(20, 24, 53, .9); font-weight: 750; }
+.actions button:last-child, .success button { border-color: rgba(185, 106, 255, .7); background: linear-gradient(90deg, #7438ff, #a64cff); }
+.actions button:disabled { cursor: not-allowed; opacity: .48; }
+.error { margin: -4px 0 0; color: #ff9bb5; font-size: .86rem; }
+.success { display: grid; justify-items: center; gap: 9px; padding: 34px 10px 10px; text-align: center; }
+.success > span { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: rgba(109, 215, 177, .14); color: #70dab5; font-size: 1.5rem; }
+.success h3, .success p { margin: 0; }
+.success p { color: var(--vault-text-muted); }
+.success button { margin-top: 12px; min-width: 120px; }
+@media (max-width: 620px) { .layer { align-items: end; padding: 16px; } .dialog { max-height: calc(100dvh - 32px); padding: 20px; border-radius: 20px; } .field textarea { min-height: 132px; } .actions { position: sticky; bottom: -20px; padding: 12px 0 4px; background: linear-gradient(180deg, transparent, rgba(6, 9, 26, .99) 25%); } }

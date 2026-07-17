@@ -16,7 +16,7 @@ const valueProps = [
   },
   {
     title: "100% in your control",
-    text: "Your data stays local and always private.",
+    text: "Your data stays under your control.",
     icon: "shield"
   }
 ];
@@ -27,6 +27,7 @@ const productCards = [
     text: "All your games in one clean, powerful view.",
     bullets: ["Filter and sort", "Track playtime", "See what's next"],
     action: "Explore Library",
+    href: "/library",
     icon: "books",
     preview: "library",
     rows: [
@@ -57,6 +58,7 @@ const productCards = [
     text: "Turn endless wishlists into your next obsession.",
     bullets: ["Track discounts", "Prioritise picks", "Never lose a gem"],
     action: "Explore Wishlist",
+    href: "/wishlist",
     icon: "bookmark",
     preview: "wishlist",
     rows: [
@@ -87,6 +89,7 @@ const productCards = [
     text: "Create custom collections for any mood.",
     bullets: ["Build your themes", "Tag what matters", "Shuffle your way"],
     action: "Explore Collections",
+    href: "/collections",
     icon: "layers",
     preview: "collections",
     rows: [
@@ -234,8 +237,7 @@ function LandingIcon({ name }: { name: string }) {
 export default function HomePage() {
   return (
     <>
-      <link rel="stylesheet" href="/landing.css" />
-
+      <link rel="stylesheet" href="/landing.css" precedence="high" />
       <main className="vs-landing">
         <section className="vs-hero" aria-labelledby="landing-title">
           <div className="vs-hero-copy">
@@ -258,7 +260,7 @@ export default function HomePage() {
                 <span className="vs-cta-arrow" aria-hidden="true">&rarr;</span>
               </a>
 
-              <a className="vs-cta vs-cta-secondary" href="/app">
+              <a className="vs-cta vs-cta-secondary" href="/vault">
                 <LandingIcon name="guest" />
                 Try Guest Mode
               </a>
@@ -272,7 +274,7 @@ export default function HomePage() {
 
               <span>
                 <LandingIcon name="lock" />
-                Private &amp; local
+                Private by design
               </span>
 
               <span>
@@ -339,7 +341,7 @@ export default function HomePage() {
                   ))}
                 </ul>
 
-                <a href="/app">
+                <a href={card.href}>
                   {card.action} <span aria-hidden="true">&rarr;</span>
                 </a>
               </div>

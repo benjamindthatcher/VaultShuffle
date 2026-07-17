@@ -4,7 +4,6 @@ import {
   gameProgress,
   inferredCompletionForPayload,
   isCompletedGame,
-  statusFromCompletion,
   statusFromGameProgress
 } from "@/lib/game-classification";
 import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
@@ -23,7 +22,7 @@ function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
     genre,
     store: String(payload.store ?? "Steam").trim() || "Steam",
     ownership: normalizeOwnership(payload.ownership),
-    status: statusFromGameProgress({ title, genre, hours_played: hours }, completion),
+    status: payload.status ?? statusFromGameProgress({ title, genre, hours_played: hours }, completion),
     rating: Number(payload.rating ?? 0),
     hours_played: hours,
     completion_percentage: completion,
@@ -98,6 +97,19 @@ export async function updateGame(userId: string, gameId: string, payload: GamePa
 export async function patchGame(userId: string, gameId: string, payload: Partial<GamePayload>) {
   const update = normalizePatchPayload(payload);
   const supabase = getSupabaseAdmin();
+  if (typeof update.status === "string") {
+    const status = update.status;
+    const { data: statusGame, error: statusError } = await supabase.rpc("set_user_game_status", {
+      p_user_id: userId,
+      p_game_id: gameId,
+      p_status: status
+    });
+    if (statusError) throw statusError;
+    delete update.status;
+    delete update.completed_at;
+    delete update.slept_at;
+    if (Object.keys(update).length === 0) return statusGame as Game | null;
+  }
   const { data, error } = await supabase
     .from("games")
     .update(update)
@@ -106,6 +118,16 @@ export async function patchGame(userId: string, gameId: string, payload: Partial
     .select("*")
     .maybeSingle();
 
+  if (error) throw error;
+  return data as Game | null;
+}
+
+export async function restoreGameToActive(userId: string, gameId: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("restore_user_game_active", {
+    p_user_id: userId,
+    p_game_id: gameId
+  });
   if (error) throw error;
   return data as Game | null;
 }
@@ -158,9 +180,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
       incoming.completion_percentage
     );
     const completion = existingCompletion > 0 ? existingCompletion : incomingCompletion;
-    const status = existing.status === "Completed"
-      ? "Completed"
-      : statusFromGameProgress({ title: incoming.title, genre: existing.genre || incoming.genre, hours_played: incoming.hours_played }, completion);
+    const status = existing.status;
 
     return {
       user_id: userId,
@@ -176,7 +196,11 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
       date_added: existing.date_added || incoming.date_added,
       last_played_at: incoming.last_played_at || existing.last_played_at,
       notes: cleanUserNotes(existing.notes) || incoming.notes,
-      steam_appid: incoming.steam_appid
+      steam_appid: incoming.steam_appid,
+      completed_at: existing.completed_at,
+      slept_at: existing.slept_at,
+      completion_suggestion_dismissed_at: existing.completion_suggestion_dismissed_at,
+      completion_suggestion_dismissed_playtime: existing.completion_suggestion_dismissed_playtime
     };
   });
 
@@ -236,7 +260,7 @@ async function updateSteamBackedGame(userId: string, existing: Game, incoming: G
     steam_appid: incoming.steam_appid,
     hours_played: incoming.hours_played,
     genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
-    status: existing.status === "Completed" ? existing.status : incoming.status,
+    status: existing.status,
     date_added: existing.date_added || incoming.date_added,
     last_played_at: incoming.last_played_at || existing.last_played_at,
     notes: cleanUserNotes(existing.notes) || incoming.notes,
@@ -260,10 +284,18 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
     else if (typeof value === "number") update[key] = value;
     else update[key] = key === "notes" ? cleanUserNotes(value) : String(value ?? "").trim();
   }
-  if (update.status === "Completed") update.completion_percentage = 100;
+  if (update.status === "Completed") {
+    update.completed_at = typeof update.completed_at === "string" ? update.completed_at : new Date().toISOString();
+    update.slept_at = null;
+  } else if (update.status === "Slept") {
+    update.slept_at = typeof update.slept_at === "string" ? update.slept_at : new Date().toISOString();
+    update.completed_at = null;
+  } else if (typeof update.status === "string") {
+    update.completed_at = null;
+    update.slept_at = null;
+  }
   if (typeof update.completion_percentage === "number") {
-    update.completion_percentage = clamp(Math.round(update.completion_percentage), 0, 100);
-    update.status = statusFromCompletion(update.completion_percentage);
+    update.completion_percentage = clamp(Math.round(update.completion_percentage), 0, update.status === "Completed" ? 100 : 99);
   }
   return update;
 }

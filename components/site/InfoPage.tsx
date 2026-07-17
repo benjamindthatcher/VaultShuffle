@@ -1,0 +1,2 @@
+import styles from "./InfoPage.module.css";
+export function InfoPage({ eyebrow, title, intro, sections }: { eyebrow: string; title: string; intro: string; sections: Array<{ title: string; body: string }> }) { return <article className={styles.page}><p className={styles.eyebrow}>{eyebrow}</p><h1>{title}</h1><p className={styles.intro}>{intro}</p><div className={styles.sections}>{sections.map((section) => <section key={section.title}><h2>{section.title}</h2><p>{section.body}</p></section>)}</div></article>; }

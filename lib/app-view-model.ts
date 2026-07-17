@@ -70,7 +70,9 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       ownership: game.ownership,
       status: game.status === "Sampled" ? "In Progress" : game.status,
       hoursPlayed: Number(game.hours_played || 0),
-      completionPercent: Number(game.completion_percentage || 0),
+      completionPercent: game.status === "Completed"
+        ? Number(game.completion_percentage || 0)
+        : Math.min(99, Number(game.completion_percentage || 0)),
       priority: normalisePriority(game.priority),
       genres,
       description:
@@ -88,7 +90,21 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       saleDiscount: Number(game.discount_percent || 0) > 0 ? `-${game.discount_percent}%` : undefined,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
       sessionFit: deriveSessionFit(game),
-      moodTags: deriveMoodTags(game, genres)
+      moodTags: deriveMoodTags(game, genres),
+      completedAt: game.completed_at,
+      previousActiveStatus: game.previous_active_status === "In Progress" ? "In Progress" : game.previous_active_status ? "Not Started" : null,
+      sleptAt: game.slept_at,
+      completionSuggestionDismissedAt: game.completion_suggestion_dismissed_at,
+      completionSuggestionDismissedPlaytime: game.completion_suggestion_dismissed_playtime,
+      duration: {
+        mainStoryMinutes: game.main_story_minutes,
+        mainExtrasMinutes: game.main_extras_minutes,
+        completionistMinutes: game.completionist_minutes,
+        source: game.duration_source,
+        sourceUpdatedAt: game.duration_source_updated_at,
+        confidence: game.duration_confidence,
+        userEstimateMinutes: game.user_estimate_minutes
+      }
     };
   });
 }

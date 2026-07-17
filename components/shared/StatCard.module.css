@@ -80,3 +80,34 @@
   color: var(--vault-text-soft);
   line-height: 1.5;
 }
+
+.cardCompact {
+  padding: 14px 16px;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 11px;
+}
+
+.cardCompact .icon {
+  width: 44px;
+  height: 44px;
+}
+
+.cardCompact .icon svg {
+  width: 23px;
+  height: 23px;
+}
+
+.cardCompact .label {
+  margin-bottom: 5px;
+  font-size: 0.72rem;
+}
+
+.cardCompact .value {
+  font-size: clamp(1.3rem, 2.2vw, 1.62rem);
+}
+
+.cardCompact .note {
+  margin-top: 5px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}

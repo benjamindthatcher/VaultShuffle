@@ -1,4 +1,5 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
+import { formatGameDuration } from "@/lib/game-duration";
 
 export const MAX_VAULT_GENRES = 3;
 const VAULT_SELECTION_TEMPERATURE = 15;
@@ -27,6 +28,65 @@ export type VaultPoolEntry = {
   reasons: string[];
 };
 
+export type VaultEligibilityStage = {
+  id: "active" | "collection" | "genres" | "goal" | "snoozes" | "available";
+  label: string;
+  count: number;
+};
+
+export type VaultEligibility = {
+  stages: VaultEligibilityStage[];
+  games: DemoGame[];
+};
+
+export function getVaultEligibility({
+  games,
+  goal,
+  selectedCollectionId,
+  selectedCollectionName,
+  selectedGenres,
+  snoozedIds
+}: {
+  games: DemoGame[];
+  goal: VaultGoalId | null;
+  selectedCollectionId: string | null;
+  selectedCollectionName?: string | null;
+  selectedGenres: string[];
+  snoozedIds: Set<string>;
+}): VaultEligibility {
+  if (selectedGenres.length > MAX_VAULT_GENRES) {
+    throw new RangeError(`Select no more than ${MAX_VAULT_GENRES} genres.`);
+  }
+
+  const active = games
+    .filter((game) => game.ownership === "Owned")
+    .filter((game) => game.status !== "Completed" && game.status !== "Slept");
+  const inCollection = !selectedCollectionId || selectedCollectionId === "all"
+    ? active
+    : active.filter((game) => game.collectionIds.includes(selectedCollectionId));
+  const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
+  const genreMatches = inCollection.filter((game) => matchesAnyGenre(game, canonicalSelectedGenres));
+  const goalMatches = genreMatches.filter((game) => goalEligible(game, goal));
+  const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
+  const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
+
+  if (selectedCollectionId && selectedCollectionId !== "all") {
+    stages.push({ id: "collection", label: `in ${selectedCollectionName || "Collection"}`, count: inCollection.length });
+  }
+  if (selectedGenres.length) {
+    stages.push({ id: "genres", label: "Genre Matches", count: genreMatches.length });
+  }
+  if (goal && goal !== "surprise") {
+    stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
+  }
+  if (goalMatches.some((game) => snoozedIds.has(game.id))) {
+    stages.push({ id: "snoozes", label: "After Snoozes", count: available.length });
+  }
+  stages.push({ id: "available", label: "Available", count: available.length });
+
+  return { stages, games: available };
+}
+
 export function buildVaultPool({
   games,
   session,
@@ -44,19 +104,16 @@ export function buildVaultPool({
   selectedGenres: string[];
   snoozedIds: Set<string>;
 }) {
-  if (selectedGenres.length > MAX_VAULT_GENRES) {
-    throw new RangeError(`Select no more than ${MAX_VAULT_GENRES} genres.`);
-  }
-
   const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
+  const eligibility = getVaultEligibility({
+    games,
+    goal,
+    selectedCollectionId,
+    selectedGenres,
+    snoozedIds
+  });
 
-  return games
-    .filter((game) => game.ownership === "Owned")
-    .filter((game) => !snoozedIds.has(game.id))
-    .filter((game) => game.status !== "Completed" && game.completionPercent < 100)
-    .filter((game) => (!selectedCollectionId || selectedCollectionId === "all" ? true : game.collectionIds.includes(selectedCollectionId)))
-    .filter((game) => goalEligible(game, goal))
-    .filter((game) => matchesAnyGenre(game, canonicalSelectedGenres))
+  return eligibility.games
     .map((game) => scoreVaultGame(game, session, mood, goal, canonicalSelectedGenres))
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
@@ -91,21 +148,6 @@ export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string 
   return finalists[finalists.length - 1].game;
 }
 
-export function buildVaultAnimationSequence(pool: VaultPoolEntry[], winnerId: string) {
-  const winner = pool.find((entry) => entry.game.id === winnerId);
-  if (!winner) return [];
-  if (pool.length === 1) return [winner];
-
-  const decoys = pool
-    .filter((entry) => entry.game.id !== winnerId)
-    .map((entry) => ({ entry, order: Math.random() }))
-    .sort((left, right) => left.order - right.order)
-    .slice(0, Math.min(7, pool.length - 1))
-    .map(({ entry }) => entry);
-
-  return [...decoys, winner];
-}
-
 function scoreVaultGame(
   game: DemoGame,
   session: VaultSessionId | null,
@@ -120,6 +162,8 @@ function scoreVaultGame(
     const sessionScore = game.sessionFit.includes(session) ? 24 : 12;
     score += sessionScore;
     if (sessionScore >= 20) reasons.push(`Fits a ${sessionLabel(session).toLowerCase()}`);
+    const durationLabel = formatGameDuration(game.duration);
+    if (sessionScore >= 20 && durationLabel) reasons.push(durationLabel);
   }
 
   if (mood && game.moodTags.includes(mood)) {
@@ -149,9 +193,6 @@ function scoreVaultGame(
   if (goal === "surprise") {
     score += 30;
   }
-
-  if (game.priority === "Must Play") score += 3;
-  if (game.priority === "High") score += 2;
 
   return { game, score, reasons: reasons.slice(0, 4) };
 }

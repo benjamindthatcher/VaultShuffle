@@ -1,0 +1,45 @@
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at center, rgba(35, 15, 78, 0.36), transparent 44%),
+    #02030c;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.animation {
+  width: min(72vw, 520px);
+  height: min(72vw, 520px);
+  object-fit: contain;
+}
+
+.staticIcon { display: none; }
+
+@media (max-width: 560px) {
+  .animation {
+    width: min(86vw, 340px);
+    height: min(86vw, 340px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loader { transition-duration: 1ms; }
+  .animation { display: none; }
+  .staticIcon {
+    display: block;
+    width: min(50vw, 260px);
+    aspect-ratio: 1;
+    background: url("/assets/brand/vaultshuffle-icon.png") center / contain no-repeat;
+  }
+}

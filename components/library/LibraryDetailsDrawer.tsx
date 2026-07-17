@@ -1,51 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
-import { steamStoreUrl } from "@/lib/steam-images";
+import { formatDurationEstimate } from "@/lib/game-duration";
+import { steamLaunchUrl } from "@/lib/steam-images";
 import styles from "./LibraryDetailsDrawer.module.css";
 
 type LibraryDetailsDrawerProps = {
   game: DemoGame | null;
   collections: DemoCollection[];
-  onSave: (patch: { status: DemoGame["status"]; completionPercent: number; hoursPlayed: number; notes: string; priority: DemoGame["priority"] }) => Promise<void>;
+  onSave: (patch: { notes: string }) => Promise<void>;
   onToggleCollection: (collectionId: string, assigned: boolean) => Promise<void>;
   saving: boolean;
   onClose: () => void;
+  pinSlot?: number | null;
+  pinCount?: number;
+  onTogglePin?: () => void;
+  onManagePins?: () => void;
+  onComplete?: () => Promise<void>;
+  onRestore?: () => Promise<void>;
 };
 
-export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose }: LibraryDetailsDrawerProps) {
-  const [status, setStatus] = useState<DemoGame["status"]>("Not Started");
-  const [completion, setCompletion] = useState(0);
-  const [hours, setHours] = useState(0);
+export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore }: LibraryDetailsDrawerProps) {
+  const [mounted, setMounted] = useState(false);
   const [notes, setNotes] = useState("");
-  const [priority, setPriority] = useState<DemoGame["priority"]>("Medium");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!game) return;
-    setStatus(game.status);
-    setCompletion(game.completionPercent);
-    setHours(game.hoursPlayed);
     setNotes(game.notes || "");
-    setPriority(game.priority);
   }, [game]);
+
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!game) return;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     function closeOnEscape(event: KeyboardEvent) {
       if (event.key === "Escape") onClose();
     }
     document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+      previousFocus?.focus();
+    };
   }, [game, onClose]);
 
-  if (!game) return null;
+  if (!mounted || !game) return null;
 
   const relatedCollections = collections.filter((collection) => game.collectionIds.includes(collection.id));
+  const durationRows: Array<[string, number | null | undefined]> = [
+    ["Main Story", game.duration?.mainStoryMinutes],
+    ["Main + Extras", game.duration?.mainExtrasMinutes],
+    ["Completionist", game.duration?.completionistMinutes]
+  ];
+  const availableDurationRows = durationRows.filter((row): row is [string, number] => typeof row[1] === "number" && row[1] > 0);
 
-  return (
+  return createPortal(
     <>
       <button type="button" className={styles.overlay} onClick={onClose} aria-label="Close game details" />
       <aside className={styles.drawer} role="dialog" aria-modal="true" aria-label={`${game.title} details`}>
@@ -64,6 +81,13 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           </div>
 
           <p className={styles.copy}>{game.description}</p>
+          <div className={styles.pinControl}>
+            <div><strong>{pinSlot ? `Pinned in slot ${pinSlot}` : pinCount >= 3 ? "Pins full · 3/3" : "Pin game"}</strong><span>{pinSlot ? "Kept at the front of your Active Library." : `Keep it at the front of your Library · ${pinCount}/3 used`}</span></div>
+            <div className={styles.pinActions}>
+              <button type="button" onClick={pinSlot || pinCount < 3 ? onTogglePin : onManagePins}>{pinSlot ? "Unpin" : pinCount >= 3 ? "Manage Pins" : "Pin game"}</button>
+              {game.status === "Completed" ? <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><VaultIcon name="in-progress" size={17} />Restore to Active</button> : <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>}
+            </div>
+          </div>
 
           <div className={styles.metadataRow}>
             {game.genres.map((genre) => <span key={genre}>{genre}</span>)}
@@ -83,10 +107,12 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
               <dt>Playtime</dt>
               <dd>{game.hoursPlayed}h</dd>
             </div>
-            <div>
-              <dt>Priority</dt>
-              <dd>{game.priority}</dd>
-            </div>
+            {availableDurationRows.map(([label, minutes], index) => (
+              <div key={label}>
+                <dt>{label}{index === 0 && game.duration?.confidence === "low" ? " · Early estimate" : ""}</dt>
+                <dd>{formatDurationEstimate(minutes)}</dd>
+              </div>
+            ))}
           </dl>
 
           <fieldset className={styles.collectionSection}>
@@ -118,30 +144,6 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           </fieldset>
 
           <div className={styles.editorGrid}>
-            <label className={styles.field}>
-              <span>Status</span>
-              <select aria-label="Edit status" value={status} onChange={(event) => setStatus(event.target.value as DemoGame["status"])}>
-                <option value="Not Started">Not Started</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
-              </select>
-            </label>
-            <label className={styles.field}>
-              <span>Completion %</span>
-              <input aria-label="Edit completion percentage" type="number" min={0} max={100} value={completion} onChange={(event) => setCompletion(Number(event.target.value))} />
-            </label>
-            <label className={styles.field}>
-              <span>Hours played</span>
-              <input aria-label="Edit hours played" type="number" min={0} value={hours} onChange={(event) => setHours(Number(event.target.value))} />
-            </label>
-            <label className={styles.field}>
-              <span>Priority</span>
-              <select aria-label="Edit priority" value={priority} onChange={(event) => setPriority(event.target.value as DemoGame["priority"])}>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Must Play">Must Play</option>
-              </select>
-            </label>
             <label className={`${styles.field} ${styles.fieldWide}`}>
               <span>Notes</span>
               <textarea aria-label="Edit notes" value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} />
@@ -151,16 +153,19 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           <div className={styles.actionRow}>
             <a
               className={styles.steamButton}
-              href={steamStoreUrl(game.steamAppId)}
-              target="_blank"
-              rel="noreferrer"
+              href={steamLaunchUrl(game.steamAppId)}
             >
-              Open on Steam
+              <VaultIcon name="play-now" size={20} />
+              <span>Play on Steam</span>
+              <span className={styles.steamArrow} aria-hidden="true">→</span>
             </a>
             <button
               type="button"
               className={styles.saveButton}
-              onClick={() => onSave({ status, completionPercent: completion, hoursPlayed: hours, notes, priority })}
+              onClick={async () => {
+                await onSave({ notes });
+                onClose();
+              }}
               disabled={saving}
             >
               {saving ? "Saving..." : "Save changes"}
@@ -168,6 +173,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           </div>
         </div>
       </aside>
-    </>
+    </>,
+    document.body
   );
 }

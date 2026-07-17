@@ -19,6 +19,7 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect }: Vault
   return (
     <section className={styles.group}>
       <div className={styles.headingRow}>
+        <VaultIcon name={groupIconName(title)} className={styles.groupIcon} />
         <p className={styles.stepLabel}>{title}</p>
       </div>
 
@@ -35,7 +36,6 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect }: Vault
             >
               <VaultIcon name={optionIconName(option.id)} className={styles.optionIcon} />
               <strong className={styles.optionLabel}>{option.label}</strong>
-              <span className={styles.optionCaption}>{option.caption}</span>
             </button>
           );
         })}
@@ -45,6 +45,23 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect }: Vault
 }
 
 function optionIconName(id: string): VaultIconName {
-  if (id === "short" || id === "evening" || id === "weekend") return "session";
-  return id as VaultIconName;
+  const iconNames: Record<string, VaultIconName> = {
+    short: "short-session",
+    evening: "evening-session",
+    weekend: "weekend-session",
+    "brain-off": "brain-off",
+    chill: "chill",
+    intense: "intense",
+    new: "something-new",
+    finish: "finish-something",
+    surprise: "surprise-me"
+  };
+
+  return iconNames[id] ?? "goal";
+}
+
+function groupIconName(title: string): VaultIconName {
+  if (title === "Session") return "session";
+  if (title === "Mood") return "mood";
+  return "new";
 }

@@ -6,8 +6,6 @@ type LibraryToolbarProps = {
   onQueryChange: (value: string) => void;
   sort: string;
   onSortChange: (value: string) => void;
-  status: string;
-  onStatusChange: (value: string) => void;
   viewMode: "grid" | "list";
   onViewModeChange: (value: "grid" | "list") => void;
 };
@@ -17,8 +15,6 @@ export function LibraryToolbar({
   onQueryChange,
   sort,
   onSortChange,
-  status,
-  onStatusChange,
   viewMode,
   onViewModeChange
 }: LibraryToolbarProps) {
@@ -26,7 +22,7 @@ export function LibraryToolbar({
     <section className={styles.toolbar}>
       <label className={styles.searchField}>
         <span className={styles.hiddenLabel}>Search games</span>
-        <VaultIcon name="search" size={20} />
+        <VaultIcon name="search" size={17} />
         <input
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
@@ -36,22 +32,12 @@ export function LibraryToolbar({
 
       <div className={styles.controlRow}>
         <label className={styles.selectField}>
-          <span className={styles.controlLabel}><VaultIcon name="sort" size={18} />Sort</span>
+          <span className={styles.controlLabel}><VaultIcon name="sort" size={15} />Sort</span>
           <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
             <option value="recent">Recently played</option>
             <option value="title">Title A-Z</option>
             <option value="hours">Playtime high-low</option>
             <option value="progress">Progress high-low</option>
-          </select>
-        </label>
-
-        <label className={styles.selectField}>
-          <span className={styles.controlLabel}><VaultIcon name="filter" size={18} />Filter</span>
-          <select value={status} onChange={(event) => onStatusChange(event.target.value)}>
-            <option value="all">All statuses</option>
-            <option value="not-started">Not Started</option>
-            <option value="in-progress">In Progress</option>
-            <option value="completed">Completed</option>
           </select>
         </label>
 
@@ -62,7 +48,7 @@ export function LibraryToolbar({
             onClick={() => onViewModeChange("grid")}
             aria-pressed={viewMode === "grid"}
           >
-            <VaultIcon name="grid" /> <span>Grid</span>
+            <VaultIcon name="grid" size={16} /> <span>Grid</span>
           </button>
           <button
             type="button"
@@ -70,7 +56,7 @@ export function LibraryToolbar({
             onClick={() => onViewModeChange("list")}
             aria-pressed={viewMode === "list"}
           >
-            <VaultIcon name="list" /> <span>List</span>
+            <VaultIcon name="list" size={16} /> <span>List</span>
           </button>
         </div>
       </div>

@@ -1,6 +1,10 @@
 import type { Game, GamePayload } from "@/lib/types";
+import { completionFromDuration, estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 
-type GameLike = Pick<Game, "title" | "genre"> & Partial<Pick<Game, "hours_played" | "completion_percentage" | "status">>;
+type GameLike = Pick<Game, "title" | "genre"> & Partial<Pick<Game,
+  "hours_played" | "completion_percentage" | "status" | "main_story_minutes" |
+  "main_extras_minutes" | "completionist_minutes" | "user_estimate_minutes"
+>>;
 
 export const LENGTH_LABELS = ["Bitesize", "Short", "Weekend", "Campaign", "Meaty", "Marathon", "Odyssey", "Endless"] as const;
 
@@ -10,7 +14,7 @@ export const LENGTH_HELP_TEXT =
 export type LengthLabel = (typeof LENGTH_LABELS)[number];
 
 export function isCompletedGame(game: GameLike) {
-  return game.status === "Completed" || gameProgress(game) >= 100;
+  return game.status === "Completed";
 }
 
 export function displayStatus(game: GameLike): GamePayload["status"] {
@@ -22,12 +26,12 @@ export function displayStatus(game: GameLike): GamePayload["status"] {
 }
 
 export function gameProgress(game: GameLike) {
-  if (game.status === "Completed") return 100;
+  if (game.status === "Completed") return clamp(Math.round(Number(game.completion_percentage || 0)), 0, 100);
   const inferred = inferredProgressFromHours(game, Number(game.hours_played || 0));
   const stored = Number(game.completion_percentage || 0);
   if (stored > 0) {
     const roundedStored = clamp(Math.round(stored), 0, 100);
-    return inferred >= 100 && roundedStored >= 99 ? 100 : roundedStored;
+    return Math.min(99, roundedStored);
   }
   return inferred;
 }
@@ -39,36 +43,31 @@ export function inferredCompletionForPayload(
   status: Partial<GamePayload>["status"],
   completion: Partial<GamePayload>["completion_percentage"]
 ) {
-  if (status === "Completed") return 100;
-  const stored = clamp(Math.round(Number(completion ?? 0)), 0, 100);
+  const stored = clamp(Math.round(Number(completion ?? 0)), 0, status === "Completed" ? 100 : 99);
   if (stored > 0) return stored;
   return inferredProgressFromHours({ title, genre, hours_played: hours }, hours);
 }
 
 export function inferredProgressFromHours(game: GameLike, hours: number) {
+  const durationProgress = completionFromDuration(hours, durationForGame(game));
+  if (estimatedTimeToBeatMinutes(durationForGame(game))) return durationProgress;
   const estimate = estimatedGameHours(game);
   const played = Number(hours || 0);
   if (!played || !estimate) return 0;
-  if (played >= estimate) return 100;
+  if (played >= estimate) return 99;
   return clamp(Math.round((played / estimate) * 100), 0, 99);
 }
 
 export function statusFromGameProgress(game: GameLike, completion: number): GamePayload["status"] {
-  if (completion >= 100) return "Completed";
   if (completion > 10) return "In Progress";
   if (completion > 0) return "Sampled";
   if (isEndlessGame(game) && Number(game.hours_played || 0) > 0) return "In Progress";
   return "Not Started";
 }
 
-export function statusFromCompletion(completion: number): GamePayload["status"] {
-  if (completion >= 100) return "Completed";
-  if (completion > 10) return "In Progress";
-  if (completion > 0) return "Sampled";
-  return "Not Started";
-}
-
 export function estimatedGameHours(game: GameLike) {
+  const durationMinutes = estimatedTimeToBeatMinutes(durationForGame(game));
+  if (durationMinutes) return durationMinutes / 60;
   const text = `${game.title} ${game.genre}`.toLowerCase();
   if (isEndlessGame(game)) return 0;
   if (/(open world|grand strategy|4x|jrpg|role-playing|role playing)/.test(text)) return 120;
@@ -77,6 +76,15 @@ export function estimatedGameHours(game: GameLike) {
   if (/(action|shooter|fps|third-person|racing|sports|fighting)/.test(text)) return 20;
   if (/(puzzle|casual|arcade|platformer|indie|hidden object|visual novel)/.test(text)) return 10;
   return 20;
+}
+
+function durationForGame(game: GameLike) {
+  return {
+    mainStoryMinutes: game.main_story_minutes,
+    mainExtrasMinutes: game.main_extras_minutes,
+    completionistMinutes: game.completionist_minutes,
+    userEstimateMinutes: game.user_estimate_minutes
+  };
 }
 
 export function lengthBucket(game: GameLike): LengthLabel {

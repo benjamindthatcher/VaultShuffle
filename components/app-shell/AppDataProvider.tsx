@@ -6,6 +6,7 @@ import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "
 import { guestSession, mapLiveCollections, mapLiveGames, type CollectionDetailPayload } from "@/lib/app-view-model";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
+import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 
 type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
@@ -16,22 +17,29 @@ type AppDataContextValue = {
   games: DemoGame[];
   collections: DemoCollection[];
   vaultState: VaultState;
+  vaultHistory: VaultDraw[];
   isLive: boolean;
   isLoading: boolean;
   isSyncing: boolean;
+  loadError: string | null;
   refresh: () => Promise<void>;
   syncSteamLibrary: () => Promise<number>;
-  refreshSteamMetadata: () => Promise<number>;
+  refreshSteamMetadata: (force?: boolean) => Promise<number>;
   signOut: () => Promise<void>;
-  createCollection: (payload: CollectionInput) => Promise<void>;
+  createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
   searchSteam: (query: string) => Promise<SteamSearchResult[]>;
   addWishlistGame: (payload: { title: string; genre: string; steamAppId?: string; image?: string }) => Promise<void>;
-  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"] }) => Promise<void>;
+  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }) => Promise<void>;
+  restoreGame: (gameId: string) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
   removeGame: (gameId: string) => Promise<void>;
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
+  recordVaultDraw: (gameId: string, input: VaultDrawInput) => Promise<VaultDraw>;
+  loadVaultHistory: () => Promise<void>;
+  recordDrawEvent: (drawId: string, eventType: VaultDrawEventType) => Promise<void>;
+  clearVaultHistory: () => Promise<void>;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -59,12 +67,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>([]);
   const [guestVaultState, setGuestVaultState] = useState<VaultState>(emptyVaultState);
   const [liveVaultState, setLiveVaultState] = useState<VaultState>(emptyVaultState);
+  const [guestVaultHistory, setGuestVaultHistory] = useState<VaultDraw[]>([]);
+  const [liveVaultHistory, setLiveVaultHistory] = useState<VaultDraw[]>([]);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   async function load() {
     setIsLoading(true);
+    setLoadError(null);
     try {
       const nextSession = await api<SessionPayload>("/api/session");
       setSession(nextSession);
@@ -74,28 +86,37 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const [{ games }, { collections }, nextVaultState] = await Promise.all([
-        api<{ games: Game[] }>("/api/games"),
-        api<{ collections: Collection[] }>("/api/collections"),
-        api<VaultState>("/api/vault/state")
-      ]);
-
-      const details = await Promise.all(
-        collections.map((collection) =>
-          api<CollectionDetailPayload>(`/api/collections/${collection.id}`).catch(() => ({
-            collection,
-            games: []
-          }))
-        )
-      );
-
-      setLiveCollections(mapLiveCollections(details));
-      setLiveGames(mapLiveGames(games, details));
-      setLiveVaultState(nextVaultState);
       setIsLive(true);
-    } catch {
+      try {
+        const [{ games }, { collections }, nextVaultState] = await Promise.all([
+          api<{ games: Game[] }>("/api/games"),
+          api<{ collections: Collection[] }>("/api/collections"),
+          api<VaultState>("/api/vault/state")
+        ]);
+
+        const details = await Promise.all(
+          collections.map((collection) =>
+            api<CollectionDetailPayload>(`/api/collections/${collection.id}`).catch(() => ({
+              collection,
+              games: []
+            }))
+          )
+        );
+
+        setLiveCollections(mapLiveCollections(details));
+        setLiveGames(mapLiveGames(games, details));
+        setLiveVaultState(nextVaultState);
+      } catch (error) {
+        setLoadError(error instanceof Error && error.message !== "Request failed."
+          ? error.message
+          : "Your VaultShuffle data could not be loaded. Please retry.");
+      }
+    } catch (error) {
       setSession(guestSession);
       setIsLive(false);
+      if (error instanceof Error && error.message !== "unauthorized") {
+        setLoadError("VaultShuffle could not check your session. Guest preview is still available.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -118,14 +139,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function refreshSteamMetadata() {
+  async function refreshSteamMetadata(force = false) {
     if (!isLive) return 0;
-    const result = await api<{ updated: number }>("/api/steam/metadata", {
-      method: "POST",
-      body: JSON.stringify({ limit: 24, wishlist_only: true })
-    });
-    if (result.updated > 0) await load();
-    return result.updated;
+    let updated = 0;
+    let remaining = 0;
+    let batch = 0;
+
+    do {
+      const result = await api<{ updated: number; remaining: number }>("/api/steam/metadata", {
+        method: "POST",
+        body: JSON.stringify({ limit: 24, wishlist_only: true, force: force && batch === 0 })
+      });
+      updated += result.updated;
+      remaining = result.remaining;
+      batch += 1;
+    } while (remaining > 0 && batch < 10);
+
+    if (updated > 0) await load();
+    return updated;
   }
 
   async function signOut() {
@@ -135,16 +166,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function createCollection(payload: CollectionInput) {
     if (isLive) {
-      await api("/api/collections", {
+      const { collection } = await api<{ collection: Collection }>("/api/collections", {
         method: "POST",
         body: JSON.stringify(payload)
       });
       await load();
-      return;
+      return collection.id;
     }
 
     const nextCollection: DemoCollection = {
-      id: `custom-${payload.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
+      id: `custom-${crypto.randomUUID()}`,
       kind: payload.kind || "custom",
       name: payload.name,
       description: payload.description || "Freshly created and ready for curating.",
@@ -154,6 +185,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     setGuestCollections((current) => [nextCollection, ...current]);
+    return nextCollection.id;
   }
 
   async function updateCollection(collectionId: string, payload: CollectionInput) {
@@ -239,7 +271,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function updateGame(
     gameId: string,
-    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"] }
+    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }
   ) {
     if (isLive) {
       await api(`/api/games/${gameId}`, {
@@ -249,7 +281,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           completion_percentage: patch.completionPercent,
           hours_played: patch.hoursPlayed,
           notes: patch.notes,
-          priority: patch.priority
+          priority: patch.priority,
+          completed_at: patch.completedAt,
+          slept_at: patch.sleptAt,
+          completion_suggestion_dismissed_at: patch.completionSuggestionDismissedAt,
+          completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
       });
       await load();
@@ -262,15 +298,48 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           ? {
               ...game,
               status: patch.status ?? game.status,
-              completionPercent: patch.completionPercent ?? game.completionPercent,
+              completionPercent: Math.min(99, patch.completionPercent ?? game.completionPercent),
               hoursPlayed: patch.hoursPlayed ?? game.hoursPlayed,
               priority: patch.priority ?? game.priority,
               notes: patch.notes ?? game.notes,
-              description: patch.notes?.trim() ? patch.notes : game.description
+              description: patch.notes?.trim() ? patch.notes : game.description,
+              completedAt: patch.completedAt !== undefined ? patch.completedAt : patch.status === "Completed" ? new Date().toISOString() : patch.status ? null : game.completedAt,
+              previousActiveStatus: patch.status === "Completed" && game.status !== "Completed"
+                ? (game.status === "In Progress" ? "In Progress" : "Not Started")
+                : game.previousActiveStatus,
+              sleptAt: patch.sleptAt !== undefined ? patch.sleptAt : patch.status === "Slept" ? new Date().toISOString() : patch.status ? null : game.sleptAt,
+              completionSuggestionDismissedAt: patch.completionSuggestionDismissedAt ?? game.completionSuggestionDismissedAt,
+              completionSuggestionDismissedPlaytime: patch.completionSuggestionDismissedPlaytime ?? game.completionSuggestionDismissedPlaytime
             }
           : game
       )
     );
+    if (patch.status === "Completed" || patch.status === "Slept") {
+      setGuestVaultState((current) => ({
+        ...current,
+        pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
+        currentPickId: current.currentPickId === gameId ? null : current.currentPickId
+      }));
+    }
+  }
+
+  async function restoreGame(gameId: string) {
+    if (isLive) {
+      await api(`/api/games/${gameId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ restore_active: true })
+      });
+      await load();
+      return;
+    }
+
+    setGuestGames((current) => current.map((game) => game.id === gameId ? {
+      ...game,
+      status: game.previousActiveStatus ?? "Not Started",
+      completedAt: null,
+      sleptAt: null,
+      previousActiveStatus: null
+    } : game));
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
@@ -310,7 +379,40 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId));
+    setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
+  }
+
+  async function loadVaultHistory() {
+    if (!isLive) return;
+    const { draws } = await api<{ draws: VaultDraw[] }>("/api/vault/history");
+    setLiveVaultHistory(draws);
+  }
+
+  async function recordVaultDraw(gameId: string, input: VaultDrawInput) {
+    if (isLive) {
+      const { state, draw } = await api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex }) });
+      setLiveVaultState(state);
+      setLiveVaultHistory((current) => [draw, ...current].slice(0, 50));
+      return draw;
+    }
+    const draw: VaultDraw = { ...input, id: crypto.randomUUID(), drawnAt: new Date().toISOString(), events: [] };
+    setGuestVaultState((current) => reduceGuestVaultState(current, "drawn", gameId, {}));
+    setGuestVaultHistory((current) => [draw, ...current].slice(0, 50));
+    return draw;
+  }
+
+  async function recordDrawEvent(drawId: string, eventType: VaultDrawEventType) {
+    if (isLive) {
+      const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
+      setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [event, ...draw.events] } : draw));
+      return;
+    }
+    setGuestVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [{ id: crypto.randomUUID(), drawId, eventType, createdAt: new Date().toISOString() }, ...draw.events] } : draw));
+  }
+
+  async function clearVaultHistory() {
+    if (isLive) await api("/api/vault/history", { method: "DELETE" });
+    if (isLive) setLiveVaultHistory([]); else setGuestVaultHistory([]);
   }
 
   const value = useMemo<AppDataContextValue>(
@@ -319,9 +421,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       games: isLive ? liveGames : guestGames,
       collections: isLive ? liveCollections : guestCollections,
       vaultState: isLive ? liveVaultState : guestVaultState,
+      vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
       isLive,
       isLoading,
       isSyncing,
+      loadError,
       refresh: load,
       syncSteamLibrary,
       refreshSteamMetadata,
@@ -332,31 +436,40 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       searchSteam,
       addWishlistGame,
       updateGame,
+      restoreGame,
       setGameCollection,
       removeGame,
-      recordVaultAction
+      recordVaultAction,
+      recordVaultDraw,
+      loadVaultHistory,
+      recordDrawEvent,
+      clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState]
+    [session, isLive, isLoading, isSyncing, loadError, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
 
-function reduceGuestVaultState(state: VaultState, action: VaultAction, gameId: string): VaultState {
-  const pinnedIds = new Set(state.pinnedIds);
+function reduceGuestVaultState(state: VaultState, action: VaultAction, gameId: string, context: Record<string, unknown>): VaultState {
+  let pinnedIds = [...state.pinnedIds];
   const snoozedIds = new Set(state.snoozedIds);
   let currentPickId = state.currentPickId;
 
   if (action === "drawn") currentPickId = gameId;
-  if (action === "pinned") pinnedIds.add(gameId);
-  if (action === "unpinned") pinnedIds.delete(gameId);
+  if (action === "pinned" && !pinnedIds.includes(gameId)) {
+    const replaceId = String(context.replace_game_id ?? "");
+    if (pinnedIds.length < 3) pinnedIds.push(gameId);
+    else if (pinnedIds.includes(replaceId)) pinnedIds[pinnedIds.indexOf(replaceId)] = gameId;
+  }
+  if (action === "unpinned") pinnedIds = pinnedIds.filter((id) => id !== gameId);
   if (action === "snoozed") {
     snoozedIds.add(gameId);
     if (currentPickId === gameId) currentPickId = null;
   }
   if (action === "unsnoozed") snoozedIds.delete(gameId);
 
-  return { pinnedIds: [...pinnedIds], snoozedIds: [...snoozedIds], currentPickId };
+  return { pinnedIds, snoozedIds: [...snoozedIds], currentPickId };
 }
 
 export function useAppData() {

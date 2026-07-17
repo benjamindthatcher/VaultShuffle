@@ -24,7 +24,7 @@
 
 .hero {
   position: relative;
-  aspect-ratio: 16 / 7.5;
+  aspect-ratio: 460 / 215;
   overflow: hidden;
 }
 
@@ -194,31 +194,51 @@
 }
 
 .actionRow {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) auto;
   gap: 10px;
-  justify-content: flex-end;
 }
 
 .saveButton,
 .steamButton {
-  min-height: 40px;
+  min-height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 0 18px;
-  border-radius: 999px;
+  border-radius: 12px;
 }
 
 .saveButton {
   border: 0;
   background: linear-gradient(90deg, #8a4dff, #3151ff);
   color: white;
+  padding-inline: 22px;
+  font-weight: 800;
 }
 
 .steamButton {
-  border: 1px solid rgba(145, 105, 255, 0.28);
-  background: rgba(14, 18, 44, 0.76);
-  color: var(--vault-text);
+  justify-content: flex-start;
+  gap: 12px;
+  border: 1px solid rgba(205, 132, 255, 0.62);
+  background: linear-gradient(100deg, #6630ff 0%, #9a3eff 54%, #bd54ff 100%);
+  color: #fff;
   text-decoration: none;
+  font-weight: 850;
+  box-shadow: 0 12px 32px rgba(126, 54, 255, 0.25), inset 0 1px 0 rgba(255,255,255,.2);
+}
+.steamButton:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.steamArrow { margin-left: auto; font-size: 1.25rem; }
+.pinControl { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 14px; border: 1px solid rgba(172, 105, 255, 0.28); border-radius: 12px; background: rgba(34, 24, 75, 0.32); }
+.pinControl > div:first-child { display: grid; gap: 4px; }
+.pinControl span { color: var(--vault-text-muted); font-size: .82rem; }
+.pinControl button { min-height: 40px; padding: 0 14px; border: 1px solid rgba(190,105,255,.38); border-radius: 999px; background: rgba(75,39,145,.42); color: var(--vault-text); }
+.pinActions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: 0 0 auto; }
+.pinActions .restoreButton { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 10px; font-weight: 800; }
+.restoreButton { border: 1px solid rgba(116, 177, 255, 0.42); color: #dcecff; background: rgba(45, 97, 175, 0.16); }
+
+@media (max-width: 520px) {
+  .pinControl { align-items: stretch; flex-direction: column; }
+  .statGrid { grid-template-columns: 1fr; }
+  .actionRow { grid-template-columns: 1fr; }
 }

@@ -7,10 +7,9 @@ type VaultGenrePanelProps = {
   selectedGenres: string[];
   onToggleGenre: (genre: string) => void;
   onClear: () => void;
-  limitMessage?: string;
 };
 
-export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, limitMessage = "" }: VaultGenrePanelProps) {
+export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear }: VaultGenrePanelProps) {
   return (
     <section className={styles.panel}>
       <div className={styles.heading}>
@@ -19,6 +18,7 @@ export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, limitM
           <h2>Genre Filters</h2>
           <p>Optional. Refine your pool. <strong>{selectedGenres.length}/3</strong></p>
         </div>
+        <button type="button" className={styles.clear} onClick={onClear} disabled={!selectedGenres.length}><VaultIcon name="clear-filters" size={16} />Clear filters</button>
       </div>
       <div className={styles.grid}>
         {VAULT_GENRES.map((genre) => {
@@ -36,10 +36,6 @@ export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, limitM
             </button>
           );
         })}
-      </div>
-      <div className={styles.footer}>
-        <button type="button" className={styles.clear} onClick={onClear} disabled={!selectedGenres.length}><VaultIcon name="clear-filters" size={16} />Clear filters</button>
-        <p className={styles.limitMessage} aria-live="polite">{limitMessage}</p>
       </div>
     </section>
   );

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
-import { deleteGame, patchGame, updateGame } from "@/lib/games";
-import { jsonError } from "@/lib/http";
+import { deleteGame, patchGame, restoreGameToActive, updateGame } from "@/lib/games";
+import { jsonError, readJsonBody } from "@/lib/http";
 import { gamePayloadSchema, patchGameSchema } from "@/lib/validation";
 
 type RouteContext = {
@@ -11,7 +11,7 @@ type RouteContext = {
 export async function PUT(request: Request, context: RouteContext) {
   try {
     const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
-    const payload = gamePayloadSchema.parse(await request.json());
+    const payload = gamePayloadSchema.parse(await readJsonBody(request));
     const game = await updateGame(user.id, id, payload);
     if (!game) return NextResponse.json({ error: "Game not found." }, { status: 404 });
     return NextResponse.json({ ok: true, game });
@@ -23,8 +23,11 @@ export async function PUT(request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
-    const payload = patchGameSchema.parse(await request.json());
-    const game = await patchGame(user.id, id, payload);
+    const payload = patchGameSchema.parse(await readJsonBody(request));
+    const { restore_active: restoreActive, ...patch } = payload;
+    const game = restoreActive
+      ? await restoreGameToActive(user.id, id)
+      : await patchGame(user.id, id, patch);
     if (!game) return NextResponse.json({ error: "Game not found." }, { status: 404 });
     return NextResponse.json({ ok: true, game });
   } catch (error) {

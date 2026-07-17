@@ -427,6 +427,9 @@ img {
 }
 
 .vs-product-card a {
+  min-height: 42px;
+  margin-left: -8px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -490,7 +493,8 @@ img {
 
 .vs-mini-row > img {
   width: 46px;
-  height: 25px;
+  height: auto;
+  aspect-ratio: 231 / 87;
   border-radius: 4px;
   object-fit: cover;
   background: rgba(151, 112, 255, 0.18);
@@ -535,7 +539,8 @@ img {
 
 .vs-collection-stack img {
   width: 18px;
-  height: 25px;
+  height: auto;
+  aspect-ratio: 231 / 87;
   border-radius: 3px;
   object-fit: cover;
 }
@@ -680,7 +685,8 @@ img {
 
 .vs-featured-game-art {
   width: 100%;
-  height: 145px;
+  height: auto;
+  aspect-ratio: 460 / 215;
   object-fit: cover;
   border-radius: 14px;
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.38);
@@ -741,11 +747,7 @@ img {
   color: rgba(202, 92, 255, 0.86);
   filter: drop-shadow(0 0 10px rgba(202, 92, 255, 0.28));
 }
-.vs-hero {
-  padding-top: 18px;
-}
 /* Fluid responsive sizing for the landing page. */
-/* ---------- Landing page ---------- */
 
 .vs-landing {
   width: 100%;
@@ -839,7 +841,8 @@ img {
 }
 
 .vs-featured-game-art {
-  height: clamp(115px, 9vw, 145px);
+  height: auto;
+  aspect-ratio: 460 / 215;
 }
 
 .vs-featured-game-body h2 {

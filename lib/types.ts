@@ -1,5 +1,5 @@
 export type Ownership = "Owned" | "Wishlist";
-export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Completed";
+export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Slept" | "Completed";
 export type Priority = "Low" | "Medium" | "High" | "Must Play";
 
 export type Game = {
@@ -25,8 +25,30 @@ export type Game = {
   price_final?: number | null;
   discount_percent?: number | null;
   is_free?: boolean;
+  completed_at?: string | null;
+  previous_active_status?: "Not Started" | "Sampled" | "In Progress" | null;
+  slept_at?: string | null;
+  completion_suggestion_dismissed_at?: string | null;
+  completion_suggestion_dismissed_playtime?: number | null;
+  main_story_minutes?: number | null;
+  main_extras_minutes?: number | null;
+  completionist_minutes?: number | null;
+  duration_source?: string | null;
+  duration_source_updated_at?: string | null;
+  duration_confidence?: "low" | "medium" | "high" | null;
+  user_estimate_minutes?: number | null;
   created_at?: string;
   updated_at?: string;
+};
+
+export type GameDurationEstimate = {
+  mainStoryMinutes?: number | null;
+  mainExtrasMinutes?: number | null;
+  completionistMinutes?: number | null;
+  source?: string | null;
+  sourceUpdatedAt?: string | null;
+  confidence?: "low" | "medium" | "high" | null;
+  userEstimateMinutes?: number | null;
 };
 
 export type GamePayload = Omit<Game, "id" | "user_id" | "created_at" | "updated_at">;

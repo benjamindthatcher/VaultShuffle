@@ -1,0 +1,5 @@
+import type { Metadata } from "next";
+import { InfoPage } from "@/components/site/InfoPage";
+import { SharedInformationShell } from "@/components/site/SharedInformationShell";
+export const metadata: Metadata = { title: "Steam Data", alternates: { canonical: "/steam-data" } };
+export default function SteamDataPage(){return <SharedInformationShell><InfoPage eyebrow="Data" title="Steam Data" intro="VaultShuffle uses Steam data to organise your games and make relevant Vault draws." sections={[{title:"What is synced",body:"Your SteamID, public profile, owned games, playtime and available store metadata may be synced. VaultShuffle never sees or stores your Steam password."},{title:"How it is used",body:"Game data powers Library, Collections, Wishlist metadata and Vault recommendations. It is not attached to feedback or support diagnostics."},{title:"Control and deletion",body:"Use Contact Us for syncing questions, corrections, account support or a privacy and data-deletion request."}]}/></SharedInformationShell>}

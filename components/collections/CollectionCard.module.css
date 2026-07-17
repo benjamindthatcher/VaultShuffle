@@ -5,6 +5,17 @@
   background: rgba(8, 13, 31, 0.82);
   text-align: left;
   box-shadow: var(--vault-shadow);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.card:hover {
+  border-color: rgba(190, 107, 255, 0.48);
+}
+
+.cardSelected {
+  border-color: rgba(204, 112, 255, 0.82);
+  background: rgba(21, 17, 52, 0.92);
+  box-shadow: 0 0 0 1px rgba(178, 78, 255, 0.18), 0 16px 38px rgba(3, 5, 18, 0.38);
 }
 
 .banner {
@@ -72,7 +83,7 @@
 .thumb {
   position: relative;
   width: 58px;
-  height: 38px;
+  aspect-ratio: 460 / 215;
   overflow: hidden;
   border-radius: 5px;
   border: 1px solid rgba(145, 105, 255, 0.2);

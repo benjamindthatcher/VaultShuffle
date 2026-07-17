@@ -8,10 +8,11 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import styles from "./AppHeader.module.css";
 
 const NAV_ITEMS = [
-  { href: "/app/vault", label: "Vault" },
-  { href: "/app/library", label: "Library" },
-  { href: "/app/collections", label: "Collections" },
-  { href: "/app/wishlist", label: "Wishlist" }
+  { href: "/vault", label: "Vault" },
+  { href: "/library", label: "Library" },
+  { href: "/purge", label: "Purge" },
+  { href: "/collections", label: "Collections" },
+  { href: "/wishlist", label: "Wishlist" }
 ];
 
 export function AppHeader() {
@@ -40,7 +41,7 @@ export function AppHeader() {
   return (
     <header className={styles.headerWrap}>
       <div className={styles.header}>
-        <Link href="/app/vault" className={styles.brand} aria-label="Vault Shuffle home">
+        <Link href="/vault" className={styles.brand} aria-label="Vault Shuffle home">
           <span className={styles.brandMark}>
             <Image
               src="/assets/brand/vaultshuffle-icon.png"

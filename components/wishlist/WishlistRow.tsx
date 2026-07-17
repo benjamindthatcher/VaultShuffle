@@ -1,5 +1,6 @@
 import type { DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
+import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./WishlistRow.module.css";
 
 type WishlistRowProps = {
@@ -11,6 +12,7 @@ type WishlistRowProps = {
 };
 
 export function WishlistRow({ game, liked, onToggleLike, onRemove, removing }: WishlistRowProps) {
+  const durationLabel = formatGameDuration(game.duration);
   return (
     <article className={styles.row}>
       <div className={styles.artwork}>
@@ -33,6 +35,7 @@ export function WishlistRow({ game, liked, onToggleLike, onRemove, removing }: W
         </div>
       </div>
       <div className={styles.meta}>
+        {durationLabel ? <span>{durationLabel}</span> : null}
         <span>{game.addedLabel}</span>
         <div className={styles.priceRow}>
           {game.saleDiscount ? <span className={styles.discount}>{game.saleDiscount}</span> : null}

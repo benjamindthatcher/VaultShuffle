@@ -6,12 +6,14 @@ export type VaultIconName =
   | "wishlist" | "on-sale" | "in-library" | "following" | "filter" | "sort"
   | "grid" | "list" | "session" | "mood" | "goal" | "genre" | "new"
   | "finish" | "surprise" | "chill" | "intense" | "brain-off"
+  | "short-session" | "evening-session" | "weekend-session"
+  | "something-new" | "finish-something" | "surprise-me"
   | "price" | "calendar"
   | "action" | "adventure" | "rpg" | "sci-fi" | "fantasy" | "strategy"
   | "survival" | "horror" | "indie" | "cozy" | "narrative" | "open-world"
   | "roguelike" | "platformer" | "puzzle" | "sim" | "shooter" | "exploration"
   | "heart" | "chevron-left" | "chevron-right" | "clear-filters"
-  | "open-steam" | "pin" | "draw-again" | "snooze" | "details" | "clock" | "search";
+  | "open-steam" | "play-now" | "pin" | "draw-again" | "draw-from-vault" | "snooze" | "details" | "clock" | "search";
 
 type VaultIconProps = {
   name: VaultIconName;

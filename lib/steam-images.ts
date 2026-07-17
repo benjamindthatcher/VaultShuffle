@@ -10,3 +10,7 @@ export function steamCapsuleLargeImage(appId: number | string) {
 export function steamStoreUrl(appId: number | string) {
   return `https://store.steampowered.com/app/${String(appId)}/`;
 }
+
+export function steamLaunchUrl(appId: number | string) {
+  return `steam://run/${String(appId)}`;
+}

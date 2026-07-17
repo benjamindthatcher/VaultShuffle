@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchSteamAppDetails } from "@/lib/steam";
+import { clearSteamAppDetailsCache, fetchSteamAppDetails } from "@/lib/steam";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import type { Game, GamePayload } from "@/lib/types";
@@ -121,11 +121,11 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
 
   await queueSteamMetadata(appIds);
   if (force) {
+    clearSteamAppDetailsCache(appIds);
     const { error: forceError } = await supabase
       .from("steam_app_metadata")
       .update({ status: "pending", last_error: null })
-      .in("steam_appid", appIds)
-      .or("rating.is.null,rating.eq.0,genre.is.null,genre.eq.Unknown,status.eq.failed,capsule_url.is.null,header_url.is.null");
+      .in("steam_appid", appIds);
 
     if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
   }
@@ -146,7 +146,7 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
 
   let updated = 0;
   for (const chunk of chunks(pendingRows, 4)) {
-    const results = await Promise.all(chunk.map((row) => fetchAndStoreMetadata(row.steam_appid)));
+    const results = await Promise.all(chunk.map((row) => fetchAndStoreMetadata(row.steam_appid, force)));
     updated += results.filter(Boolean).length;
   }
 
@@ -165,10 +165,10 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
   };
 }
 
-async function fetchAndStoreMetadata(appid: string) {
+async function fetchAndStoreMetadata(appid: string, forceRefresh = false) {
   const supabase = getSupabaseAdmin();
   const checkedAt = new Date().toISOString();
-  const details = await fetchSteamAppDetails(appid);
+  const details = await fetchSteamAppDetails(appid, forceRefresh);
   const title = String(details?.title || "").trim();
   const genre = normaliseSteamGenreLabel(String(details?.genre || "").trim(), title);
   const rating = clamp(Math.round(Number(details?.rating || 0)), 0, 10);

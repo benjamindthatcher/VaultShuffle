@@ -1,3 +1,37 @@
+.cardShell { position: relative; min-width: 0; }
+.menuShell { position: absolute; top: 14px; right: 14px; z-index: 4; }
+.menuTrigger {
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.95), 0 0 10px rgba(0, 0, 0, 0.72);
+  cursor: pointer;
+  transition: color 140ms ease, transform 140ms ease;
+}
+.menuTrigger:hover { color: #d78aff; transform: scale(1.06); }
+.menuTrigger:focus-visible { outline: 2px solid rgba(205, 118, 255, 0.82); outline-offset: 1px; }
+
+@media (max-width: 720px) {
+  .menuShell { top: 9px; right: 9px; }
+  .menuTrigger { width: 40px; height: 40px; }
+  .menu { top: 44px; }
+}
+.menu { position: absolute; top: 36px; right: 0; width: max-content; min-width: 178px; display: grid; gap: 3px; padding: 6px; border: 1px solid rgba(186, 111, 255, 0.34); border-radius: 11px; background: #090d22; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.48); }
+.menu button,
+.menu a { padding: 10px 12px; border: 0; border-radius: 7px; color: var(--vault-text); background: transparent; font: inherit; text-align: left; text-decoration: none; }
+.menu button:hover,
+.menu button:focus-visible,
+.menu a:hover,
+.menu a:focus-visible { background: rgba(151, 73, 255, 0.18); outline: none; }
+
 .card {
   appearance: none;
   width: 100%;
@@ -27,7 +61,7 @@
   position: relative;
   overflow: hidden;
   border-radius: 7px;
-  aspect-ratio: 16 / 7.5;
+  aspect-ratio: 460 / 215;
 }
 
 .artwork img {
@@ -37,8 +71,8 @@
 }
 
 .artworkList {
-  aspect-ratio: auto;
-  min-height: 142px;
+  aspect-ratio: 460 / 215;
+  min-height: 0;
 }
 
 .body {

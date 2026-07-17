@@ -1,0 +1,15 @@
+.panel { display: grid; gap: 14px; margin-top: 4px; padding: 16px; border: 1px solid rgba(157,111,255,.28); border-radius: 12px; background: linear-gradient(135deg,rgba(18,21,49,.96),rgba(7,11,29,.96)); }
+.heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.heading p,.heading h3 { margin: 0; }
+.heading p { color: #cf79ff; font-size: .68rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+.heading h3 { margin-top: 4px; color: var(--vault-text); font-size: 1rem; }
+.finalCount { color: #d9a2ff; font-size: .82rem; white-space: nowrap; }
+.funnel { display: flex; align-items: stretch; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.funnel li { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; }
+.funnel li > span:first-child { min-width: 0; flex: 1; display: grid; gap: 2px; padding: 10px 12px; border-radius: 9px; background: rgba(12,17,40,.82); color: var(--vault-text-muted); font-size: .75rem; }
+.funnel strong { color: #f5f6ff; font-size: 1.15rem; }
+.arrow { color: #9968ff; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.actions button,.actions a { min-height: 34px; display: inline-flex; align-items: center; padding: 0 11px; border: 1px solid rgba(157,111,255,.25); border-radius: 8px; background: rgba(10,14,35,.74); color: #c7c9df; font-size: .74rem; text-decoration: none; }
+.actions .purge { margin-left: auto; border-color: rgba(205,91,255,.42); color: #db91ff; }
+@media (max-width: 700px) { .funnel { display: grid; } .funnel li { display: grid; grid-template-columns: 1fr; } .arrow { transform: rotate(90deg); justify-self: center; } .actions .purge { margin-left: 0; } }

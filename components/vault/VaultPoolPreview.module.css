@@ -43,13 +43,11 @@
 .grid::-webkit-scrollbar { display: none; }
 
 .card {
+  position: relative;
   flex: 0 0 min(220px, 78vw);
   scroll-snap-align: start;
-  padding: 0;
   overflow: hidden;
   color: inherit;
-  text-align: left;
-  cursor: pointer;
   border-radius: 8px;
   border: 1px solid rgba(146, 107, 255, 0.18);
   background: rgba(10, 15, 35, 0.88);
@@ -57,75 +55,61 @@
   transition: transform 220ms ease, opacity 220ms ease, filter 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }
 
+.cardAction {
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  border: 0;
+  background: transparent;
+}
+
 .railWrap[data-draw-state="focusing"] .grid,
 .railWrap[data-draw-state="revealing"] .grid {
   opacity: 0.7;
 }
-
-.winnerOverlay {
-  position: absolute;
-  z-index: 5;
-  inset: 0 0 22px;
-  display: grid;
-  place-items: center;
-  padding: 16px;
-  pointer-events: none;
-  background: radial-gradient(circle, rgba(143, 60, 255, 0.16), transparent 44%);
-}
-
-.winnerCard {
-  width: clamp(210px, 22vw, 290px);
-  overflow: hidden;
-  padding: 10px;
-  border: 1px solid rgba(209, 108, 255, 0.9);
-  border-radius: 12px;
-  background: rgba(8, 12, 31, 0.97);
-  box-shadow: 0 0 24px rgba(185, 92, 255, 0.38), 0 0 70px rgba(88, 108, 255, 0.18);
-  opacity: 0;
-  transform: scale(0.97);
-  animation: vaultWinnerReveal 360ms ease-out forwards;
-}
-
-.winnerLabel {
-  margin: 0 0 8px;
-  color: #df91ff;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
-}
-
-.winnerArtwork {
-  position: relative;
-  aspect-ratio: 16 / 9;
-  overflow: hidden;
-  border-radius: 8px;
-}
-
-.winnerArtwork img { object-fit: cover; }
-.winnerCard h3 { margin: 11px 0 9px; font-size: 1rem; }
 
 .heart {
   position: absolute;
   top: 9px;
   right: 9px;
   z-index: 2;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 50%;
   border: 1px solid rgba(196, 112, 255, 0.55);
   background: rgba(4, 7, 20, 0.74);
   color: #d17cff;
-  font-size: 1.35rem;
+  transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
-.heartActive { color: #fff; background: rgba(123, 48, 220, 0.86); }
+@media (max-width: 720px) {
+  .heart {
+    top: 7px;
+    right: 7px;
+    width: 40px;
+    height: 40px;
+  }
+}
 
-.card:focus-visible {
+.heart:hover,
+.heart:focus-visible {
+  border-color: rgba(224, 153, 255, 0.82);
+  background: rgba(25, 14, 49, 0.88);
+  color: #edb0ff;
+  box-shadow: 0 0 16px rgba(190, 92, 255, 0.24);
+  outline: none;
+}
+
+.sleeping { pointer-events: none; animation: sleepPulse 700ms ease-in-out infinite alternate; }
+@keyframes sleepPulse { to { opacity: 0.48; transform: scale(0.9); } }
+
+.cardAction:focus-visible {
   outline: 2px solid #c08bff;
-  outline-offset: 3px;
+  outline-offset: -2px;
 }
 
 .cardHighlighted {
@@ -133,18 +117,25 @@
   box-shadow:
     0 0 0 1px rgba(192, 139, 255, 0.22),
     0 0 36px rgba(128, 85, 255, 0.18);
+  animation: selectedPulse 420ms ease-out 1;
+}
+
+@keyframes selectedPulse {
+  50% { box-shadow: 0 0 0 2px rgba(211, 118, 255, 0.42), 0 0 48px rgba(151, 70, 255, 0.34); }
 }
 
 .cardArt {
   position: relative;
-  aspect-ratio: 16 / 7.5;
+  aspect-ratio: 460 / 215;
   overflow: hidden;
+  background: #050817;
 }
 
 .cardArt img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
 }
 
 .cardBody {
@@ -249,7 +240,6 @@
 
 @media (min-width: 720px) {
   .card { flex-basis: 240px; }
-  .selectionFrame { width: 240px; }
 }
 
 @keyframes vaultPoolSweep {
@@ -258,20 +248,9 @@
   100% { opacity: 0; transform: translateX(110%); }
 }
 
-@keyframes vaultWinnerReveal {
-  0% { opacity: 0; transform: scale(0.97); }
-  75% { opacity: 1; transform: scale(1); box-shadow: 0 0 34px rgba(185, 92, 255, 0.48), 0 0 80px rgba(88, 108, 255, 0.2); }
-  100% { opacity: 1; transform: scale(1); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .lightSweep {
     display: none;
-  }
-
-  .winnerCard {
-    transform: none;
-    animation-duration: 180ms;
   }
 
   .card, .grid, .railWrap {
@@ -280,16 +259,11 @@
 }
 
 @media (min-width: 1100px) {
-  .cardArt {
-    aspect-ratio: 16 / 9;
-  }
-
   .cardBody {
     gap: 8px;
     padding: 12px;
   }
 
-  .cardStatus,
   .cardStatus {
     display: none;
   }

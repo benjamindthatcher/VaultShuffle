@@ -5,12 +5,18 @@ import styles from "./CollectionCard.module.css";
 type CollectionCardProps = {
   collection: DemoCollection;
   previewGames: DemoGame[];
+  selected?: boolean;
   onSelect: () => void;
 };
 
-export function CollectionCard({ collection, previewGames, onSelect }: CollectionCardProps) {
+export function CollectionCard({ collection, previewGames, selected = false, onSelect }: CollectionCardProps) {
   return (
-    <button type="button" className={styles.card} onClick={onSelect}>
+    <button
+      type="button"
+      className={`${styles.card} ${selected ? styles.cardSelected : ""}`}
+      aria-pressed={selected}
+      onClick={onSelect}
+    >
       <div className={styles.banner}>
         <Artwork src={collection.artworkUrl} sizes="(max-width: 720px) 100vw, 33vw" />
         <span className={styles.kindLabel}>{collection.kind === "smart" ? "Smart collection" : "Custom collection"}</span>
