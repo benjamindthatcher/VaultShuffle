@@ -1,5 +1,8 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import type { Collection, CollectionGame, Game } from "@/lib/types";
+import { matchesSmartPreset } from "@/lib/smart-collections";
+import type { Collection, CollectionGame, Game, SmartCollectionPreset } from "@/lib/types";
+
+type CollectionInput = { name: string; description?: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
 export async function listCollections(userId: string) {
   const supabase = getSupabaseAdmin();
@@ -13,10 +16,11 @@ export async function listCollections(userId: string) {
   const collections = (data ?? []) as Collection[];
   if (!collections.length) return [];
 
-  const { data: links, error: linkError } = await supabase
+  const customIds = collections.filter((collection) => collection.kind !== "smart").map((collection) => collection.id);
+  const { data: links, error: linkError } = customIds.length ? await supabase
     .from("collection_games")
     .select("collection_id")
-    .in("collection_id", collections.map((collection) => collection.id));
+    .in("collection_id", customIds) : { data: [], error: null };
 
   if (linkError) throw linkError;
   const counts = new Map<string, number>();
@@ -24,17 +28,29 @@ export async function listCollections(userId: string) {
     counts.set(link.collection_id, (counts.get(link.collection_id) ?? 0) + 1);
   }
 
+  const smartCollections = collections.filter((collection) => collection.kind === "smart");
+  if (smartCollections.length) {
+    const { data: games, error: gameError } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned");
+    if (gameError) throw gameError;
+    for (const collection of smartCollections) {
+      const preset = collection.rules?.preset;
+      counts.set(collection.id, preset ? (games as Game[]).filter((game) => matchesSmartPreset(game, preset)).length : 0);
+    }
+  }
+
   return collections.map((collection) => ({ ...collection, game_count: counts.get(collection.id) ?? 0 }));
 }
 
-export async function createCollection(userId: string, payload: { name: string; description?: string }) {
+export async function createCollection(userId: string, payload: CollectionInput) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("collections")
     .insert({
       user_id: userId,
       name: payload.name,
-      description: payload.description || null
+      description: payload.description || null,
+      kind: payload.kind || "custom",
+      rules: payload.kind === "smart" ? payload.rules : {}
     })
     .select("*")
     .single();
@@ -43,11 +59,17 @@ export async function createCollection(userId: string, payload: { name: string; 
   return data as Collection;
 }
 
-export async function updateCollection(userId: string, collectionId: string, payload: { name?: string; description?: string }) {
-  await assertCollection(userId, collectionId);
-  const update: Record<string, string | null> = {};
+export async function updateCollection(userId: string, collectionId: string, payload: Partial<CollectionInput>) {
+  const existing = await assertCollection(userId, collectionId);
+  const update: Record<string, unknown> = {};
   if (payload.name !== undefined) update.name = payload.name;
   if (payload.description !== undefined) update.description = payload.description || null;
+  if (payload.kind !== undefined) update.kind = payload.kind;
+  if (payload.rules !== undefined) update.rules = payload.rules;
+  if (payload.kind === "custom") update.rules = {};
+  if ((payload.kind ?? existing.kind) === "smart" && !(payload.rules?.preset ?? existing.rules?.preset)) {
+    throw new Error("Choose a rule for this smart collection.");
+  }
 
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -59,6 +81,10 @@ export async function updateCollection(userId: string, collectionId: string, pay
     .maybeSingle();
 
   if (error) throw error;
+  if (existing.kind === "custom" && payload.kind === "smart") {
+    const { error: linkError } = await supabase.from("collection_games").delete().eq("collection_id", collectionId);
+    if (linkError) throw linkError;
+  }
   return data as Collection | null;
 }
 
@@ -72,6 +98,13 @@ export async function deleteCollection(userId: string, collectionId: string) {
 export async function getCollectionWithGames(userId: string, collectionId: string) {
   const collection = await assertCollection(userId, collectionId);
   const supabase = getSupabaseAdmin();
+  if (collection.kind === "smart") {
+    const preset = collection.rules?.preset;
+    const { data, error } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").order("title");
+    if (error) throw error;
+    const matched = preset ? (data as Game[]).filter((game) => matchesSmartPreset(game, preset)) : [];
+    return { collection, games: matched.map((game, position) => ({ collection_id: collection.id, game_id: game.id, notes: null, position, created_at: collection.created_at, game })) };
+  }
   const { data, error } = await supabase
     .from("collection_games")
     .select("collection_id, game_id, notes, position, created_at, games(*)")
@@ -101,7 +134,8 @@ export async function addGameToCollection(
   collectionId: string,
   payload: { game_id: string; notes?: string; position?: number }
 ) {
-  await assertCollection(userId, collectionId);
+  const collection = await assertCollection(userId, collectionId);
+  if (collection.kind === "smart") throw new Error("Smart collection membership is automatic.");
   await assertGame(userId, payload.game_id);
 
   const supabase = getSupabaseAdmin();
@@ -123,7 +157,8 @@ export async function addGameToCollection(
 }
 
 export async function removeGameFromCollection(userId: string, collectionId: string, gameId: string) {
-  await assertCollection(userId, collectionId);
+  const collection = await assertCollection(userId, collectionId);
+  if (collection.kind === "smart") throw new Error("Smart collection membership is automatic.");
   const supabase = getSupabaseAdmin();
   const { error } = await supabase
     .from("collection_games")

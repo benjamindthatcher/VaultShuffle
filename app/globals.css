@@ -1,0 +1,98 @@
+:root {
+  --vault-bg: #050816;
+  --vault-surface: rgba(10, 16, 38, 0.82);
+  --vault-surface-strong: rgba(9, 14, 34, 0.94);
+  --vault-surface-soft: rgba(18, 25, 53, 0.72);
+  --vault-border: rgba(134, 91, 255, 0.26);
+  --vault-border-strong: rgba(158, 111, 255, 0.48);
+  --vault-text: #f4f7ff;
+  --vault-text-muted: rgba(219, 226, 255, 0.72);
+  --vault-text-soft: rgba(194, 203, 232, 0.54);
+  --vault-accent: #8e4dff;
+  --vault-accent-strong: #324cff;
+  --vault-accent-soft: rgba(142, 77, 255, 0.2);
+  --vault-success: #62d3af;
+  --vault-shadow: 0 24px 64px rgba(1, 4, 18, 0.46);
+  --vault-radius-xl: 28px;
+  --vault-radius-lg: 22px;
+  --vault-radius-md: 16px;
+  --vault-radius-sm: 12px;
+  --vault-content-width: min(1480px, calc(100vw - 48px));
+  --vault-header-height: 70px;
+  --vault-top-card-height: 142px;
+  --vault-top-card-gap: 14px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(108, 56, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 82% 18%, rgba(34, 108, 255, 0.18), transparent 22%),
+    linear-gradient(180deg, #060914 0%, #050816 42%, #04050f 100%);
+  color: var(--vault-text);
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--vault-text);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%),
+    radial-gradient(circle at 50% 0%, rgba(106, 70, 255, 0.16), transparent 30%);
+  font-family:
+    "Inter",
+    "Segoe UI",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    sans-serif;
+  text-rendering: optimizeLegibility;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(138, 95, 255, 0.34);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(156, 119, 255, 0.9);
+  outline-offset: 2px;
+}

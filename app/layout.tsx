@@ -1,57 +1,91 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { DEFAULT_THEME_ID, THEME_OPTIONS, THEME_STORAGE_KEY } from "@/lib/themes";
-const themeBootScript = `
-try {
-  var themes = ${JSON.stringify(THEME_OPTIONS.map((theme) => theme.id))};
-  var saved = window.localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});
-  document.documentElement.dataset.vaultTheme = themes.indexOf(saved) === -1 ? ${JSON.stringify(DEFAULT_THEME_ID)} : saved;
-} catch (error) {
-  document.documentElement.dataset.vaultTheme = ${JSON.stringify(DEFAULT_THEME_ID)};
-}
-`;
+import { SiteExperience } from "@/components/site/SiteExperience";
+import { siteConfig } from "@/lib/site";
+import "./globals.css";
 
-export const metadata = {
-  metadataBase: new URL("https://vaultshuffle.com"),
+export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
+  applicationName: siteConfig.name,
   title: {
-    default: "Vault Shuffle - Pick What to Play From Your Steam Library",
-    template: "%s | Vault Shuffle"
+    default: "VaultShuffle | Decide What to Play Next",
+    template: "%s | VaultShuffle"
   },
-  description:
-    "Vault Shuffle helps you organise your Steam library, build collections, manage your wishlist, and randomly pick what to play next.",
+  description: siteConfig.description,
+  keywords: [
+    "Steam library manager",
+    "Steam backlog",
+    "game picker",
+    "what game should I play",
+    "Steam wishlist tracker",
+    "game collections"
+  ],
+  authors: [{ name: siteConfig.name, url: siteConfig.url }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
+  category: "gaming",
+  referrer: "origin-when-cross-origin",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false
+  },
+  manifest: "/manifest.webmanifest",
+  openGraph: {
+    title: "VaultShuffle | Decide What to Play Next",
+    description: siteConfig.socialDescription,
+    siteName: siteConfig.name,
+    type: "website",
+    url: siteConfig.url,
+    locale: siteConfig.locale,
+    images: [{
+      url: siteConfig.ogImage,
+      width: 1672,
+      height: 941,
+      alt: "VaultShuffle game recommendation vault"
+    }]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "VaultShuffle | Decide What to Play Next",
+    description: siteConfig.socialDescription,
+    images: [siteConfig.ogImage]
+  },
   alternates: {
     canonical: "/"
   },
-  openGraph: {
-    title: "Vault Shuffle",
-    description:
-      "Organise your Steam library and pick what to play next.",
-    url: "https://vaultshuffle.com",
-    siteName: "Vault Shuffle",
-    type: "website"
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1
+    }
+  },
+  verification: {
+    google: process.env.GOOGLE_SITE_VERIFICATION || undefined,
+    other: process.env.BING_SITE_VERIFICATION
+      ? { "msvalidate.01": process.env.BING_SITE_VERIFICATION }
+      : undefined
   }
+};
+
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#07091a",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" data-vault-theme={DEFAULT_THEME_ID} suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
-        <style
-          dangerouslySetInnerHTML={{
-            __html:
-              "html,body{margin:0;min-height:100%;background:#071d2b;color:#f2fbff;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}img{max-width:100%;}"
-          }}
-        />
-        <link rel="preload" href="/landing.css" as="style" />
-        <link rel="preload" href="/styles.css" as="style" />
-      </head>
+    <html lang="en" data-scroll-behavior="smooth">
       <body>
-        {children}
-        <Analytics />
-        <SpeedInsights />
+        <SiteExperience>{children}</SiteExperience>
       </body>
     </html>
   );

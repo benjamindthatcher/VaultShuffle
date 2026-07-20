@@ -1,0 +1,147 @@
+.cardShell { position: relative; z-index: 0; min-width: 0; }
+.cardShellMenuOpen { z-index: 20; }
+.menuShell { position: absolute; top: 14px; right: 14px; z-index: 2; }
+.menuTrigger {
+  position: relative;
+  z-index: 1;
+  width: 34px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #d17cff;
+  background: transparent;
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 3px rgba(209, 124, 255, 0.72));
+  cursor: pointer;
+  transition: color 140ms ease, filter 140ms ease, transform 140ms ease;
+}
+.menuTrigger:hover {
+  color: #edb0ff;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95)) drop-shadow(0 0 5px rgba(209, 124, 255, 0.9));
+  transform: scale(1.06);
+}
+.menuTrigger:focus-visible { outline: 2px solid rgba(205, 118, 255, 0.82); outline-offset: 1px; }
+
+@media (max-width: 720px) {
+  .menuShell { top: 9px; right: 9px; }
+  .menuTrigger { width: 40px; height: 40px; }
+  .menu { top: 44px; }
+}
+.menu { position: absolute; z-index: 3; top: 36px; right: 0; width: max-content; min-width: 178px; display: grid; gap: 3px; padding: 6px; border: 1px solid rgba(186, 111, 255, 0.34); border-radius: 11px; background: #090d22; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.48); }
+.menu button,
+.menu a { padding: 10px 12px; border: 0; border-radius: 7px; color: var(--vault-text); background: transparent; font: inherit; text-align: left; text-decoration: none; }
+.menu button:hover,
+.menu button:focus-visible,
+.menu a:hover,
+.menu a:focus-visible { background: rgba(151, 73, 255, 0.18); outline: none; }
+.completeMenuItem {
+  list-style: none;
+}
+.completeMenuItem::before,
+.completeMenuItem::after,
+.completeMenuItem::marker {
+  display: none;
+  content: none;
+}
+
+.card {
+  appearance: none;
+  width: 100%;
+  display: grid;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background-color: rgba(8, 13, 31, 0.94);
+  text-align: left;
+  box-shadow: var(--vault-shadow);
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(175, 126, 255, 0.44);
+}
+
+.cardList {
+  align-items: center;
+}
+
+.artwork {
+  position: relative;
+  overflow: hidden;
+  border-radius: 7px;
+  aspect-ratio: 460 / 215;
+}
+
+.artwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.artworkList {
+  aspect-ratio: 460 / 215;
+  min-height: 0;
+}
+
+.body {
+  display: grid;
+  gap: 6px;
+}
+
+.topRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.status {
+  color: #d7a2ff;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.copy,
+.metaRow {
+  margin: 0;
+  color: var(--vault-text-muted);
+  line-height: 1.6;
+}
+
+.metaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: var(--vault-text-soft);
+  font-size: 0.88rem;
+}
+
+@media (min-width: 860px) {
+  .cardList {
+    grid-template-columns: 260px minmax(0, 1fr);
+  }
+
+  .card:not(.cardList) .copy,
+  .card:not(.cardList) .status,
+  .card:not(.cardList) .metaRow span:last-child {
+    display: none;
+  }
+
+  .card:not(.cardList) .metaRow {
+    font-size: 0.75rem;
+  }
+}

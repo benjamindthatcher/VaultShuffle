@@ -1,0 +1,327 @@
+.collectionsPage {
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+
+.collectionsPage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  height: 350px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(66, 91, 210, 0.18), transparent 48%),
+    linear-gradient(180deg, rgba(3, 5, 16, 0.24), rgba(4, 7, 20, 0.22) 58%, var(--vault-bg) 100%),
+    url("/assets/vault/vault-header.png") center 54% / cover no-repeat;
+}
+
+.collectionsPage > * {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  min-height: 290px;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  text-align: center;
+}
+
+.header > .primaryAction {
+  position: absolute;
+  right: clamp(24px, 4vw, 36px);
+  bottom: clamp(24px, 4vw, 36px);
+}
+
+.primaryAction,
+.secondaryAction,
+.field input,
+.field select {
+  min-height: 50px;
+  border-radius: 16px;
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border-radius: 999px;
+}
+
+.primaryAction {
+  border: 0;
+  background: linear-gradient(90deg, #8a4dff, #3151ff);
+  color: white;
+}
+
+.secondaryAction {
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(14, 18, 44, 0.76);
+  color: var(--vault-text);
+}
+
+.composerCard,
+.selectedPanel,
+.collectionPanel {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(8, 13, 31, 0.82);
+  box-shadow: var(--vault-shadow);
+}
+
+.composerCard {
+  scroll-margin-block: 24px;
+  gap: 22px;
+  padding: clamp(20px, 3vw, 30px);
+  border-color: rgba(190, 105, 255, 0.42);
+  background:
+    radial-gradient(circle at 12% 0%, rgba(150, 62, 255, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(11, 15, 39, 0.96), rgba(6, 10, 28, 0.94));
+}
+
+.composerHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.composerTitle {
+  margin: 8px 0 0;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+}
+
+.composerCopy,
+.collectionPanelCopy {
+  margin: 7px 0 0;
+  color: var(--vault-text-muted);
+  line-height: 1.55;
+}
+
+.collectionPanelTitle {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.collectionPanelHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.railActions {
+  display: flex;
+  gap: 8px;
+}
+
+.railActions button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid rgba(190, 105, 255, 0.34);
+  border-radius: 50%;
+  background: rgba(14, 18, 44, 0.88);
+  color: #dc8cff;
+}
+
+.composerGrid,
+.statsGrid,
+.selectedGames {
+  display: grid;
+  gap: 16px;
+}
+
+.collectionGrid {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding: 2px 2px 12px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-color: #b447ff rgba(85, 77, 139, 0.16);
+  scrollbar-width: thin;
+}
+
+.collectionGrid > * {
+  flex: 0 0 clamp(320px, 36vw, 520px);
+  scroll-snap-align: start;
+}
+
+.statsGrid {
+  margin-top: -26px;
+  gap: var(--vault-top-card-gap);
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  color: var(--vault-text-muted);
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 0 16px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(15, 20, 46, 0.72);
+  color: var(--vault-text);
+}
+
+.field small,
+.ruleNote {
+  color: var(--vault-text-soft);
+  line-height: 1.5;
+}
+
+.ruleNote {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+}
+
+.composerActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.selectedHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.selectedActions {
+  display: flex;
+  gap: 10px;
+}
+
+.dangerAction {
+  color: #ff9db1;
+  border-color: rgba(255, 112, 143, 0.26);
+}
+
+.sectionEyebrow {
+  margin: 0;
+  color: #d59eff;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  margin: 8px 0 0;
+  font-size: clamp(1.5rem, 4vw, 2rem);
+}
+
+.sectionCopy {
+  max-width: 44rem;
+  margin: 10px 0 0;
+  color: var(--vault-text-muted);
+  line-height: 1.65;
+}
+
+.emptyState {
+  padding: 6px 0;
+}
+
+.emptyTitle {
+  margin: 0 0 10px;
+  font-size: 1.4rem;
+}
+
+.emptyCopy {
+  margin: 0;
+  color: var(--vault-text-muted);
+  line-height: 1.65;
+}
+
+@media (max-width: 760px) {
+  .collectionsPage::before {
+    display: none;
+  }
+
+  .header {
+    align-items: center;
+    flex-direction: column;
+    min-height: 0;
+    padding: 4px 0 0;
+  }
+
+  .statsGrid {
+    margin-top: 0;
+  }
+
+  .header > .primaryAction {
+    position: static;
+  }
+
+  .header .primaryAction,
+  .composerActions > *,
+  .selectedActions {
+    width: 100%;
+  }
+
+  .selectedActions > * {
+    flex: 1 1 0;
+  }
+
+  .composerActions {
+    justify-content: stretch;
+    flex-direction: column;
+  }
+
+  .selectedHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .collectionGrid > * {
+    flex-basis: min(84vw, 320px);
+  }
+}
+
+@media (min-width: 720px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .collectionGrid,
+  .selectedGames {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .composerGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .statsGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .selectedGames {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

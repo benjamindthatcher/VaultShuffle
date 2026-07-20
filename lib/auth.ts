@@ -139,6 +139,7 @@ export function attachSessionCookie(response: NextResponse, token: string) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    priority: "high",
     path: "/",
     maxAge: SESSION_DAYS * 24 * 60 * 60
   });
@@ -152,6 +153,7 @@ export function clearSessionCookie(response: NextResponse) {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
+    priority: "high",
     path: "/",
     maxAge: 0
   });

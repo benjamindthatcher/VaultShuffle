@@ -10,10 +10,22 @@ const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
 type CacheEntry<T> = { expires: number; value: T };
 const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
 const playerCache = new Map<string, CacheEntry<SteamPlayerSummary | null>>();
-type SteamAppDetails = Partial<GamePayload> & {
+export type SteamAppDetails = Partial<GamePayload> & {
+  steam_type?: string;
+  developers?: string[];
+  publishers?: string[];
+  genres?: string[];
+  categories?: string[];
+  short_description?: string;
+  release_date?: string | null;
   review_score_desc?: string;
   review_total?: number;
   review_positive?: number;
+  price_currency?: string;
+  price_initial?: number;
+  price_final?: number;
+  discount_percent?: number;
+  is_free?: boolean;
 };
 const appDetailCache = new Map<string, CacheEntry<SteamAppDetails | null>>();
 
@@ -134,11 +146,15 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
   return results;
 }
 
-export async function fetchSteamAppDetails(appid: string): Promise<SteamAppDetails | null> {
+export async function fetchSteamAppDetails(appid: string, forceRefresh = false): Promise<SteamAppDetails | null> {
   const normalizedAppId = String(appid || "").trim();
   if (!normalizedAppId) return null;
-  const details = await fetchSteamAppDetailsBatch([normalizedAppId]);
+  const details = await fetchSteamAppDetailsBatch([normalizedAppId], forceRefresh);
   return details.get(normalizedAppId) ?? null;
+}
+
+export function clearSteamAppDetailsCache(appids: string[]) {
+  for (const appid of appids) appDetailCache.delete(String(appid || "").trim());
 }
 
 export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Promise<GamePayload[]> {
@@ -188,13 +204,13 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
   return baseGames;
 }
 
-async function fetchSteamAppDetailsBatch(appids: string[]) {
+async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh = false) {
   const uniqueAppIds = [...new Set(appids.map((appid) => String(appid || "").trim()).filter(Boolean))];
   const results = new Map<string, SteamAppDetails>();
   const missing: string[] = [];
 
   for (const appid of uniqueAppIds) {
-    const cached = appDetailCache.get(appid);
+    const cached = forceRefresh ? undefined : appDetailCache.get(appid);
     if (cached && cached.expires > Date.now()) {
       if (cached.value) results.set(appid, cached.value);
     } else {
@@ -218,7 +234,6 @@ async function fetchSteamAppDetailsBatch(appids: string[]) {
 async function fetchSingleSteamAppDetail(appid: string): Promise<[string, SteamAppDetails | null]> {
   const params = new URLSearchParams({
     appids: appid,
-    filters: "basic,genres",
     cc: "GB",
     l: "en"
   });
@@ -286,15 +301,56 @@ async function fetchSteamReviewSummary(appid: string): Promise<SteamAppDetails |
 
 function steamDetailPayload(appid: string, data: Record<string, unknown>): SteamAppDetails {
   const headerImage = String(data.header_image ?? "").trim();
+  const price = data.price_overview && typeof data.price_overview === "object"
+    ? data.price_overview as Record<string, unknown>
+    : null;
   return {
+    steam_type: String(data.type ?? "").trim().toLowerCase() || undefined,
     title: String(data.name ?? "").trim() || undefined,
     genre: steamGenreLabel(data, String(data.name ?? "")) || undefined,
     store: "Steam",
     notes: "",
     steam_appid: appid,
     capsule_url: steamImageUrl(appid, "capsule"),
-    header_url: headerImage || steamImageUrl(appid, "header")
+    header_url: headerImage || steamImageUrl(appid, "header"),
+    price_currency: cleanCurrency(price?.currency),
+    price_initial: cleanMinorUnits(price?.initial),
+    price_final: cleanMinorUnits(price?.final),
+    discount_percent: clamp(Math.round(Number(price?.discount_percent || 0)), 0, 100),
+    is_free: Boolean(data.is_free),
+    developers: stringList(data.developers),
+    publishers: stringList(data.publishers),
+    genres: descriptionList(data.genres),
+    categories: descriptionList(data.categories),
+    short_description: String(data.short_description ?? "").trim() || undefined,
+    release_date: steamReleaseDate(data.release_date)
   };
+}
+
+function stringList(value: unknown) {
+  return Array.isArray(value) ? value.map((item) => String(item).trim()).filter(Boolean) : [];
+}
+function descriptionList(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => typeof item === "string" ? item : String((item as Record<string, unknown>)?.description ?? ""))
+    .map((item) => item.trim()).filter(Boolean);
+}
+function steamReleaseDate(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const raw = String((value as Record<string, unknown>).date ?? "").trim();
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString().slice(0, 10);
+}
+
+function cleanCurrency(value: unknown) {
+  const currency = String(value ?? "").trim().toUpperCase();
+  return /^[A-Z]{3}$/.test(currency) ? currency : undefined;
+}
+
+function cleanMinorUnits(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : undefined;
 }
 
 function steamLastPlayedDate(value: unknown) {

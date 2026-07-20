@@ -1,0 +1,24 @@
+.layer { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; overflow: hidden; overscroll-behavior: contain; isolation: isolate; }
+.backdrop { position: absolute; inset: 0; border: 0; background: rgba(2,4,15,0.74); backdrop-filter: blur(5px); }
+.dialog { position: relative; width: min(600px, 100%); max-height: min(720px, calc(100dvh - 40px)); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 16px; padding: 22px; border: 1px solid rgba(190,105,255,0.5); border-radius: 18px; background: linear-gradient(155deg, rgba(15,18,46,0.99), rgba(6,9,25,0.99)); box-shadow: 0 28px 90px rgba(0,0,0,0.62); }
+.dialog header { display: flex; justify-content: space-between; gap: 16px; }
+.dialog header p, .dialog h2 { margin: 0; }
+.dialog header p { margin-bottom: 5px; color: #d58cff; font-size: .7rem; letter-spacing: .14em; text-transform: uppercase; }
+.dialog h2 span { color: #d58cff; font-size: .72em; }
+.dialog header button { width: 40px; height: 40px; border: 1px solid rgba(150,105,255,.3); border-radius: 50%; background: rgba(18,22,50,.9); color: inherit; font-size: 1.4rem; }
+.copy { margin: 0; color: var(--vault-text-muted); }
+.error { margin: 0; color: #ff9eb7; font-size: .9rem; font-weight: 650; }
+.slots { display: grid; gap: 8px; }
+.slot, .emptySlot { min-height: 72px; display: grid; grid-template-columns: 78px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 8px; border: 1px solid rgba(145,105,255,.2); border-radius: 11px; background: rgba(10,14,36,.8); color: inherit; text-align: left; }
+.slotSelected { border-color: rgba(205,105,255,.72); background: rgba(53,29,105,.72); }
+.art { position: relative; width: 78px; aspect-ratio: 460 / 215; overflow: hidden; border-radius: 7px; }
+.art img { object-fit: cover; }
+.slot small, .slot strong { display: block; }
+.slot small { margin-bottom: 4px; color: var(--vault-text-soft); }
+.remove, .selectMark { padding: 8px; color: #d98fff; }
+.emptySlot { grid-template-columns: 36px 1fr; color: var(--vault-text-soft); border-style: dashed; }
+.emptySlot span { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; background: rgba(145,105,255,.12); }
+.dialog footer { display: flex; justify-content: flex-end; gap: 10px; }
+.dialog footer button { min-height: 42px; padding: 0 16px; border: 1px solid rgba(151,105,255,.3); border-radius: 999px; background: rgba(21,24,52,.86); color: inherit; }
+.dialog footer button:last-child { background: linear-gradient(90deg,#7438ff,#a54bff); }
+@media (max-width: 620px) { .layer { align-items: end; padding: 0; } .dialog { max-height: 80vh; overflow-y: auto; border-radius: 22px 22px 0 0; } }

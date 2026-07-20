@@ -68,17 +68,6 @@ img {
   box-sizing: border-box;
 }
 
-.vs-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 58px;
-  margin-bottom: 28px;
-  border-bottom: 1px solid rgba(151, 112, 255, 0.12);
-}
-
-.vs-brand,
-.vs-open-link,
 .vs-cta,
 .vs-trust-row,
 .vs-trust-row span,
@@ -86,42 +75,6 @@ img {
 .vs-product-title {
   display: flex;
   align-items: center;
-}
-
-.vs-brand {
-  gap: 14px;
-  font-size: 21px;
-  font-weight: 950;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.vs-brand img {
-  width: 45px;
-  height: 45px;
-  border-radius: 15px;
-  object-fit: cover;
-  box-shadow:
-    0 0 28px rgba(141, 62, 255, 0.35),
-    0 0 18px rgba(45, 123, 255, 0.20);
-}
-
-.vs-brand strong {
-  color: var(--vs-purple-bright);
-  font-weight: inherit;
-}
-
-.vs-open-link {
-  gap: 14px;
-  min-height: 44px;
-  padding: 0 22px;
-  border: 1px solid rgba(196, 123, 255, 0.42);
-  border-radius: 10px;
-  background: linear-gradient(135deg, #6129ff, #7f2eff 56%, #a64cff);
-  box-shadow: 0 14px 34px rgba(92, 37, 255, 0.28);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 900;
 }
 
 .vs-hero {
@@ -218,10 +171,39 @@ img {
 }
 
 .vs-cta-primary {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr) 20px;
+  align-items: center;
   min-width: 270px;
-  justify-content: space-between;
+  column-gap: 12px;
   background: linear-gradient(135deg, #6425ff, #7c2fff 48%, #9a38ff);
   box-shadow: 0 16px 42px rgba(105, 45, 255, 0.32);
+}
+
+.vs-cta-icon {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.44);
+  border-radius: 50%;
+  background: rgba(24, 8, 79, 0.16);
+}
+
+.vs-cta-icon svg {
+  width: 22px;
+  height: 22px;
+  overflow: visible;
+}
+
+.vs-cta-label {
+  white-space: nowrap;
+}
+
+.vs-cta-arrow {
+  justify-self: end;
+  font-size: 1.35em;
+  line-height: 1;
 }
 
 .vs-cta-secondary {
@@ -445,6 +427,9 @@ img {
 }
 
 .vs-product-card a {
+  min-height: 42px;
+  margin-left: -8px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -508,7 +493,8 @@ img {
 
 .vs-mini-row > img {
   width: 46px;
-  height: 25px;
+  height: auto;
+  aspect-ratio: 231 / 87;
   border-radius: 4px;
   object-fit: cover;
   background: rgba(151, 112, 255, 0.18);
@@ -553,7 +539,8 @@ img {
 
 .vs-collection-stack img {
   width: 18px;
-  height: 25px;
+  height: auto;
+  aspect-ratio: 231 / 87;
   border-radius: 3px;
   object-fit: cover;
 }
@@ -606,26 +593,6 @@ img {
     padding: 18px 14px 34px;
   }
 
-  .vs-nav {
-    gap: 16px;
-    margin-bottom: 34px;
-  }
-
-  .vs-brand {
-    font-size: 15px;
-  }
-
-  .vs-brand img {
-    width: 38px;
-    height: 38px;
-  }
-
-  .vs-open-link {
-    min-height: 40px;
-    padding: 0 14px;
-    font-size: 12px;
-  }
-
   .vs-hero {
     min-height: auto;
   }
@@ -643,7 +610,22 @@ img {
   }
 
   .vs-cta {
-    width: 100%;
+    width: min(100%, 390px);
+    min-width: 0;
+    margin-inline: auto;
+  }
+
+  .vs-cta-primary {
+    grid-template-columns: 32px minmax(0, 1fr) 18px;
+    min-height: 58px;
+    padding-inline: 14px 16px;
+    border-radius: 14px;
+    column-gap: 10px;
+  }
+
+  .vs-cta-icon {
+    width: 32px;
+    height: 32px;
   }
 
   .vs-trust-row {
@@ -703,7 +685,8 @@ img {
 
 .vs-featured-game-art {
   width: 100%;
-  height: 145px;
+  height: auto;
+  aspect-ratio: 460 / 215;
   object-fit: cover;
   border-radius: 14px;
   box-shadow: 0 18px 36px rgba(0, 0, 0, 0.38);
@@ -764,386 +747,7 @@ img {
   color: rgba(202, 92, 255, 0.86);
   filter: drop-shadow(0 0 10px rgba(202, 92, 255, 0.28));
 }
-/* Steam login — Concept 3: Trust & Benefits Layout */
-
-html,
-body {
-  overflow: auto;
-}
-
-.steam-login-page.trust-login-page {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: minmax(380px, 0.78fr) minmax(540px, 1.22fr);
-  align-items: stretch;
-  color: #f4f1ff;
-  background:
-    radial-gradient(circle at 14% 22%, rgba(180, 92, 255, 0.14), transparent 30%),
-    radial-gradient(circle at 78% 46%, rgba(45, 123, 255, 0.16), transparent 35%),
-    linear-gradient(135deg, #050716 0%, #071025 52%, #050716 100%);
-  overflow: hidden;
-}
-
-.trust-login-copy {
-  position: relative;
-  z-index: 5;
-  min-height: 100vh;
-  display: grid;
-  align-content: center;
-  gap: 24px;
-  padding: 42px clamp(34px, 5vw, 76px);
-  background:
-    linear-gradient(90deg, rgba(5, 7, 22, 0.98), rgba(5, 7, 22, 0.80) 72%, transparent),
-    radial-gradient(circle at 20% 26%, rgba(180, 92, 255, 0.16), transparent 32%);
-}
-
-.trust-login-brand {
-  position: absolute;
-  top: 28px;
-  left: clamp(34px, 5vw, 76px);
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  color: #fff;
-  text-decoration: none;
-  font-size: 20px;
-  font-weight: 950;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-}
-
-.trust-login-brand img {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  object-fit: cover;
-  box-shadow: 0 0 24px rgba(137, 97, 255, 0.28);
-}
-
-.trust-login-brand strong {
-  color: #d45dff;
-}
-
-.trust-login-heading {
-  display: grid;
-  gap: 14px;
-  max-width: 590px;
-}
-
-.trust-login-kicker {
-  width: fit-content;
-  margin: 0;
-  padding: 8px 16px;
-  border: 1px solid rgba(212, 93, 255, 0.22);
-  border-radius: 999px;
-  color: #dba2ff;
-  background: rgba(94, 38, 156, 0.20);
-  box-shadow: 0 0 28px rgba(137, 97, 255, 0.12);
-  font-size: 12px;
-  font-weight: 950;
-  letter-spacing: 0.10em;
-  text-transform: uppercase;
-}
-
-.trust-login-heading h1 {
-  margin: 0;
-  color: #fff;
-  font-size: clamp(44px, 5vw, 78px);
-  line-height: 0.95;
-  letter-spacing: -0.055em;
-}
-
-.trust-login-heading h1 span {
-  color: #d45dff;
-}
-
-.trust-login-heading > p:not(.trust-login-kicker) {
-  max-width: 520px;
-  margin: 0;
-  color: rgba(245, 242, 255, 0.68);
-  font-size: 16px;
-  line-height: 1.55;
-}
-
-.trust-login-benefits {
-  display: grid;
-  gap: 12px;
-  max-width: 540px;
-  margin-top: 4px;
-}
-
-.trust-login-benefit {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid rgba(137, 97, 255, 0.16);
-  border-radius: 14px;
-  background:
-    linear-gradient(90deg, rgba(137, 97, 255, 0.10), rgba(7, 14, 31, 0.36)),
-    rgba(7, 14, 31, 0.44);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
-}
-
-.trust-login-benefit-icon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: #dca6ff;
-  background: rgba(137, 97, 255, 0.16);
-  box-shadow: 0 0 18px rgba(137, 97, 255, 0.10);
-}
-
-.trust-login-benefit strong,
-.trust-login-benefit small {
-  display: block;
-}
-
-.trust-login-benefit strong {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 950;
-}
-
-.trust-login-benefit small {
-  margin-top: 3px;
-  color: rgba(245, 242, 255, 0.58);
-  font-size: 12px;
-  line-height: 1.35;
-}
-
-.trust-login-error {
-  max-width: 540px;
-  margin: 0;
-  padding: 12px 14px;
-  border: 1px solid rgba(255, 138, 161, 0.34);
-  border-radius: 12px;
-  color: #ffd6df;
-  background: rgba(70, 18, 36, 0.58);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.trust-steam-button {
-  width: min(100%, 540px);
-  min-height: 62px;
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  padding: 0 20px;
-  border: 1px solid rgba(146, 193, 255, 0.26);
-  border-radius: 14px;
-  color: #fff;
-  background:
-    radial-gradient(circle at 0% 0%, rgba(124, 44, 255, 0.35), transparent 42%),
-    linear-gradient(135deg, rgba(35, 99, 195, 0.82), rgba(48, 24, 108, 0.88));
-  box-shadow:
-    0 18px 44px rgba(45, 123, 255, 0.16),
-    0 0 34px rgba(137, 97, 255, 0.13),
-    inset 0 1px 0 rgba(255, 255, 255, 0.10);
-  text-decoration: none;
-  font-size: 17px;
-  font-weight: 950;
-}
-
-.trust-steam-mark {
-  width: 40px;
-  height: 40px;
-  display: grid;
-  place-items: center;
-  border-radius: 999px;
-  color: #fff;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.trust-login-footnote {
-  margin: -8px 0 0;
-  color: rgba(245, 242, 255, 0.55);
-  font-size: 13px;
-}
-
-.trust-back-link {
-  width: fit-content;
-  color: #c88bff;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 850;
-}
-
-.trust-login-vault {
-  position: relative;
-  min-height: 100vh;
-  overflow: hidden;
-  isolation: isolate;
-  background: #040816;
-}
-
-.trust-login-vault-frame {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(90deg, rgba(5, 7, 22, 0.42), transparent 24%, transparent 72%, rgba(5, 7, 22, 0.36)),
-    url("/assets/vault/vault-stage-open.png") center / cover no-repeat;
-  transform: scale(1.015);
-  filter: brightness(0.95) saturate(1.06);
-}
-
-.trust-login-vault-glow {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 55% 50%, rgba(212, 93, 255, 0.22), transparent 22%),
-    radial-gradient(circle at 52% 58%, rgba(45, 123, 255, 0.12), transparent 34%),
-    linear-gradient(180deg, rgba(5, 7, 22, 0.10), rgba(5, 7, 22, 0.42));
-}
-
-@media (max-width: 980px) {
-  .steam-login-page.trust-login-page {
-    grid-template-columns: 1fr;
-  }
-
-  .trust-login-copy {
-    min-height: auto;
-    padding-top: 110px;
-  }
-
-  .trust-login-vault {
-    min-height: 360px;
-  }
-}
-/* Landing page: remove top bar completely */
-.vs-landing .vs-nav {
-  display: none !important;
-}
-/* Add a little breathing room now the landing nav is gone */
-.vs-hero {
-  padding-top: 18px;
-}
-/* Login page: remove logo/brand from Concept 3 */
-.trust-login-brand {
-  display: none !important;
-}
-/* =========================================================
-   Login page only: match landing page buttons/info style
-   Do not affect landing page
-   ========================================================= */
-
-/* Steam login button = landing primary CTA */
-.trust-steam-button {
-  width: min(100%, 540px) !important;
-  min-height: 64px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  gap: 14px !important;
-  padding: 0 24px !important;
-  border-radius: 11px !important;
-  border: 1px solid rgba(160, 119, 255, 0.34) !important;
-  color: #fff !important;
-  background: linear-gradient(135deg, #6425ff, #7c2fff 48%, #9a38ff) !important;
-  box-shadow: 0 16px 42px rgba(105, 45, 255, 0.32) !important;
-  text-decoration: none !important;
-  font-size: 16px !important;
-  font-weight: 900 !important;
-  line-height: 1 !important;
-}
-
-.trust-steam-button strong {
-  font: inherit !important;
-  color: inherit !important;
-}
-
-.trust-steam-mark {
-  width: 25px !important;
-  height: 25px !important;
-  display: grid !important;
-  place-items: center !important;
-  color: #fff !important;
-  background: transparent !important;
-  box-shadow: none !important;
-  border-radius: 0 !important;
-}
-
-.trust-steam-mark svg {
-  width: 25px !important;
-  height: 25px !important;
-}
-
-/* Login info blocks = landing trust row style, but stacked */
-.trust-login-benefits {
-  display: grid !important;
-  grid-template-columns: 1fr !important;
-  gap: 14px !important;
-  max-width: 540px !important;
-  margin-top: 4px !important;
-}
-
-.trust-login-benefit {
-  min-height: 54px !important;
-  display: grid !important;
-  grid-template-columns: 25px minmax(0, 1fr) !important;
-  align-items: center !important;
-  gap: 14px !important;
-  padding: 12px 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: rgba(255, 255, 255, 0.82) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.trust-login-benefit-icon {
-  width: 25px !important;
-  height: 25px !important;
-  display: grid !important;
-  place-items: center !important;
-  padding: 0 !important;
-  border-radius: 0 !important;
-  color: rgba(255, 255, 255, 0.86) !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-.trust-login-benefit-icon svg {
-  width: 22px !important;
-  height: 22px !important;
-}
-
-.trust-login-benefit strong {
-  display: block !important;
-  color: rgba(255, 255, 255, 0.92) !important;
-  font-size: 14px !important;
-  font-weight: 750 !important;
-  line-height: 1.2 !important;
-}
-
-.trust-login-benefit small {
-  display: block !important;
-  margin-top: 4px !important;
-  color: rgba(245, 242, 255, 0.58) !important;
-  font-size: 12px !important;
-  line-height: 1.35 !important;
-}
-
-/* Keep the login button visually below the info list */
-.trust-login-footnote {
-  margin: -6px 0 0 !important;
-  color: rgba(245, 242, 255, 0.58) !important;
-  font-size: 13px !important;
-}
-/* =========================================================
-   PUBLIC PAGES FLUID RESPONSIVE SYSTEM
-   Landing + Steam login
-   Uses percentages/fr/clamp instead of per-resolution hacks
-   ========================================================= */
-
-/* ---------- Landing page ---------- */
+/* Fluid responsive sizing for the landing page. */
 
 .vs-landing {
   width: 100%;
@@ -1237,7 +841,8 @@ body {
 }
 
 .vs-featured-game-art {
-  height: clamp(115px, 9vw, 145px);
+  height: auto;
+  aspect-ratio: 460 / 215;
 }
 
 .vs-featured-game-body h2 {
@@ -1274,54 +879,6 @@ body {
   padding: clamp(16px, 1.4vw, 20px);
 }
 
-/* ---------- Steam login page ---------- */
-
-.steam-login-page.trust-login-page {
-  grid-template-columns: minmax(0, 42%) minmax(0, 58%);
-  min-height: 100vh;
-}
-
-.trust-login-copy {
-  padding-left: clamp(34px, 5vw, 76px);
-  padding-right: clamp(34px, 5vw, 76px);
-  padding-top: clamp(34px, 5vh, 56px);
-  padding-bottom: clamp(34px, 5vh, 56px);
-  gap: clamp(14px, 2vh, 24px);
-}
-
-.trust-login-heading h1 {
-  font-size: clamp(44px, min(5.2vw, 8vh), 78px);
-  line-height: 0.95;
-}
-
-.trust-login-heading > p:not(.trust-login-kicker) {
-  font-size: clamp(14px, 1vw, 16px);
-  line-height: 1.5;
-}
-
-.trust-login-benefits {
-  gap: clamp(8px, 1.4vh, 12px);
-}
-
-.trust-login-benefit {
-  min-height: clamp(50px, 7vh, 72px);
-  padding: clamp(8px, 1.1vh, 12px) 14px;
-}
-
-.trust-steam-button {
-  min-height: clamp(54px, 7vh, 64px);
-  font-size: clamp(14px, 1vw, 16px);
-}
-
-.trust-login-vault {
-  min-width: 0;
-}
-
-.trust-login-vault-frame {
-  background-position: center;
-  background-size: cover;
-}
-
 /* ---------- When desktop gets genuinely narrow, stack ---------- */
 
 @media (max-width: 1120px) {
@@ -1347,18 +904,6 @@ body {
   .vs-product-grid {
     grid-template-columns: 1fr;
   }
-
-  .steam-login-page.trust-login-page {
-    grid-template-columns: 1fr;
-  }
-
-  .trust-login-copy {
-    min-height: auto;
-  }
-
-  .trust-login-vault {
-    min-height: 420px;
-  }
 }
 
 /* ---------- Mobile / tiny browser widths ---------- */
@@ -1377,9 +922,6 @@ body {
     flex-direction: column;
   }
 
-  .vs-cta {
-    width: 100%;
-  }
 
   .vs-trust-row {
     gap: 16px;
@@ -1393,11 +935,4 @@ body {
     grid-template-columns: 1fr;
   }
 
-  .trust-login-copy {
-    padding: 28px 20px;
-  }
-
-  .trust-login-heading h1 {
-    font-size: clamp(42px, 13vw, 58px);
-  }
 }

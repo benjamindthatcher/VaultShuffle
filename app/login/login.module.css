@@ -1,0 +1,70 @@
+.page {
+  min-height: 100svh;
+  display: grid;
+  place-items: center;
+  position: relative;
+  overflow: hidden;
+  padding: 32px 20px;
+  background: #050816 url("/assets/login/login-background-desktop.png") center / cover no-repeat;
+}
+
+.page::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(5, 8, 22, 0.26), rgba(5, 8, 22, 0.58));
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  width: min(640px, 100%);
+  padding: 32px;
+  border: 1px solid rgba(155, 108, 255, 0.26);
+  border-radius: 30px;
+  background: linear-gradient(180deg, rgba(13, 17, 43, 0.84), rgba(8, 11, 28, 0.78));
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px);
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin: 0 0 22px;
+  padding: 9px 16px;
+  border: 1px solid rgba(198, 107, 255, 0.4);
+  border-radius: 999px;
+  background: rgba(109, 53, 255, 0.1);
+  color: #ebbaff;
+  font-size: 0.76rem;
+  font-weight: 750;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.title { margin: 0; font-size: clamp(3rem, 7vw, 5rem); line-height: 0.96; letter-spacing: -0.045em; }
+.title span { display: block; color: transparent; background: linear-gradient(180deg, #d7a3ff, #b968ff 42%, #7f42ff); background-clip: text; }
+.copy { max-width: 46ch; margin: 22px 0 0; color: var(--vault-text-muted); font-size: 1.05rem; line-height: 1.65; }
+.features { display: grid; gap: 18px; margin-top: 30px; }
+.feature { display: grid; grid-template-columns: 52px 1fr; align-items: start; gap: 15px; }
+.featureIcon { width: 52px; height: 52px; display: grid; place-items: center; border: 1px solid rgba(169, 116, 255, 0.2); border-radius: 16px; background: linear-gradient(180deg, rgba(67, 44, 122, 0.28), rgba(24, 20, 51, 0.2)); color: #d69aff; }
+.featureIcon svg { width: 25px; height: 25px; }
+.feature h2 { margin: 1px 0 4px; font-size: 1.05rem; }
+.feature p { margin: 0; color: var(--vault-text-muted); font-size: 0.9rem; line-height: 1.5; }
+.steamButton { min-height: 66px; display: grid; grid-template-columns: 42px minmax(0, 1fr) 42px; align-items: center; gap: 12px; margin-top: 30px; padding: 0 20px; border-radius: 20px; background: linear-gradient(90deg, #6f34ff, #8c43ff, #b357ff); box-shadow: 0 12px 34px rgba(132, 58, 255, 0.34); color: #fff; font-size: 1.12rem; font-weight: 800; }
+.steamIcon { display: grid; width: 38px; height: 38px; place-items: center; border: 1px solid rgba(255, 255, 255, 0.42); border-radius: 50%; background: rgba(24, 8, 79, 0.14); }
+.steamIcon svg { width: 24px; height: 24px; overflow: visible; }
+.steamLabel { justify-self: center; text-align: center; }
+.steamArrow { justify-self: end; font-size: 1.35rem; line-height: 1; }
+.note { margin: 16px 0 0; color: var(--vault-text-soft); text-align: center; }
+.backLink { display: block; margin-top: 21px; color: #d589ff; font-weight: 700; text-align: center; }
+
+@media (max-width: 680px) {
+  .page { padding: 16px; background-image: url("/assets/login/login-background-mobile.png"); background-position: center top; }
+  .card { padding: 24px 20px 28px; border-radius: 26px; }
+  .eyebrow { width: 100%; justify-content: center; text-align: center; }
+  .feature { grid-template-columns: 46px 1fr; gap: 13px; }
+  .featureIcon { width: 46px; height: 46px; border-radius: 14px; }
+  .steamButton { grid-template-columns: 36px minmax(0, 1fr) 36px; min-height: 60px; padding: 0 14px; border-radius: 18px; }
+  .steamIcon { width: 34px; height: 34px; }
+}

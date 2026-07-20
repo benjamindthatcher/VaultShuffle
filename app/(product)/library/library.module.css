@@ -1,0 +1,188 @@
+.libraryPage {
+  position: relative;
+  display: grid;
+  gap: 12px;
+}
+
+.libraryPage::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 0;
+  left: 50%;
+  width: 100vw;
+  height: 350px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(66, 91, 210, 0.18), transparent 48%),
+    linear-gradient(180deg, rgba(3, 5, 16, 0.24), rgba(4, 7, 20, 0.22) 58%, var(--vault-bg) 100%),
+    url("/assets/vault/vault-header.png") center 54% / cover no-repeat;
+}
+
+.libraryPage > * {
+  position: relative;
+  z-index: 1;
+}
+
+.header {
+  display: grid;
+  gap: 12px;
+  min-height: 290px;
+  align-items: center;
+  justify-items: center;
+  text-align: center;
+  padding: clamp(24px, 4vw, 36px);
+  border-radius: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.statsGrid {
+  margin-top: -26px;
+  display: grid;
+  gap: var(--vault-top-card-gap);
+}
+
+@media (max-width: 720px) {
+  .libraryPage::before {
+    display: none;
+  }
+
+  .header {
+    display: none;
+  }
+
+  .statsGrid {
+    margin-top: 0;
+  }
+}
+
+.sectionCard {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(8, 13, 31, 0.82);
+  box-shadow: var(--vault-shadow);
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionEyebrow {
+  margin: 0;
+  color: #cf9fff;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  margin: 8px 0 0;
+  font-size: clamp(1.4rem, 4vw, 2rem);
+}
+
+.sectionCount { color: #d089ff; font-size: 0.7em; font-weight: 650; }
+.gamesSection { min-height: 0; }
+.gamesHeader { align-items: flex-end; }
+.gamesHeader > div:first-child { flex: 0 0 auto; }
+.gamesToolbar { width: 100%; }
+.gamesToolbar > * { width: 100%; max-width: none; }
+.gamesScroller { max-height: 720px; overflow-y: auto; overscroll-behavior: contain; padding-right: 5px; scrollbar-color: rgba(166, 87, 255, 0.72) rgba(26, 31, 61, 0.72); scrollbar-width: thin; }
+.gamesScroller:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
+
+.statusTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px; border: 1px solid rgba(145, 105, 255, 0.2); border-radius: 14px; background: rgba(8, 13, 31, 0.84); }
+.statusTab, .statusTabActive { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid transparent; border-radius: 10px; color: var(--vault-text-muted); background: transparent; font-weight: 700; }
+.statusTab strong, .statusTabActive strong { min-width: 27px; padding: 4px 7px; border-radius: 999px; background: rgba(144, 96, 255, 0.14); color: #d59eff; }
+.statusTabActive { border-color: rgba(190, 105, 255, 0.44); color: var(--vault-text); background: linear-gradient(135deg, rgba(126, 53, 220, 0.22), rgba(63, 34, 116, 0.24)); }
+.statusTab:focus-visible, .statusTabActive:focus-visible { outline: 2px solid #c08bff; outline-offset: 2px; }
+.emptyState { display: grid; justify-items: center; gap: 8px; padding: 52px 20px; color: var(--vault-text-muted); text-align: center; }
+.emptyState h3, .emptyState p { margin: 0; }
+.emptyState button { min-height: 42px; margin-top: 8px; padding: 0 16px; border: 1px solid rgba(172, 113, 255, 0.42); border-radius: 999px; background: rgba(91, 42, 167, 0.24); color: var(--vault-text); }
+.undoToast { position: fixed; z-index: 30; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 18px; padding: 14px 18px; border: 1px solid rgba(190, 105, 255, 0.44); border-radius: 12px; background: rgba(10, 13, 32, 0.98); box-shadow: var(--vault-shadow); animation: undoToastExit 300ms ease 5s forwards; }
+.undoToast button { border: 0; background: transparent; color: #d98cff; font-weight: 800; }
+
+@keyframes undoToastExit {
+  to { opacity: 0; transform: translateY(6px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .undoToast { animation-duration: 1ms; }
+}
+.pinnedShelf { display: grid; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid rgba(145,105,255,.2); }
+.pinnedHeader { display: flex; align-items: center; gap: 12px; }
+.pinnedHeader h2 { margin: 0; font-size: 1rem; }
+.pinnedHeader h2 span { color: #d58cff; }
+.pinnedHeader button { min-height: 40px; margin-left: auto; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #d58cff; font-weight: 750; }
+.slotDots { display: flex; gap: 5px; }
+.slotDots span { width: 8px; height: 8px; border: 1px solid #a871ff; border-radius: 50%; }
+.slotDots span[data-filled="true"] { background: #c15fff; box-shadow: 0 0 8px rgba(193,95,255,.5); }
+.pinnedGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.pinnedCard { position: relative; min-width: 0; }
+.pinBadge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 5px 8px; border: 1px solid rgba(205,105,255,.54); border-radius: 999px; background: rgba(45,22,78,.9); color: #e29cff; font-size: .72rem; }
+.emptyPin { min-height: 96px; display: grid; place-items: center; border: 1px dashed rgba(145,105,255,.24); border-radius: 10px; color: var(--vault-text-soft); }
+@media (max-width: 720px) { .pinnedGrid { display: flex; overflow-x: auto; } .pinnedGrid > * { flex: 0 0 78%; } }
+
+@media (max-width: 900px) {
+  .gamesHeader { align-items: stretch; flex-direction: column; }
+}
+
+.recentRow {
+  display: grid;
+  gap: 10px;
+}
+
+.recentCard {
+  overflow: hidden;
+  border-radius: 10px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(12, 17, 40, 0.78);
+  text-align: left;
+}
+
+.recentArtwork {
+  position: relative;
+  display: block;
+  aspect-ratio: 460 / 215;
+}
+
+.recentArtwork img {
+  object-fit: cover;
+}
+
+.recentBody {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+}
+
+.recentBody span {
+  color: var(--vault-text-muted);
+}
+
+@media (min-width: 720px) {
+  .statsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recentRow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1100px) {
+  .statsGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .recentRow {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}

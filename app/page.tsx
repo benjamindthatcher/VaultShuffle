@@ -1,3 +1,57 @@
+import type { Metadata } from "next";
+import { siteConfig } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: { absolute: "VaultShuffle | Decide What to Play Next" },
+  description: siteConfig.description,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "VaultShuffle | Decide What to Play Next",
+    description: siteConfig.socialDescription,
+    url: "/"
+  }
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteConfig.url}/#website`,
+      url: siteConfig.url,
+      name: siteConfig.name,
+      alternateName: siteConfig.displayName,
+      description: siteConfig.description,
+      inLanguage: "en-GB"
+    },
+    {
+      "@type": "Organization",
+      "@id": `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: `${siteConfig.url}/icon.png`,
+      email: siteConfig.supportEmail
+    },
+    {
+      "@type": "WebApplication",
+      "@id": `${siteConfig.url}/#application`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      description: siteConfig.description,
+      applicationCategory: "GameApplication",
+      operatingSystem: "Any modern web browser",
+      browserRequirements: "Requires JavaScript and a modern web browser",
+      isAccessibleForFree: true,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "GBP"
+      },
+      publisher: { "@id": `${siteConfig.url}/#organization` }
+    }
+  ]
+};
+
 const valueProps = [
   {
     title: "Curated surprises",
@@ -16,7 +70,7 @@ const valueProps = [
   },
   {
     title: "100% in your control",
-    text: "Your data stays local and always private.",
+    text: "Your data stays under your control.",
     icon: "shield"
   }
 ];
@@ -27,6 +81,7 @@ const productCards = [
     text: "All your games in one clean, powerful view.",
     bullets: ["Filter and sort", "Track playtime", "See what's next"],
     action: "Explore Library",
+    href: "/library",
     icon: "books",
     preview: "library",
     rows: [
@@ -57,6 +112,7 @@ const productCards = [
     text: "Turn endless wishlists into your next obsession.",
     bullets: ["Track discounts", "Prioritise picks", "Never lose a gem"],
     action: "Explore Wishlist",
+    href: "/wishlist",
     icon: "bookmark",
     preview: "wishlist",
     rows: [
@@ -87,6 +143,7 @@ const productCards = [
     text: "Create custom collections for any mood.",
     bullets: ["Build your themes", "Tag what matters", "Shuffle your way"],
     action: "Explore Collections",
+    href: "/collections",
     icon: "layers",
     preview: "collections",
     rows: [
@@ -234,22 +291,14 @@ function LandingIcon({ name }: { name: string }) {
 export default function HomePage() {
   return (
     <>
-      <link rel="stylesheet" href="/landing.css" />
-
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c")
+        }}
+      />
+      <link rel="stylesheet" href="/landing.css" precedence="high" />
       <main className="vs-landing">
-        <nav className="vs-nav" aria-label="Vault Shuffle">
-          <a className="vs-brand" href="/" aria-label="Vault Shuffle home">
-            <img src="/assets/landing/vaultshuffle-logo-real.png" alt="" />
-            <span>
-              Vault <strong>Shuffle</strong>
-            </span>
-          </a>
-
-          <a className="vs-open-link" href="/app">
-            Open Vault Shuffle <span aria-hidden="true">&rarr;</span>
-          </a>
-        </nav>
-
         <section className="vs-hero" aria-labelledby="landing-title">
           <div className="vs-hero-copy">
             <p className="vs-kicker">Focused play. Better games.</p>
@@ -266,12 +315,12 @@ export default function HomePage() {
 
             <div className="vs-cta-row" aria-label="Get started">
               <a className="vs-cta vs-cta-primary" href="/login">
-                <LandingIcon name="steam" />
-                Continue with Steam
-                <span aria-hidden="true">&rarr;</span>
+                <span className="vs-cta-icon"><LandingIcon name="steam" /></span>
+                <span className="vs-cta-label">Continue with Steam</span>
+                <span className="vs-cta-arrow" aria-hidden="true">&rarr;</span>
               </a>
 
-              <a className="vs-cta vs-cta-secondary" href="/app">
+              <a className="vs-cta vs-cta-secondary" href="/vault">
                 <LandingIcon name="guest" />
                 Try Guest Mode
               </a>
@@ -285,7 +334,7 @@ export default function HomePage() {
 
               <span>
                 <LandingIcon name="lock" />
-                Private &amp; local
+                Private by design
               </span>
 
               <span>
@@ -352,7 +401,7 @@ export default function HomePage() {
                   ))}
                 </ul>
 
-                <a href="/app">
+                <a href={card.href}>
                   {card.action} <span aria-hidden="true">&rarr;</span>
                 </a>
               </div>

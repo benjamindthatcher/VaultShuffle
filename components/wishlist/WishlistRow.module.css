@@ -1,0 +1,122 @@
+.row {
+  display: grid;
+  gap: 12px;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(8, 13, 31, 0.82);
+}
+
+.artwork {
+  position: relative;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  border-radius: 7px 0 0 7px;
+}
+
+.artwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.main {
+  display: grid;
+  gap: 6px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.12rem;
+}
+
+.likeButton {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(15, 20, 46, 0.72);
+  color: var(--vault-text);
+}
+
+.rowActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.removeButton {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 112, 143, 0.24);
+  background: rgba(72, 21, 43, 0.4);
+  color: #ff9db1;
+}
+
+.tagRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag {
+  min-height: 25px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--vault-text-muted);
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.priceRow s {
+  color: var(--vault-text-soft);
+  font-size: 0.82rem;
+}
+
+.discount {
+  padding: 4px 7px;
+  border: 1px solid rgba(218, 111, 255, 0.38);
+  border-radius: 6px;
+  color: #dc8fff;
+  font-size: 0.76rem;
+}
+
+@media (min-width: 920px) {
+  .row {
+    grid-template-columns: 240px minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .meta {
+    display: grid;
+    justify-items: end;
+    padding-right: 14px;
+  }
+}

@@ -1,0 +1,29 @@
+.wrap { min-width: 0; height: 100%; }
+.heroCard { width: 100%; min-height: 148px; height: 100%; display: grid; grid-template-columns: minmax(180px, 42%) minmax(0, 1fr) 24px; align-items: center; gap: 16px; padding: 12px; overflow: hidden; border: 1px solid rgba(144, 104, 255, 0.28); border-radius: 12px; background: rgba(8, 13, 31, 0.58); box-shadow: var(--vault-shadow); color: inherit; text-align: left; transition: border-color 180ms ease, box-shadow 180ms ease; }
+.heroCard:hover { border-color: rgba(204, 112, 255, 0.76); box-shadow: 0 0 28px rgba(151, 70, 255, 0.18), var(--vault-shadow); }
+.artwork { position: relative; width: 100%; aspect-ratio: 460 / 215; overflow: hidden; border-radius: 9px; }
+.artwork img, .thumbnail img { object-fit: cover; }
+.content { min-width: 0; }
+.eyebrow, .dialogEyebrow { margin: 0 0 9px; color: #d89aff; font-size: 0.72rem; letter-spacing: 0.16em; text-transform: uppercase; }
+.title { margin: 0; font-size: clamp(1.35rem, 3vw, 1.75rem); }
+.description { margin: 7px 0 10px; color: var(--vault-text-muted); line-height: 1.4; }
+.changeButton { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 12px; border: 1px solid rgba(164, 112, 255, 0.36); border-radius: 8px; color: #e1c5ff; }
+.modalLayer { position: fixed; z-index: 1000; inset: 0; display: grid; place-items: center; padding: 20px; overflow: hidden; isolation: isolate; overscroll-behavior: contain; }
+.backdrop { position: absolute; inset: 0; border: 0; background: rgba(2, 4, 15, 0.72); backdrop-filter: blur(5px); }
+.dialog { position: relative; z-index: 1; width: min(540px, 100%); max-height: min(720px, calc(100dvh - 40px)); display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; overflow: hidden; overscroll-behavior: contain; border: 1px solid rgba(189, 104, 255, 0.52); border-radius: 18px; background: linear-gradient(160deg, rgba(15, 18, 46, 0.99), rgba(5, 9, 26, 0.99)); box-shadow: 0 28px 90px rgba(0, 0, 0, 0.64), 0 0 40px rgba(137, 57, 255, 0.2); }
+.dialogHeader { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 22px 14px; }
+.dialogHeader h2 { margin: 0; font-size: 1.55rem; }
+.closeButton { width: 40px; height: 40px; border: 1px solid rgba(151, 105, 255, 0.28); border-radius: 50%; background: rgba(19, 23, 52, 0.86); color: var(--vault-text); font-size: 1.45rem; }
+.search { display: flex; align-items: center; gap: 10px; margin: 0 22px 12px; padding: 0 14px; min-height: 48px; border: 1px solid rgba(151, 105, 255, 0.26); border-radius: 11px; color: #ce83ff; background: rgba(8, 12, 34, 0.9); }
+.search input { width: 100%; border: 0; outline: 0; background: transparent; color: var(--vault-text); }
+.collectionList { min-height: 0; display: grid; align-content: start; gap: 7px; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: 4px 14px 16px; }
+.collectionRow { display: grid; grid-template-columns: 72px minmax(0, 1fr) auto 24px; align-items: center; gap: 12px; padding: 9px; border: 1px solid transparent; border-radius: 11px; background: rgba(12, 16, 40, 0.72); color: inherit; text-align: left; }
+.collectionRow:hover, .collectionRowSelected { border-color: rgba(181, 115, 255, 0.42); background: rgba(45, 28, 92, 0.72); }
+.thumbnail { position: relative; width: 72px; aspect-ratio: 460 / 215; overflow: hidden; border-radius: 7px; }
+.collectionRow strong, .collectionRow small { display: block; }
+.collectionRow small { margin-top: 4px; overflow: hidden; color: var(--vault-text-muted); font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+.rowCount { color: #cdbfe8; font-size: 0.78rem; white-space: nowrap; }
+.check { color: #dc8fff; font-size: 1.05rem; text-align: center; }
+.manageLink { display: flex; justify-content: space-between; padding: 17px 22px; border-top: 1px solid rgba(151, 105, 255, 0.2); color: #db8cff; font-weight: 750; }
+.empty { padding: 30px; color: var(--vault-text-muted); text-align: center; }
+@media (max-width: 720px) { .heroCard { grid-template-columns: 1fr 24px; } .artwork { grid-column: 1 / -1; } .modalLayer { align-items: end; padding: 0; } .dialog { width: 100%; max-height: 88dvh; border-radius: 22px 22px 0 0; } .collectionRow { grid-template-columns: 62px minmax(0, 1fr) auto 22px; } .thumbnail { width: 62px; } .rowCount { font-size: 0.7rem; } }

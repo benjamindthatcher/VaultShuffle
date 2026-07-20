@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchSteamAppDetails } from "@/lib/steam";
+import { clearSteamAppDetailsCache, fetchSteamAppDetails } from "@/lib/steam";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import type { Game, GamePayload } from "@/lib/types";
@@ -14,12 +14,18 @@ type SteamMetadataRow = {
   review_positive: number | null;
   capsule_url: string | null;
   header_url: string | null;
+  price_currency: string | null;
+  price_initial: number | null;
+  price_final: number | null;
+  discount_percent: number | null;
+  is_free: boolean;
   status: "pending" | "ready" | "failed";
   checked_at: string | null;
 };
 
 const UNKNOWN_GENRES = new Set(["", "Unknown"]);
 const METADATA_RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
+const METADATA_REFRESH_AFTER_MS = 6 * 60 * 60 * 1000;
 
 export async function applyCachedSteamMetadata<T extends GamePayload | Game>(games: T[]): Promise<T[]> {
   const appIds = steamAppIds(games);
@@ -28,7 +34,7 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("steam_app_metadata")
-    .select("steam_appid, genre, rating, review_score_desc, review_total, review_positive, capsule_url, header_url, status")
+    .select("steam_appid, genre, rating, review_score_desc, review_total, review_positive, capsule_url, header_url, price_currency, price_initial, price_final, discount_percent, is_free, status")
     .in("steam_appid", appIds);
 
   if (isMissingMetadataTable(error)) return games;
@@ -50,7 +56,12 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
       ...game,
       rating: rating > 0 ? rating : game.rating,
       capsule_url: capsuleUrl || game.capsule_url || null,
-      header_url: headerUrl || game.header_url || null
+      header_url: headerUrl || game.header_url || null,
+      price_currency: metadata?.price_currency ?? null,
+      price_initial: metadata?.price_initial ?? null,
+      price_final: metadata?.price_final ?? null,
+      discount_percent: metadata?.discount_percent ?? null,
+      is_free: Boolean(metadata?.is_free)
     };
     if (genre && UNKNOWN_GENRES.has(String(game.genre || ""))) return { ...nextGame, genre };
     return nextGame;
@@ -80,16 +91,28 @@ export async function queueSteamMetadata(appIds: string[]) {
 
   if (retryError && !isMissingMetadataTable(retryError)) throw retryError;
 
+  const refreshBefore = new Date(Date.now() - METADATA_REFRESH_AFTER_MS).toISOString();
+  const { error: refreshError } = await supabase
+    .from("steam_app_metadata")
+    .update({ status: "pending", last_error: null })
+    .in("steam_appid", uniqueAppIds)
+    .eq("status", "ready")
+    .lt("checked_at", refreshBefore);
+
+  if (refreshError && !isMissingMetadataTable(refreshError)) throw refreshError;
+
   return rows.length;
 }
 
-export async function enrichSteamMetadataForUser(userId: string, limit = 12, force = false) {
+export async function enrichSteamMetadataForUser(userId: string, limit = 12, force = false, wishlistOnly = false) {
   const supabase = getSupabaseAdmin();
-  const { data: gameData, error: gameError } = await supabase
+  let gameQuery = supabase
     .from("games")
-    .select("steam_appid")
+    .select("steam_appid, ownership")
     .eq("user_id", userId)
     .not("steam_appid", "is", null);
+  if (wishlistOnly) gameQuery = gameQuery.eq("ownership", "Wishlist");
+  const { data: gameData, error: gameError } = await gameQuery;
 
   if (gameError) throw gameError;
 
@@ -98,11 +121,11 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
 
   await queueSteamMetadata(appIds);
   if (force) {
+    clearSteamAppDetailsCache(appIds);
     const { error: forceError } = await supabase
       .from("steam_app_metadata")
       .update({ status: "pending", last_error: null })
-      .in("steam_appid", appIds)
-      .or("rating.is.null,rating.eq.0,genre.is.null,genre.eq.Unknown,status.eq.failed,capsule_url.is.null,header_url.is.null");
+      .in("steam_appid", appIds);
 
     if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
   }
@@ -123,7 +146,7 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
 
   let updated = 0;
   for (const chunk of chunks(pendingRows, 4)) {
-    const results = await Promise.all(chunk.map((row) => fetchAndStoreMetadata(row.steam_appid)));
+    const results = await Promise.all(chunk.map((row) => fetchAndStoreMetadata(row.steam_appid, force)));
     updated += results.filter(Boolean).length;
   }
 
@@ -142,10 +165,10 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
   };
 }
 
-async function fetchAndStoreMetadata(appid: string) {
+async function fetchAndStoreMetadata(appid: string, forceRefresh = false) {
   const supabase = getSupabaseAdmin();
   const checkedAt = new Date().toISOString();
-  const details = await fetchSteamAppDetails(appid);
+  const details = await fetchSteamAppDetails(appid, forceRefresh);
   const title = String(details?.title || "").trim();
   const genre = normaliseSteamGenreLabel(String(details?.genre || "").trim(), title);
   const rating = clamp(Math.round(Number(details?.rating || 0)), 0, 10);
@@ -154,6 +177,10 @@ async function fetchAndStoreMetadata(appid: string) {
   const reviewScoreDesc = String(details?.review_score_desc || "").trim();
   const capsuleUrl = String(details?.capsule_url || "").trim() || steamImageUrl(appid, "capsule");
   const headerUrl = String(details?.header_url || "").trim() || steamImageUrl(appid, "header");
+  const priceCurrency = String(details?.price_currency || "").trim() || null;
+  const priceInitial = cleanPrice(details?.price_initial);
+  const priceFinal = cleanPrice(details?.price_final);
+  const discountPercent = clamp(Math.round(Number(details?.discount_percent || 0)), 0, 100);
   const hasGenre = !UNKNOWN_GENRES.has(genre);
 
   const row = {
@@ -166,6 +193,11 @@ async function fetchAndStoreMetadata(appid: string) {
     review_positive: reviewPositive,
     capsule_url: capsuleUrl || null,
     header_url: headerUrl || null,
+    price_currency: priceCurrency,
+    price_initial: priceInitial,
+    price_final: priceFinal,
+    discount_percent: discountPercent,
+    is_free: Boolean(details?.is_free),
     status: hasGenre ? "ready" : "failed",
     checked_at: checkedAt,
     failure_count: hasGenre ? 0 : 1,
@@ -210,7 +242,7 @@ async function fetchAndStoreMetadata(appid: string) {
     if (ratingUpdateError) throw ratingUpdateError;
   }
 
-  return Boolean(hasGenre || rating || capsuleUrl || headerUrl);
+  return Boolean(hasGenre || rating || capsuleUrl || headerUrl || priceCurrency || details?.is_free);
 }
 
 async function applyLegacyCachedSteamMetadata<T extends GamePayload | Game>(games: T[], appIds: string[]): Promise<T[]> {
@@ -273,4 +305,9 @@ function isMissingArtworkColumns(error: { code?: string } | null) {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
+}
+
+function cleanPrice(value: unknown) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : null;
 }

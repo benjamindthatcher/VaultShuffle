@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <mask id="vs-snooze-cutout">
+    <rect width="24" height="24" fill="white"/>
+    <circle cx="16.5" cy="15.7" r="5.15" fill="black"/>
+  </mask>
+
+  <g stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round">
+    <path
+      mask="url(#vs-snooze-cutout)"
+      d="M11.9 3.35C7.05 4.2 3.55 8.35 3.55 13.2c0 5.05 4.1 9.15 9.15 9.15 2.05 0 3.95-.67 5.48-1.82-4.93-.1-8.9-4.12-8.9-9.08 0-3.25.98-5.95 2.62-8.1Z"
+    />
+
+    <circle cx="16.5" cy="15.7" r="4.05"/>
+    <path d="M16.5 13.85v2.05l1.45.88"/>
+  </g>
+
+  <g fill="currentColor">
+    <path d="M18.9 4.1c.18 1.15.82 1.8 1.97 1.98-1.15.18-1.79.82-1.97 1.97-.18-1.15-.82-1.79-1.97-1.97 1.15-.18 1.79-.83 1.97-1.98Z"/>
+    <path d="M21.2 8.2c.12.75.53 1.17 1.28 1.29-.75.12-1.16.53-1.28 1.28-.12-.75-.54-1.16-1.29-1.28.75-.12 1.17-.54 1.29-1.29Z"/>
+    <circle cx="19.75" cy="10.65" r=".55"/>
+  </g>
+</svg>
