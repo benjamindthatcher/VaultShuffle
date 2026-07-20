@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppDataProvider, useAppData } from "@/components/app-shell/AppDataProvider";
 import { AppHeader } from "@/components/app-shell/AppHeader";
 import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
@@ -21,6 +22,7 @@ export function AppShell({ children, headerVariant = "product" }: AppShellProps)
 }
 
 function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
+  const router = useRouter();
   const {
     loadError,
     isLive,
@@ -36,22 +38,20 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
   const [importError, setImportError] = useState<string | null>(null);
   const automaticImportStartedRef = useRef(false);
 
-  // Check the callback flag before allowing a product page to mount.
+  // Check the Steam callback flag before allowing a product page to mount.
   useEffect(() => {
     const url = new URL(window.location.href);
     setPendingSteamImport(url.searchParams.get("steam_connected") === "1");
     setInitialUrlChecked(true);
   }, []);
 
-  // This only marks the first account-data load as complete. Later refreshes do
-  // not tear down the page.
+  // Only hold back the first product-page mount. Later data refreshes do not
+  // tear down the currently visible page.
   useEffect(() => {
     if (!isLoading) setBootComplete(true);
   }, [isLoading]);
 
-  // A fresh Steam callback must finish its import before /vault is mounted.
-  // This avoids rendering the guest Vault, replacing it with the live Vault,
-  // and then immediately replacing it again after the import.
+  // A fresh Steam callback finishes its import before /vault is mounted.
   useEffect(() => {
     if (!initialUrlChecked || !pendingSteamImport || isLoading) return;
 
@@ -66,7 +66,11 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
 
     const url = new URL(window.location.href);
     url.searchParams.delete("steam_connected");
-    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+
+    // Update Next's router state as well as the visible address. Using
+    // window.history.replaceState(null, ...) left Next holding the old URL,
+    // so client-side navigation could restore ?steam_connected=1.
+    router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
 
     setImportError(null);
 
@@ -87,6 +91,7 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
     pendingSteamImport,
     isLive,
     isLoading,
+    router,
     syncSteamLibrary
   ]);
 
@@ -103,9 +108,6 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
     });
   }
 
-  // Do not mount /vault (or another product page) underneath the initial
-  // loader. It should mount once, after the session and any callback import
-  // have finished.
   const holdInitialContent =
     !initialUrlChecked || !bootComplete || pendingSteamImport;
 
