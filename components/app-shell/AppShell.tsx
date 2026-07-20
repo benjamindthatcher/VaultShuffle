@@ -29,37 +29,70 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
     refresh,
     syncSteamLibrary
   } = useAppData();
+
   const [bootComplete, setBootComplete] = useState(false);
+  const [initialUrlChecked, setInitialUrlChecked] = useState(false);
+  const [pendingSteamImport, setPendingSteamImport] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const automaticImportStartedRef = useRef(false);
 
+  // Check the callback flag before allowing a product page to mount.
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    setPendingSteamImport(url.searchParams.get("steam_connected") === "1");
+    setInitialUrlChecked(true);
+  }, []);
+
+  // This only marks the first account-data load as complete. Later refreshes do
+  // not tear down the page.
   useEffect(() => {
     if (!isLoading) setBootComplete(true);
   }, [isLoading]);
 
+  // A fresh Steam callback must finish its import before /vault is mounted.
+  // This avoids rendering the guest Vault, replacing it with the live Vault,
+  // and then immediately replacing it again after the import.
   useEffect(() => {
-    if (isLoading || !isLive || automaticImportStartedRef.current) return;
+    if (!initialUrlChecked || !pendingSteamImport || isLoading) return;
+
+    if (!isLive) {
+      setImportError("Steam sign-in did not produce an active session.");
+      setPendingSteamImport(false);
+      return;
+    }
+
+    if (automaticImportStartedRef.current) return;
+    automaticImportStartedRef.current = true;
 
     const url = new URL(window.location.href);
-    if (url.searchParams.get("steam_connected") !== "1") return;
-
-    automaticImportStartedRef.current = true;
     url.searchParams.delete("steam_connected");
     window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
 
     setImportError(null);
-    void syncSteamLibrary().catch((error) => {
-      console.error("Automatic Steam library import failed", error);
-      setImportError(
-        error instanceof Error
-          ? error.message
-          : "Steam sign-in worked, but the library import failed."
-      );
-    });
-  }, [isLive, isLoading, syncSteamLibrary]);
+
+    void syncSteamLibrary()
+      .catch((error) => {
+        console.error("Automatic Steam library import failed", error);
+        setImportError(
+          error instanceof Error
+            ? error.message
+            : "Steam sign-in worked, but the library import failed."
+        );
+      })
+      .finally(() => {
+        setPendingSteamImport(false);
+      });
+  }, [
+    initialUrlChecked,
+    pendingSteamImport,
+    isLive,
+    isLoading,
+    syncSteamLibrary
+  ]);
 
   function retrySteamImport() {
     setImportError(null);
+
     void syncSteamLibrary().catch((error) => {
       console.error("Steam library import retry failed", error);
       setImportError(
@@ -70,9 +103,15 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
     });
   }
 
+  // Do not mount /vault (or another product page) underneath the initial
+  // loader. It should mount once, after the session and any callback import
+  // have finished.
+  const holdInitialContent =
+    !initialUrlChecked || !bootComplete || pendingSteamImport;
+
   return (
     <div className={styles.appShell}>
-      <VaultShuffleLoader active={!bootComplete && isLoading} />
+      <VaultShuffleLoader active={holdInitialContent} />
       <AppHeader variant={headerVariant} />
 
       {loadError ? (
@@ -93,7 +132,9 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
         </div>
       ) : null}
 
-      <main className={styles.appContent}>{children}</main>
+      <main className={styles.appContent}>
+        {holdInitialContent ? null : children}
+      </main>
     </div>
   );
 }
