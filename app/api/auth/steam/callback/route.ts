@@ -37,18 +37,19 @@ export async function GET(request: Request) {
     const profile = process.env.STEAM_WEB_API_KEY
       ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY)
       : null;
-    const { token } = await createSessionForSteamId(steamId, profile);
-    const redirectUrl = new URL(`${baseUrl}/vault`);
-redirectUrl.searchParams.set("steam_connected", "1");
 
-const response = NextResponse.redirect(redirectUrl);
-    return attachSessionCookie(response, token);
+    const { token } = await createSessionForSteamId(steamId, profile);
+    const redirectUrl = new URL("/vault", baseUrl);
+    redirectUrl.searchParams.set("steam_connected", "1");
+
+    return attachSessionCookie(NextResponse.redirect(redirectUrl), token);
   } catch (error) {
     const detailedMessage = describeError(error);
     const publicMessage = detailedMessage === "Steam sign-in was cancelled."
       ? detailedMessage
       : "Steam sign-in failed. Please try again.";
     const message = encodeURIComponent(publicMessage);
+
     console.error("Steam callback failed:", detailedMessage);
     return NextResponse.redirect(`${baseUrl}/login?error=${message}`);
   }
