@@ -11,4 +11,4 @@ export function buildPurgeCandidates({games,pinnedIds,currentPickId,snoozedIds,r
 }
 function context(game:DemoGame){const label=formatGameDuration(game.duration);return label?` Typical playthrough: ${label.toLowerCase()}.`:""}
 function age(label:string,now:Date){const m=label.match(/(\d+)\s*([hdwmy])\s*ago/i);if(m){const f={h:1/24,d:1,w:7,m:30,y:365};return Number(m[1])*f[m[2].toLowerCase() as keyof typeof f]}const t=Date.parse(label.replace(/^Added\s+/i,""));return Number.isFinite(t)?Math.max(0,(now.getTime()-t)/86400000):0}
-function formatAge(days:number){return days>=365?`${Math.floor(days/365)}y`:days>=30?`${Math.floor(days/30)}mo`:`${Math.floor(days)}d`}
+function formatAge(days:number){if(days>=365){const years=Math.floor(days/365);return `${years} year${years===1?"":"s"}`}return days>=30?`${Math.floor(days/30)}mo`:`${Math.floor(days)}d`}

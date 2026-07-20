@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentSession } from "@/lib/auth";
 import { assertHumanSubmission, assertSubmissionRate, DuplicateSubmissionError, requestFingerprint, saveContactMessage, SubmissionRateLimitError, SubmissionStorageError } from "@/lib/communications";
-import { jsonError, readJsonBody } from "@/lib/http";
+import { assertSameOrigin, jsonError, readJsonBody } from "@/lib/http";
 import { contactMessageSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   try {
+    assertSameOrigin(request);
     const fingerprint = requestFingerprint(request);
     assertSubmissionRate(`contact:${fingerprint}`, 3, 30 * 60 * 1000);
     const input = contactMessageSchema.parse(await readJsonBody(request, 16 * 1024));

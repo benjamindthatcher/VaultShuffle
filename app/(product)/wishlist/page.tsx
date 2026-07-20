@@ -5,6 +5,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { WishlistRow } from "@/components/wishlist/WishlistRow";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./wishlist.module.css";
@@ -120,7 +121,7 @@ export default function WishlistPage() {
       <header className={styles.header}>
         <h1 className="visually-hidden">Wishlist</h1>
         <button type="button" className={styles.primaryAction} onClick={() => setComposerOpen((current) => !current)}>
-          <VaultIcon name="new" /> Add Game
+          <BrandedIcon group="actions" name="add-game" size={25} /> Add Game
         </button>
       </header>
 
@@ -155,10 +156,10 @@ export default function WishlistPage() {
       ) : null}
 
       <div className={styles.statsGrid}>
-        <StatCard label="Wishlist" value={stats.total} note="Everything you are still tracking." />
-        <StatCard label="On Sale" value={stats.onSale} note="Wishlist games with visible discounts." />
-        <StatCard label="In Library" value={stats.inLibrary} note="Already owned or covered elsewhere." />
-        <StatCard label="Following" value={stats.following} note="Saved or high-priority targets." />
+        <StatCard icon="wishlist" label="Wishlist" value={stats.total} note="Everything you are still tracking." />
+        <StatCard icon="on-sale" label="On Sale" value={stats.onSale} note="Wishlist games with visible discounts." />
+        <StatCard icon="in-library" label="In Library" value={stats.inLibrary} note="Already owned or covered elsewhere." />
+        <StatCard icon="following" label="Following" value={stats.following} note="Saved or high-priority targets." />
       </div>
 
       <section className={styles.toolbar}>
@@ -227,6 +228,7 @@ export default function WishlistPage() {
           <div className={styles.priceTools}>
             {priceMessage ? <span role="status">{priceMessage}</span> : null}
             <button type="button" className={styles.secondaryAction} disabled={!isLive || refreshingPrices} onClick={() => void refreshPrices()}>
+              <BrandedIcon group="actions" name="refresh-prices" size={22} />
               {refreshingPrices ? "Refreshing…" : "Refresh Steam prices"}
             </button>
           </div>

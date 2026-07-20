@@ -15,9 +15,7 @@
 
 .footerApp {
   border-top-color: rgba(134, 91, 255, 0.18);
-  background:
-    radial-gradient(circle at 50% 0, rgba(78, 72, 220, 0.1), transparent 42%),
-    linear-gradient(180deg, rgba(8, 13, 31, 0.96), var(--vault-bg));
+  background: var(--vault-bg);
   color: var(--vault-text);
 }
 

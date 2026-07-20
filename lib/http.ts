@@ -13,6 +13,18 @@ export class HttpError extends Error {
   }
 }
 
+export function assertSameOrigin(request: Request) {
+  const fetchSite = request.headers.get("sec-fetch-site");
+  if (fetchSite && fetchSite !== "same-origin" && fetchSite !== "none") {
+    throw new HttpError("Cross-site requests are not allowed.", 403);
+  }
+
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) {
+    throw new HttpError("Cross-site requests are not allowed.", 403);
+  }
+}
+
 export async function readJsonBody<T = unknown>(request: Request, maxBytes = DEFAULT_MAX_BODY_BYTES): Promise<T> {
   const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
   if (!contentType.startsWith("application/json")) {

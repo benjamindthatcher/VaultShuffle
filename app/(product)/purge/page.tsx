@@ -60,6 +60,18 @@ export default function PurgePage() {
   const pinsFull = vaultState.pinnedIds.length >= 3 && current ? !vaultState.pinnedIds.includes(current.game.id) : false;
 
   const categoryCounts = useMemo(() => Object.fromEntries(CATEGORIES.map(({ id }) => [id, candidates.filter((item) => item.category === id).length])) as Record<PurgeCategory, number>, [candidates]);
+  const purgeStats = useMemo(() => {
+    const readyIds = new Set(candidates.map(({ game }) => game.id));
+    const actionedIds = new Set(reviews.map(({ gameId }) => gameId));
+    const reviewableGames = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed" && game.status !== "Slept");
+    const noReviewNeeded = reviewableGames.filter((game) => !readyIds.has(game.id) && !actionedIds.has(game.id)).length;
+
+    return {
+      ready: candidates.length,
+      actioned: actionedIds.size,
+      noReviewNeeded
+    };
+  }, [candidates, games, reviews]);
 
   useEffect(() => {
     if (!isLive) {
@@ -166,9 +178,13 @@ export default function PurgePage() {
           })}
         </div>
       </div>
-      <aside className={styles.snapshot}>
-        <div className={styles.snapshotLead}><div><p className={styles.eyebrow}>Purge snapshot</p><h2>{filteredCandidates.length} ready to review</h2><small>{selectedCategories.length ? `${selectedCategories.length} ${selectedCategories.length === 1 ? "category" : "categories"} selected` : "All eligible categories"}</small></div></div>
-        <div className={styles.snapshotMetrics}>{CATEGORIES.map((category) => <span key={category.id}><PurgeCategoryIcon category={category.id} /><em>{category.label}</em><strong>{categoryCounts[category.id]}</strong></span>)}</div>
+      <aside className={styles.snapshot} aria-label="Purge stats">
+        <div className={styles.snapshotLead}><div><p className={styles.eyebrow}>Purge stats</p><h2>Your Library review state</h2></div></div>
+        <div className={styles.snapshotMetrics}>
+          <PurgeStat icon="ready-to-review" label="Ready to Review" count={purgeStats.ready} />
+          <PurgeStat icon="actioned" label="Actioned" count={purgeStats.actioned} />
+          <PurgeStat icon="no-review-needed" label="No Review Needed" count={purgeStats.noReviewNeeded} />
+        </div>
       </aside>
     </section>
       <section className={styles.queuePanel}>
@@ -188,10 +204,10 @@ export default function PurgePage() {
         <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority /></div>
         <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p><div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
         <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
-          <button type="button" disabled={saving} onClick={() => void act("keep")}><img src={`${ICON_ROOT}/keep-active.svg`} alt="" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
-          <button type="button" disabled={saving || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><img src={`${ICON_ROOT}/pin.svg`} alt="" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
-          <button type="button" disabled={saving} onClick={() => void act("sleep")}><img src={`${ICON_ROOT}/sleep.svg`} alt="" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
-          <button type="button" disabled={saving} onClick={() => void act("complete")}><img src="/assets/vaultshuffle/icons/completed.svg" alt="" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
+          <button type="button" disabled={saving} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
+          <button type="button" disabled={saving || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
+          <button type="button" disabled={saving} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
+          <button type="button" disabled={saving} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
         </div>
       </section> : null}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving} onClick={() => void undoLast()}>Undo last decision</button><span>Every decision saves and advances automatically.</span></footer>
@@ -209,4 +225,40 @@ function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
     <source srcSet={`${ICON_ROOT}/${category}-48.webp`} type="image/webp" />
     <img src={`${ICON_ROOT}/${category}-48.png`} alt="" width={48} height={48} />
   </picture>;
+}
+
+type PurgeDecisionIconName = "keep-active" | "pin" | "sleep" | "mark-completed";
+
+function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
+  const root = `${ICON_ROOT}/decisions`;
+
+  return <picture className={styles.decisionIcon} aria-hidden="true">
+    <source
+      srcSet={`${root}/webp/${name}-64.webp 1x, ${root}/webp/${name}-128.webp 2x`}
+      type="image/webp"
+    />
+    <img
+      src={`${root}/png/${name}-64.png`}
+      srcSet={`${root}/png/${name}-64.png 1x, ${root}/png/${name}-128.png 2x`}
+      alt=""
+      width={32}
+      height={32}
+      draggable={false}
+    />
+  </picture>;
+}
+
+function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "actioned" | "no-review-needed"; label: string; count: number }) {
+  return <span>
+    <img
+      className={styles.purgeStatIcon}
+      src={`${ICON_ROOT}/stats/${icon}.png`}
+      alt=""
+      width={48}
+      height={48}
+      aria-hidden="true"
+    />
+    <em>{label}</em>
+    <strong>{count}</strong>
+  </span>;
 }

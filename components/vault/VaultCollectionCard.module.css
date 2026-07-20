@@ -1,5 +1,5 @@
 .wrap { min-width: 0; height: 100%; }
-.heroCard { width: 100%; min-height: 148px; height: 100%; display: grid; grid-template-columns: minmax(180px, 42%) minmax(0, 1fr) 24px; align-items: center; gap: 16px; padding: 12px; overflow: hidden; border: 1px solid rgba(144, 104, 255, 0.28); border-radius: 12px; background: rgba(8, 13, 31, 0.9); box-shadow: var(--vault-shadow); color: inherit; text-align: left; transition: border-color 180ms ease, box-shadow 180ms ease; }
+.heroCard { width: 100%; min-height: 148px; height: 100%; display: grid; grid-template-columns: minmax(180px, 42%) minmax(0, 1fr) 24px; align-items: center; gap: 16px; padding: 12px; overflow: hidden; border: 1px solid rgba(144, 104, 255, 0.28); border-radius: 12px; background: rgba(8, 13, 31, 0.58); box-shadow: var(--vault-shadow); color: inherit; text-align: left; transition: border-color 180ms ease, box-shadow 180ms ease; }
 .heroCard:hover { border-color: rgba(204, 112, 255, 0.76); box-shadow: 0 0 28px rgba(151, 70, 255, 0.18), var(--vault-shadow); }
 .artwork { position: relative; width: 100%; aspect-ratio: 460 / 215; overflow: hidden; border-radius: 9px; }
 .artwork img, .thumbnail img { object-fit: cover; }

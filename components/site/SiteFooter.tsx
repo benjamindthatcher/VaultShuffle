@@ -14,7 +14,6 @@ const links = [
   { href: "/privacy", label: "Privacy", icon: "privacy" },
   { href: "/terms", label: "Terms", icon: "terms" },
   { href: "/steam-data", label: "Steam Data", icon: "steam-data" },
-  { href: "/help", label: "Help", icon: "help" },
   { href: "/contact", label: "Contact Us", icon: "contact" }
 ] as const;
 

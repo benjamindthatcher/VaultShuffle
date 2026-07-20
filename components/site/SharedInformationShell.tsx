@@ -4,7 +4,7 @@ import styles from "./SharedInformationShell.module.css";
 
 export function SharedInformationShell({ children }: { children: ReactNode }) {
   return (
-    <AppShell>
+    <AppShell headerVariant="utility">
       <div className={styles.content}>{children}</div>
     </AppShell>
   );

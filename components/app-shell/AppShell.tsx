@@ -7,15 +7,20 @@ import { AppHeader } from "@/components/app-shell/AppHeader";
 import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import styles from "@/app/(product)/shell.module.css";
 
-export function AppShell({ children }: { children: ReactNode }) {
+type AppShellProps = {
+  children: ReactNode;
+  headerVariant?: "product" | "utility";
+};
+
+export function AppShell({ children, headerVariant = "product" }: AppShellProps) {
   return (
     <AppDataProvider>
-      <AppShellContent>{children}</AppShellContent>
+      <AppShellContent headerVariant={headerVariant}>{children}</AppShellContent>
     </AppDataProvider>
   );
 }
 
-function AppShellContent({ children }: { children: ReactNode }) {
+function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
   const { loadError, isLoading, refresh } = useAppData();
   const [bootComplete, setBootComplete] = useState(false);
 
@@ -26,7 +31,7 @@ function AppShellContent({ children }: { children: ReactNode }) {
   return (
     <div className={styles.appShell}>
       <VaultShuffleLoader active={!bootComplete && isLoading} />
-      <AppHeader />
+      <AppHeader variant={headerVariant} />
       {loadError ? (
         <div className={styles.loadNotice} role="alert">
           <span>{loadError}</span>

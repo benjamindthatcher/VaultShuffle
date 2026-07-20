@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./AppHeader.module.css";
 
 const NAV_ITEMS = [
@@ -15,7 +16,11 @@ const NAV_ITEMS = [
   { href: "/wishlist", label: "Wishlist" }
 ];
 
-export function AppHeader() {
+type AppHeaderProps = {
+  variant?: "product" | "utility";
+};
+
+export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
   const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut } = useAppData();
   const [accountMessage, setAccountMessage] = useState("");
@@ -41,7 +46,7 @@ export function AppHeader() {
   return (
     <header className={styles.headerWrap}>
       <div className={styles.header}>
-        <Link href="/vault" className={styles.brand} aria-label="Vault Shuffle home">
+        <Link href={variant === "utility" ? "/" : "/vault"} className={styles.brand} aria-label="Vault Shuffle home">
           <span className={styles.brandMark}>
             <Image
               src="/assets/brand/vaultshuffle-icon.png"
@@ -57,20 +62,24 @@ export function AppHeader() {
           </span>
         </Link>
 
-        <nav className={styles.nav} aria-label="Primary">
-          {NAV_ITEMS.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+        {variant === "product" ? (
+          <nav className={styles.nav} aria-label="Primary">
+            {NAV_ITEMS.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </nav>
+        ) : (
+          <span aria-hidden="true" />
+        )}
 
         <details className={styles.profileMenu}>
           <summary className={styles.profilePill}>
@@ -82,7 +91,7 @@ export function AppHeader() {
               )}
             </span>
             <span className={styles.profileName}>{isLoading ? "Loading" : profileName}</span>
-            <span className={styles.profileChevron} aria-hidden="true">⌄</span>
+            <VaultIcon name="chevron-down" size={15} className={styles.profileChevron} />
           </summary>
           <div className={styles.profilePopover}>
             <div className={styles.accountSummary}>

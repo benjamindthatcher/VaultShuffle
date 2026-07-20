@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
 import { InfoPage } from "@/components/site/InfoPage";
 import { SharedInformationShell } from "@/components/site/SharedInformationShell";
-export const metadata: Metadata = { title: "Privacy", alternates: { canonical: "/privacy" } };
+export const metadata: Metadata = { title: "Privacy Policy", description: "How VaultShuffle uses Steam account data, support messages, cookies, and privacy choices.", alternates: { canonical: "/privacy" }, openGraph: { url: "/privacy" } };
 export default function PrivacyPage(){return <SharedInformationShell><InfoPage eyebrow="Legal" title="Privacy" intro="VaultShuffle is designed to use only the information needed to provide your library and recommendation experience." sections={[{title:"Information we use",body:"Steam account identifiers, public profile details and game data are used to sync and operate your VaultShuffle account. We do not receive your Steam password."},{title:"Your messages",body:"Feedback and contact messages are private support records. They are not exposed to other users and are used only to respond, investigate issues and improve VaultShuffle."},{title:"Your choices",body:"Cookie Settings controls optional analytics. Account and data-deletion enquiries can be submitted through Contact Us."}]}/></SharedInformationShell>}

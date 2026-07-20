@@ -16,14 +16,41 @@ type VaultPoolPreviewProps = {
   onSelect?: (gameId: string) => void;
   sleepingId?: string | null;
   onSleep?: (gameId: string) => void;
+  pinnedIds?: string[];
+  onPin?: (gameId: string) => void;
+  onComplete?: (gameId: string) => void;
   onUserScroll?: () => void;
 };
 
-export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, sleepingId = null, onSleep, onUserScroll }: VaultPoolPreviewProps) {
+export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, sleepingId = null, onSleep, pinnedIds = [], onPin, onComplete, onUserScroll }: VaultPoolPreviewProps) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const progressTrackRef = useRef<HTMLDivElement>(null);
+  const progressThumbRef = useRef<HTMLSpanElement>(null);
   const programmaticScrollRef = useRef(false);
-  const [scrollState, setScrollState] = useState({ progress: 0, ratio: 1 });
+  const onUserScrollRef = useRef(onUserScroll);
+  onUserScrollRef.current = onUserScroll;
   const isDrawing = drawState === "focusing" || drawState === "revealing";
+
+  useEffect(() => {
+    if (!openMenuId) return;
+
+    function closeOnOutsidePointer(event: PointerEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) setOpenMenuId(null);
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenMenuId(null);
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [openMenuId]);
 
   useEffect(() => {
     if (drawState !== "revealing" || !winner || !railRef.current) return;
@@ -35,21 +62,41 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
 
   useEffect(() => {
     const rail = railRef.current;
-    if (!rail) return;
+    const track = progressTrackRef.current;
+    const thumb = progressThumbRef.current;
+    if (!rail || !track || !thumb) return;
+    let animationFrame = 0;
+
     const update = () => {
+      animationFrame = 0;
       const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
-      setScrollState({
-        progress: maxScroll ? rail.scrollLeft / maxScroll : 0,
-        ratio: Math.min(1, rail.clientWidth / Math.max(rail.scrollWidth, 1))
-      });
+      const ratio = Math.min(1, rail.clientWidth / Math.max(rail.scrollWidth, 1));
+      const thumbWidth = track.clientWidth * ratio;
+      const progress = maxScroll ? rail.scrollLeft / maxScroll : 0;
+
+      thumb.style.width = `${ratio * 100}%`;
+      thumb.style.transform = `translate3d(${progress * Math.max(0, track.clientWidth - thumbWidth)}px, 0, 0)`;
     };
+
+    const scheduleUpdate = () => {
+      if (!animationFrame) animationFrame = window.requestAnimationFrame(update);
+    };
+
     update();
-    const observer = new ResizeObserver(update);
+    const observer = new ResizeObserver(scheduleUpdate);
     observer.observe(rail);
-    const onScroll = () => { update(); if (!programmaticScrollRef.current) onUserScroll?.(); };
+    observer.observe(track);
+    const onScroll = () => {
+      scheduleUpdate();
+      if (!programmaticScrollRef.current) onUserScrollRef.current?.();
+    };
     rail.addEventListener("scroll", onScroll, { passive: true });
-    return () => { observer.disconnect(); rail.removeEventListener("scroll", onScroll); };
-  }, [entries, onUserScroll]);
+    return () => {
+      observer.disconnect();
+      rail.removeEventListener("scroll", onScroll);
+      if (animationFrame) window.cancelAnimationFrame(animationFrame);
+    };
+  }, [entries.length]);
 
   function moveRail(direction: -1 | 1) {
     onUserScroll?.();
@@ -63,11 +110,13 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
       <div className={styles.grid} ref={railRef}>
       {entries.map(({ game, score }, index) => {
         const isHighlighted = highlightedId === game.id;
+        const menuOpen = openMenuId === game.id;
+        const isPinned = pinnedIds.includes(game.id);
         const durationLabel = formatGameDuration(game.duration);
         return (
           <article
             key={game.id}
-            className={isHighlighted ? `${styles.card} ${styles.cardHighlighted}` : styles.card}
+            className={`${styles.card}${isHighlighted ? ` ${styles.cardHighlighted}` : ""}${menuOpen ? ` ${styles.cardMenuOpen}` : ""}`}
             id={`vault-card-${game.id}`}
             data-game-id={game.id}
           >
@@ -88,20 +137,26 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
                 </div>
               </div>
             </button>
-            <button
-              type="button"
-              className={sleepingId === game.id ? `${styles.heart} ${styles.sleeping}` : styles.heart}
-              aria-label="Snooze this game"
-              title="Snooze this pick"
-              disabled={sleepingId === game.id}
-              onClick={() => onSleep?.(game.id)}
-            ><VaultIcon name="snooze" size={18} /></button>
+            <div ref={menuOpen ? menuRef : undefined} className={styles.menuShell} onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                className={styles.menuTrigger}
+                aria-label={`Actions for ${game.title}`}
+                aria-expanded={menuOpen}
+                onClick={() => setOpenMenuId((current) => current === game.id ? null : game.id)}
+              ><VaultIcon name="menu-dots" size={20} /></button>
+              {menuOpen ? <div className={styles.menu} role="menu">
+                <button type="button" role="menuitem" onClick={() => { setOpenMenuId(null); onPin?.(game.id); }}>{isPinned ? "Unpin game" : "Pin game"}</button>
+                <button type="button" role="menuitem" disabled={sleepingId === game.id} onClick={() => { setOpenMenuId(null); onSleep?.(game.id); }}>Sleep game</button>
+                <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setOpenMenuId(null); onComplete?.(game.id); }}>Mark as Completed</button>
+              </div> : null}
+            </div>
           </article>
         );
       })}
       </div>
       <button type="button" className={`${styles.arrow} ${styles.arrowRight}`} aria-label="Next games" onClick={() => moveRail(1)}><VaultIcon name="chevron-right" /></button>
-      <div className={styles.progressTrack} aria-hidden="true"><span style={{ width: `${scrollState.ratio * 100}%`, left: `${scrollState.progress * (1 - scrollState.ratio) * 100}%` }} /></div>
+      <div ref={progressTrackRef} className={styles.progressTrack} aria-hidden="true"><span ref={progressThumbRef} /></div>
     </div>
   );
 }

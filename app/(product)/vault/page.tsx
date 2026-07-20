@@ -5,6 +5,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
 import { Artwork } from "@/components/shared/Artwork";
+import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
@@ -291,6 +292,12 @@ export default function VaultPage() {
             onSelect={setDetailsGameId}
             sleepingId={sleepingGameId}
             onSleep={(id) => void sleepPoolGame(id)}
+            pinnedIds={vaultState.pinnedIds}
+            onPin={(id) => void togglePin(id)}
+            onComplete={(id) => {
+              const game = ownedGames.find((item) => item.id === id);
+              if (game) void completeGame(game);
+            }}
             onUserScroll={() => setHighlightedGameId(null)}
           />
         ) : (
@@ -305,7 +312,7 @@ export default function VaultPage() {
 
         <div className={styles.poolActionArea}>
           <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!canDraw || drawingRef.current} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
-            <VaultIcon name="draw-from-vault" size={20} />{drawState === "focusing" || drawState === "revealing" ? "Drawing from the Vault…" : "Draw from the Vault"}
+            <BrandedIcon group="actions" name="draw-from-vault" size={24} />{drawState === "focusing" || drawState === "revealing" ? "Drawing from the Vault…" : "Draw from the Vault"}
           </button>
           <p className={styles.setupStatus} id="vault-setup-status">{missingSetup.length ? `Choose ${formatMissingSetup(missingSetup)}.` : !pool.length ? "No games match this setup." : "Your setup is ready."}</p>
         </div>
@@ -317,7 +324,7 @@ export default function VaultPage() {
         <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
           <div className={styles.resultArtwork}>
             <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority />
-            <span className={styles.currentPickBadge}><VaultIcon name="pin" size={16} />Current pick</span>
+            <span className={styles.currentPickBadge}><BrandedIcon group="actions" name="pin" size={18} />Current pick</span>
           </div>
           <div className={styles.resultBody}>
             <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
@@ -332,19 +339,19 @@ export default function VaultPage() {
                 <VaultIcon name="open-steam" size={26} /><strong>Open on Steam</strong><span>Launch the game</span>
               </a>
               <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned"); }}>
-                <VaultIcon name="pin" size={26} /><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><span>Priority Library shelf</span>
+                <BrandedIcon group="actions" name={vaultState.pinnedIds.includes(currentPick.id) ? "unpin" : "pin"} size={32} /><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><span>Priority Library shelf</span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault(); }}>
-                <VaultIcon name="draw-again" size={26} /><strong>Draw Again</strong><span>Find something else</span>
+                <BrandedIcon group="actions" name="draw-again" size={32} /><strong>Draw Again</strong><span>Find something else</span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
-                <VaultIcon name="snooze" size={26} /><strong>Not Now</strong><span>Snooze this pick</span>
+                <BrandedIcon group="actions" name="snooze-not-now" size={32} /><strong>Not Now</strong><span>Snooze this pick</span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
-                <VaultIcon name="details" size={26} /><strong>View Details</strong><span>More info</span>
+                <BrandedIcon group="actions" name="view-details" size={32} /><strong>View Details</strong><span>More info</span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed"); void completeGame(currentPick); }}>
-                <VaultIcon name="completed" size={26} /><strong>Mark as Completed</strong><span>Archive this game</span>
+                <BrandedIcon group="actions" name="mark-completed" size={32} /><strong>Mark as Completed</strong><span>Archive this game</span>
               </button>
             </div>
           </div>

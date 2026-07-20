@@ -6,6 +6,7 @@ import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
@@ -154,7 +155,7 @@ export default function CollectionsPage() {
       <header className={styles.header}>
         <h1 className="visually-hidden">Collections</h1>
         <button type="button" className={styles.primaryAction} onClick={openNewComposer}>
-          <VaultIcon name="new" /> New Collection
+          <BrandedIcon group="actions" name="new-collection" size={25} /> New Collection
         </button>
       </header>
 
@@ -211,10 +212,10 @@ export default function CollectionsPage() {
       ) : null}
 
       <div className={styles.statsGrid}>
-        <StatCard label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
-        <StatCard label="Smart Collections" value={stats.smart} note="Automatically themed groupings." />
-        <StatCard label="Custom Collections" value={stats.custom} note="Hand-shaped shelves with your own intent." />
-        <StatCard label="Games in Collections" value={stats.inCollections} note="Owned games already sorted into groups." />
+        <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
+        <StatCard icon="smart-collections" label="Smart Collections" value={stats.smart} note="Automatically themed groupings." />
+        <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note="Hand-shaped shelves with your own intent." />
+        <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note="Owned games already sorted into groups." />
       </div>
 
       <section className={styles.collectionPanel}>

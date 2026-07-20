@@ -1,3 +1,57 @@
+import type { Metadata } from "next";
+import { siteConfig } from "@/lib/site";
+
+export const metadata: Metadata = {
+  title: { absolute: "VaultShuffle | Decide What to Play Next" },
+  description: siteConfig.description,
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "VaultShuffle | Decide What to Play Next",
+    description: siteConfig.socialDescription,
+    url: "/"
+  }
+};
+
+const structuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": `${siteConfig.url}/#website`,
+      url: siteConfig.url,
+      name: siteConfig.name,
+      alternateName: siteConfig.displayName,
+      description: siteConfig.description,
+      inLanguage: "en-GB"
+    },
+    {
+      "@type": "Organization",
+      "@id": `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      logo: `${siteConfig.url}/icon.png`,
+      email: siteConfig.supportEmail
+    },
+    {
+      "@type": "WebApplication",
+      "@id": `${siteConfig.url}/#application`,
+      name: siteConfig.name,
+      url: siteConfig.url,
+      description: siteConfig.description,
+      applicationCategory: "GameApplication",
+      operatingSystem: "Any modern web browser",
+      browserRequirements: "Requires JavaScript and a modern web browser",
+      isAccessibleForFree: true,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "GBP"
+      },
+      publisher: { "@id": `${siteConfig.url}/#organization` }
+    }
+  ]
+};
+
 const valueProps = [
   {
     title: "Curated surprises",
@@ -237,6 +291,12 @@ function LandingIcon({ name }: { name: string }) {
 export default function HomePage() {
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData).replace(/</g, "\\u003c")
+        }}
+      />
       <link rel="stylesheet" href="/landing.css" precedence="high" />
       <main className="vs-landing">
         <section className="vs-hero" aria-labelledby="landing-title">

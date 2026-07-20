@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
+import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatDurationEstimate } from "@/lib/game-duration";
@@ -85,7 +86,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             <div><strong>{pinSlot ? `Pinned in slot ${pinSlot}` : pinCount >= 3 ? "Pins full · 3/3" : "Pin game"}</strong><span>{pinSlot ? "Kept at the front of your Active Library." : `Keep it at the front of your Library · ${pinCount}/3 used`}</span></div>
             <div className={styles.pinActions}>
               <button type="button" onClick={pinSlot || pinCount < 3 ? onTogglePin : onManagePins}>{pinSlot ? "Unpin" : pinCount >= 3 ? "Manage Pins" : "Pin game"}</button>
-              {game.status === "Completed" ? <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><VaultIcon name="in-progress" size={17} />Restore to Active</button> : <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>}
+              {game.status === "Completed" ? <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><BrandedIcon group="actions" name="restore-active" size={22} />Restore to Active</button> : <button type="button" disabled={saving} onClick={() => void onComplete?.()}><BrandedIcon group="actions" name="mark-completed" size={22} />Mark as Completed</button>}
             </div>
           </div>
 
@@ -157,7 +158,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             >
               <VaultIcon name="play-now" size={20} />
               <span>Play on Steam</span>
-              <span className={styles.steamArrow} aria-hidden="true">→</span>
+              <VaultIcon name="chevron-right" size={18} className={styles.steamArrow} />
             </a>
             <button
               type="button"

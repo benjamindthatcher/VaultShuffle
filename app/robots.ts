@@ -1,11 +1,14 @@
 import type { MetadataRoute } from "next";
+import { siteConfig } from "@/lib/site";
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: {
+    rules: [{
       userAgent: "*",
-      allow: "/"
-    },
-    sitemap: "https://vaultshuffle.com/sitemap.xml"
+      allow: "/",
+      disallow: ["/api/"]
+    }],
+    sitemap: `${siteConfig.url}/sitemap.xml`,
+    host: siteConfig.url
   };
 }

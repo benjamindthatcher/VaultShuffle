@@ -1,11 +1,22 @@
 import type { MetadataRoute } from "next";
+import { siteConfig } from "@/lib/site";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/vault", "/library", "/purge", "/collections", "/wishlist", "/help", "/privacy", "/terms", "/steam-data", "/contact"];
+  const routes: Array<{
+    path: string;
+    changeFrequency: "weekly" | "monthly" | "yearly";
+    priority: number;
+  }> = [
+    { path: "", changeFrequency: "weekly", priority: 1 },
+    { path: "/contact", changeFrequency: "monthly", priority: 0.6 },
+    { path: "/privacy", changeFrequency: "yearly", priority: 0.4 },
+    { path: "/terms", changeFrequency: "yearly", priority: 0.4 },
+    { path: "/steam-data", changeFrequency: "yearly", priority: 0.5 }
+  ];
 
   return routes.map((route) => ({
-    url: `https://vaultshuffle.com${route}`,
-    changeFrequency: ["/vault", "/library", "/purge", "/collections", "/wishlist"].includes(route) ? "weekly" : "monthly",
-    priority: route === "" ? 1 : ["/vault", "/library", "/purge", "/collections", "/wishlist"].includes(route) ? 0.8 : 0.6
+    url: `${siteConfig.url}${route.path}`,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority
   }));
 }

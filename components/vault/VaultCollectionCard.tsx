@@ -76,7 +76,7 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
       {open ? createPortal(<div className={styles.modalLayer}>
         <button type="button" className={styles.backdrop} onClick={close} aria-label="Close collection picker" />
         <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="collection-picker-title">
-          <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" className={styles.closeButton} onClick={close} aria-label="Close">×</button></header>
+          <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" className={styles.closeButton} onClick={close} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
           <label className={styles.search}><VaultIcon name="search" size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search collections…" /></label>
           <div className={styles.collectionList}>
             {visibleCollections.map((collection) => {
@@ -85,12 +85,12 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
                 <span className={styles.thumbnail}><Artwork src={collection.artworkUrl} sizes="72px" /></span>
                 <span><strong>{collection.name}</strong><small>{collection.id === "all" ? "No collection restriction" : collection.description}</small></span>
                 <span className={styles.rowCount}>{collectionCounts[collection.id] ?? 0} games</span>
-                <span className={styles.check} aria-label={selected ? "Selected" : undefined}>{selected ? "✓" : ""}</span>
+                <span className={styles.check} aria-label={selected ? "Selected" : undefined}>{selected ? <VaultIcon name="check" size={18} /> : null}</span>
               </button>;
             })}
             {!visibleCollections.length ? <p className={styles.empty}>No collections match that search.</p> : null}
           </div>
-          <Link className={styles.manageLink} href="/collections">Manage collections <span aria-hidden="true">→</span></Link>
+          <Link className={styles.manageLink} href="/collections">Manage collections <VaultIcon name="chevron-right" size={17} /></Link>
         </div>
       </div>, document.body) : null}
     </section>

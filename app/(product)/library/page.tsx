@@ -123,11 +123,11 @@ export default function LibraryPage() {
       </header>
 
       <div className={styles.statsGrid}>
-        <StatCard density="compact" label="All Games" value={stats.total} note="Everything currently in your library." />
-        <StatCard density="compact" label="Played" value={stats.played} note="Games with real playtime already logged." />
-        <StatCard density="compact" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
-        <StatCard density="compact" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
-        <StatCard density="compact" label="In Progress" value={stats.inProgress} note="Mid-journey picks ready to continue." />
+        <StatCard density="compact" icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
+        <StatCard density="compact" icon="played" label="Played" value={stats.played} note="Games with real playtime already logged." />
+        <StatCard density="compact" icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
+        <StatCard density="compact" icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
+        <StatCard density="compact" icon="in-progress" label="In Progress" value={stats.inProgress} note="Mid-journey picks ready to continue." />
       </div>
 
       <section className={styles.sectionCard}>

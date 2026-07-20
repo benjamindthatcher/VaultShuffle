@@ -13,10 +13,9 @@ next-env.d.ts
 next-env.d.ts
 data/catalogue/steam-top-1000-owners-2026-07-15.json
 data/catalogue/README.md
-DATABASE_V2_AUDIT.md
-DATABASE_V2_BACKUP_AND_ROLLBACK.md
+DATABASE_*.md
 supabase/README.md
-supabase/migrations/20260717090000_game_duration_enrichment.sql
+supabase/migrations/
 supabase/functions/igdb-duration-worker/index.ts
 supabase/functions/_shared/igdb-duration-provider.ts
 supabase/functions/_shared/igdb-duration-provider.test.ts
