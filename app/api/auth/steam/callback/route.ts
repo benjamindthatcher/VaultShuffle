@@ -38,7 +38,10 @@ export async function GET(request: Request) {
       ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY)
       : null;
     const { token } = await createSessionForSteamId(steamId, profile);
-    const response = NextResponse.redirect(new URL("/vault", baseUrl));
+    const redirectUrl = new URL(`${baseUrl}/vault`);
+redirectUrl.searchParams.set("steam_connected", "1");
+
+const response = NextResponse.redirect(redirectUrl);
     return attachSessionCookie(response, token);
   } catch (error) {
     const detailedMessage = describeError(error);

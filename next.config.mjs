@@ -8,7 +8,7 @@ const contentSecurityPolicy = [
   "form-action 'self' https://steamcommunity.com",
   `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"} https://va.vercel-scripts.com`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://cdn.cloudflare.steamstatic.com https://cdn.akamai.steamstatic.com https://avatars.steamstatic.com",
+  "img-src 'self' data: blob: https://cdn.cloudflare.steamstatic.com https://cdn.akamai.steamstatic.com https://shared.akamai.steamstatic.com https://avatars.steamstatic.com",
   "font-src 'self' data:",
   "connect-src 'self' https://*.supabase.co https://vitals.vercel-insights.com https://*.vercel-insights.com",
   "frame-src 'none'",
@@ -46,6 +46,7 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "cdn.cloudflare.steamstatic.com" },
       { protocol: "https", hostname: "cdn.akamai.steamstatic.com" },
+      { protocol: "https", hostname: "shared.akamai.steamstatic.com" },
       { protocol: "https", hostname: "avatars.steamstatic.com" }
     ],
     formats: ["image/avif", "image/webp"],
