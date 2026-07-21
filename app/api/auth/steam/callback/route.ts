@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { attachSessionCookie, createSessionForSteamId } from "@/lib/auth";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 
+const STEAM_IMPORT_COOKIE = "vault_steam_import";
+
 function describeError(error: unknown) {
   if (error instanceof Error) return error.message;
   if (typeof error === "object" && error) {
@@ -39,10 +41,19 @@ export async function GET(request: Request) {
       : null;
 
     const { token } = await createSessionForSteamId(steamId, profile);
-    const redirectUrl = new URL("/vault", baseUrl);
-    redirectUrl.searchParams.set("steam_connected", "1");
+    const response = NextResponse.redirect(new URL("/vault", baseUrl));
 
-    return attachSessionCookie(NextResponse.redirect(redirectUrl), token);
+    response.cookies.set({
+      name: STEAM_IMPORT_COOKIE,
+      value: "1",
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 5 * 60
+    });
+
+    return attachSessionCookie(response, token);
   } catch (error) {
     const detailedMessage = describeError(error);
     const publicMessage = detailedMessage === "Steam sign-in was cancelled."

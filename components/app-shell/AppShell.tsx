@@ -2,11 +2,12 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AppDataProvider, useAppData } from "@/components/app-shell/AppDataProvider";
 import { AppHeader } from "@/components/app-shell/AppHeader";
 import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import styles from "@/app/(product)/shell.module.css";
+
+const STEAM_IMPORT_COOKIE = "vault_steam_import";
 
 type AppShellProps = {
   children: ReactNode;
@@ -22,7 +23,6 @@ export function AppShell({ children, headerVariant = "product" }: AppShellProps)
 }
 
 function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
-  const router = useRouter();
   const {
     loadError,
     isLive,
@@ -33,27 +33,42 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
   } = useAppData();
 
   const [bootComplete, setBootComplete] = useState(false);
-  const [initialUrlChecked, setInitialUrlChecked] = useState(false);
+  const [initialMarkerChecked, setInitialMarkerChecked] = useState(false);
   const [pendingSteamImport, setPendingSteamImport] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const automaticImportStartedRef = useRef(false);
 
-  // Check the Steam callback flag before allowing a product page to mount.
   useEffect(() => {
     const url = new URL(window.location.href);
-    setPendingSteamImport(url.searchParams.get("steam_connected") === "1");
-    setInitialUrlChecked(true);
+    const legacyUrlMarker = url.searchParams.get("steam_connected") === "1";
+    const cookieMarker = document.cookie
+      .split(";")
+      .map((part) => part.trim())
+      .some((part) => part === `${STEAM_IMPORT_COOKIE}=1`);
+
+    if (cookieMarker) {
+      document.cookie = `${STEAM_IMPORT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
+    }
+
+    if (legacyUrlMarker) {
+      url.searchParams.delete("steam_connected");
+      window.history.replaceState(
+        window.history.state,
+        "",
+        `${url.pathname}${url.search}${url.hash}`
+      );
+    }
+
+    setPendingSteamImport(cookieMarker || legacyUrlMarker);
+    setInitialMarkerChecked(true);
   }, []);
 
-  // Only hold back the first product-page mount. Later data refreshes do not
-  // tear down the currently visible page.
   useEffect(() => {
     if (!isLoading) setBootComplete(true);
   }, [isLoading]);
 
-  // A fresh Steam callback finishes its import before /vault is mounted.
   useEffect(() => {
-    if (!initialUrlChecked || !pendingSteamImport || isLoading) return;
+    if (!initialMarkerChecked || !pendingSteamImport || isLoading) return;
 
     if (!isLive) {
       setImportError("Steam sign-in did not produce an active session.");
@@ -63,15 +78,6 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
 
     if (automaticImportStartedRef.current) return;
     automaticImportStartedRef.current = true;
-
-    const url = new URL(window.location.href);
-    url.searchParams.delete("steam_connected");
-
-    // Update Next's router state as well as the visible address. Using
-    // window.history.replaceState(null, ...) left Next holding the old URL,
-    // so client-side navigation could restore ?steam_connected=1.
-    router.replace(`${url.pathname}${url.search}${url.hash}`, { scroll: false });
-
     setImportError(null);
 
     void syncSteamLibrary()
@@ -87,11 +93,10 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
         setPendingSteamImport(false);
       });
   }, [
-    initialUrlChecked,
+    initialMarkerChecked,
     pendingSteamImport,
     isLive,
     isLoading,
-    router,
     syncSteamLibrary
   ]);
 
@@ -109,7 +114,7 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
   }
 
   const holdInitialContent =
-    !initialUrlChecked || !bootComplete || pendingSteamImport;
+    !initialMarkerChecked || !bootComplete || pendingSteamImport;
 
   return (
     <div className={styles.appShell}>
