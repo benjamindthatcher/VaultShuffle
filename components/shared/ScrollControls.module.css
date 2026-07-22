@@ -1,0 +1,5 @@
+.controls { display: inline-flex; align-items: center; gap: 8px; }
+.controls button { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 1px solid rgba(187, 108, 255, .48); border-radius: 999px; background: rgba(18, 20, 48, .94); color: #e0b1ff; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
+.controls button:hover:not(:disabled), .controls button:focus-visible { border-color: #d27aff; background: rgba(118, 53, 203, .34); color: #fff; outline: none; }
+.controls button:disabled { opacity: .32; cursor: default; }
+.vertical { position: sticky; z-index: 5; top: 8px; justify-self: end; float: right; margin: 0 0 8px 10px; padding: 4px; border-radius: 999px; background: rgba(5, 8, 25, .82); backdrop-filter: blur(10px); }

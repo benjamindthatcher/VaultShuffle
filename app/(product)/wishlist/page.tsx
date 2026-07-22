@@ -6,16 +6,17 @@ import { Artwork } from "@/components/shared/Artwork";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { BrandedIcon } from "@/components/shared/BrandedIcon";
+import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
+import { ScrollControls } from "@/components/shared/ScrollControls";
 import { WishlistRow } from "@/components/wishlist/WishlistRow";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./wishlist.module.css";
 import type { SteamSearchResult } from "@/lib/types";
 
-const priorityRank = { "Must Play": 3, High: 2, Medium: 1 } as const;
-
 export default function WishlistPage() {
-  const { games, isLive, searchSteam, addWishlistGame, updateGame, removeGame, refreshSteamMetadata } = useAppData();
+  const { games, vaultState, isLive, searchSteam, addWishlistGame, removeGame, refreshSteamMetadata, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
+  const pinnedGridRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState("added");
   const [filter, setFilter] = useState("all");
   const [composerOpen, setComposerOpen] = useState(false);
@@ -25,6 +26,8 @@ export default function WishlistPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [priceMessage, setPriceMessage] = useState("");
+  const [managePinsOpen, setManagePinsOpen] = useState(false);
+  const [pinCandidate, setPinCandidate] = useState<(typeof games)[number] | null>(null);
   const refreshStarted = useRef(false);
   const wishlistGames = useMemo(() => games.filter((game) => game.ownership === "Wishlist"), [games]);
   const ownedSteamAppIds = useMemo(
@@ -48,10 +51,7 @@ export default function WishlistPage() {
           game.title.toLowerCase().includes(queryText) ||
           game.genres.join(" ").toLowerCase().includes(queryText);
 
-        const matchesFilter =
-          filter === "all" ||
-          (filter === "sale" && Boolean(game.saleDiscount)) ||
-          (filter === "priority" && game.priority === "Must Play");
+        const matchesFilter = filter === "all" || (filter === "sale" && Boolean(game.saleDiscount));
 
         return matchesQuery && matchesFilter;
       })
@@ -59,7 +59,7 @@ export default function WishlistPage() {
         if (sort === "price") return Number.parseFloat(left.salePrice?.replace(/[^\d.]/g, "") || "999") - Number.parseFloat(right.salePrice?.replace(/[^\d.]/g, "") || "999");
         if (sort === "discount") return Number.parseInt(right.saleDiscount || "0", 10) - Number.parseInt(left.saleDiscount || "0", 10);
         if (sort === "title") return left.title.localeCompare(right.title);
-        return priorityRank[right.priority] - priorityRank[left.priority] || left.title.localeCompare(right.title);
+        return sortableAddedDate(right) - sortableAddedDate(left) || left.title.localeCompare(right.title);
       });
   }, [filter, query, sort, wishlistGames]);
 
@@ -70,15 +70,25 @@ export default function WishlistPage() {
       total: wishlistGames.length,
       onSale: onSaleGames.length,
       inLibrary: wishlistGames.filter((game) => ownedSteamAppIds.has(game.steamAppId)).length,
-      following: wishlistGames.filter((game) => game.priority === "Must Play").length
+      pinned: vaultState.wishlistPinnedIds.filter((id) => wishlistGames.some((game) => game.id === id)).length
     }),
-    [onSaleGames.length, ownedSteamAppIds, wishlistGames]
+    [onSaleGames.length, ownedSteamAppIds, vaultState.wishlistPinnedIds, wishlistGames]
   );
 
-  async function toggleLike(id: string) {
-    const game = wishlistGames.find((item) => item.id === id);
-    if (!game) return;
-    await updateGame(id, { priority: game.priority === "Must Play" ? "High" : "Must Play" });
+  const pinnedGames = vaultState.wishlistPinnedIds
+    .map((id) => wishlistGames.find((game) => game.id === id))
+    .filter((game): game is (typeof wishlistGames)[number] => Boolean(game));
+  const ordinaryWishlist = filteredWishlist.filter((game) => !vaultState.wishlistPinnedIds.includes(game.id));
+
+  async function togglePin(game: (typeof wishlistGames)[number]) {
+    if (vaultState.wishlistPinnedIds.includes(game.id)) {
+      await recordVaultAction("unpinned", game.id, { pin_scope: "wishlist" });
+    } else if (vaultState.wishlistPinnedIds.length < 3) {
+      await recordVaultAction("pinned", game.id, { pin_scope: "wishlist" });
+    } else {
+      setPinCandidate(game);
+      setManagePinsOpen(true);
+    }
   }
 
   async function handleSteamSearch() {
@@ -120,47 +130,81 @@ export default function WishlistPage() {
     <section className={styles.wishlistPage}>
       <header className={styles.header}>
         <h1 className="visually-hidden">Wishlist</h1>
-        <button type="button" className={styles.primaryAction} onClick={() => setComposerOpen((current) => !current)}>
-          <BrandedIcon group="actions" name="add-game" size={25} /> Add Game
-        </button>
       </header>
-
-      {composerOpen ? (
-        <section className={styles.composerCard}>
-          <div className={styles.composerGrid}>
-            <label className={styles.field}>
-              <span>Search Steam</span>
-              <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void handleSteamSearch(); } }} placeholder="Search by game name" />
-            </label>
-          </div>
-          {searchResults.length ? (
-            <div className={styles.searchResults}>
-              {searchResults.map((result) => (
-                <button key={result.appid} type="button" className={styles.searchResult} onClick={() => void handleAddWishlistGame(result)}>
-                  <span className={styles.searchArtwork}><Artwork src={result.image} sizes="92px" /></span>
-                  <span><strong>{result.name}</strong><small>{result.genre || "Steam game"}</small></span>
-                  <span>Add</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <div className={styles.composerActions}>
-            <button type="button" className={styles.secondaryAction} onClick={() => setComposerOpen(false)}>
-              Cancel
-            </button>
-            <button type="button" className={styles.primaryAction} disabled={searching} onClick={() => void handleSteamSearch()}>
-              {searching ? "Searching…" : "Search Steam"}
-            </button>
-          </div>
-        </section>
-      ) : null}
 
       <div className={styles.statsGrid}>
         <StatCard icon="wishlist" label="Wishlist" value={stats.total} note="Everything you are still tracking." />
         <StatCard icon="on-sale" label="On Sale" value={stats.onSale} note="Wishlist games with visible discounts." />
         <StatCard icon="in-library" label="In Library" value={stats.inLibrary} note="Already owned or covered elsewhere." />
-        <StatCard icon="following" label="Following" value={stats.following} note="Saved or high-priority targets." />
+        <StatCard actionIcon="pin" label="Pinned" value={stats.pinned} note="Up to three games kept at the front." />
       </div>
+
+      <section className={`${styles.sectionCard} ${styles.pinnedShelf}`}>
+        <div className={styles.pinnedHeader}>
+          <h2>Pinned Games <span>{pinnedGames.length}/3</span></h2>
+          <div className={styles.slotDots} aria-label={`${pinnedGames.length} of 3 wishlist pins used`}>{[0, 1, 2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div>
+          <ScrollControls targetRef={pinnedGridRef} axis="horizontal" label="Browse pinned wishlist games" />
+          <button type="button" onClick={() => { setPinCandidate(null); setManagePinsOpen(true); }}>Manage Pins</button>
+        </div>
+        <div ref={pinnedGridRef} className={styles.pinnedGrid}>
+          {pinnedGames.map((game, index) => (
+            <article key={game.id} className={styles.pinnedCard}>
+              <span className={styles.pinnedArtwork}><Artwork src={game.bannerUrl} sizes="(max-width: 720px) 78vw, 360px" /></span>
+              <div className={styles.pinnedBody}><strong>{game.title}</strong><span>{game.salePrice ?? game.addedLabel}</span></div>
+              <span className={styles.pinBadge}>⌖ {index + 1}</span>
+            </article>
+          ))}
+          {Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>)}
+        </div>
+      </section>
+
+      <section className={styles.composerCard}>
+        <div className={styles.composerHeader}>
+          <div>
+            <p className={styles.sectionEyebrow}>Add to wishlist</p>
+            <h2 className={styles.composerTitle}>Find a new game</h2>
+          </div>
+          <button
+            type="button"
+            className={styles.primaryAction}
+            aria-expanded={composerOpen}
+            onClick={() => setComposerOpen((current) => !current)}
+          >
+            <BrandedIcon group="actions" name="add-game" size={25} />
+            {composerOpen ? "Close" : "Add Game"}
+          </button>
+        </div>
+
+        {composerOpen ? (
+          <div className={styles.composerBody}>
+            <div className={styles.composerGrid}>
+              <label className={styles.field}>
+                <span>Search Steam</span>
+                <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void handleSteamSearch(); } }} placeholder="Search by game name" />
+              </label>
+            </div>
+            {searchResults.length ? (
+              <div className={styles.searchResults}>
+                {searchResults.map((result) => (
+                  <button key={result.appid} type="button" className={styles.searchResult} onClick={() => void handleAddWishlistGame(result)}>
+                    <span className={styles.searchArtwork}><Artwork src={result.image} sizes="92px" /></span>
+                    <span><strong>{result.name}</strong><small>{result.genre || "Steam game"}</small></span>
+                    <span>Add</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            <div className={styles.composerActions}>
+              <button type="button" className={styles.secondaryAction} onClick={() => setComposerOpen(false)}>
+                Cancel
+              </button>
+              <button type="button" className={styles.primaryAction} disabled={searching} onClick={() => void handleSteamSearch()}>
+                {searching ? "Searching…" : "Search Steam"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <section className={styles.toolbar}>
         <label className={styles.searchField}>
@@ -171,7 +215,7 @@ export default function WishlistPage() {
           <label className={styles.selectField}>
             <span className={styles.controlLabel}><VaultIcon name="sort" size={18} />Sort</span>
             <select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="added">Priority</option>
+              <option value="added">Date added</option>
               <option value="title">Title A-Z</option>
               <option value="price">Lowest visible price</option>
               <option value="discount">Biggest discount</option>
@@ -182,7 +226,6 @@ export default function WishlistPage() {
             <select value={filter} onChange={(event) => setFilter(event.target.value)}>
               <option value="all">All tags</option>
               <option value="sale">On sale</option>
-              <option value="priority">Must play</option>
             </select>
           </label>
         </div>
@@ -195,16 +238,17 @@ export default function WishlistPage() {
           </div>
         </div>
         <div className={styles.rowList}>
-          {filteredWishlist.map((game) => (
+          {ordinaryWishlist.map((game) => (
             <WishlistRow
               key={game.id}
               game={game}
-              liked={game.priority === "Must Play"}
-              onToggleLike={() => void toggleLike(game.id)}
+              pinned={vaultState.wishlistPinnedIds.includes(game.id)}
+              onTogglePin={() => void togglePin(game)}
               removing={removingId === game.id}
               onRemove={async () => {
                 setRemovingId(game.id);
                 try {
+                  if (vaultState.wishlistPinnedIds.includes(game.id)) await recordVaultAction("unpinned", game.id, { pin_scope: "wishlist" });
                   await removeGame(game.id);
                 } finally {
                   setRemovingId(null);
@@ -212,7 +256,7 @@ export default function WishlistPage() {
               }}
             />
           ))}
-          {!filteredWishlist.length ? (
+          {!ordinaryWishlist.length ? (
             <div className={styles.emptyResults}>No wishlist games match the current search and filter.</div>
           ) : null}
         </div>
@@ -252,6 +296,20 @@ export default function WishlistPage() {
           {!onSaleGames.length ? <div className={styles.saleEmpty}>No tracked games are discounted right now. Refresh prices later and we’ll keep this area current.</div> : null}
         </div>
       </section>
+      {managePinsOpen ? <ManagePinsDialog
+        pinnedGames={pinnedGames}
+        candidate={pinCandidate && !vaultState.wishlistPinnedIds.includes(pinCandidate.id) ? pinCandidate : null}
+        shelfName="Wishlist"
+        shelfDescription="Pinned games stay at the front of your Wishlist without affecting Library pins."
+        onRemove={async (id) => { await recordVaultAction("unpinned", id, { pin_scope: "wishlist" }); }}
+        onReplace={async (replaceId) => { if (pinCandidate) await recordVaultAction("pinned", pinCandidate.id, { pin_scope: "wishlist", replace_game_id: replaceId }); }}
+        onClose={() => { setManagePinsOpen(false); setPinCandidate(null); }}
+      /> : null}
     </section>
   );
+}
+
+function sortableAddedDate(game: { dateAdded?: string | null; addedLabel: string }) {
+  const timestamp = Date.parse(game.dateAdded || game.addedLabel.replace(/^Added\s+/i, ""));
+  return Number.isFinite(timestamp) ? timestamp : 0;
 }

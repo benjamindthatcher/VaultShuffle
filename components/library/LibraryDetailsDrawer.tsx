@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
 import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { ScrollControls } from "@/components/shared/ScrollControls";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
-import { formatDurationEstimate } from "@/lib/game-duration";
+import { formatDurationEstimate, getPreferredDurationMinutes } from "@/lib/game-duration";
 import { steamLaunchUrl } from "@/lib/steam-images";
 import styles from "./LibraryDetailsDrawer.module.css";
 
@@ -29,6 +30,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
   const [mounted, setMounted] = useState(false);
   const [notes, setNotes] = useState("");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
+  const drawerRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     if (!game) return;
@@ -56,17 +58,13 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
   if (!mounted || !game) return null;
 
   const relatedCollections = collections.filter((collection) => game.collectionIds.includes(collection.id));
-  const durationRows: Array<[string, number | null | undefined]> = [
-    ["Main Story", game.duration?.mainStoryMinutes],
-    ["Main + Extras", game.duration?.mainExtrasMinutes],
-    ["Completionist", game.duration?.completionistMinutes]
-  ];
-  const availableDurationRows = durationRows.filter((row): row is [string, number] => typeof row[1] === "number" && row[1] > 0);
+  const timeToBeatMinutes = getPreferredDurationMinutes(game.duration);
 
   return createPortal(
     <>
       <button type="button" className={styles.overlay} onClick={onClose} aria-label="Close game details" />
-      <aside className={styles.drawer} role="dialog" aria-modal="true" aria-label={`${game.title} details`}>
+      <aside ref={drawerRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label={`${game.title} details`}>
+        <ScrollControls targetRef={drawerRef} axis="vertical" label="Scroll game details" />
         <div className={styles.hero}>
           <Artwork src={game.bannerUrl} sizes="(max-width: 520px) 100vw, 520px" priority />
         </div>
@@ -86,7 +84,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             <div><strong>{pinSlot ? `Pinned in slot ${pinSlot}` : pinCount >= 3 ? "Pins full · 3/3" : "Pin game"}</strong><span>{pinSlot ? "Kept at the front of your Active Library." : `Keep it at the front of your Library · ${pinCount}/3 used`}</span></div>
             <div className={styles.pinActions}>
               <button type="button" onClick={pinSlot || pinCount < 3 ? onTogglePin : onManagePins}>{pinSlot ? "Unpin" : pinCount >= 3 ? "Manage Pins" : "Pin game"}</button>
-              {game.status === "Completed" ? <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><BrandedIcon group="actions" name="restore-active" size={22} />Restore to Active</button> : <button type="button" disabled={saving} onClick={() => void onComplete?.()}><BrandedIcon group="actions" name="mark-completed" size={22} />Mark as Completed</button>}
+              {game.status === "Completed" ? <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><BrandedIcon group="actions" name="restore-active" size={22} />Restore to Active</button> : <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>}
             </div>
           </div>
 
@@ -108,12 +106,10 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
               <dt>Playtime</dt>
               <dd>{game.hoursPlayed}h</dd>
             </div>
-            {availableDurationRows.map(([label, minutes], index) => (
-              <div key={label}>
-                <dt>{label}{index === 0 && game.duration?.confidence === "low" ? " · Early estimate" : ""}</dt>
-                <dd>{formatDurationEstimate(minutes)}</dd>
-              </div>
-            ))}
+            <div>
+              <dt>How long to beat</dt>
+              <dd>{formatDurationEstimate(timeToBeatMinutes)}</dd>
+            </div>
           </dl>
 
           <fieldset className={styles.collectionSection}>

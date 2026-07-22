@@ -17,9 +17,10 @@ type GameCardProps = {
   onSleep?: () => void;
   onTogglePin?: () => void;
   pinned?: boolean;
+  showProgress?: boolean;
 };
 
-export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, pinned = false }: GameCardProps) {
+export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, pinned = false, showProgress = false }: GameCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuShellRef = useRef<HTMLDivElement>(null);
   const isList = layout === "list";
@@ -51,12 +52,18 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
       <div className={styles.body}>
         <div className={styles.topRow}>
           <h3 className={styles.title}>{game.title}</h3>
-          <span className={styles.status}>{game.status}</span>
+          {!isList ? <span className={styles.status}>{game.status}</span> : null}
         </div>
         <p className={styles.copy}>{game.description}</p>
         <div className={styles.metaRow}>
           <span>{game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}{durationLabel ? ` · ${durationLabel}` : ""}</span>
-          <span>{game.completionPercent}%</span>
+          {isList ? (
+            <span className={styles.listState}>
+              <span className={styles.status}>{game.status}</span>
+              <span className={styles.stateSeparator} aria-hidden="true">·</span>
+              <span className={styles.progress}>{game.completionPercent}%</span>
+            </span>
+          ) : showProgress ? <span className={styles.progress}>{game.completionPercent}%</span> : null}
         </div>
       </div>
     </>

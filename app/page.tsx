@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { SiteGlyph } from "@/components/shared/SiteGlyph";
+import { getCurrentSession } from "@/lib/auth";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -176,119 +179,13 @@ function steamCapsule(appid: number) {
 }
 
 function LandingIcon({ name }: { name: string }) {
-  const shared = {
-    width: 26,
-    height: 26,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true
-  };
-
-  if (name === "steam") {
-    return (
-      <svg {...shared}>
-        <circle cx="12" cy="12" r="9" />
-        <circle cx="15.8" cy="8.2" r="2.5" />
-        <circle cx="8.3" cy="15.6" r="2.2" />
-        <path d="m10.1 14.4 3.7-4.3" />
-        <path d="m6.2 14.7 2.2 1.1" />
-      </svg>
-    );
-  }
-
-  if (name === "guest") {
-    return (
-      <svg {...shared}>
-        <path d="M8 18v-1.2A3.8 3.8 0 0 1 11.8 13h.4a3.8 3.8 0 0 1 3.8 3.8V18" />
-        <circle cx="12" cy="8" r="3" />
-        <path d="M4 7v5" />
-        <path d="M2.5 9.5h3" />
-        <path d="M20 7v5" />
-        <path d="M18.5 9.5h3" />
-      </svg>
-    );
-  }
-
-  if (name === "clock") {
-    return (
-      <svg {...shared}>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M12 7v6l4 2" />
-      </svg>
-    );
-  }
-
-  if (name === "players") {
-    return (
-      <svg {...shared}>
-        <path d="M16 19v-1.5a3.5 3.5 0 0 0-3.5-3.5h-1A3.5 3.5 0 0 0 8 17.5V19" />
-        <circle cx="12" cy="8" r="3" />
-        <path d="M20 19v-1a3 3 0 0 0-2.2-2.9" />
-        <path d="M16.8 5.2a3 3 0 0 1 0 5.6" />
-      </svg>
-    );
-  }
-
-  if (name === "shield") {
-    return (
-      <svg {...shared}>
-        <path d="M12 3 5 6v5c0 4.3 2.8 8.2 7 10 4.2-1.8 7-5.7 7-10V6l-7-3Z" />
-        <path d="m9 12 2 2 4-5" />
-      </svg>
-    );
-  }
-
-  if (name === "lock") {
-    return (
-      <svg {...shared}>
-        <rect x="5" y="10" width="14" height="10" rx="2" />
-        <path d="M8 10V7a4 4 0 0 1 8 0v3" />
-      </svg>
-    );
-  }
-
-  if (name === "books") {
-    return (
-      <svg {...shared}>
-        <path d="M5 4h4v16H5z" />
-        <path d="M11 4h4v16h-4z" />
-        <path d="m17 5 3 14" />
-      </svg>
-    );
-  }
-
-  if (name === "bookmark") {
-    return (
-      <svg {...shared}>
-        <path d="M6 4h12v17l-6-4-6 4V4Z" />
-      </svg>
-    );
-  }
-
-  if (name === "layers") {
-    return (
-      <svg {...shared}>
-        <path d="m12 3 9 5-9 5-9-5 9-5Z" />
-        <path d="m3 12 9 5 9-5" />
-        <path d="m3 16 9 5 9-5" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg {...shared}>
-      <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="3" />
-      <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-    </svg>
-  );
+  return <SiteGlyph name={name} size={26} />;
 }
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await getCurrentSession();
+  if (session) redirect("/vault");
+
   return (
     <>
       <script

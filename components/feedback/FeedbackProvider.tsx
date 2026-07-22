@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { ScrollControls } from "@/components/shared/ScrollControls";
 import { usePathname } from "next/navigation";
 import styles from "./FeedbackProvider.module.css";
 
@@ -158,7 +159,7 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
   return createPortal(
     <div className={styles.layer}>
       <button className={styles.backdrop} type="button" aria-label="Close feedback" onClick={() => !submitting && onClose()} />
-      <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef} tabIndex={-1}>
+      <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef} tabIndex={-1}><ScrollControls targetRef={dialogRef} axis="vertical" label="Scroll feedback form" />
         <header className={styles.header}>
           <div><p>Help shape the Vault</p><h2 id={titleId}>Share Feedback</h2></div>
           <button type="button" onClick={onClose} disabled={submitting} aria-label="Close feedback">×</button>

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
+const STEAM_IMPORT_COOKIE = "vault_steam_import";
 
 function allowedOrigins(request: NextRequest) {
   const origins = new Set([request.nextUrl.origin]);
@@ -17,6 +18,26 @@ function allowedOrigins(request: NextRequest) {
 }
 
 export function proxy(request: NextRequest) {
+  if (
+    request.method === "GET" &&
+    request.nextUrl.searchParams.get("steam_connected") === "1"
+  ) {
+    const cleanUrl = request.nextUrl.clone();
+    cleanUrl.searchParams.delete("steam_connected");
+
+    const response = NextResponse.redirect(cleanUrl);
+    response.cookies.set({
+      name: STEAM_IMPORT_COOKIE,
+      value: "1",
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 5 * 60
+    });
+    return response;
+  }
+
   if (UNSAFE_METHODS.has(request.method) && request.nextUrl.pathname !== "/api/catalogue/process") {
     const origin = request.headers.get("origin");
     const fetchSite = request.headers.get("sec-fetch-site");
@@ -41,5 +62,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: "/api/:path*"
+  matcher: [
+    "/api/:path*",
+    "/vault",
+    "/library",
+    "/purge",
+    "/collections",
+    "/wishlist"
+  ]
 };

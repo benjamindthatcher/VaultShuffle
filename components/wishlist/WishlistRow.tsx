@@ -5,13 +5,13 @@ import styles from "./WishlistRow.module.css";
 
 type WishlistRowProps = {
   game: DemoGame;
-  liked: boolean;
-  onToggleLike: () => void;
+  pinned: boolean;
+  onTogglePin: () => void;
   onRemove: () => Promise<void>;
   removing: boolean;
 };
 
-export function WishlistRow({ game, liked, onToggleLike, onRemove, removing }: WishlistRowProps) {
+export function WishlistRow({ game, pinned, onTogglePin, onRemove, removing }: WishlistRowProps) {
   const durationLabel = formatGameDuration(game.duration);
   return (
     <article className={styles.row}>
@@ -22,7 +22,7 @@ export function WishlistRow({ game, liked, onToggleLike, onRemove, removing }: W
         <div className={styles.titleRow}>
           <h3 className={styles.title}>{game.title}</h3>
           <div className={styles.rowActions}>
-            <button type="button" className={styles.likeButton} onClick={onToggleLike}>{liked ? "Saved" : "Save"}</button>
+            <button type="button" className={styles.likeButton} aria-pressed={pinned} onClick={onTogglePin}>{pinned ? "Pinned" : "Pin"}</button>
             <button type="button" className={styles.removeButton} disabled={removing} onClick={() => void onRemove()}>{removing ? "Removing…" : "Remove"}</button>
           </div>
         </div>

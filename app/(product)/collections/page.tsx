@@ -154,62 +154,7 @@ export default function CollectionsPage() {
     <section className={styles.collectionsPage}>
       <header className={styles.header}>
         <h1 className="visually-hidden">Collections</h1>
-        <button type="button" className={styles.primaryAction} onClick={openNewComposer}>
-          <BrandedIcon group="actions" name="new-collection" size={25} /> New Collection
-        </button>
       </header>
-
-      {composerOpen ? (
-        <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">
-          <div className={styles.composerHeader}>
-            <div>
-              <p className={styles.sectionEyebrow}>{editing ? "Editing collection" : "Create a collection"}</p>
-              <h2 id="collection-composer-title" className={styles.composerTitle}>{editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}</h2>
-              <p className={styles.composerCopy}>{editing
-                ? "Update its identity or change how its games are gathered."
-                : "Choose a hand-picked shelf or an automatic collection that stays current for you."}</p>
-            </div>
-          </div>
-          <div className={styles.composerGrid}>
-            <label className={styles.field}>
-              <span>Name</span>
-              <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Backlog Essentials" />
-            </label>
-            <label className={styles.field}>
-              <span>Collection type</span>
-              <select value={kindDraft} onChange={(event) => setKindDraft(event.target.value as "custom" | "smart")}>
-                <option value="custom">Custom collection</option>
-                <option value="smart">Smart collection</option>
-              </select>
-            </label>
-            {kindDraft === "smart" ? (
-              <label className={styles.field}>
-                <span>Automatic rule</span>
-                <select value={presetDraft} onChange={(event) => setPresetDraft(event.target.value as SmartCollectionPreset)}>
-                  {smartCollectionPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
-                </select>
-                <small>{smartCollectionPresets.find((preset) => preset.id === presetDraft)?.description}</small>
-              </label>
-            ) : null}
-            <label className={styles.field}>
-              <span>Description</span>
-              <input
-                value={descriptionDraft}
-                onChange={(event) => setDescriptionDraft(event.target.value)}
-                placeholder="Games you want to focus on next."
-              />
-            </label>
-          </div>
-          <div className={styles.composerActions}>
-            <button type="button" className={styles.secondaryAction} onClick={closeComposer}>
-              Cancel
-            </button>
-            <button type="button" className={styles.primaryAction} disabled={saving || !nameDraft.trim()} onClick={() => void (editing ? handleUpdateCollection() : handleCreateCollection())}>
-              {saving ? "Saving…" : editing ? "Save Collection" : "Create Collection"}
-            </button>
-          </div>
-        </section>
-      ) : null}
 
       <div className={styles.statsGrid}>
         <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
@@ -217,6 +162,70 @@ export default function CollectionsPage() {
         <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note="Hand-shaped shelves with your own intent." />
         <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note="Owned games already sorted into groups." />
       </div>
+
+      <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">
+        <div className={styles.composerHeader}>
+          <div>
+            <p className={styles.sectionEyebrow}>{editing ? "Editing collection" : "Create a collection"}</p>
+            <h2 id="collection-composer-title" className={styles.composerTitle}>{editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}</h2>
+            <p className={styles.composerCopy}>{editing
+              ? "Update its identity or change how its games are gathered."
+              : "Choose a hand-picked shelf or an automatic collection that stays current for you."}</p>
+          </div>
+          <button
+            type="button"
+            className={styles.primaryAction}
+            aria-expanded={composerOpen}
+            onClick={composerOpen ? closeComposer : openNewComposer}
+          >
+            <BrandedIcon group="actions" name="new-collection" size={25} />
+            {composerOpen ? "Close" : "New Collection"}
+          </button>
+        </div>
+
+        {composerOpen ? (
+          <div className={styles.composerBody}>
+            <div className={styles.composerGrid}>
+              <label className={styles.field}>
+                <span>Name</span>
+                <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Backlog Essentials" />
+              </label>
+              <label className={styles.field}>
+                <span>Collection type</span>
+                <select value={kindDraft} onChange={(event) => setKindDraft(event.target.value as "custom" | "smart")}>
+                  <option value="custom">Custom collection</option>
+                  <option value="smart">Smart collection</option>
+                </select>
+              </label>
+              {kindDraft === "smart" ? (
+                <label className={styles.field}>
+                  <span>Automatic rule</span>
+                  <select value={presetDraft} onChange={(event) => setPresetDraft(event.target.value as SmartCollectionPreset)}>
+                    {smartCollectionPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+                  </select>
+                  <small>{smartCollectionPresets.find((preset) => preset.id === presetDraft)?.description}</small>
+                </label>
+              ) : null}
+              <label className={styles.field}>
+                <span>Description</span>
+                <input
+                  value={descriptionDraft}
+                  onChange={(event) => setDescriptionDraft(event.target.value)}
+                  placeholder="Games you want to focus on next."
+                />
+              </label>
+            </div>
+            <div className={styles.composerActions}>
+              <button type="button" className={styles.secondaryAction} onClick={closeComposer}>
+                Cancel
+              </button>
+              <button type="button" className={styles.primaryAction} disabled={saving || !nameDraft.trim()} onClick={() => void (editing ? handleUpdateCollection() : handleCreateCollection())}>
+                {saving ? "Saving…" : editing ? "Save Collection" : "Create Collection"}
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </section>
 
       <section className={styles.collectionPanel}>
         <div className={styles.collectionPanelHeader}>

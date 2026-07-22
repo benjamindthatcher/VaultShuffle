@@ -11,6 +11,10 @@
   --vault-accent: #8e4dff;
   --vault-accent-strong: #324cff;
   --vault-accent-soft: rgba(142, 77, 255, 0.2);
+  --vault-control-hover-border: rgba(221, 154, 255, 0.9);
+  --vault-control-hover-bg: rgba(157, 82, 255, 0.18);
+  --vault-control-hover-glow: rgba(161, 79, 255, 0.38);
+  --vault-control-focus: #dca0ff;
   --vault-success: #62d3af;
   --vault-shadow: 0 24px 64px rgba(1, 4, 18, 0.46);
   --vault-radius-xl: 28px;
@@ -80,6 +84,61 @@ textarea {
 
 button {
   color: inherit;
+}
+
+:where(
+  button:not(:disabled):not([class*="overlay" i]):not([class*="backdrop" i]):not([class*="menuTrigger" i])
+) {
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    filter 160ms ease,
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+:where(
+  button:not(:disabled):not([class*="overlay" i]):not([class*="backdrop" i]):not([class*="menuTrigger" i])
+):hover {
+  transform: translateY(-1px);
+  filter: brightness(1.18) saturate(1.14) drop-shadow(0 0 5px rgba(191, 111, 255, 0.24)) !important;
+  border-color: var(--vault-control-hover-border) !important;
+  background-color: var(--vault-control-hover-bg) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(235, 194, 255, 0.2),
+    0 0 0 1px rgba(190, 107, 255, 0.12),
+    0 8px 26px var(--vault-control-hover-glow) !important;
+}
+
+:where(
+  button:not(:disabled):not([class*="overlay" i]):not([class*="backdrop" i]):not([class*="menuTrigger" i])
+):focus-visible {
+  border-color: var(--vault-control-hover-border) !important;
+  outline: 2px solid var(--vault-control-focus);
+  outline-offset: 2px;
+  box-shadow:
+    inset 0 0 0 1px rgba(235, 194, 255, 0.16),
+    0 0 0 3px rgba(147, 78, 255, 0.2),
+    0 0 22px var(--vault-control-hover-glow) !important;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :where(
+    button:not(:disabled):not([class*="overlay" i]):not([class*="backdrop" i]):not([class*="menuTrigger" i])
+  ) {
+    transition-duration: 0.01ms;
+  }
+
+  :where(
+    button:not(:disabled):not([class*="overlay" i]):not([class*="backdrop" i]):not([class*="menuTrigger" i])
+  ):hover {
+    transform: none;
+  }
 }
 
 img {

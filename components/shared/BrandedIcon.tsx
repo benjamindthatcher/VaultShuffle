@@ -18,17 +18,8 @@ type BrandedIconProps<G extends BrandedIconGroup> = {
 
 export function BrandedIcon<G extends BrandedIconGroup>({ group, name, size = 32, className, alt = "" }: BrandedIconProps<G>) {
   const base = `/assets/vaultshuffle/site-icons/${group}/${name}`;
-
   return <picture className={className} aria-hidden={alt ? undefined : true}>
     <source srcSet={`${base}-64.webp 1x, ${base}-128.webp 2x`} type="image/webp" />
-    <img
-      src={`${base}-64.png`}
-      srcSet={`${base}-64.png 1x, ${base}-128.png 2x`}
-      width={size}
-      height={size}
-      alt={alt}
-      draggable={false}
-      style={{ width: size, height: size, objectFit: "contain", display: "block" }}
-    />
+    <img src={`${base}-64.png`} srcSet={`${base}-64.png 1x, ${base}-128.png 2x`} width={size} height={size} alt={alt} draggable={false} style={{ width: size, height: size, objectFit: "contain", display: "block" }} />
   </picture>;
 }

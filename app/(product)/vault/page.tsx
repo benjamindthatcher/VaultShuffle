@@ -336,22 +336,22 @@ export default function VaultPage() {
             <p className={styles.actionsLabel}>Vault actions</p>
             <div className={styles.resultActions}>
               <a href={steamStoreUrl(currentPick.steamAppId)} className={`${styles.resultAction} ${styles.resultActionPrimary}`} target="_blank" rel="noreferrer" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
-                <VaultIcon name="open-steam" size={26} /><strong>Open on Steam</strong><span>Launch the game</span>
+                <span className={styles.resultActionIcon}><VaultIcon name="open-steam" size={38} /></span><span className={styles.resultActionCopy}><strong>Open on Steam</strong><small>Launch the game</small></span>
               </a>
               <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned"); }}>
-                <BrandedIcon group="actions" name={vaultState.pinnedIds.includes(currentPick.id) ? "unpin" : "pin"} size={32} /><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><span>Priority Library shelf</span>
+                <VaultDecisionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault(); }}>
-                <BrandedIcon group="actions" name="draw-again" size={32} /><strong>Draw Again</strong><span>Find something else</span>
+                <span className={styles.resultActionIcon}><VaultIcon name="draw-again" size={38} /></span><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
-                <BrandedIcon group="actions" name="snooze-not-now" size={32} /><strong>Not Now</strong><span>Snooze this pick</span>
+                <VaultDecisionIcon name="sleep" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
-                <BrandedIcon group="actions" name="view-details" size={32} /><strong>View Details</strong><span>More info</span>
+                <span className={styles.resultActionIcon}><VaultIcon name="details" size={38} /></span><span className={styles.resultActionCopy}><strong>View Details</strong><small>See progress, notes and collections</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed"); void completeGame(currentPick); }}>
-                <BrandedIcon group="actions" name="mark-completed" size={32} /><strong>Mark as Completed</strong><span>Archive this game</span>
+                <VaultDecisionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
               </button>
             </div>
           </div>
@@ -413,4 +413,9 @@ function formatMissingSetup(items: string[]) {
 
 function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal" | "genre"; label: string; value: string }) {
   return <div className={styles.summaryItem}><VaultIcon name={icon} size={23} /><span><small>{label}</small><strong>{value}</strong></span></div>;
+}
+
+function VaultDecisionIcon({ name }: { name: "pin" | "sleep" | "mark-completed" }) {
+  const root = `/assets/vaultshuffle/purge/decisions`;
+  return <picture className={styles.resultActionIcon} aria-hidden="true"><source srcSet={`${root}/webp/${name}-48.webp 1x, ${root}/webp/${name}-96.webp 2x`} type="image/webp" /><img src={`${root}/png/${name}-48.png`} srcSet={`${root}/png/${name}-48.png 1x, ${root}/png/${name}-96.png 2x`} alt="" width={48} height={48} /></picture>;
 }

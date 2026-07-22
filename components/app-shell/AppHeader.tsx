@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./AppHeader.module.css";
@@ -24,8 +24,30 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
   const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut } = useAppData();
   const [accountMessage, setAccountMessage] = useState("");
+  const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
   const profileInitial = profileName.trim().charAt(0).toUpperCase() || "G";
+
+  useEffect(() => {
+    function closeOnOutsidePointer(event: PointerEvent) {
+      const menu = profileMenuRef.current;
+      if (menu?.open && event.target instanceof Node && !menu.contains(event.target)) menu.open = false;
+    }
+
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === "Escape" && profileMenuRef.current?.open) {
+        profileMenuRef.current.open = false;
+        profileMenuRef.current.querySelector("summary")?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, []);
 
   async function handleSync() {
     setAccountMessage("");
@@ -46,7 +68,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
   return (
     <header className={styles.headerWrap}>
       <div className={styles.header}>
-        <Link href={variant === "utility" ? "/" : "/vault"} className={styles.brand} aria-label="Vault Shuffle home">
+        <Link href="/vault" className={styles.brand} aria-label="Vault Shuffle home">
           <span className={styles.brandMark}>
             <Image
               src="/assets/brand/vaultshuffle-icon.png"
@@ -81,7 +103,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
           <span aria-hidden="true" />
         )}
 
-        <details className={styles.profileMenu}>
+        <details ref={profileMenuRef} className={styles.profileMenu}>
           <summary className={styles.profilePill}>
             <span className={styles.profileAvatar}>
               {session.avatar_url ? (

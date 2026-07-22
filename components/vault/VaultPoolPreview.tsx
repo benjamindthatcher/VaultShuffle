@@ -54,8 +54,14 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
 
   useEffect(() => {
     if (drawState !== "revealing" || !winner || !railRef.current) return;
+    const rail = railRef.current;
+    const winnerCard = rail.querySelector<HTMLElement>(`[data-game-id="${CSS.escape(winner.id)}"]`);
+    if (!winnerCard) return;
+
     programmaticScrollRef.current = true;
-    railRef.current.querySelector<HTMLElement>(`[data-game-id="${CSS.escape(winner.id)}"]`)?.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+    const centeredLeft = winnerCard.offsetLeft - (rail.clientWidth - winnerCard.offsetWidth) / 2;
+    const maxScroll = Math.max(0, rail.scrollWidth - rail.clientWidth);
+    rail.scrollTo({ left: Math.min(maxScroll, Math.max(0, centeredLeft)), behavior: "smooth" });
     const timer = window.setTimeout(() => { programmaticScrollRef.current = false; }, 700);
     return () => window.clearTimeout(timer);
   }, [drawState, winner]);

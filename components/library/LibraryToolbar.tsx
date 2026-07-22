@@ -6,6 +6,9 @@ type LibraryToolbarProps = {
   onQueryChange: (value: string) => void;
   sort: string;
   onSortChange: (value: string) => void;
+  sortReversed: boolean;
+  onToggleSortDirection: () => void;
+  showDurationSort: boolean;
   viewMode: "grid" | "list";
   onViewModeChange: (value: "grid" | "list") => void;
 };
@@ -15,6 +18,9 @@ export function LibraryToolbar({
   onQueryChange,
   sort,
   onSortChange,
+  sortReversed,
+  onToggleSortDirection,
+  showDurationSort,
   viewMode,
   onViewModeChange
 }: LibraryToolbarProps) {
@@ -31,15 +37,30 @@ export function LibraryToolbar({
       </label>
 
       <div className={styles.controlRow}>
-        <label className={styles.selectField}>
-          <span className={styles.controlLabel}><VaultIcon name="sort" size={15} />Sort</span>
-          <select value={sort} onChange={(event) => onSortChange(event.target.value)}>
+        <div className={styles.selectField}>
+          <span className={styles.controlLabel}>
+            <button
+              type="button"
+              className={styles.sortDirection}
+              aria-label={`${sortReversed ? "Restore" : "Reverse"} current sort order`}
+              aria-pressed={sortReversed}
+              title={`${sortReversed ? "Restore" : "Reverse"} current sort order`}
+              onClick={onToggleSortDirection}
+            >
+              <VaultIcon name="sort" size={15} />
+            </button>
+            <label htmlFor="library-sort">Sort</label>
+          </span>
+          <select id="library-sort" value={sort} onChange={(event) => onSortChange(event.target.value)}>
             <option value="recent">Recently played</option>
-            <option value="title">Title A-Z</option>
-            <option value="hours">Playtime high-low</option>
-            <option value="progress">Progress high-low</option>
+            <option value="title">Title</option>
+            <option value="hours">Playtime</option>
+            <option value="progress">Progress</option>
+            <option value="added">Date added</option>
+            {showDurationSort ? <option value="duration">Estimated length</option> : null}
+            <option value="status">Status</option>
           </select>
-        </label>
+        </div>
 
         <div className={styles.viewToggle} aria-label="View mode">
           <button

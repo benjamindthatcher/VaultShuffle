@@ -32,7 +32,9 @@ export type DemoGame = {
   artworkUrl: string;
   bannerUrl: string;
   lastPlayedLabel: string;
+  lastPlayedAt?: string | null;
   addedLabel: string;
+  dateAdded?: string | null;
   salePrice?: string;
   saleOriginalPrice?: string;
   saleDiscount?: string;
@@ -256,7 +258,7 @@ export const demoGames: DemoGame[] = [
     description: "A demanding but rewarding pick when you want to push through and make progress.",
     artworkUrl: steamCapsuleLargeImage(367520),
     bannerUrl: steamHeaderImage(367520),
-    lastPlayedLabel: "5d ago",
+    lastPlayedLabel: "1d ago",
     addedLabel: "Added 28 Jun, 2025",
     collectionIds: ["short-sweet"],
     sessionFit: ["evening", "weekend"],

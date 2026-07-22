@@ -2,13 +2,15 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 const SETTING_KEYS = {
   snoozedIds: "vault_snoozed_ids",
-  currentPickId: "vault_current_pick_id"
+  currentPickId: "vault_current_pick_id",
+  wishlistPinnedIds: "wishlist_pinned_ids"
 } as const;
 
 export type VaultAction = "drawn" | "pinned" | "unpinned" | "snoozed" | "unsnoozed";
 
 export type VaultState = {
   pinnedIds: string[];
+  wishlistPinnedIds: string[];
   snoozedIds: string[];
   currentPickId: string | null;
 };
@@ -20,7 +22,7 @@ export async function getVaultState(userId: string): Promise<VaultState> {
       .from("app_settings")
       .select("key, value")
       .eq("user_id", userId)
-      .in("key", [SETTING_KEYS.snoozedIds, SETTING_KEYS.currentPickId]),
+      .in("key", [SETTING_KEYS.snoozedIds, SETTING_KEYS.currentPickId, SETTING_KEYS.wishlistPinnedIds]),
     supabase
       .from("user_game_pins")
       .select("game_id, slot")
@@ -34,6 +36,7 @@ export async function getVaultState(userId: string): Promise<VaultState> {
 
   return {
     pinnedIds: (pins ?? []).map((pin) => String(pin.game_id)),
+    wishlistPinnedIds: parseIdList(values.get(SETTING_KEYS.wishlistPinnedIds)).slice(0, 3),
     snoozedIds: parseIdList(values.get(SETTING_KEYS.snoozedIds)),
     currentPickId: cleanId(values.get(SETTING_KEYS.currentPickId))
   };
@@ -58,7 +61,8 @@ export async function recordVaultAction(
 
   const state = await getVaultState(userId);
   let next = reduceVaultState(state, action, gameId, context);
-  if (action === "pinned") {
+  const pinScope = context.pin_scope === "wishlist" ? "wishlist" : "library";
+  if (action === "pinned" && pinScope === "library") {
     const replaceId = cleanId(String(context.replace_game_id ?? ""));
     const { data: pinnedIds, error: pinError } = await supabase.rpc("pin_user_game", {
       p_user_id: userId,
@@ -68,7 +72,7 @@ export async function recordVaultAction(
     if (pinError) throw pinError;
     next = { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
   }
-  if (action === "unpinned") {
+  if (action === "unpinned" && pinScope === "library") {
     const { data: pinnedIds, error: pinError } = await supabase.rpc("unpin_user_game", {
       p_user_id: userId,
       p_game_id: gameId
@@ -78,7 +82,8 @@ export async function recordVaultAction(
   }
   const rows = [
     settingRow(userId, SETTING_KEYS.snoozedIds, JSON.stringify(next.snoozedIds)),
-    settingRow(userId, SETTING_KEYS.currentPickId, next.currentPickId ?? "")
+    settingRow(userId, SETTING_KEYS.currentPickId, next.currentPickId ?? ""),
+    settingRow(userId, SETTING_KEYS.wishlistPinnedIds, JSON.stringify(next.wishlistPinnedIds))
   ];
 
   const { error: settingError } = await supabase
@@ -99,19 +104,27 @@ export async function recordVaultAction(
 
 function reduceVaultState(state: VaultState, action: VaultAction, gameId: string, context: Record<string, unknown>): VaultState {
   let pinnedIds = [...state.pinnedIds];
+  let wishlistPinnedIds = [...state.wishlistPinnedIds];
   const snoozed = new Set(state.snoozedIds);
   let currentPickId = state.currentPickId;
+  const pinScope = context.pin_scope === "wishlist" ? "wishlist" : "library";
 
   if (action === "drawn") currentPickId = gameId;
-  if (action === "pinned" && !pinnedIds.includes(gameId)) pinnedIds.push(gameId);
-  if (action === "unpinned") pinnedIds = pinnedIds.filter((id) => id !== gameId);
+  if (action === "pinned" && pinScope === "wishlist" && !wishlistPinnedIds.includes(gameId)) {
+    const replaceId = cleanId(String(context.replace_game_id ?? ""));
+    if (wishlistPinnedIds.length < 3) wishlistPinnedIds.push(gameId);
+    else if (replaceId && wishlistPinnedIds.includes(replaceId)) wishlistPinnedIds[wishlistPinnedIds.indexOf(replaceId)] = gameId;
+  }
+  if (action === "unpinned" && pinScope === "wishlist") wishlistPinnedIds = wishlistPinnedIds.filter((id) => id !== gameId);
+  if (action === "pinned" && pinScope === "library" && !pinnedIds.includes(gameId)) pinnedIds.push(gameId);
+  if (action === "unpinned" && pinScope === "library") pinnedIds = pinnedIds.filter((id) => id !== gameId);
   if (action === "snoozed") {
     snoozed.add(gameId);
     if (currentPickId === gameId) currentPickId = null;
   }
   if (action === "unsnoozed") snoozed.delete(gameId);
 
-  return { pinnedIds, snoozedIds: [...snoozed], currentPickId };
+  return { pinnedIds, wishlistPinnedIds, snoozedIds: [...snoozed], currentPickId };
 }
 
 function settingRow(userId: string, key: string, value: string) {

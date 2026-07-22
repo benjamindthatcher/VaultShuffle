@@ -1,4 +1,11 @@
 .content {
-  width: min(820px, 100%);
+  width: min(960px, 100%);
   margin: 0 auto;
+  padding: clamp(48px, 5vw, 72px) 0 clamp(64px, 7vw, 96px);
+}
+
+@media (max-width: 720px) {
+  .content {
+    padding: 24px 0 52px;
+  }
 }

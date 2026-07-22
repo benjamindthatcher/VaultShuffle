@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import type { DemoCollection } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { ScrollControls } from "@/components/shared/ScrollControls";
 import styles from "./VaultCollectionCard.module.css";
 
 type VaultCollectionCardProps = {
@@ -20,6 +21,7 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
+  const collectionListRef = useRef<HTMLDivElement>(null);
   const visibleCollections = useMemo(() => {
     const term = query.trim().toLowerCase();
     const entireVault = collections.find((collection) => collection.id === "all");
@@ -78,7 +80,8 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
         <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="collection-picker-title">
           <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" className={styles.closeButton} onClick={close} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
           <label className={styles.search}><VaultIcon name="search" size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search collections…" /></label>
-          <div className={styles.collectionList}>
+          <ScrollControls targetRef={collectionListRef} axis="vertical" label="Browse collections" />
+          <div ref={collectionListRef} className={styles.collectionList}>
             {visibleCollections.map((collection) => {
               const selected = collection.id === selectedCollection.id;
               return <button key={collection.id} type="button" className={selected ? `${styles.collectionRow} ${styles.collectionRowSelected}` : styles.collectionRow} onClick={() => { onSelect(collection.id); close(); }}>

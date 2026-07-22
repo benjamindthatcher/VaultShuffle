@@ -27,6 +27,7 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
           onSleep={game.status !== "Completed" && game.status !== "Slept" ? () => onSleep(game.id) : undefined}
           onTogglePin={game.status !== "Completed" && game.status !== "Slept" ? () => onTogglePin(game) : undefined}
           pinned={pinnedIds.includes(game.id)}
+          showProgress
         />
       ))}
     </div>

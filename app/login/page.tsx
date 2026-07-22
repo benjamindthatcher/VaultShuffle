@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import styles from "./login.module.css";
 
 const features = [
@@ -38,12 +39,5 @@ export default function LoginPage() {
 }
 
 function LoginIcon({ name }: { name: string }) {
-  const paths: Record<string, React.ReactNode> = {
-    lock: <><rect x="5" y="10" width="14" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>,
-    id: <><rect x="3" y="5" width="18" height="14" rx="3" /><circle cx="8" cy="11" r="2" /><path d="M13 10h5M13 14h4" /></>,
-    browser: <><rect x="3" y="4" width="18" height="16" rx="3" /><path d="M3 9h18M7 6.5h.01M10 6.5h.01" /></>,
-    shield: <><path d="M12 3 5 6v5c0 4.3 2.8 8.2 7 10 4.2-1.8 7-5.7 7-10V6l-7-3Z" /><path d="m9 12 2 2 4-5" /></>,
-    steam: <><circle cx="12" cy="12" r="9" /><circle cx="15.8" cy="8.2" r="2.5" /><circle cx="8.3" cy="15.6" r="2.2" /><path d="m10.1 14.4 3.7-4.3M6.2 14.7l2.2 1.1" /></>
-  };
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{paths[name]}</svg>;
+  return <SiteGlyph name={name} size={26} />;
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
+import { ScrollControls } from "@/components/shared/ScrollControls";
 import {
   buildPurgeCandidates,
   type PurgeAction,
@@ -14,7 +15,6 @@ import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./purge.module.css";
 
-const ICON_ROOT = "/assets/vaultshuffle/purge";
 const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
   { id: "untouched", label: "Untouched", copy: "Games you have never played." },
   { id: "barely-started", label: "Barely Started", copy: "Games with very little playtime or progress." },
@@ -35,6 +35,7 @@ export default function PurgePage() {
   const { games, vaultState, isLive, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>([]);
+  const queueRef = useRef<HTMLDivElement>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
   const [saving, setSaving] = useState(false);
@@ -165,10 +166,6 @@ export default function PurgePage() {
   return <PurgePageFrame>
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
-        <div className={styles.sectionHeading}>
-          <div><p className={styles.eyebrow}>Purge setup</p><h1>Choose what to review</h1></div>
-          <p>No selection means all categories.</p>
-        </div>
         <div className={styles.categoryGrid}>
           {CATEGORIES.map((category) => {
             const selected = selectedCategories.includes(category.id);
@@ -179,7 +176,6 @@ export default function PurgePage() {
         </div>
       </div>
       <aside className={styles.snapshot} aria-label="Purge stats">
-        <div className={styles.snapshotLead}><div><p className={styles.eyebrow}>Purge stats</p><h2>Your Library review state</h2></div></div>
         <div className={styles.snapshotMetrics}>
           <PurgeStat icon="ready-to-review" label="Ready to Review" count={purgeStats.ready} />
           <PurgeStat icon="actioned" label="Actioned" count={purgeStats.actioned} />
@@ -188,8 +184,8 @@ export default function PurgePage() {
       </aside>
     </section>
       <section className={styles.queuePanel}>
-        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div><p>Choose a card to inspect it below.</p></div>
-        {queue.length ? <div className={styles.queue}>
+        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div><ScrollControls targetRef={queueRef} axis="horizontal" label="Browse review queue" /></div>
+        {queue.length ? <div className={styles.queue} ref={queueRef}>
           {queue.map((candidate, offset) => {
             const selected = current?.game.id === candidate.game.id;
             return <button key={candidate.game.id} type="button" className={selected ? styles.queueCardSelected : styles.queueCard} onClick={() => setSelectedOffset(offset)}>
@@ -221,43 +217,19 @@ function PurgePageFrame({ children }: { children: ReactNode }) {
 }
 
 function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
-  return <picture className={styles.categoryIcon} aria-hidden="true">
-    <source srcSet={`${ICON_ROOT}/${category}-48.webp`} type="image/webp" />
-    <img src={`${ICON_ROOT}/${category}-48.png`} alt="" width={48} height={48} />
-  </picture>;
+  return <picture className={styles.categoryIcon} aria-hidden="true"><source srcSet={`/assets/vaultshuffle/purge/${category}-48.webp`} type="image/webp" /><img src={`/assets/vaultshuffle/purge/${category}-48.png`} alt="" width={48} height={48} /></picture>;
 }
 
 type PurgeDecisionIconName = "keep-active" | "pin" | "sleep" | "mark-completed";
 
 function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
-  const root = `${ICON_ROOT}/decisions`;
-
-  return <picture className={styles.decisionIcon} aria-hidden="true">
-    <source
-      srcSet={`${root}/webp/${name}-64.webp 1x, ${root}/webp/${name}-128.webp 2x`}
-      type="image/webp"
-    />
-    <img
-      src={`${root}/png/${name}-64.png`}
-      srcSet={`${root}/png/${name}-64.png 1x, ${root}/png/${name}-128.png 2x`}
-      alt=""
-      width={32}
-      height={32}
-      draggable={false}
-    />
-  </picture>;
+  const root = `/assets/vaultshuffle/purge/decisions`;
+  return <picture className={styles.decisionIcon} aria-hidden="true"><source srcSet={`${root}/webp/${name}-64.webp 1x, ${root}/webp/${name}-128.webp 2x`} type="image/webp" /><img src={`${root}/png/${name}-64.png`} srcSet={`${root}/png/${name}-64.png 1x, ${root}/png/${name}-128.png 2x`} alt="" width={40} height={40} draggable={false} /></picture>;
 }
 
 function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "actioned" | "no-review-needed"; label: string; count: number }) {
   return <span>
-    <img
-      className={styles.purgeStatIcon}
-      src={`${ICON_ROOT}/stats/${icon}.png`}
-      alt=""
-      width={48}
-      height={48}
-      aria-hidden="true"
-    />
+    <picture className={styles.purgeStatIcon} aria-hidden="true"><source srcSet={`/assets/vaultshuffle/purge/stats/${icon}.webp`} type="image/webp" /><img src={`/assets/vaultshuffle/purge/stats/${icon}.png`} alt="" width={56} height={56} /></picture>
     <em>{label}</em>
     <strong>{count}</strong>
   </span>;

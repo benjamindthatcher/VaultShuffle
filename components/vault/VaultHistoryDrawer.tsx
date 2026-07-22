@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
+import { ScrollControls } from "@/components/shared/ScrollControls";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import type { VaultDraw } from "@/lib/vault-history";
 import { steamStoreUrl } from "@/lib/steam-images";
@@ -15,7 +16,7 @@ export function VaultHistoryDrawer({ open, draws, games, collections, onClose, o
   useEffect(() => { if (!open) { setSelected(null); return; } const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null; const overflow = document.body.style.overflow; document.body.style.overflow = "hidden"; requestAnimationFrame(() => panelRef.current?.focus()); const key = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); if (event.key === "Tab" && panelRef.current) { const focusable = [...panelRef.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),select,input,[tabindex]:not([tabindex="-1"])')]; if (!focusable.length) { event.preventDefault(); return; } const first = focusable[0], last = focusable.at(-1)!; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } }; document.addEventListener("keydown", key); return () => { document.removeEventListener("keydown", key); document.body.style.overflow = overflow; previous?.focus(); }; }, [onClose, open]);
   if (!mounted || !open) return null;
   const game = selected ? games.find((item) => item.steamAppId === selected.steamAppId) ?? null : null;
-  return createPortal(<div className={styles.layer}><button className={styles.backdrop} type="button" aria-label="Close history" onClick={onClose} /><aside ref={panelRef} className={styles.drawer} role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}>
+  return createPortal(<div className={styles.layer}><button className={styles.backdrop} type="button" aria-label="Close history" onClick={onClose} /><aside ref={panelRef} className={styles.drawer} role="dialog" aria-modal="true" aria-labelledby="history-title" tabIndex={-1}><ScrollControls targetRef={panelRef} axis="vertical" label="Scroll draw history" />
     <header><div><p>Vault Deck</p><h2 id="history-title">Draw History</h2></div><button type="button" aria-label="Close history" onClick={onClose}>×</button></header>
     {selected && game ? <div className={styles.detail}>
       <button type="button" className={styles.back} onClick={() => setSelected(null)}>← Back to history</button><div className={styles.detailArtwork}><Artwork src={game.bannerUrl} sizes="420px" /></div><h3>{game.title}</h3><p>{setupLabel(selected)}</p>
