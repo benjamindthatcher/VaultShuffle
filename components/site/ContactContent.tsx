@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
+import posthog from "posthog-js";
 import { useFeedback } from "@/components/feedback/FeedbackProvider";
 import styles from "@/app/contact/contact.module.css";
 
@@ -37,10 +38,11 @@ export function ContactContent() {
         body: JSON.stringify({ enquiry_type: enquiryType, email, subject, message, website: "", form_started_at: formStartedAt.current })
       });
       const body = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(body.error || "We couldn’t send your message. Please try again.");
+      if (!response.ok) throw new Error(body.error || "We couldn't send your message. Please try again.");
+      posthog.capture('contact_submitted', { enquiry_type: enquiryType });
       setSuccess(true);
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "We couldn’t send your message. Please try again.");
+      setError(submissionError instanceof Error ? submissionError.message : "We couldn't send your message. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -73,7 +75,7 @@ export function ContactContent() {
           <div className={styles.success} role="status">
             <span>✓</span>
             <h3>Your message has been sent.</h3>
-            <p>We’ll get back to you as soon as possible.</p>
+            <p>We'll get back to you as soon as possible.</p>
             <button type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
           </div>
         ) : (

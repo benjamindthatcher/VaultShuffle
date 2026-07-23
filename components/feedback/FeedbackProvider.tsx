@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import posthog from "posthog-js";
 import { createPortal } from "react-dom";
 import { ScrollControls } from "@/components/shared/ScrollControls";
 import { usePathname } from "next/navigation";
@@ -144,11 +145,12 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
         })
       });
       const body = await response.json() as { error?: string };
-      if (!response.ok) throw new Error(body.error || "We couldn’t send your feedback. Please try again.");
+      if (!response.ok) throw new Error(body.error || "We couldn't send your feedback. Please try again.");
+      posthog.capture('feedback_submitted', { feedback_type: type, app_area: appArea(route), source });
       sessionStorage.removeItem("vault-feedback-draft");
       setStatus("success");
     } catch (submissionError) {
-      setError(submissionError instanceof Error ? submissionError.message : "We couldn’t send your feedback. Please try again.");
+      setError(submissionError instanceof Error ? submissionError.message : "We couldn't send your feedback. Please try again.");
       setStatus("error");
     } finally {
       setSubmitting(false);

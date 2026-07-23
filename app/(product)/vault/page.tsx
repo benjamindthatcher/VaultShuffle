@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import posthog from "posthog-js";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
@@ -131,6 +132,15 @@ export default function VaultPage() {
       setHighlightedGameId(nextPick.id);
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
+      posthog.capture('vault_draw', {
+        session,
+        mood,
+        goal,
+        collection_selected: Boolean(selectedCollectionId),
+        genre_count: selectedGenres.length,
+        pool_size: pool.length,
+        reroll_index: drawnCycleRef.current.size - 1,
+      });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
     } catch (error) {
       console.error("Vault draw failed", error);

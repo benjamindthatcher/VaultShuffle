@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { attachSessionCookie, createSessionForSteamId } from "@/lib/auth";
+import { getPostHogClient } from "@/lib/posthog-server";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
@@ -40,7 +41,22 @@ export async function GET(request: Request) {
       ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY)
       : null;
 
-    const { token } = await createSessionForSteamId(steamId, profile);
+    const { token, user } = await createSessionForSteamId(steamId, profile);
+
+    const posthog = getPostHogClient();
+    if (posthog) {
+      posthog.identify({
+        distinctId: user.id,
+        properties: {
+          steam_id: user.steam_id,
+          ...(user.display_name ? { display_name: user.display_name } : {}),
+          ...(user.avatar_url ? { $avatar: user.avatar_url } : {}),
+        },
+      });
+      posthog.capture({ distinctId: user.id, event: 'user_signed_in' });
+      await posthog.flush();
+    }
+
     const response = NextResponse.redirect(new URL("/vault", baseUrl));
 
     response.cookies.set({
