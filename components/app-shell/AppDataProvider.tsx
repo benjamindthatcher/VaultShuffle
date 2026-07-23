@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import posthog from "posthog-js";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { guestSession, mapLiveCollections, mapLiveGames, type CollectionDetailPayload } from "@/lib/app-view-model";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
@@ -86,6 +87,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      if (nextSession.user_id) {
+        posthog.identify(nextSession.user_id, {
+          steam_id: nextSession.steam_id,
+          ...(nextSession.display_name ? { display_name: nextSession.display_name } : {}),
+          ...(nextSession.avatar_url ? { $avatar: nextSession.avatar_url } : {}),
+        });
+      }
+
       setIsLive(true);
       try {
         const [{ games }, { collections }, nextVaultState] = await Promise.all([
@@ -133,6 +142,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     try {
       const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST" });
       await load();
+      posthog.capture('steam_library_synced', { imported_count: result.imported });
       return result.imported;
     } finally {
       setIsSyncing(false);
@@ -161,6 +171,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await api("/api/logout", { method: "POST" });
+    posthog.reset();
     window.location.assign("/login");
   }
 
@@ -171,6 +182,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(payload)
       });
       await load();
+      posthog.capture('collection_created', { kind: payload.kind ?? 'custom' });
       return collection.id;
     }
 
@@ -185,6 +197,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     setGuestCollections((current) => [nextCollection, ...current]);
+    posthog.capture('collection_created', { kind: payload.kind ?? 'custom' });
     return nextCollection.id;
   }
 
@@ -207,6 +220,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "DELETE" });
       await load();
+      posthog.capture('collection_deleted');
       return;
     }
     setGuestCollections((current) => current.filter((collection) => collection.id !== collectionId));
@@ -214,6 +228,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...game,
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
+    posthog.capture('collection_deleted');
   }
 
   async function searchSteam(query: string) {
@@ -242,6 +257,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         })
       });
       await load();
+      posthog.capture('wishlist_game_added');
       return;
     }
 
@@ -267,6 +283,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       },
       ...current
     ]);
+    posthog.capture('wishlist_game_added');
   }
 
   async function updateGame(
@@ -288,6 +305,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
       });
+      if (patch.status === 'Completed') posthog.capture('game_marked_completed');
+      if (patch.status === 'Slept') posthog.capture('game_put_to_sleep');
       await load();
       return;
     }
@@ -315,6 +334,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       )
     );
     if (patch.status === "Completed" || patch.status === "Slept") {
+      if (patch.status === "Completed") posthog.capture('game_marked_completed');
+      if (patch.status === "Slept") posthog.capture('game_put_to_sleep');
       setGuestVaultState((current) => ({
         ...current,
         pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
@@ -364,9 +385,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       await api(`/api/games/${gameId}`, { method: "DELETE" });
       await load();
+      posthog.capture('wishlist_game_removed');
       return;
     }
     setGuestGames((current) => current.filter((game) => game.id !== gameId));
+    posthog.capture('wishlist_game_removed');
   }
 
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {

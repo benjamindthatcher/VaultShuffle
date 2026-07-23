@@ -12,6 +12,7 @@ export type CollectionDetailPayload = {
 
 export const guestSession: SessionPayload = {
   logged_in: false,
+  user_id: "",
   steam_id: "",
   display_name: "Guest",
   avatar_url: "",

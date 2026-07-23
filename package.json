@@ -22,6 +22,8 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
     "next": "^16.2.10",
+    "posthog-js": "^1.181.0",
+    "posthog-node": "^4.3.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "zod": "^4.1.11"

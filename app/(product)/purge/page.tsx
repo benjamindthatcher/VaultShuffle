@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import posthog from "posthog-js";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
 import { ScrollControls } from "@/components/shared/ScrollControls";
@@ -121,6 +122,7 @@ export default function PurgePage() {
       if (action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)) await recordVaultAction("pinned", candidate.game.id);
       if (action === "sleep") await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
       if (action === "complete") await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      posthog.capture('purge_decision', { action, category: candidate.category });
       finishDecision(candidate, action, previousStatus, review);
     } catch (caught) {
       if (review) {
