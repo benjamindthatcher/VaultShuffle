@@ -48,6 +48,7 @@ test("duration lookup uses IGDB's current game_id field", async () => {
     if (url.endsWith("external_game_sources")) return Response.json([{ id: 1, name: "Steam" }]);
     if (url.endsWith("external_games")) return Response.json([{ game: 42, uid: "10" }]);
     if (url.endsWith("game_time_to_beats")) return Response.json([]);
+    if (url.endsWith("games")) return Response.json([{ id: 42 }]);
     throw new Error("Unexpected request");
   };
 
@@ -106,11 +107,50 @@ test("an exact Steam mapping without timing data returns no_duration", async () 
     { access_token: "test-token", expires_in: 3600 },
     [{ id: 1, name: "Steam" }],
     [{ game: 42, uid: "10" }],
-    []
+    [],
+    [{ id: 42 }]
   ]);
   const result = await new IgdbDurationProvider("client", "secret", fetcher).findBySteamAppId(10);
   assert.equal(result.status, "no_duration");
   assert.equal(result.providerGameId, 42);
+});
+
+test("an edition without timing data inherits its version parent's duration", async () => {
+  const fetcher = mockFetch([
+    { access_token: "test-token", expires_in: 3600 },
+    [{ id: 1, name: "Steam" }],
+    [{ game: 42, uid: "10" }],
+    [],
+    [{ id: 42, version_parent: 7 }],
+    [{ game_id: 7, hastily: 7200, normally: 10_800, completely: 14_400, count: 20 }]
+  ]);
+  const result = await new IgdbDurationProvider("client", "secret", fetcher).findBySteamAppId(10);
+  assert.equal(result.status, "matched");
+  assert.equal(result.provider, "igdb-parent");
+  assert.equal(result.providerGameId, 7);
+  assert.equal(result.mainStoryMinutes, 120);
+});
+
+test("a missing Steam mapping retries a cleaned edition title", async () => {
+  const requests: string[] = [];
+  const payloads: unknown[] = [
+    { access_token: "test-token", expires_in: 3600 },
+    [{ id: 1, name: "Steam" }],
+    [],
+    [],
+    [{ id: 99, name: "Outward", platforms: [6] }],
+    [{ game_id: 99, hastily: 3600, normally: 7200, completely: 10_800, count: 8 }]
+  ];
+  let index = 0;
+  const fetcher: typeof fetch = async (_input, init) => {
+    requests.push(String(init?.body ?? ""));
+    return Response.json(payloads[index++]);
+  };
+  const result = await new IgdbDurationProvider("client", "secret", fetcher)
+    .findBySteamAppId(10, { title: "Outward Definitive Edition" });
+  assert.equal(result.status, "matched");
+  assert.equal(result.provider, "igdb-title");
+  assert.ok(requests.some((body) => body.includes('search "Outward"')));
 });
 
 function mockFetch(payloads: unknown[]): typeof fetch {

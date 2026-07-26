@@ -3,7 +3,7 @@ export type DurationConfidence = "high" | "medium" | "low" | "none";
 
 export type GameDurationResult = {
   steamAppId: number;
-  provider: "igdb";
+  provider: "igdb" | "igdb-parent" | "igdb-title" | "hltb";
   providerGameId: number | null;
   mainStoryMinutes: number | null;
   mainExtraMinutes: number | null;
@@ -15,10 +15,12 @@ export type GameDurationResult = {
 };
 
 export interface GameDurationProvider {
-  findBySteamAppId(steamAppId: number): Promise<GameDurationResult>;
+  findBySteamAppId(
+    steamAppId: number,
+    context?: { title?: string | null; releaseYear?: number | null }
+  ): Promise<GameDurationResult>;
 }
 
 export function secondsToMinutes(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? Math.round(value / 60) : null;
 }
-

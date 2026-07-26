@@ -32,7 +32,10 @@ export class IgdbDurationProvider implements GameDurationProvider {
     this.fetcher = fetcher;
   }
 
-  async findBySteamAppId(steamAppId: number): Promise<GameDurationResult> {
+  async findBySteamAppId(
+    steamAppId: number,
+    context?: { title?: string | null; releaseYear?: number | null }
+  ): Promise<GameDurationResult> {
     if (!Number.isSafeInteger(steamAppId) || steamAppId <= 0) throw new IgdbRequestError("invalid_app_id", 400, "Invalid Steam AppID");
     const sourceId = await this.getSteamSourceId();
     const mappings = await this.igdb<Array<{ game?: number; uid?: string }>>(
@@ -40,27 +43,57 @@ export class IgdbDurationProvider implements GameDurationProvider {
       `fields game,uid,external_game_source; where external_game_source = ${sourceId} & uid = "${steamAppId}"; limit 10;`
     );
     const gameIds = [...new Set(mappings.filter((item) => item.uid === String(steamAppId) && Number.isInteger(item.game)).map((item) => Number(item.game)))];
-    if (!gameIds.length) return emptyResult(steamAppId, "not_found");
+    if (!gameIds.length) {
+      return context?.title
+        ? this.findByTitle(steamAppId, context.title, context.releaseYear)
+        : emptyResult(steamAppId, "not_found");
+    }
     if (gameIds.length !== 1) return emptyResult(steamAppId, "ambiguous");
 
+    const direct = await this.findDurationForGame(steamAppId, gameIds[0], "igdb");
+    if (direct.status === "matched" || direct.status === "ambiguous") return direct;
+
+    const games = await this.igdb<Array<{ id?: number; version_parent?: number }>>(
+      "games",
+      `fields id,version_parent; where id = ${gameIds[0]}; limit 2;`
+    );
+    const parentIds = [...new Set(games.filter((game) => game.id === gameIds[0] && Number.isInteger(game.version_parent)).map((game) => Number(game.version_parent)))];
+    if (parentIds.length > 1) return { ...emptyResult(steamAppId, "ambiguous"), providerGameId: gameIds[0] };
+    if (parentIds.length === 1) {
+      const parent = await this.findDurationForGame(steamAppId, parentIds[0], "igdb-parent");
+      if (parent.status === "matched" || parent.status === "ambiguous") return parent;
+    }
+
+    if (context?.title) {
+      const titleResult = await this.findByTitle(steamAppId, context.title, context.releaseYear, gameIds[0]);
+      if (titleResult.status === "matched" || titleResult.status === "ambiguous") return titleResult;
+    }
+    return direct;
+  }
+
+  private async findDurationForGame(
+    steamAppId: number,
+    gameId: number,
+    provider: GameDurationResult["provider"]
+  ): Promise<GameDurationResult> {
     const rows = await this.igdb<Array<{ game_id?: number; hastily?: number; normally?: number; completely?: number; count?: number; updated_at?: number }>>(
       "game_time_to_beats",
-      `fields game_id,hastily,normally,completely,count,updated_at; where game_id = ${gameIds[0]}; limit 2;`
+      `fields game_id,hastily,normally,completely,count,updated_at; where game_id = ${gameId}; limit 2;`
     );
-    if (rows.length > 1) return { ...emptyResult(steamAppId, "ambiguous"), providerGameId: gameIds[0] };
-    if (!rows.length) return { ...emptyResult(steamAppId, "no_duration"), providerGameId: gameIds[0] };
+    if (rows.length > 1) return { ...emptyResult(steamAppId, "ambiguous", provider), providerGameId: gameId };
+    if (!rows.length) return { ...emptyResult(steamAppId, "no_duration", provider), providerGameId: gameId };
     const row = rows[0];
     const mainStoryMinutes = secondsToMinutes(row.hastily);
     const mainExtraMinutes = secondsToMinutes(row.normally);
     const completionistMinutes = secondsToMinutes(row.completely);
     if (!mainStoryMinutes && !mainExtraMinutes && !completionistMinutes) {
-      return { ...emptyResult(steamAppId, "no_duration"), providerGameId: gameIds[0], submissionCount: validCount(row.count) };
+      return { ...emptyResult(steamAppId, "no_duration", provider), providerGameId: gameId, submissionCount: validCount(row.count) };
     }
     const submissionCount = validCount(row.count);
     return {
       steamAppId,
-      provider: "igdb",
-      providerGameId: gameIds[0],
+      provider,
+      providerGameId: gameId,
       mainStoryMinutes,
       mainExtraMinutes,
       completionistMinutes,
@@ -69,6 +102,33 @@ export class IgdbDurationProvider implements GameDurationProvider {
       status: "matched",
       confidence: submissionCount == null ? "low" : submissionCount >= 25 ? "high" : submissionCount >= 5 ? "medium" : "low"
     };
+  }
+
+  private async findByTitle(steamAppId: number, title: string, releaseYear?: number | null, excludedGameId?: number) {
+    for (const variant of titleVariants(title)) {
+      const escaped = variant.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const rows = await this.igdb<Array<{ id?: number; name?: string; platforms?: number[]; first_release_date?: number; version_parent?: number }>>(
+        "games",
+        `search "${escaped}"; fields id,name,platforms,first_release_date,version_parent; where platforms = (6); limit 10;`
+      );
+      const candidates = rows.filter((game) => {
+        if (!Number.isInteger(game.id) || game.id === excludedGameId || normalizeTitle(game.name) !== normalizeTitle(variant)) return false;
+        if (!releaseYear || !game.first_release_date) return true;
+        return Math.abs(new Date(game.first_release_date * 1000).getUTCFullYear() - releaseYear) <= 1;
+      });
+      const ids = [...new Set(candidates.map((game) => Number(game.id)))];
+      if (ids.length > 1) return emptyResult(steamAppId, "ambiguous", "igdb-title");
+      if (ids.length !== 1) continue;
+
+      const direct = await this.findDurationForGame(steamAppId, ids[0], "igdb-title");
+      if (direct.status === "matched") return direct;
+      const parentId = candidates[0]?.version_parent;
+      if (Number.isInteger(parentId)) {
+        const parent = await this.findDurationForGame(steamAppId, Number(parentId), "igdb-parent");
+        if (parent.status === "matched") return parent;
+      }
+    }
+    return emptyResult(steamAppId, "not_found", "igdb-title");
   }
 
   private async getSteamSourceId() {
@@ -145,9 +205,21 @@ export class IgdbDurationProvider implements GameDurationProvider {
   }
 }
 
-function emptyResult(steamAppId: number, status: GameDurationResult["status"]): GameDurationResult {
-  return { steamAppId, provider: "igdb", providerGameId: null, mainStoryMinutes: null, mainExtraMinutes: null,
+function emptyResult(steamAppId: number, status: GameDurationResult["status"], provider: GameDurationResult["provider"] = "igdb"): GameDurationResult {
+  return { steamAppId, provider, providerGameId: null, mainStoryMinutes: null, mainExtraMinutes: null,
     completionistMinutes: null, submissionCount: null, providerUpdatedAt: null, status, confidence: "none" };
+}
+function normalizeTitle(value: unknown) {
+  return String(value || "").normalize("NFKD").toLowerCase().replace(/[™®©]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+function titleVariants(title: string) {
+  const cleanMarks = title.replace(/[™®©]/g, "").replace(/\s+/g, " ").trim();
+  const noYear = cleanMarks.replace(/\s*\((?:19|20)\d{2}\)\s*$/i, "").trim();
+  const noEdition = noYear.replace(
+    /(?:\s*[-:]\s*|\s+)(?:definitive|anniversary|gold|complete|game of the year|ultimate|steam|legacy|apocalypse|maximum)\s+edition(?:\s+deluxe)?$/i,
+    ""
+  ).replace(/\s+(?:director's cut|remastered collection|\(retired\))$/i, "").trim();
+  return [...new Set([cleanMarks, noYear, noEdition].filter(Boolean))];
 }
 function validCount(value: unknown) { return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : null; }
 function validTimestamp(value: unknown) { return typeof value === "number" && value > 0 ? new Date(value * 1000).toISOString() : null; }

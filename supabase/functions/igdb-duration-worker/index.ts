@@ -28,29 +28,40 @@ Deno.serve(async (request) => {
 
   for (const job of jobs) {
     try {
-      const result = await provider.findBySteamAppId(Number(job.steam_app_id));
+      const [{ data: catalogue }, { data: alias }] = await Promise.all([
+        supabase.from("catalog_games").select("name,release_date").eq("steam_appid", job.steam_app_id).maybeSingle(),
+        supabase.from("game_duration_aliases").select("search_title,release_year,review_status").eq("steam_app_id", job.steam_app_id).maybeSingle()
+      ]);
+      const result = await provider.findBySteamAppId(Number(job.steam_app_id), {
+        title: alias?.review_status === "approved" ? alias.search_title : catalogue?.name,
+        releaseYear: alias?.review_status === "approved"
+          ? alias.release_year
+          : catalogue?.release_date ? new Date(catalogue.release_date).getUTCFullYear() : null
+      });
       await persistResult(supabase, result);
       if (result.status === "matched") summary.matched += 1;
       else if (result.status === "no_duration") summary.no_duration += 1;
       else if (result.status === "not_found") summary.not_found += 1;
       else summary.needs_review += 1;
-      await supabase.from("game_duration_jobs").update({
+      const { error: completedError } = await supabase.from("game_duration_jobs").update({
         status: result.status === "ambiguous" || result.status === "needs_review" ? "needs_review" : "completed",
         attempts: Number(job.attempts || 0) + 1, locked_at: null, locked_by: null,
         last_error_code: null, last_error_message: null, updated_at: new Date().toISOString()
       }).eq("steam_app_id", job.steam_app_id).eq("locked_by", workerId);
+      if (completedError) throw new Error("Duration job completion update failed");
     } catch (error) {
       const attempts = Number(job.attempts || 0) + 1;
       const retryable = isRetryable(error) && attempts < MAX_ATTEMPTS;
       const delayMs = retryable ? backoff(attempts) : 0;
       const code = error instanceof IgdbRequestError ? error.code : "provider_error";
       const message = error instanceof Error ? error.message : "Duration lookup failed";
-      await supabase.from("game_duration_jobs").update({
+      const { error: retryError } = await supabase.from("game_duration_jobs").update({
         status: retryable ? "retry" : "failed", attempts,
         next_attempt_at: retryable ? new Date(Date.now() + delayMs).toISOString() : new Date().toISOString(),
         locked_at: null, locked_by: null, last_error_code: code.slice(0, 80),
         last_error_message: sanitise(message), updated_at: new Date().toISOString()
       }).eq("steam_app_id", job.steam_app_id).eq("locked_by", workerId);
+      if (retryError) throw new Error("Duration job retry update failed");
       retryable ? summary.retried += 1 : summary.failed += 1;
     }
   }
@@ -58,9 +69,16 @@ Deno.serve(async (request) => {
 });
 
 function authorised(request: Request) {
-  const expected = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
   const supplied = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
-  if (!expected || !supplied || supplied.length !== expected.length) return false;
+  const accepted = [
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY"),
+    Deno.env.get("CRON_SECRET")
+  ].filter((secret): secret is string => Boolean(secret));
+  return Boolean(supplied && accepted.some((expected) => timingSafeEqual(expected, supplied)));
+}
+
+function timingSafeEqual(expected: string, supplied: string) {
+  if (supplied.length !== expected.length) return false;
   let difference = 0;
   for (let index = 0; index < expected.length; index += 1) difference |= expected.charCodeAt(index) ^ supplied.charCodeAt(index);
   return difference === 0;
