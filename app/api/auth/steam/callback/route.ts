@@ -4,6 +4,7 @@ import { getPostHogClient } from "@/lib/posthog-server";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
+const ANALYTICS_CONSENT_COOKIE = "vault_analytics_consent";
 
 function describeError(error: unknown) {
   if (error instanceof Error) return error.message;
@@ -43,7 +44,9 @@ export async function GET(request: Request) {
 
     const { token, user } = await createSessionForSteamId(steamId, profile);
 
-    const posthog = getPostHogClient();
+    const posthog = requestCookie(request, ANALYTICS_CONSENT_COOKIE) === "accepted"
+      ? getPostHogClient()
+      : null;
     if (posthog) {
       posthog.identify({
         distinctId: user.id,
@@ -80,4 +83,12 @@ export async function GET(request: Request) {
     console.error("Steam callback failed:", detailedMessage);
     return NextResponse.redirect(`${baseUrl}/login?error=${message}`);
   }
+}
+
+function requestCookie(request: Request, name: string) {
+  const cookie = request.headers.get("cookie")
+    ?.split(";")
+    .map((entry) => entry.trim())
+    .find((entry) => entry.startsWith(`${name}=`));
+  return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : null;
 }

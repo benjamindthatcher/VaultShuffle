@@ -25,13 +25,6 @@
   gap: 6px;
 }
 
-.titleRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
 .title {
   margin: 0;
   font-size: 1.12rem;
@@ -48,7 +41,7 @@
 
 .rowActions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 8px;
 }
@@ -110,13 +103,30 @@
 
 @media (min-width: 920px) {
   .row {
-    grid-template-columns: 240px minmax(0, 1fr) auto;
+    grid-template-columns: 240px minmax(0, 1fr) 176px minmax(190px, 220px);
     align-items: center;
   }
 
+  .rowActions {
+    width: 176px;
+  }
+
   .meta {
+    width: 100%;
     display: grid;
     justify-items: end;
     padding-right: 14px;
+  }
+}
+
+@media (max-width: 919px) {
+  .main,
+  .rowActions,
+  .meta {
+    margin-inline: 12px;
+  }
+
+  .meta {
+    margin-bottom: 12px;
   }
 }

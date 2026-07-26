@@ -24,9 +24,10 @@ type LibraryDetailsDrawerProps = {
   onManagePins?: () => void;
   onComplete?: () => Promise<void>;
   onRestore?: () => Promise<void>;
+  onSleep?: () => Promise<void>;
 };
 
-export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore }: LibraryDetailsDrawerProps) {
+export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore, onSleep }: LibraryDetailsDrawerProps) {
   const [mounted, setMounted] = useState(false);
   const [notes, setNotes] = useState("");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
@@ -80,13 +81,25 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           </div>
 
           <p className={styles.copy}>{game.description}</p>
-          <div className={styles.pinControl}>
-            <div><strong>{pinSlot ? `Pinned in slot ${pinSlot}` : pinCount >= 3 ? "Pins full · 3/3" : "Pin game"}</strong><span>{pinSlot ? "Kept at the front of your Active Library." : `Keep it at the front of your Library · ${pinCount}/3 used`}</span></div>
-            <div className={styles.pinActions}>
-              <button type="button" onClick={pinSlot || pinCount < 3 ? onTogglePin : onManagePins}>{pinSlot ? "Unpin" : pinCount >= 3 ? "Manage Pins" : "Pin game"}</button>
-              {game.status === "Completed" ? <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><BrandedIcon group="actions" name="restore-active" size={22} />Restore to Active</button> : <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>}
+          {game.status === "Completed" || game.status === "Slept" ? (
+            <div className={styles.pinControl}>
+              <div><strong>{game.status} game</strong><span>Restore it or move it directly to the other archived list.</span></div>
+              <div className={styles.pinActions}>
+                <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><BrandedIcon group="actions" name="restore-active" size={22} />Restore to Active</button>
+                {game.status === "Completed"
+                  ? <button type="button" disabled={saving} onClick={() => void onSleep?.()}>Move to Slept</button>
+                  : <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className={styles.pinControl}>
+              <div><strong>{pinSlot ? `Pinned in slot ${pinSlot}` : pinCount >= 3 ? "Pins full · 3/3" : "Pin game"}</strong><span>{pinSlot ? "Kept at the front of your Active Library." : `Keep it at the front of your Library · ${pinCount}/3 used`}</span></div>
+              <div className={styles.pinActions}>
+                <button type="button" onClick={pinSlot || pinCount < 3 ? onTogglePin : onManagePins}>{pinSlot ? "Unpin" : pinCount >= 3 ? "Manage Pins" : "Pin game"}</button>
+                <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>
+              </div>
+            </div>
+          )}
 
           <div className={styles.metadataRow}>
             {game.genres.map((genre) => <span key={genre}>{genre}</span>)}

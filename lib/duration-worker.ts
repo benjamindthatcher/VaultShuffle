@@ -26,7 +26,7 @@ export async function processDurationQueue(limit = 8) {
   await supabase.rpc("queue_missing_game_durations", { p_limit: 250 });
   const workerId = `vercel-${crypto.randomUUID()}`;
   const { data, error } = await supabase.rpc("claim_game_duration_jobs", {
-    p_limit: Math.max(1, Math.min(8, Math.floor(limit))),
+    p_limit: Math.max(1, Math.min(48, Math.floor(limit))),
     p_worker_id: workerId
   });
   if (error) throw error;
@@ -90,6 +90,7 @@ export async function processDurationQueue(limit = 8) {
 class IgdbDurationProvider {
   private token: { value: string; expiresAt: number } | null = null;
   private steamSourceId: number | null = null;
+  private nextRequestAt = 0;
 
   constructor(private readonly clientId: string, private readonly clientSecret: string) {}
 
@@ -103,9 +104,9 @@ class IgdbDurationProvider {
     if (!gameIds.length) return emptyResult(steamAppId, "not_found");
     if (gameIds.length !== 1) return emptyResult(steamAppId, "ambiguous");
 
-    const rows = await this.request<Array<{ hastily?: number; normally?: number; completely?: number; count?: number; updated_at?: number }>>(
+    const rows = await this.request<Array<{ game_id?: number; hastily?: number; normally?: number; completely?: number; count?: number; updated_at?: number }>>(
       "game_time_to_beats",
-      `fields hastily,normally,completely,count,updated_at; where game = ${gameIds[0]}; limit 2;`
+      `fields game_id,hastily,normally,completely,count,updated_at; where game_id = ${gameIds[0]}; limit 2;`
     );
     if (rows.length !== 1) return { ...emptyResult(steamAppId, rows.length ? "ambiguous" : "no_duration"), providerGameId: gameIds[0] };
     const row = rows[0];
@@ -139,6 +140,9 @@ class IgdbDurationProvider {
   }
 
   private async request<T>(endpoint: string, body: string, refreshed = false): Promise<T> {
+    const delay = Math.max(0, this.nextRequestAt - Date.now());
+    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+    this.nextRequestAt = Date.now() + 275;
     const token = await this.getToken();
     const response = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
       method: "POST",

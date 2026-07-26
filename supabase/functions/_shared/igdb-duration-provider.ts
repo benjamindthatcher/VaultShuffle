@@ -43,9 +43,9 @@ export class IgdbDurationProvider implements GameDurationProvider {
     if (!gameIds.length) return emptyResult(steamAppId, "not_found");
     if (gameIds.length !== 1) return emptyResult(steamAppId, "ambiguous");
 
-    const rows = await this.igdb<Array<{ game?: number; hastily?: number; normally?: number; completely?: number; count?: number; updated_at?: number }>>(
+    const rows = await this.igdb<Array<{ game_id?: number; hastily?: number; normally?: number; completely?: number; count?: number; updated_at?: number }>>(
       "game_time_to_beats",
-      `fields game,hastily,normally,completely,count,updated_at; where game = ${gameIds[0]}; limit 2;`
+      `fields game_id,hastily,normally,completely,count,updated_at; where game_id = ${gameIds[0]}; limit 2;`
     );
     if (rows.length > 1) return { ...emptyResult(steamAppId, "ambiguous"), providerGameId: gameIds[0] };
     if (!rows.length) return { ...emptyResult(steamAppId, "no_duration"), providerGameId: gameIds[0] };

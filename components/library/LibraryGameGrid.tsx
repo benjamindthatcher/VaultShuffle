@@ -23,8 +23,8 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
           layout={viewMode}
           onClick={() => onSelect(game.id)}
           onComplete={game.status !== "Completed" ? () => onComplete(game.id) : undefined}
-          onRestore={game.status === "Completed" ? () => onRestore(game.id) : undefined}
-          onSleep={game.status !== "Completed" && game.status !== "Slept" ? () => onSleep(game.id) : undefined}
+          onRestore={game.status === "Completed" || game.status === "Slept" ? () => onRestore(game.id) : undefined}
+          onSleep={game.status !== "Slept" ? () => onSleep(game.id) : undefined}
           onTogglePin={game.status !== "Completed" && game.status !== "Slept" ? () => onTogglePin(game) : undefined}
           pinned={pinnedIds.includes(game.id)}
           showProgress

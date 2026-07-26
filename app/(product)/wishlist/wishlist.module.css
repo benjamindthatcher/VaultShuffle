@@ -244,6 +244,12 @@
   font-size: 1.3rem;
 }
 
+.composerHint {
+  margin: 6px 0 0;
+  color: var(--vault-text-muted);
+  font-size: 0.82rem;
+}
+
 .composerBody {
   display: grid;
   gap: 16px;
@@ -252,6 +258,7 @@
 }
 
 .toolbar {
+  margin-top: 2px;
   padding: 16px;
   border-color: rgba(158, 102, 255, 0.3);
   background:

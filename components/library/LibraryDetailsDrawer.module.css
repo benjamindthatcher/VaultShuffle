@@ -14,9 +14,8 @@
   top: 0;
   z-index: 40;
   width: min(520px, 100vw);
-  height: 100vh;
-  display: grid;
-  grid-template-rows: auto 1fr;
+  height: 100dvh;
+  overflow-y: auto;
   background: rgba(7, 10, 26, 0.98);
   border-left: 1px solid rgba(150, 110, 255, 0.22);
   box-shadow: -24px 0 54px rgba(0, 0, 0, 0.32);
@@ -38,7 +37,6 @@
   display: grid;
   gap: 18px;
   padding: 24px;
-  overflow-y: auto;
 }
 
 .header {

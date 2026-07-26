@@ -30,7 +30,7 @@ export async function listCollections(userId: string) {
 
   const smartCollections = collections.filter((collection) => collection.kind === "smart");
   if (smartCollections.length) {
-    const { data: games, error: gameError } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned");
+    const { data: games, error: gameError } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false);
     if (gameError) throw gameError;
     for (const collection of smartCollections) {
       const preset = collection.rules?.preset;
@@ -100,7 +100,7 @@ export async function getCollectionWithGames(userId: string, collectionId: strin
   const supabase = getSupabaseAdmin();
   if (collection.kind === "smart") {
     const preset = collection.rules?.preset;
-    const { data, error } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").order("title");
+    const { data, error } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false).order("title");
     if (error) throw error;
     const matched = preset ? (data as Game[]).filter((game) => matchesSmartPreset(game, preset)) : [];
     return { collection, games: matched.map((game, position) => ({ collection_id: collection.id, game_id: game.id, notes: null, position, created_at: collection.created_at, game })) };

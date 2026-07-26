@@ -2,6 +2,7 @@ import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "@/lib/d
 import { formatGameDuration } from "@/lib/game-duration";
 
 export const MAX_VAULT_GENRES = 3;
+export const MAX_VAULT_POOL_SIZE = 24;
 const VAULT_SELECTION_TEMPERATURE = 15;
 
 export const vaultSessionOptions = [
@@ -29,7 +30,7 @@ export type VaultPoolEntry = {
 };
 
 export type VaultEligibilityStage = {
-  id: "active" | "collection" | "genres" | "goal" | "snoozes" | "available";
+  id: "active" | "collection" | "genres" | "session" | "mood" | "goal" | "snoozes" | "available" | "shortlist";
   label: string;
   count: number;
 };
@@ -41,6 +42,8 @@ export type VaultEligibility = {
 
 export function getVaultEligibility({
   games,
+  session,
+  mood,
   goal,
   selectedCollectionId,
   selectedCollectionName,
@@ -48,6 +51,8 @@ export function getVaultEligibility({
   snoozedIds
 }: {
   games: DemoGame[];
+  session: VaultSessionId | null;
+  mood: VaultMoodId | null;
   goal: VaultGoalId | null;
   selectedCollectionId: string | null;
   selectedCollectionName?: string | null;
@@ -66,7 +71,9 @@ export function getVaultEligibility({
     : active.filter((game) => game.collectionIds.includes(selectedCollectionId));
   const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
   const genreMatches = inCollection.filter((game) => matchesAnyGenre(game, canonicalSelectedGenres));
-  const goalMatches = genreMatches.filter((game) => goalEligible(game, goal));
+  const sessionMatches = session ? genreMatches.filter((game) => game.sessionFit.includes(session)) : genreMatches;
+  const moodMatches = mood ? sessionMatches.filter((game) => game.moodTags.includes(mood)) : sessionMatches;
+  const goalMatches = moodMatches.filter((game) => goalEligible(game, goal));
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
   const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
 
@@ -76,6 +83,12 @@ export function getVaultEligibility({
   if (selectedGenres.length) {
     stages.push({ id: "genres", label: "Genre Matches", count: genreMatches.length });
   }
+  if (session) {
+    stages.push({ id: "session", label: `${sessionLabel(session)} Fits`, count: sessionMatches.length });
+  }
+  if (mood) {
+    stages.push({ id: "mood", label: `${labelForMood(mood)} Fits`, count: moodMatches.length });
+  }
   if (goal && goal !== "surprise") {
     stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
   }
@@ -83,6 +96,9 @@ export function getVaultEligibility({
     stages.push({ id: "snoozes", label: "After Snoozes", count: available.length });
   }
   stages.push({ id: "available", label: "Available", count: available.length });
+  if (available.length > MAX_VAULT_POOL_SIZE) {
+    stages.push({ id: "shortlist", label: "Best-fit Deck", count: MAX_VAULT_POOL_SIZE });
+  }
 
   return { stages, games: available };
 }
@@ -107,6 +123,8 @@ export function buildVaultPool({
   const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
   const eligibility = getVaultEligibility({
     games,
+    session,
+    mood,
     goal,
     selectedCollectionId,
     selectedGenres,
@@ -118,7 +136,8 @@ export function buildVaultPool({
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
       return left.game.title.localeCompare(right.game.title);
-    });
+    })
+    .slice(0, MAX_VAULT_POOL_SIZE);
 }
 
 export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string | null, rng = Math.random) {
@@ -161,14 +180,17 @@ function scoreVaultGame(
   if (session) {
     const sessionScore = game.sessionFit.includes(session) ? 24 : 12;
     score += sessionScore;
-    if (sessionScore >= 20) reasons.push(`Fits a ${sessionLabel(session).toLowerCase()}`);
     const durationLabel = formatGameDuration(game.duration);
-    if (sessionScore >= 20 && durationLabel) reasons.push(durationLabel);
+    if (sessionScore >= 20) {
+      reasons.push(durationLabel
+        ? `${sessionLabel(session)} fit · ${durationLabel}`
+        : `${sessionLabel(session)} fit`);
+    }
   }
 
   if (mood && game.moodTags.includes(mood)) {
     score += 24;
-    reasons.push(mood === "brain-off" ? "Easy to jump into" : `Matches your ${labelForMood(mood)} mood`);
+    reasons.push(moodReason(mood));
   } else if (mood) {
     score += 11;
   }
@@ -182,16 +204,19 @@ function scoreVaultGame(
 
   if (goal === "new") {
     score += game.hoursPlayed === 0 ? 40 : game.hoursPlayed <= 0.5 ? 34 : 28;
-    reasons.push("Not started");
+    reasons.push(game.hoursPlayed === 0 ? "Fresh start · no recorded playtime" : "Barely sampled so far");
   }
 
   if (goal === "finish") {
     score += finishScore(game.completionPercent);
-    reasons.push(game.completionPercent > 0 ? `${game.completionPercent}% complete` : "Already in progress");
+    reasons.push(game.completionPercent > 0
+      ? `Finish Something · ${game.completionPercent}% complete`
+      : "Already started and ready to resume");
   }
 
   if (goal === "surprise") {
     score += 30;
+    reasons.push("A wildcard from your eligible library");
   }
 
   return { game, score, reasons: reasons.slice(0, 4) };
@@ -233,7 +258,13 @@ function sessionLabel(session: VaultSessionId) {
   return vaultSessionOptions.find((option) => option.id === session)?.label ?? "session";
 }
 
+function moodReason(mood: VaultMoodId) {
+  if (mood === "brain-off") return "Low-friction pick for switching off";
+  if (mood === "chill") return "Softer-energy fit for a chill session";
+  return "High-energy fit for an intense session";
+}
+
 function labelForMood(mood: VaultMoodId) {
-  if (mood === "brain-off") return "Brain-off";
+  if (mood === "brain-off") return "Brain-Off";
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }

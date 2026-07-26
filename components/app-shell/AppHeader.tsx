@@ -75,6 +75,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
               alt=""
               width={42}
               height={42}
+              priority
               className={styles.brandIcon}
             />
           </span>

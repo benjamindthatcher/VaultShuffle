@@ -32,11 +32,30 @@ test("exact Steam mapping returns validated durations", async () => {
     { access_token: "test-token", expires_in: 3600 },
     [{ id: 1, name: "Steam" }],
     [{ game: 42, uid: "1086940" }],
-    [{ game: 42, hastily: 3601, normally: 7200, completely: 10800, count: 30, updated_at: 1_700_000_000 }]
+    [{ game_id: 42, hastily: 3601, normally: 7200, completely: 10800, count: 30, updated_at: 1_700_000_000 }]
   ]);
   const result = await new IgdbDurationProvider("client", "secret", fetcher).findBySteamAppId(1086940);
   assert.deepEqual({ status: result.status, main: result.mainStoryMinutes, extras: result.mainExtraMinutes, complete: result.completionistMinutes, confidence: result.confidence },
     { status: "matched", main: 60, extras: 120, complete: 180, confidence: "high" });
+});
+
+test("duration lookup uses IGDB's current game_id field", async () => {
+  const requests: Array<{ url: string; body: string }> = [];
+  const fetcher: typeof fetch = async (input, init) => {
+    const url = String(input);
+    requests.push({ url, body: String(init?.body ?? "") });
+    if (url.includes("oauth2/token")) return Response.json({ access_token: "token", expires_in: 3600 });
+    if (url.endsWith("external_game_sources")) return Response.json([{ id: 1, name: "Steam" }]);
+    if (url.endsWith("external_games")) return Response.json([{ game: 42, uid: "10" }]);
+    if (url.endsWith("game_time_to_beats")) return Response.json([]);
+    throw new Error("Unexpected request");
+  };
+
+  await new IgdbDurationProvider("client", "secret", fetcher).findBySteamAppId(10);
+  const durationRequest = requests.find((request) => request.url.endsWith("game_time_to_beats"));
+  assert.match(durationRequest?.body ?? "", /fields game_id,/);
+  assert.match(durationRequest?.body ?? "", /where game_id = 42/);
+  assert.doesNotMatch(durationRequest?.body ?? "", /where game =/);
 });
 
 test("no mapping and conflicting mappings are not title-matched", async () => {

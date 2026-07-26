@@ -166,6 +166,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } while (remaining > 0 && batch < 10);
 
     if (updated > 0) await load();
+    posthog.capture("steam_metadata_refreshed", { updated_count: updated, forced: force });
     return updated;
   }
 
@@ -205,6 +206,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) });
       await load();
+      posthog.capture("collection_updated", { kind: payload.kind ?? "custom" });
       return;
     }
     setGuestCollections((current) => current.map((collection) => collection.id === collectionId ? {
@@ -214,6 +216,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       kind: payload.kind ?? collection.kind,
       smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
     } : collection));
+    posthog.capture("collection_updated", { kind: payload.kind ?? "custom" });
   }
 
   async function removeCollection(collectionId: string) {
@@ -305,34 +308,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
       });
+      setLiveGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
       if (patch.status === 'Completed') posthog.capture('game_marked_completed');
       if (patch.status === 'Slept') posthog.capture('game_put_to_sleep');
-      await load();
       return;
     }
 
-    setGuestGames((current) =>
-      current.map((game) =>
-        game.id === gameId
-          ? {
-              ...game,
-              status: patch.status ?? game.status,
-              completionPercent: Math.min(99, patch.completionPercent ?? game.completionPercent),
-              hoursPlayed: patch.hoursPlayed ?? game.hoursPlayed,
-              priority: patch.priority ?? game.priority,
-              notes: patch.notes ?? game.notes,
-              description: patch.notes?.trim() ? patch.notes : game.description,
-              completedAt: patch.completedAt !== undefined ? patch.completedAt : patch.status === "Completed" ? new Date().toISOString() : patch.status ? null : game.completedAt,
-              previousActiveStatus: patch.status === "Completed" && game.status !== "Completed"
-                ? (game.status === "In Progress" ? "In Progress" : "Not Started")
-                : game.previousActiveStatus,
-              sleptAt: patch.sleptAt !== undefined ? patch.sleptAt : patch.status === "Slept" ? new Date().toISOString() : patch.status ? null : game.sleptAt,
-              completionSuggestionDismissedAt: patch.completionSuggestionDismissedAt ?? game.completionSuggestionDismissedAt,
-              completionSuggestionDismissedPlaytime: patch.completionSuggestionDismissedPlaytime ?? game.completionSuggestionDismissedPlaytime
-            }
-          : game
-      )
-    );
+    setGuestGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
     if (patch.status === "Completed" || patch.status === "Slept") {
       if (patch.status === "Completed") posthog.capture('game_marked_completed');
       if (patch.status === "Slept") posthog.capture('game_put_to_sleep');
@@ -350,17 +332,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         method: "PATCH",
         body: JSON.stringify({ restore_active: true })
       });
-      await load();
+      setLiveGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
+      posthog.capture("game_restored_to_active");
       return;
     }
 
-    setGuestGames((current) => current.map((game) => game.id === gameId ? {
-      ...game,
-      status: game.previousActiveStatus ?? "Not Started",
-      completedAt: null,
-      sleptAt: null,
-      previousActiveStatus: null
-    } : game));
+    setGuestGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
+    posthog.capture("game_restored_to_active");
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
@@ -399,10 +377,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ action, game_id: gameId, context })
       });
       setLiveVaultState(nextState);
+      posthog.capture(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
+        action,
+        pin_scope: context.pin_scope ?? "library"
+      });
       return;
     }
 
     setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
+    posthog.capture(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
+      action,
+      pin_scope: context.pin_scope ?? "library"
+    });
   }
 
   async function loadVaultHistory() {
@@ -472,6 +458,45 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
+}
+
+function applyGamePatch(
+  game: DemoGame,
+  patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }
+): DemoGame {
+  const status = patch.status ?? game.status;
+  return {
+    ...game,
+    status,
+    completionPercent: status === "Completed"
+      ? Math.min(100, patch.completionPercent ?? game.completionPercent)
+      : Math.min(99, patch.completionPercent ?? game.completionPercent),
+    hoursPlayed: patch.hoursPlayed ?? game.hoursPlayed,
+    priority: patch.priority ?? game.priority,
+    notes: patch.notes ?? game.notes,
+    description: patch.notes?.trim() ? patch.notes : game.description,
+    completedAt: patch.completedAt !== undefined
+      ? patch.completedAt
+      : status === "Completed" ? new Date().toISOString() : patch.status ? null : game.completedAt,
+    previousActiveStatus: (status === "Completed" || status === "Slept") && game.status !== "Completed" && game.status !== "Slept"
+      ? (game.previousActiveStatus ?? (game.status === "In Progress" ? "In Progress" : "Not Started"))
+      : game.previousActiveStatus,
+    sleptAt: patch.sleptAt !== undefined
+      ? patch.sleptAt
+      : status === "Slept" ? new Date().toISOString() : patch.status ? null : game.sleptAt,
+    completionSuggestionDismissedAt: patch.completionSuggestionDismissedAt ?? game.completionSuggestionDismissedAt,
+    completionSuggestionDismissedPlaytime: patch.completionSuggestionDismissedPlaytime ?? game.completionSuggestionDismissedPlaytime
+  };
+}
+
+function restoreActiveGame(game: DemoGame): DemoGame {
+  return {
+    ...game,
+    status: game.previousActiveStatus ?? (game.hoursPlayed > 0 ? "In Progress" : "Not Started"),
+    completedAt: null,
+    sleptAt: null,
+    previousActiveStatus: null
+  };
 }
 
 function reduceGuestVaultState(state: VaultState, action: VaultAction, gameId: string, context: Record<string, unknown>): VaultState {

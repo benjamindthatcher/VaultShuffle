@@ -45,7 +45,7 @@
   .menuTrigger { width: 40px; height: 40px; }
   .menu { top: 44px; }
 }
-.menu { position: absolute; z-index: 3; top: 42px; right: 0; width: max-content; min-width: 178px; display: grid; gap: 3px; padding: 6px; border: 1px solid rgba(186, 111, 255, 0.34); border-radius: 11px; background: #090d22; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.48); }
+.menu { position: fixed; z-index: 1000; width: max-content; min-width: 188px; display: grid; gap: 3px; padding: 6px; border: 1px solid rgba(186, 111, 255, 0.34); border-radius: 11px; background: #090d22; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.48); }
 .menu button,
 .menu a { padding: 10px 12px; border: 0; border-radius: 7px; color: var(--vault-text); background: transparent; font: inherit; text-align: left; text-decoration: none; }
 .menu button:hover,

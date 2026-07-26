@@ -1,8 +1,58 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchSteamAppDetails } from "@/lib/steam";
+import type { GamePayload } from "@/lib/types";
 
-const NON_GAME_TERMS = ["dedicated server", "soundtrack", "artbook", "sdk", "editor", "benchmark", "playtest"];
+const NON_GAME_TERMS = [
+  "dedicated server",
+  "soundtrack",
+  "artbook",
+  "sdk",
+  "editor",
+  "benchmark",
+  "playtest",
+  "test server",
+  "test realm",
+  "public test",
+  "technical test",
+  "modding tool",
+  "development tool"
+];
+const NON_GAME_TITLE_PATTERNS = [
+  /\bplaytest\b/i,
+  /\bdedicated server\b/i,
+  /\btest (?:server|realm|client)\b/i,
+  /\bpublic test\b/i,
+  /\btechnical test\b/i,
+  /\b(?:pts|ptr)\b/i,
+  /\b(?:sdk|benchmark|editor|soundtrack|artbook)\b/i
+];
 type CatalogueQueueRow = { steam_appid: number; attempts: number };
+
+export async function quarantinedSteamImports(games: GamePayload[]) {
+  const supabase = getSupabaseAdmin();
+  const candidates = games.flatMap((game) => {
+    const appid = Number(game.steam_appid);
+    const matchedRule = immediateNonGameRule(game.title);
+    return Number.isSafeInteger(appid) && appid > 0 && matchedRule
+      ? [{ steam_appid: appid, name: game.title, matched_rule: matchedRule, reason: `Title matched automatic non-game rule: ${matchedRule}.`, last_detected_at: new Date().toISOString(), updated_at: new Date().toISOString() }]
+      : [];
+  });
+
+  if (candidates.length) {
+    const { error } = await supabase.from("catalog_game_quarantine").upsert(candidates, { onConflict: "steam_appid" });
+    if (error) throw error;
+  }
+
+  const appids = uniqueNumericAppIds(games.flatMap((game) => game.steam_appid ? [game.steam_appid] : []));
+  if (!appids.length) return new Map<string, string>();
+  const { data, error } = await supabase
+    .from("catalog_game_quarantine")
+    .select("steam_appid, reason")
+    .in("steam_appid", appids)
+    .eq("review_status", "excluded");
+  if (error) throw error;
+  return new Map((data ?? []).map((row) => [String(row.steam_appid), String(row.reason)]));
+}
 
 export async function recordImportedSteamAppIds(userId: string, appIds: string[]) {
   const ids = uniqueNumericAppIds(appIds);
@@ -40,8 +90,21 @@ export async function processCatalogueQueue(limit = 25, restrictToAppIds?: numbe
       const classification = classifySteamCatalogueEntry(details);
       if (!classification.accepted || !details?.title) {
         rejected += 1;
+        const now = new Date().toISOString();
+        const { error: quarantineError } = await supabase.from("catalog_game_quarantine").upsert({
+          steam_appid: row.steam_appid,
+          name: details?.title || null,
+          steam_type: details?.steam_type || null,
+          matched_rule: classification.matchedRule,
+          reason: classification.reason || "Steam metadata was unavailable.",
+          genres: details?.genres ?? [],
+          categories: details?.categories ?? [],
+          last_detected_at: now,
+          updated_at: now
+        }, { onConflict: "steam_appid" });
+        if (quarantineError) throw quarantineError;
         await supabase.from("catalog_ingest_queue").update({ status: "rejected", rejection_reason: classification.reason,
-          processed_at: new Date().toISOString(), processing_started_at: null, updated_at: new Date().toISOString() })
+          processed_at: now, processing_started_at: null, updated_at: now })
           .eq("steam_appid", row.steam_appid);
         continue;
       }
@@ -74,12 +137,19 @@ export async function processCatalogueQueue(limit = 25, restrictToAppIds?: numbe
 }
 
 function classifySteamCatalogueEntry(details: Awaited<ReturnType<typeof fetchSteamAppDetails>>) {
-  if (!details) return { accepted: false, reason: "Steam metadata was unavailable." };
-  if (details.steam_type !== "game") return { accepted: false, reason: `Steam classified this AppID as ${details.steam_type || "unknown"}.` };
+  if (!details) return { accepted: false, reason: "Steam metadata was unavailable.", matchedRule: "metadata_unavailable" };
+  if (details.steam_type !== "game") return { accepted: false, reason: `Steam classified this AppID as ${details.steam_type || "unknown"}.`, matchedRule: `steam_type:${details.steam_type || "unknown"}` };
   const title = String(details.title || "").toLowerCase();
   const labels = [...(details.genres ?? []), ...(details.categories ?? [])].join(" ").toLowerCase();
   const blocked = NON_GAME_TERMS.find((term) => title.includes(term) || labels.includes(term));
-  return blocked ? { accepted: false, reason: `Non-game classification matched: ${blocked}.` } : { accepted: true, reason: null };
+  return blocked
+    ? { accepted: false, reason: `Non-game classification matched: ${blocked}.`, matchedRule: `tag_or_title:${blocked}` }
+    : { accepted: true, reason: null, matchedRule: null };
+}
+
+function immediateNonGameRule(title: string) {
+  const match = NON_GAME_TITLE_PATTERNS.find((pattern) => pattern.test(title));
+  return match?.source ?? null;
 }
 
 function uniqueNumericAppIds(appIds: string[]) {

@@ -106,7 +106,7 @@
 .gamesHeader > div:first-child { flex: 0 0 auto; }
 .gamesToolbar { width: 100%; }
 .gamesToolbar > * { width: 100%; max-width: none; }
-.gamesScroller { max-height: 720px; overflow-y: auto; overscroll-behavior: contain; padding-right: 5px; scrollbar-color: rgba(166, 87, 255, 0.72) rgba(26, 31, 61, 0.72); scrollbar-width: thin; }
+.gamesScroller { max-height: min(640px, 68vh); overflow-y: auto; overscroll-behavior-y: contain; padding-right: 5px; scrollbar-color: rgba(166, 87, 255, 0.72) rgba(26, 31, 61, 0.72); scrollbar-width: thin; }
 .gamesScrollControls { position: static; float: none; justify-self: end; margin: 0 0 10px; padding: 0; background: transparent; backdrop-filter: none; }
 .gamesScroller:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
 

@@ -58,26 +58,31 @@ export function buildPurgeCandidates({
       continue;
     }
 
-    const idle = age(game.lastPlayedLabel, now);
+    const idle = age(game.lastPlayedAt || game.lastPlayedLabel, now);
     const duration = context(game);
 
-    if (game.hoursPlayed === 0) {
+    // Recently played, unfinished games remain active and do not need a Purge review.
+    if (game.hoursPlayed > 0 && idle < 180) continue;
+
+    if (game.hoursPlayed > 0 && game.completionPercent >= 85) {
       result.push({
         game,
         category: "untouched",
-        reason: `No recorded Steam playtime.${duration}`
+        reason: `${game.completionPercent}% estimated progress suggests you may already have finished this.${duration}`
       });
-    } else if (game.hoursPlayed < 2 && idle >= 90) {
+    } else if (game.hoursPlayed > 0 && game.completionPercent <= 50) {
       result.push({
         game,
         category: "barely-started",
-        reason: `Only ${game.hoursPlayed}h played and inactive for ${formatAge(idle)}.${duration}`
+        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress and inactive for ${formatAge(idle)}.${duration}`
       });
-    } else if (game.hoursPlayed >= 2 && idle >= 180) {
+    } else {
       result.push({
         game,
         category: "dormant",
-        reason: `${game.hoursPlayed}h played, but untouched for ${formatAge(idle)}.${duration}`
+        reason: game.hoursPlayed === 0
+          ? `No recorded Steam playtime.${duration}`
+          : `${game.hoursPlayed}h played and inactive for ${formatAge(idle)}.${duration}`
       });
     }
   }
@@ -91,6 +96,7 @@ function context(game: DemoGame) {
 }
 
 function age(label: string, now: Date) {
+  if (!label || label === "Not played recently") return Number.POSITIVE_INFINITY;
   const match = label.match(/(\d+)\s*([hdwmy])\s*ago/i);
   if (match) {
     const factors = { h: 1 / 24, d: 1, w: 7, m: 30, y: 365 };
@@ -99,7 +105,7 @@ function age(label: string, now: Date) {
   const timestamp = Date.parse(label.replace(/^Added\s+/i, ""));
   return Number.isFinite(timestamp)
     ? Math.max(0, (now.getTime() - timestamp) / 86400000)
-    : 0;
+    : Number.POSITIVE_INFINITY;
 }
 
 function formatAge(days: number) {

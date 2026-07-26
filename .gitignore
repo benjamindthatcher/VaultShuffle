@@ -16,6 +16,10 @@ data/catalogue/README.md
 DATABASE_*.md
 supabase/README.md
 supabase/migrations/
+!supabase/migrations/
+supabase/migrations/*
+!supabase/migrations/20260725212414_add_reviewable_game_quarantine.sql
+!supabase/migrations/20260726003644_harden_game_quarantine_trigger.sql
 supabase/functions/igdb-duration-worker/index.ts
 supabase/functions/_shared/igdb-duration-provider.ts
 supabase/functions/_shared/igdb-duration-provider.test.ts

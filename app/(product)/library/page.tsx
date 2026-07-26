@@ -24,7 +24,7 @@ const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
 export default function LibraryPage() {
   const { games, collections, vaultState, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState("recent");
+  const [sort, setSort] = useState("hours");
   const [sortReversed, setSortReversed] = useState(false);
   const [statusTab, setStatusTab] = useState<"active" | "slept" | "completed">("active");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -55,7 +55,7 @@ export default function LibraryPage() {
   const stats = useMemo(
     () => ({
       total: libraryGames.length,
-      played: libraryGames.filter((game) => game.hoursPlayed > 0).length,
+      sampled: libraryGames.filter((game) => game.hoursPlayed > 0 && game.completionPercent <= 20).length,
       backlog: libraryGames.filter((game) => game.status === "Not Started").length,
       completed: libraryGames.filter((game) => game.status === "Completed").length,
       inProgress: libraryGames.filter((game) => game.status === "In Progress").length
@@ -64,7 +64,13 @@ export default function LibraryPage() {
   );
 
   const recentActivity = useMemo(
-    () => libraryGames.filter((game) => game.hoursPlayed > 0).slice(0, 5),
+    () => [...libraryGames]
+      .filter((game) => game.hoursPlayed > 0 && sortableLastPlayed(game) > 0)
+      .sort((left, right) => {
+        const comparison = sortableLastPlayed(right) - sortableLastPlayed(left);
+        return comparison || left.title.localeCompare(right.title);
+      })
+      .slice(0, 5),
     [libraryGames]
   );
 
@@ -148,7 +154,7 @@ export default function LibraryPage() {
 
       <div className={styles.statsGrid}>
         <StatCard density="compact" icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
-        <StatCard density="compact" icon="played" label="Played" value={stats.played} note="Games with real playtime already logged." />
+        <StatCard density="compact" icon="played" label="Sampled" value={stats.sampled} note="Started, but still at 20% progress or less." />
         <StatCard density="compact" icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
         <StatCard density="compact" icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
         <StatCard density="compact" icon="in-progress" label="In Progress" value={stats.inProgress} note="Mid-journey picks ready to continue." />
@@ -241,6 +247,7 @@ export default function LibraryPage() {
         onManagePins={() => { if (selectedGame) setPinCandidate(selectedGame); setManagePinsOpen(true); }}
         onComplete={() => selectedGame ? markCompleted(selectedGame.id) : Promise.resolve()}
         onRestore={() => selectedGame ? restoreCompleted(selectedGame.id) : Promise.resolve()}
+        onSleep={() => selectedGame ? updateGame(selectedGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null }) : Promise.resolve()}
       />
       {undoGameId ? <div key={undoGameId} className={styles.undoToast} role="status">{libraryGames.find((game) => game.id === undoGameId)?.title ?? "Game"} marked as completed.<button type="button" onClick={() => void restoreCompleted(undoGameId)}>Undo</button></div> : null}
       {managePinsOpen ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate && !vaultState.pinnedIds.includes(pinCandidate.id) ? pinCandidate : null} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { if (pinCandidate) await recordVaultAction("pinned", pinCandidate.id, { replace_game_id: replaceId }); }} onClose={() => { setManagePinsOpen(false); setPinCandidate(null); }} /> : null}

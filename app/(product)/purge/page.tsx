@@ -17,9 +17,9 @@ import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./purge.module.css";
 
 const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
-  { id: "untouched", label: "Untouched", copy: "Games you have never played." },
-  { id: "barely-started", label: "Barely Started", copy: "Games with very little playtime or progress." },
-  { id: "dormant", label: "Dormant", copy: "Games you played before, but not recently." }
+  { id: "untouched", label: "Likely Completed", copy: "Inactive games at 85% progress or more." },
+  { id: "barely-started", label: "Abandoned", copy: "Inactive played games at 50% progress or less." },
+  { id: "dormant", label: "The Rest", copy: "Unplayed or long-inactive games still worth reviewing." }
 ];
 
 const CATEGORY_LABELS = Object.fromEntries(
@@ -118,10 +118,14 @@ export default function PurgePage() {
     const previousStatus = candidate.game.status;
     let review: PurgeReview | null = null;
     try {
-      review = await saveReview(candidate, action);
-      if (action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)) await recordVaultAction("pinned", candidate.game.id);
-      if (action === "sleep") await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
-      if (action === "complete") await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      const actionRequest = action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)
+        ? recordVaultAction("pinned", candidate.game.id)
+        : action === "sleep"
+          ? updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() })
+          : action === "complete"
+            ? updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null })
+            : Promise.resolve();
+      [review] = await Promise.all([saveReview(candidate, action), actionRequest]);
       posthog.capture('purge_decision', { action, category: candidate.category });
       finishDecision(candidate, action, previousStatus, review);
     } catch (caught) {
@@ -203,9 +207,9 @@ export default function PurgePage() {
         <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p><div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
         <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
           <button type="button" disabled={saving} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
-          <button type="button" disabled={saving || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
           <button type="button" disabled={saving} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
           <button type="button" disabled={saving} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
+          <button type="button" disabled={saving || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
         </div>
       </section> : null}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving} onClick={() => void undoLast()}>Undo last decision</button><span>Every decision saves and advances automatically.</span></footer>

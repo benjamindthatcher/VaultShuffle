@@ -8,6 +8,7 @@ import {
 } from "@/lib/game-classification";
 import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
+import { quarantinedSteamImports } from "@/lib/catalogue";
 import type { Game, GamePayload, StatsPayload } from "@/lib/types";
 
 type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
@@ -40,6 +41,7 @@ export async function listGames(userId: string) {
     .from("games")
     .select("*")
     .eq("user_id", userId)
+    .eq("is_quarantined", false)
     .order("title", { ascending: true });
 
   if (error) throw error;
@@ -54,6 +56,7 @@ export async function findGame(userId: string, gameId: string) {
     .select("*")
     .eq("user_id", userId)
     .eq("id", gameId)
+    .eq("is_quarantined", false)
     .maybeSingle();
 
   if (error) throw error;
@@ -150,6 +153,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
 
   const incomingGames = await applyCachedSteamMetadata([...steamGames.values()]);
   if (!incomingGames.length) return [];
+  const quarantineByAppId = await quarantinedSteamImports(incomingGames);
   await queueSteamMetadata(incomingGames.map((game) => String(game.steam_appid ?? "")));
 
   const supabase = getSupabaseAdmin();
@@ -169,7 +173,12 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
 
   const rows = incomingGames.map((incoming) => {
     const existing = existingByAppId.get(incoming.steam_appid as string);
-    if (!existing) return gameDatabaseRow(userId, incoming);
+    const quarantineReason = quarantineByAppId.get(incoming.steam_appid as string);
+    const quarantineFields = {
+      is_quarantined: Boolean(quarantineReason),
+      quarantine_reason: quarantineReason ?? null
+    };
+    if (!existing) return { ...gameDatabaseRow(userId, incoming), ...quarantineFields };
 
     const existingCompletion = clamp(Math.round(Number(existing.completion_percentage || 0)), 0, 100);
     const incomingCompletion = inferredCompletionForPayload(
@@ -200,7 +209,8 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
       completed_at: existing.completed_at,
       slept_at: existing.slept_at,
       completion_suggestion_dismissed_at: existing.completion_suggestion_dismissed_at,
-      completion_suggestion_dismissed_playtime: existing.completion_suggestion_dismissed_playtime
+      completion_suggestion_dismissed_playtime: existing.completion_suggestion_dismissed_playtime,
+      ...quarantineFields
     };
   });
 

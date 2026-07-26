@@ -161,8 +161,9 @@ export default function WishlistPage() {
       <section className={styles.composerCard}>
         <div className={styles.composerHeader}>
           <div>
-            <p className={styles.sectionEyebrow}>Add to wishlist</p>
-            <h2 className={styles.composerTitle}>Find a new game</h2>
+            <p className={styles.sectionEyebrow}>Steam catalogue</p>
+            <h2 className={styles.composerTitle}>Add a new game</h2>
+            <p className={styles.composerHint}>Search Steam for something that is not already on your wishlist.</p>
           </div>
           <button
             type="button"
@@ -171,7 +172,7 @@ export default function WishlistPage() {
             onClick={() => setComposerOpen((current) => !current)}
           >
             <BrandedIcon group="actions" name="add-game" size={25} />
-            {composerOpen ? "Close" : "Add Game"}
+            {composerOpen ? "Close Steam search" : "Search Steam"}
           </button>
         </div>
 
@@ -206,35 +207,35 @@ export default function WishlistPage() {
         ) : null}
       </section>
 
-      <section className={styles.toolbar}>
-        <label className={styles.searchField}>
-          <VaultIcon name="search" size={20} />
-          <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your wishlist..." />
-        </label>
-        <div className={styles.toolbarControls}>
-          <label className={styles.selectField}>
-            <span className={styles.controlLabel}><VaultIcon name="sort" size={18} />Sort</span>
-            <select value={sort} onChange={(event) => setSort(event.target.value)}>
-              <option value="added">Date added</option>
-              <option value="title">Title A-Z</option>
-              <option value="price">Lowest visible price</option>
-              <option value="discount">Biggest discount</option>
-            </select>
-          </label>
-          <label className={styles.selectField}>
-            <span className={styles.controlLabel}><VaultIcon name="filter" size={18} />Filter</span>
-            <select value={filter} onChange={(event) => setFilter(event.target.value)}>
-              <option value="all">All tags</option>
-              <option value="sale">On sale</option>
-            </select>
-          </label>
-        </div>
-      </section>
-
       <section className={styles.sectionCard}>
         <div className={styles.sectionHeader}>
           <div>
-            <h2 className={styles.sectionTitle}>Top of Wishlist</h2>
+            <p className={styles.sectionEyebrow}>Your saved games</p>
+            <h2 className={styles.sectionTitle}>Wishlist</h2>
+          </div>
+        </div>
+        <div className={styles.toolbar}>
+          <label className={styles.searchField}>
+            <VaultIcon name="search" size={20} />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search your wishlist..." />
+          </label>
+          <div className={styles.toolbarControls}>
+            <label className={styles.selectField}>
+              <span className={styles.controlLabel}><VaultIcon name="sort" size={18} />Sort</span>
+              <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                <option value="added">Date added</option>
+                <option value="title">Title A-Z</option>
+                <option value="price">Lowest visible price</option>
+                <option value="discount">Biggest discount</option>
+              </select>
+            </label>
+            <label className={styles.selectField}>
+              <span className={styles.controlLabel}><VaultIcon name="filter" size={18} />Filter</span>
+              <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+                <option value="all">All games</option>
+                <option value="sale">On sale</option>
+              </select>
+            </label>
           </div>
         </div>
         <div className={styles.rowList}>

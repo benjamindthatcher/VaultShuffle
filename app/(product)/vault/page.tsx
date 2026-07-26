@@ -79,12 +79,14 @@ export default function VaultPage() {
   );
   const eligibility = useMemo(() => getVaultEligibility({
     games: ownedGames,
+    session,
+    mood,
     goal,
     selectedCollectionId,
     selectedCollectionName: selectedCollection?.name,
     selectedGenres,
     snoozedIds
-  }), [goal, ownedGames, selectedCollection?.name, selectedCollectionId, selectedGenres, snoozedIds]);
+  }), [goal, mood, ownedGames, selectedCollection?.name, selectedCollectionId, selectedGenres, session, snoozedIds]);
 
   const currentPick = ownedGames.find((game) => game.id === vaultState.currentPickId) ?? null;
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;

@@ -10,11 +10,20 @@ type ArtworkProps = {
   className?: string;
   sizes: string;
   priority?: boolean;
+  fit?: "cover" | "contain";
 };
 
 const FALLBACK_ARTWORK = "/assets/vault/vault-stage-open.png";
 
-export function Artwork({ src, fallbackSrc = FALLBACK_ARTWORK, alt = "", className, sizes, priority = false }: ArtworkProps) {
+export function Artwork({
+  src,
+  fallbackSrc = FALLBACK_ARTWORK,
+  alt = "",
+  className,
+  sizes,
+  priority = false,
+  fit = "cover"
+}: ArtworkProps) {
   const [resolvedSrc, setResolvedSrc] = useState(src || fallbackSrc);
 
   useEffect(() => {
@@ -29,6 +38,7 @@ export function Artwork({ src, fallbackSrc = FALLBACK_ARTWORK, alt = "", classNa
       sizes={sizes}
       priority={priority}
       className={className}
+      style={{ objectFit: fit, objectPosition: "center" }}
       onError={() => setResolvedSrc(fallbackSrc)}
     />
   );

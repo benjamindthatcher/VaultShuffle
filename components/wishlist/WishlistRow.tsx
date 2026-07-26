@@ -19,13 +19,7 @@ export function WishlistRow({ game, pinned, onTogglePin, onRemove, removing }: W
         <Artwork src={game.bannerUrl} sizes="(max-width: 720px) 100vw, 260px" />
       </div>
       <div className={styles.main}>
-        <div className={styles.titleRow}>
-          <h3 className={styles.title}>{game.title}</h3>
-          <div className={styles.rowActions}>
-            <button type="button" className={styles.likeButton} aria-pressed={pinned} onClick={onTogglePin}>{pinned ? "Pinned" : "Pin"}</button>
-            <button type="button" className={styles.removeButton} disabled={removing} onClick={() => void onRemove()}>{removing ? "Removing…" : "Remove"}</button>
-          </div>
-        </div>
+        <h3 className={styles.title}>{game.title}</h3>
         <div className={styles.tagRow}>
           {game.genres.slice(0, 3).map((genre) => (
             <span key={genre} className={styles.tag}>
@@ -33,6 +27,10 @@ export function WishlistRow({ game, pinned, onTogglePin, onRemove, removing }: W
             </span>
           ))}
         </div>
+      </div>
+      <div className={styles.rowActions}>
+        <button type="button" className={styles.likeButton} aria-pressed={pinned} onClick={onTogglePin}>{pinned ? "Pinned" : "Pin"}</button>
+        <button type="button" className={styles.removeButton} disabled={removing} onClick={() => void onRemove()}>{removing ? "Removing…" : "Remove"}</button>
       </div>
       <div className={styles.meta}>
         {durationLabel ? <span>{durationLabel}</span> : null}
