@@ -35,7 +35,7 @@ type Undo = {
 export default function PurgePage() {
   const { games, vaultState, isLive, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>(["untouched"]);
   const queueRef = useRef<HTMLDivElement>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -53,7 +53,7 @@ export default function PurgePage() {
     [games, reviews, vaultState.currentPickId, vaultState.pinnedIds, vaultState.snoozedIds]
   );
   const filteredCandidates = useMemo(() => {
-    if (!selectedCategories.length) return candidates;
+    if (selectedCategories.length === CATEGORIES.length) return candidates;
     return candidates.filter((candidate) => selectedCategories.includes(candidate.category));
   }, [candidates, selectedCategories]);
   const activeIndex = Math.min(selectedOffset, Math.max(0, filteredCandidates.length - 1));
@@ -164,7 +164,11 @@ export default function PurgePage() {
   }
 
   function toggleCategory(category: PurgeCategory) {
-    setSelectedCategories((value) => value.includes(category) ? value.filter((item) => item !== category) : [...value, category]);
+    setSelectedCategories((value) => {
+      if (!value.includes(category)) return [...value, category];
+      if (value.length === 1) return value;
+      return value.filter((item) => item !== category);
+    });
     setSelectedOffset(0);
     setError("");
   }

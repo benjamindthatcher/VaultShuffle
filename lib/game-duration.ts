@@ -1,19 +1,29 @@
 import type { GameDurationEstimate } from "@/lib/types";
 
-export function estimatedTimeToBeatMinutes(duration?: GameDurationEstimate | null) {
-  const providerEstimates = [
-    duration?.mainStoryMinutes,
-    duration?.mainExtrasMinutes,
-    duration?.completionistMinutes
-  ].filter((value): value is number => Number.isFinite(value) && Number(value) > 0);
+function positiveMinutes(value?: number | null) {
+  const minutes = Number(value);
+  return Number.isFinite(minutes) && minutes > 0 ? minutes : null;
+}
 
-  if (Number(duration?.userEstimateMinutes) > 0) return Number(duration?.userEstimateMinutes);
-  return providerEstimates.length ? Math.min(...providerEstimates) : null;
+function roundToClosestHour(minutes: number) {
+  return Math.max(60, Math.round(minutes / 60) * 60);
+}
+
+export function estimatedTimeToBeatMinutes(duration?: GameDurationEstimate | null) {
+  const mainStory = positiveMinutes(duration?.mainStoryMinutes);
+  const completionist = positiveMinutes(duration?.completionistMinutes);
+  if (mainStory && completionist) {
+    return roundToClosestHour((mainStory + completionist) / 2);
+  }
+
+  const fallback = mainStory
+    ?? positiveMinutes(duration?.mainExtrasMinutes)
+    ?? completionist;
+  return fallback ? roundToClosestHour(fallback) : null;
 }
 
 export function getPreferredDurationMinutes(duration?: GameDurationEstimate | null) {
-  if (Number(duration?.userEstimateMinutes) > 0) return Number(duration?.userEstimateMinutes);
-  return duration?.mainStoryMinutes ?? duration?.mainExtrasMinutes ?? duration?.completionistMinutes ?? null;
+  return estimatedTimeToBeatMinutes(duration);
 }
 
 export function completionFromDuration(hoursPlayed: number, duration?: GameDurationEstimate | null) {

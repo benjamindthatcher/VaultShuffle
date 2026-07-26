@@ -3,7 +3,7 @@ import { completionFromDuration, estimatedTimeToBeatMinutes } from "@/lib/game-d
 
 type GameLike = Pick<Game, "title" | "genre"> & Partial<Pick<Game,
   "hours_played" | "completion_percentage" | "status" | "main_story_minutes" |
-  "main_extras_minutes" | "completionist_minutes" | "user_estimate_minutes"
+  "main_extras_minutes" | "completionist_minutes"
 >>;
 
 export const LENGTH_LABELS = ["Bitesize", "Short", "Weekend", "Campaign", "Meaty", "Marathon", "Odyssey", "Endless"] as const;
@@ -82,8 +82,7 @@ function durationForGame(game: GameLike) {
   return {
     mainStoryMinutes: game.main_story_minutes,
     mainExtrasMinutes: game.main_extras_minutes,
-    completionistMinutes: game.completionist_minutes,
-    userEstimateMinutes: game.user_estimate_minutes
+    completionistMinutes: game.completionist_minutes
   };
 }
 

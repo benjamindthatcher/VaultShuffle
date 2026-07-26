@@ -20,6 +20,8 @@ supabase/migrations/
 supabase/migrations/*
 !supabase/migrations/20260725212414_add_reviewable_game_quarantine.sql
 !supabase/migrations/20260726003644_harden_game_quarantine_trigger.sql
+!supabase/migrations/20260726011624_exclude_wallpaper_engine_from_game_surfaces.sql
+!supabase/migrations/20260726032242_remove_user_duration_estimates.sql
 supabase/functions/igdb-duration-worker/index.ts
 supabase/functions/_shared/igdb-duration-provider.ts
 supabase/functions/_shared/igdb-duration-provider.test.ts
@@ -30,3 +32,5 @@ scripts/igdb/admin.ts
 scripts/catalogue/import-duration-estimates.mjs
 scripts/catalogue/fetch-steamspy-top.mjs
 scripts/catalogue/build-seed-sql.mjs
+supabase/migrations/20260726032242_remove_user_duration_estimates.sql
+supabase/migrations/20260726011624_exclude_wallpaper_engine_from_game_surfaces.sql

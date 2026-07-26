@@ -36,7 +36,6 @@ export type Game = {
   duration_source?: string | null;
   duration_source_updated_at?: string | null;
   duration_confidence?: "low" | "medium" | "high" | null;
-  user_estimate_minutes?: number | null;
   is_quarantined?: boolean;
   quarantine_reason?: string | null;
   created_at?: string;
@@ -50,7 +49,6 @@ export type GameDurationEstimate = {
   source?: string | null;
   sourceUpdatedAt?: string | null;
   confidence?: "low" | "medium" | "high" | null;
-  userEstimateMinutes?: number | null;
 };
 
 export type GamePayload = Omit<

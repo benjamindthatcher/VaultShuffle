@@ -105,8 +105,7 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         completionistMinutes: game.completionist_minutes,
         source: game.duration_source,
         sourceUpdatedAt: game.duration_source_updated_at,
-        confidence: game.duration_confidence,
-        userEstimateMinutes: game.user_estimate_minutes
+        confidence: game.duration_confidence
       }
     };
   });
