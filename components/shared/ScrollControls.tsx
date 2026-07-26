@@ -6,7 +6,7 @@ import styles from "./ScrollControls.module.css";
 
 type Props = {
   targetRef: RefObject<HTMLElement | null>;
-  axis: "horizontal" | "vertical";
+  axis: "horizontal";
   step?: number;
   className?: string;
   label?: string;
@@ -17,9 +17,9 @@ export function ScrollControls({ targetRef, axis, step, className = "", label = 
   const update = useCallback(() => {
     const node = targetRef.current;
     if (!node) return;
-    const offset = axis === "horizontal" ? node.scrollLeft : node.scrollTop;
-    const visible = axis === "horizontal" ? node.clientWidth : node.clientHeight;
-    const total = axis === "horizontal" ? node.scrollWidth : node.scrollHeight;
+    const offset = node.scrollLeft;
+    const visible = node.clientWidth;
+    const total = node.scrollWidth;
     setPosition({ start: offset <= 2, end: offset + visible >= total - 2 });
   }, [axis, targetRef]);
 
@@ -36,14 +36,12 @@ export function ScrollControls({ targetRef, axis, step, className = "", label = 
   function move(direction: -1 | 1) {
     const node = targetRef.current;
     if (!node) return;
-    const distance = step ?? (axis === "horizontal" ? Math.max(280, node.clientWidth * 0.72) : Math.max(240, node.clientHeight * 0.72));
-    node.scrollBy(axis === "horizontal" ? { left: direction * distance, behavior: "smooth" } : { top: direction * distance, behavior: "smooth" });
+    const distance = step ?? Math.max(280, node.clientWidth * 0.72);
+    node.scrollBy({ left: direction * distance, behavior: "smooth" });
   }
 
-  const previous = axis === "horizontal" ? "Scroll left" : "Scroll up";
-  const next = axis === "horizontal" ? "Scroll right" : "Scroll down";
-  return <div className={`${styles.controls} ${axis === "vertical" ? styles.vertical : ""} ${className}`} role="group" aria-label={label}>
-    <button type="button" disabled={position.start} onClick={() => move(-1)} aria-label={previous}><VaultIcon name={axis === "horizontal" ? "chevron-left" : "chevron-up"} size={18} /></button>
-    <button type="button" disabled={position.end} onClick={() => move(1)} aria-label={next}><VaultIcon name={axis === "horizontal" ? "chevron-right" : "chevron-down"} size={18} /></button>
+  return <div className={`${styles.controls} ${className}`} role="group" aria-label={label}>
+    <button type="button" disabled={position.start} onClick={() => move(-1)} aria-label="Scroll left"><VaultIcon name="chevron-left" size={18} /></button>
+    <button type="button" disabled={position.end} onClick={() => move(1)} aria-label="Scroll right"><VaultIcon name="chevron-right" size={18} /></button>
   </div>;
 }

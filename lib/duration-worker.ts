@@ -1,19 +1,9 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { IgdbDurationProvider } from "@/supabase/functions/_shared/igdb-duration-provider";
 
 type DurationJob = { steam_app_id: number; attempts: number };
-type DurationResult = {
-  steamAppId: number;
-  providerGameId: number | null;
-  mainStoryMinutes: number | null;
-  mainExtraMinutes: number | null;
-  completionistMinutes: number | null;
-  submissionCount: number | null;
-  providerUpdatedAt: string | null;
-  status: "matched" | "no_duration" | "not_found" | "ambiguous";
-  confidence: "none" | "low" | "medium" | "high";
-};
 
 const MAX_ATTEMPTS = 5;
 
@@ -37,11 +27,20 @@ export async function processDurationQueue(limit = 8) {
 
   for (const job of jobs) {
     try {
-      const result = await provider.findBySteamAppId(Number(job.steam_app_id));
+      const [{ data: catalogue }, { data: alias }] = await Promise.all([
+        supabase.from("catalog_games").select("name,release_date").eq("steam_appid", job.steam_app_id).maybeSingle(),
+        supabase.from("game_duration_aliases").select("search_title,release_year,review_status").eq("steam_app_id", job.steam_app_id).maybeSingle()
+      ]);
+      const result = await provider.findBySteamAppId(Number(job.steam_app_id), {
+        title: alias?.review_status === "approved" ? alias.search_title : catalogue?.name,
+        releaseYear: alias?.review_status === "approved"
+          ? alias.release_year
+          : catalogue?.release_date ? new Date(catalogue.release_date).getUTCFullYear() : null
+      });
       const checkedAt = new Date();
       const { error: estimateError } = await supabase.from("game_duration_estimates").upsert({
         steam_app_id: result.steamAppId,
-        provider: "igdb",
+        provider: result.provider,
         provider_game_id: result.providerGameId,
         main_story_minutes: result.mainStoryMinutes,
         main_extra_minutes: result.mainExtraMinutes,
@@ -57,8 +56,11 @@ export async function processDurationQueue(limit = 8) {
       }, { onConflict: "steam_app_id,provider" });
       if (estimateError) throw estimateError;
 
-      summary[result.status === "no_duration" ? "noDuration" : result.status === "not_found" ? "notFound" : result.status] += 1;
-      await supabase.from("game_duration_jobs").update({
+      if (result.status === "matched") summary.matched += 1;
+      else if (result.status === "no_duration") summary.noDuration += 1;
+      else if (result.status === "not_found") summary.notFound += 1;
+      else summary.ambiguous += 1;
+      const { error: completedError } = await supabase.from("game_duration_jobs").update({
         status: result.status === "ambiguous" ? "needs_review" : "completed",
         attempts: Number(job.attempts || 0) + 1,
         locked_at: null,
@@ -67,10 +69,11 @@ export async function processDurationQueue(limit = 8) {
         last_error_message: null,
         updated_at: new Date().toISOString()
       }).eq("steam_app_id", job.steam_app_id).eq("locked_by", workerId);
+      if (completedError) throw completedError;
     } catch (caught) {
       const attempts = Number(job.attempts || 0) + 1;
       const retry = attempts < MAX_ATTEMPTS;
-      await supabase.from("game_duration_jobs").update({
+      const { error: retryError } = await supabase.from("game_duration_jobs").update({
         status: retry ? "retry" : "failed",
         attempts,
         next_attempt_at: retry ? new Date(Date.now() + Math.min(6 * 3_600_000, 60_000 * 2 ** attempts)).toISOString() : new Date().toISOString(),
@@ -80,103 +83,10 @@ export async function processDurationQueue(limit = 8) {
         last_error_message: caught instanceof Error ? caught.message.slice(0, 500) : "Duration lookup failed",
         updated_at: new Date().toISOString()
       }).eq("steam_app_id", job.steam_app_id).eq("locked_by", workerId);
+      if (retryError) throw retryError;
       retry ? summary.retried += 1 : summary.failed += 1;
     }
   }
 
   return summary;
-}
-
-class IgdbDurationProvider {
-  private token: { value: string; expiresAt: number } | null = null;
-  private steamSourceId: number | null = null;
-  private nextRequestAt = 0;
-
-  constructor(private readonly clientId: string, private readonly clientSecret: string) {}
-
-  async findBySteamAppId(steamAppId: number): Promise<DurationResult> {
-    const sourceId = await this.getSteamSourceId();
-    const mappings = await this.request<Array<{ game?: number; uid?: string }>>(
-      "external_games",
-      `fields game,uid; where external_game_source = ${sourceId} & uid = "${steamAppId}"; limit 10;`
-    );
-    const gameIds = [...new Set(mappings.filter((row) => row.uid === String(steamAppId) && Number.isInteger(row.game)).map((row) => Number(row.game)))];
-    if (!gameIds.length) return emptyResult(steamAppId, "not_found");
-    if (gameIds.length !== 1) return emptyResult(steamAppId, "ambiguous");
-
-    const rows = await this.request<Array<{ game_id?: number; hastily?: number; normally?: number; completely?: number; count?: number; updated_at?: number }>>(
-      "game_time_to_beats",
-      `fields game_id,hastily,normally,completely,count,updated_at; where game_id = ${gameIds[0]}; limit 2;`
-    );
-    if (rows.length !== 1) return { ...emptyResult(steamAppId, rows.length ? "ambiguous" : "no_duration"), providerGameId: gameIds[0] };
-    const row = rows[0];
-    const mainStoryMinutes = toMinutes(row.hastily);
-    const mainExtraMinutes = toMinutes(row.normally);
-    const completionistMinutes = toMinutes(row.completely);
-    const count = Number.isInteger(row.count) && Number(row.count) >= 0 ? Number(row.count) : null;
-    if (!mainStoryMinutes && !mainExtraMinutes && !completionistMinutes) {
-      return { ...emptyResult(steamAppId, "no_duration"), providerGameId: gameIds[0], submissionCount: count };
-    }
-    return {
-      steamAppId,
-      providerGameId: gameIds[0],
-      mainStoryMinutes,
-      mainExtraMinutes,
-      completionistMinutes,
-      submissionCount: count,
-      providerUpdatedAt: Number(row.updated_at) > 0 ? new Date(Number(row.updated_at) * 1000).toISOString() : null,
-      status: "matched",
-      confidence: count == null ? "low" : count >= 25 ? "high" : count >= 5 ? "medium" : "low"
-    };
-  }
-
-  private async getSteamSourceId() {
-    if (this.steamSourceId) return this.steamSourceId;
-    const rows = await this.request<Array<{ id?: number; name?: string }>>("external_game_sources", 'fields id,name; where name = "Steam"; limit 2;');
-    const ids = rows.filter((row) => row.name === "Steam" && Number.isInteger(row.id)).map((row) => Number(row.id));
-    if (ids.length !== 1) throw new Error("Steam source mapping is unavailable.");
-    this.steamSourceId = ids[0];
-    return ids[0];
-  }
-
-  private async request<T>(endpoint: string, body: string, refreshed = false): Promise<T> {
-    const delay = Math.max(0, this.nextRequestAt - Date.now());
-    if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-    this.nextRequestAt = Date.now() + 275;
-    const token = await this.getToken();
-    const response = await fetch(`https://api.igdb.com/v4/${endpoint}`, {
-      method: "POST",
-      headers: { "Client-ID": this.clientId, Authorization: `Bearer ${token.value}`, Accept: "application/json", "Content-Type": "text/plain" },
-      body,
-      signal: AbortSignal.timeout(10_000)
-    });
-    if (response.status === 401 && !refreshed) {
-      this.token = null;
-      return this.request<T>(endpoint, body, true);
-    }
-    if (!response.ok) throw new Error(`IGDB request failed (${response.status}).`);
-    const data: unknown = await response.json();
-    if (!Array.isArray(data)) throw new Error("IGDB returned an invalid response.");
-    return data as T;
-  }
-
-  private async getToken() {
-    if (this.token && this.token.expiresAt > Date.now() + 60_000) return this.token;
-    const body = new URLSearchParams({ client_id: this.clientId, client_secret: this.clientSecret, grant_type: "client_credentials" });
-    const response = await fetch("https://id.twitch.tv/oauth2/token", { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body, signal: AbortSignal.timeout(10_000) });
-    if (!response.ok) throw new Error("Duration provider authentication failed.");
-    const data = await response.json() as { access_token?: unknown; expires_in?: unknown };
-    if (typeof data.access_token !== "string" || typeof data.expires_in !== "number") throw new Error("Duration provider authentication returned an invalid response.");
-    this.token = { value: data.access_token, expiresAt: Date.now() + data.expires_in * 1000 };
-    return this.token;
-  }
-}
-
-function emptyResult(steamAppId: number, status: DurationResult["status"]): DurationResult {
-  return { steamAppId, providerGameId: null, mainStoryMinutes: null, mainExtraMinutes: null, completionistMinutes: null, submissionCount: null, providerUpdatedAt: null, status, confidence: "none" };
-}
-
-function toMinutes(seconds: unknown) {
-  const value = Number(seconds);
-  return Number.isFinite(value) && value > 0 ? Math.max(1, Math.round(value / 60)) : null;
 }

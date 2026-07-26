@@ -27,6 +27,7 @@ export function getPreferredDurationMinutes(duration?: GameDurationEstimate | nu
 }
 
 export function completionFromDuration(hoursPlayed: number, duration?: GameDurationEstimate | null) {
+  if (duration?.endless) return 99;
   const estimate = estimatedTimeToBeatMinutes(duration);
   if (!estimate || hoursPlayed <= 0) return 0;
   return Math.min(99, Math.max(0, Math.round((hoursPlayed * 60 * 100) / estimate)));
@@ -39,6 +40,7 @@ export function formatDurationEstimate(minutes: number | null) {
 }
 
 export function formatGameDuration(duration?: GameDurationEstimate | null) {
+  if (duration?.endless) return "Endless";
   const estimate = estimatedTimeToBeatMinutes(duration);
   return estimate ? `${formatDurationEstimate(estimate)} estimated` : null;
 }

@@ -22,6 +22,10 @@ supabase/migrations/*
 !supabase/migrations/20260726003644_harden_game_quarantine_trigger.sql
 !supabase/migrations/20260726011624_exclude_wallpaper_engine_from_game_surfaces.sql
 !supabase/migrations/20260726032242_remove_user_duration_estimates.sql
+!supabase/migrations/20260726043000_normalize_multi_user_state.sql
+!supabase/migrations/20260726050000_standardize_usd_pricing.sql
+!supabase/migrations/20260726054000_quarantine_software_utilities.sql
+!supabase/migrations/20260726060000_duration_enrichment_states.sql
 supabase/functions/igdb-duration-worker/index.ts
 supabase/functions/_shared/igdb-duration-provider.ts
 supabase/functions/_shared/igdb-duration-provider.test.ts
@@ -34,3 +38,15 @@ scripts/catalogue/fetch-steamspy-top.mjs
 scripts/catalogue/build-seed-sql.mjs
 supabase/migrations/20260726032242_remove_user_duration_estimates.sql
 supabase/migrations/20260726011624_exclude_wallpaper_engine_from_game_surfaces.sql
+supabase/migrations/20260726060000_duration_enrichment_states.sql
+supabase/migrations/20260726054000_quarantine_software_utilities.sql
+supabase/migrations/20260726050000_standardize_usd_pricing.sql
+/supabase
+/supabase
+/supabase/functions
+supabase/functions/igdb-duration-worker/index.ts
+supabase/functions/_shared/igdb-duration-provider.ts
+supabase/functions/_shared/igdb-duration-provider.test.ts
+scripts/durations/enrich-hltb.py
+scripts/durations/requirements.txt
+supabase/functions/igdb-duration-worker/index.ts

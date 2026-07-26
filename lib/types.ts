@@ -36,6 +36,7 @@ export type Game = {
   duration_source?: string | null;
   duration_source_updated_at?: string | null;
   duration_confidence?: "low" | "medium" | "high" | null;
+  duration_kind?: "finite" | "endless" | "not-applicable" | "unknown" | null;
   is_quarantined?: boolean;
   quarantine_reason?: string | null;
   created_at?: string;
@@ -49,6 +50,7 @@ export type GameDurationEstimate = {
   source?: string | null;
   sourceUpdatedAt?: string | null;
   confidence?: "low" | "medium" | "high" | null;
+  endless?: boolean;
 };
 
 export type GamePayload = Omit<

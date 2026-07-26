@@ -1,9 +1,10 @@
-import { lengthBucket } from "@/lib/game-classification";
+import { gameProgress, isEndlessGame } from "@/lib/game-classification";
 import { splitGenres, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
-import type { DemoCollection, DemoGame, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
+import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
+import { deriveMoodScores, deriveSessionFits, moodTagsFromScores } from "@/lib/vault-matching";
 
 export type CollectionDetailPayload = {
   collection: Collection;
@@ -64,6 +65,10 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
 
   return games.map((game) => {
     const genres = normaliseGenres(game);
+    const moodScores = deriveMoodScores([
+      ...splitGenres(game.genre),
+      ...topLevelGenresFor(game.genre, game.title)
+    ]);
     return {
       id: game.id,
       title: game.title,
@@ -73,7 +78,7 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       hoursPlayed: Number(game.hours_played || 0),
       completionPercent: game.status === "Completed"
         ? Number(game.completion_percentage || 0)
-        : Math.min(99, Number(game.completion_percentage || 0)),
+        : gameProgress(game),
       priority: normalisePriority(game.priority),
       genres,
       description:
@@ -92,8 +97,18 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         : undefined,
       saleDiscount: Number(game.discount_percent || 0) > 0 ? `-${game.discount_percent}%` : undefined,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
-      sessionFit: deriveSessionFit(game),
-      moodTags: deriveMoodTags(game, genres),
+      sessionFit: deriveSessionFits({
+        duration: {
+          mainStoryMinutes: game.main_story_minutes,
+          mainExtrasMinutes: game.main_extras_minutes,
+          completionistMinutes: game.completionist_minutes,
+          endless: isEndlessGame(game)
+        },
+        completionPercent: gameProgress(game),
+        endless: isEndlessGame(game)
+      }),
+      moodTags: moodTagsFromScores(moodScores),
+      moodScores,
       completedAt: game.completed_at,
       previousActiveStatus: game.previous_active_status === "In Progress" ? "In Progress" : game.previous_active_status ? "Not Started" : null,
       sleptAt: game.slept_at,
@@ -105,7 +120,8 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         completionistMinutes: game.completionist_minutes,
         source: game.duration_source,
         sourceUpdatedAt: game.duration_source_updated_at,
-        confidence: game.duration_confidence
+        confidence: game.duration_confidence,
+        endless: isEndlessGame(game)
       }
     };
   });
@@ -113,12 +129,8 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
 
 function formatSteamPrice(amount: number | null | undefined, currency: string | null | undefined, isFree = false) {
   if (isFree) return "Free";
-  if (amount == null || !currency) return undefined;
-  try {
-    return new Intl.NumberFormat("en-GB", { style: "currency", currency }).format(amount / 100);
-  } catch {
-    return `${currency} ${(amount / 100).toFixed(2)}`;
-  }
+  if (amount == null || currency !== "USD") return undefined;
+  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount / 100);
 }
 
 function normaliseGenres(game: Game) {
@@ -131,25 +143,6 @@ function normaliseGenres(game: Game) {
 function normalisePriority(gamePriority: Game["priority"]): DemoGame["priority"] {
   if (gamePriority === "Must Play" || gamePriority === "High") return gamePriority;
   return "Medium";
-}
-
-function deriveSessionFit(game: Game): VaultSessionId[] {
-  const bucket = lengthBucket(game);
-  if (bucket === "Bitesize" || bucket === "Short") return ["short", "evening"];
-  if (bucket === "Weekend" || bucket === "Campaign") return ["evening", "weekend"];
-  if (bucket === "Endless") return ["short", "evening", "weekend"];
-  return ["weekend"];
-}
-
-function deriveMoodTags(game: Game, genres: string[]): VaultMoodId[] {
-  const joined = `${game.title} ${genres.join(" ")} ${game.notes}`.toLowerCase();
-  const moods = new Set<VaultMoodId>();
-
-  if (/(cozy|sim|simulation|puzzle|casual|farm|relax|chill)/.test(joined)) moods.add("chill");
-  if (/(action|shooter|souls|horror|roguelike|combat|intense)/.test(joined)) moods.add("intense");
-  if (/(arcade|casual|cozy|sim|sandbox|roguelike)/.test(joined)) moods.add("brain-off");
-
-  return [...moods];
 }
 
 function formatDateLabel(value: string) {

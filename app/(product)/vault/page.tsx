@@ -335,7 +335,7 @@ export default function VaultPage() {
       {currentPick ? (
         <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
           <div className={styles.resultArtwork}>
-            <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority />
+            <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
             <span className={styles.currentPickBadge}><BrandedIcon group="actions" name="pin" size={18} />Current pick</span>
           </div>
           <div className={styles.resultBody}>

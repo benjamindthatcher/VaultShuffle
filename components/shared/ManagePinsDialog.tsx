@@ -5,7 +5,6 @@ import { createPortal } from "react-dom";
 import type { DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ScrollControls } from "@/components/shared/ScrollControls";
 import styles from "./ManagePinsDialog.module.css";
 
 type Props = {
@@ -96,7 +95,7 @@ export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "L
 
   return createPortal(<div className={styles.layer}>
     <button type="button" className={styles.backdrop} onClick={onClose} aria-label="Close pinned games" />
-    <div ref={panelRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="pins-title" tabIndex={-1}><ScrollControls targetRef={panelRef} axis="vertical" label="Scroll pinned games" />
+    <div ref={panelRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="pins-title" tabIndex={-1}>
       <header><div><p>{candidate ? "Pins are full" : `${shelfName} shelf`}</p><h2 id="pins-title">Manage pinned games <span>{pinnedGames.length}/3</span></h2></div><button type="button" onClick={onClose} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
       {candidate ? <p className={styles.copy}>Choose a game to replace with <strong>{candidate.title}</strong>.</p> : <p className={styles.copy}>{shelfDescription}</p>}
       <div className={styles.slots}>

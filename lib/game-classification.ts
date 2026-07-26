@@ -3,7 +3,7 @@ import { completionFromDuration, estimatedTimeToBeatMinutes } from "@/lib/game-d
 
 type GameLike = Pick<Game, "title" | "genre"> & Partial<Pick<Game,
   "hours_played" | "completion_percentage" | "status" | "main_story_minutes" |
-  "main_extras_minutes" | "completionist_minutes"
+  "main_extras_minutes" | "completionist_minutes" | "duration_kind"
 >>;
 
 export const LENGTH_LABELS = ["Bitesize", "Short", "Weekend", "Campaign", "Meaty", "Marathon", "Odyssey", "Endless"] as const;
@@ -27,6 +27,7 @@ export function displayStatus(game: GameLike): GamePayload["status"] {
 
 export function gameProgress(game: GameLike) {
   if (game.status === "Completed") return clamp(Math.round(Number(game.completion_percentage || 0)), 0, 100);
+  if (isEndlessGame(game)) return 99;
   const inferred = inferredProgressFromHours(game, Number(game.hours_played || 0));
   const stored = Number(game.completion_percentage || 0);
   if (stored > 0) {
@@ -49,6 +50,7 @@ export function inferredCompletionForPayload(
 }
 
 export function inferredProgressFromHours(game: GameLike, hours: number) {
+  if (isEndlessGame(game)) return 99;
   const durationProgress = completionFromDuration(hours, durationForGame(game));
   if (estimatedTimeToBeatMinutes(durationForGame(game))) return durationProgress;
   const estimate = estimatedGameHours(game);
@@ -99,6 +101,8 @@ export function lengthBucket(game: GameLike): LengthLabel {
 }
 
 export function isEndlessGame(game: GameLike) {
+  if (game.duration_kind === "endless") return true;
+  if (game.duration_kind === "finite" || game.duration_kind === "not-applicable") return false;
   const text = `${game.title} ${game.genre}`.toLowerCase();
   return (
     /(counter-?strike|destiny|apex legends|rust|palworld|new world|for honor|warframe|dota|team fortress|pubg|rainbow six|rocket league|dead by daylight|elder scrolls online|final fantasy xiv|path of exile|lost ark|factorio|rimworld|terraria|monster hunter)/.test(text) ||

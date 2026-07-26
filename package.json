@@ -15,6 +15,7 @@
     "catalogue:import-durations": "node scripts/catalogue/import-duration-estimates.mjs",
     "igdb:lookup": "node --experimental-strip-types scripts/igdb/lookup.ts",
     "duration:admin": "node --experimental-strip-types scripts/igdb/admin.ts",
+    "duration:hltb": "python3 scripts/durations/enrich-hltb.py",
     "test:duration": "node --experimental-strip-types --test supabase/functions/_shared/igdb-duration-provider.test.ts"
   },
   "dependencies": {

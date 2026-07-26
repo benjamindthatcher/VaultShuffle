@@ -114,7 +114,7 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
 
   const params = new URLSearchParams({
     term: normalizedTerm,
-    cc: "GB",
+    cc: "US",
     l: "en"
   });
 
@@ -234,7 +234,7 @@ async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh = false)
 async function fetchSingleSteamAppDetail(appid: string): Promise<[string, SteamAppDetails | null]> {
   const params = new URLSearchParams({
     appids: appid,
-    cc: "GB",
+    cc: "US",
     l: "en"
   });
 

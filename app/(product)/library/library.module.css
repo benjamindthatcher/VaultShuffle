@@ -107,7 +107,6 @@
 .gamesToolbar { width: 100%; }
 .gamesToolbar > * { width: 100%; max-width: none; }
 .gamesScroller { max-height: min(640px, 68vh); overflow-y: auto; overscroll-behavior-y: contain; padding-right: 5px; scrollbar-color: rgba(166, 87, 255, 0.72) rgba(26, 31, 61, 0.72); scrollbar-width: thin; }
-.gamesScrollControls { position: static; float: none; justify-self: end; margin: 0 0 10px; padding: 0; background: transparent; backdrop-filter: none; }
 .gamesScroller:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
 
 .statusTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px; border: 1px solid rgba(145, 105, 255, 0.2); border-radius: 14px; background: rgba(8, 13, 31, 0.84); }

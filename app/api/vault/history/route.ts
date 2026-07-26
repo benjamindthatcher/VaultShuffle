@@ -20,7 +20,13 @@ export async function GET() {
     const ids = (draws ?? []).map((draw) => draw.id);
     const { data: events, error: eventError } = ids.length ? await supabase.from("vault_draw_events").select("id, draw_id, event_type, created_at").eq("user_id", user.id).in("draw_id", ids).order("created_at", { ascending: false }) : { data: [], error: null };
     if (eventError) throw eventError;
-    return NextResponse.json({ draws: (draws ?? []).map((draw) => ({ id: draw.id, steamAppId: Number(draw.steam_appid), drawnAt: draw.drawn_at, session: draw.session, mood: draw.mood, goal: draw.goal, collectionId: draw.collection_id, selectedGenres: draw.selected_genres ?? [], eligiblePoolCount: draw.eligible_pool_count, rerollIndex: draw.reroll_index, events: (events ?? []).filter((event) => event.draw_id === draw.id).map((event) => ({ id: event.id, drawId: event.draw_id, eventType: event.event_type, createdAt: event.created_at })) })) });
+    const eventsByDraw = new Map<string, typeof events>();
+    for (const event of events ?? []) {
+      const drawEvents = eventsByDraw.get(event.draw_id) ?? [];
+      drawEvents.push(event);
+      eventsByDraw.set(event.draw_id, drawEvents);
+    }
+    return NextResponse.json({ draws: (draws ?? []).map((draw) => ({ id: draw.id, steamAppId: Number(draw.steam_appid), drawnAt: draw.drawn_at, session: draw.session, mood: draw.mood, goal: draw.goal, collectionId: draw.collection_id, selectedGenres: draw.selected_genres ?? [], eligiblePoolCount: draw.eligible_pool_count, rerollIndex: draw.reroll_index, events: (eventsByDraw.get(draw.id) ?? []).map((event) => ({ id: event.id, drawId: event.draw_id, eventType: event.event_type, createdAt: event.created_at })) })) });
   } catch (error) { if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse(); return jsonError(error); }
 }
 

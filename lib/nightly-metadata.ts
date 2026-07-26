@@ -2,7 +2,10 @@ import { processCatalogueQueue } from "@/lib/catalogue";
 import { processDurationQueue } from "@/lib/duration-worker";
 import { upsertSteamGames } from "@/lib/games";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import { enrichSteamMetadataForUser } from "@/lib/steam-metadata";
+import {
+  processSteamMetadataQueue,
+  queueAllKnownSteamMetadata
+} from "@/lib/steam-metadata";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 type SteamUser = {
@@ -17,8 +20,7 @@ export async function refreshNightlyMetadata() {
   const users = await loadSteamUsers();
   let librariesRefreshed = 0;
   let gamesRefreshed = 0;
-  let wishlistListingsRefreshed = 0;
-  const failures: Array<{ userId: string; stage: string }> = [];
+  const failures: Array<{ userId?: string; stage: string; error: string }> = [];
 
   for (const batch of chunks(users, 3)) {
     await Promise.all(batch.map(async (user) => {
@@ -27,34 +29,58 @@ export async function refreshNightlyMetadata() {
         const savedGames = await upsertSteamGames(user.id, ownedGames);
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
-      } catch {
-        failures.push({ userId: user.id, stage: "owned-library" });
-      }
-
-      try {
-        const wishlist = await enrichSteamMetadataForUser(user.id, 50, true, true);
-        wishlistListingsRefreshed += wishlist.updated;
-      } catch {
-        failures.push({ userId: user.id, stage: "wishlist-store-metadata" });
+      } catch (error) {
+        failures.push({ userId: user.id, stage: "owned-library", error: errorMessage(error) });
       }
     }));
   }
 
-  const catalogue = await processCatalogueQueue(100);
+  let metadataQueued = 0;
+  const steamMetadata = [];
+  try {
+    metadataQueued = await queueAllKnownSteamMetadata();
+    const metadataDeadline = Date.now() + 120_000;
+    for (let batch = 0; batch < 10 && Date.now() < metadataDeadline; batch += 1) {
+      const result = await processSteamMetadataQueue(60, true);
+      steamMetadata.push(result);
+      if (!result.remaining) break;
+    }
+  } catch (error) {
+    failures.push({ stage: "steam-app-metadata", error: errorMessage(error) });
+  }
+
+  let catalogue = null;
+  try {
+    catalogue = await processCatalogueQueue(100);
+  } catch (error) {
+    failures.push({ stage: "catalogue", error: errorMessage(error) });
+  }
+
   const durations = [];
-  for (let batch = 0; batch < 3; batch += 1) {
-    durations.push(await processDurationQueue(48));
+  try {
+    for (let batch = 0; batch < 3; batch += 1) {
+      const result = await processDurationQueue(48);
+      durations.push(result);
+      if (!result.claimed) break;
+    }
+  } catch (error) {
+    failures.push({ stage: "durations", error: errorMessage(error) });
   }
 
   return {
     users: users.length,
     librariesRefreshed,
     gamesRefreshed,
-    wishlistListingsRefreshed,
+    metadataQueued,
+    steamMetadata,
     catalogue,
     durations,
     failures
   };
+}
+
+function errorMessage(error: unknown) {
+  return error instanceof Error ? error.message.slice(0, 500) : "Unknown worker error";
 }
 
 async function loadSteamUsers() {

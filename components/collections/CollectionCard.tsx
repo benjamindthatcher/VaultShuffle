@@ -28,7 +28,7 @@ export function CollectionCard({ collection, previewGames, selected = false, onS
         <div className={styles.thumbRow}>
           {previewGames.slice(0, 4).map((game) => (
             <span key={game.id} className={styles.thumb}>
-              <Artwork src={game.artworkUrl} sizes="52px" />
+              <Artwork src={game.bannerUrl} sizes="52px" />
             </span>
           ))}
         </div>

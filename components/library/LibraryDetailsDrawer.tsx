@@ -5,9 +5,8 @@ import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
 import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ScrollControls } from "@/components/shared/ScrollControls";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
-import { formatDurationEstimate, getPreferredDurationMinutes } from "@/lib/game-duration";
+import { formatGameDuration } from "@/lib/game-duration";
 import { steamLaunchUrl } from "@/lib/steam-images";
 import styles from "./LibraryDetailsDrawer.module.css";
 
@@ -59,13 +58,12 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
   if (!mounted || !game) return null;
 
   const relatedCollections = collections.filter((collection) => game.collectionIds.includes(collection.id));
-  const timeToBeatMinutes = getPreferredDurationMinutes(game.duration);
+  const durationLabel = formatGameDuration(game.duration);
 
   return createPortal(
     <>
       <button type="button" className={styles.overlay} onClick={onClose} aria-label="Close game details" />
       <aside ref={drawerRef} className={styles.drawer} role="dialog" aria-modal="true" aria-label={`${game.title} details`}>
-        <ScrollControls targetRef={drawerRef} axis="vertical" label="Scroll game details" />
         <div className={styles.hero}>
           <Artwork src={game.bannerUrl} sizes="(max-width: 520px) 100vw, 520px" priority />
         </div>
@@ -121,7 +119,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             </div>
             <div>
               <dt>How long to beat</dt>
-              <dd>{formatDurationEstimate(timeToBeatMinutes)}</dd>
+              <dd>{durationLabel ?? "Not available"}</dd>
             </div>
           </dl>
 

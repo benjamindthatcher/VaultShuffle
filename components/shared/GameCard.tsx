@@ -76,7 +76,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
   const content = (
     <>
       <div className={isList ? `${styles.artwork} ${styles.artworkList}` : styles.artwork}>
-        <Artwork src={game.artworkUrl} sizes={isList ? "260px" : "(max-width: 720px) 100vw, 33vw"} />
+        <Artwork src={game.bannerUrl} sizes={isList ? "260px" : "(max-width: 720px) 100vw, 33vw"} />
       </div>
       <div className={styles.body}>
         <div className={styles.topRow}>

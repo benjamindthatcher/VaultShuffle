@@ -41,6 +41,7 @@ export type DemoGame = {
   collectionIds: string[];
   sessionFit: VaultSessionId[];
   moodTags: VaultMoodId[];
+  moodScores?: import("@/lib/vault-matching").VaultMoodScores;
   completedAt?: string | null;
   previousActiveStatus?: "Not Started" | "In Progress" | null;
   sleptAt?: string | null;

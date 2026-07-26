@@ -34,7 +34,6 @@ export default function LibraryPage() {
   const [managePinsOpen, setManagePinsOpen] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
   const undoTimerRef = useRef<number | null>(null);
-  const gamesScrollerRef = useRef<HTMLDivElement>(null);
   const pinnedGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -215,8 +214,7 @@ export default function LibraryPage() {
           <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><ScrollControls targetRef={pinnedGridRef} axis="horizontal" label="Browse pinned games" /><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
           <div ref={pinnedGridRef} className={styles.pinnedGrid}>{visiblePinnedGames.map((game, index) => <div key={game.id} className={styles.pinnedCard}><GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress /><span className={styles.pinBadge}>⌖ {index + 1}</span></div>)}{!query ? Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>) : null}</div>
         </div> : null}
-        <ScrollControls targetRef={gamesScrollerRef} axis="vertical" label="Browse games" className={styles.gamesScrollControls} />
-        <div ref={gamesScrollerRef} className={styles.gamesScroller} tabIndex={0} aria-label={`${filteredGames.length} games`}>
+        <div className={styles.gamesScroller} tabIndex={0} aria-label={`${filteredGames.length} games`}>
           {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={setSelectedGameId} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (
             <div className={styles.emptyState}><h3>{statusTab === "slept" ? "No sleeping games" : statusTab === "completed" ? "Nothing completed yet" : "No active games match"}</h3><p>{statusTab === "slept" ? "Games you put to sleep will appear here and stay out of Vault draws." : statusTab === "completed" ? "Mark a finished game as completed and it will appear here." : "Try changing your search."}</p>{statusTab !== "active" ? <button type="button" onClick={() => setStatusTab("active")}>Browse Active Games</button> : null}</div>
           )}

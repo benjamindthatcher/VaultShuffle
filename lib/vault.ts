@@ -1,14 +1,15 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
+import type { VaultMoodScores } from "@/lib/vault-matching";
 
 export const MAX_VAULT_GENRES = 3;
 export const MAX_VAULT_POOL_SIZE = 24;
 const VAULT_SELECTION_TEMPERATURE = 15;
 
 export const vaultSessionOptions = [
-  { id: "short", label: "Short Session", caption: "~ 1-2 hours" },
-  { id: "evening", label: "Evening Session", caption: "~ 2-4 hours" },
-  { id: "weekend", label: "Weekend Session", caption: "4+ hours" }
+  { id: "short", label: "Short Session", caption: "Shorter pick · up to 10h left" },
+  { id: "evening", label: "Evening Session", caption: "Medium pick · 10-30h left" },
+  { id: "weekend", label: "Weekend Session", caption: "Long pick · 30h+ left" }
 ] satisfies ReadonlyArray<{ id: VaultSessionId; label: string; caption: string }>;
 
 export const vaultMoodOptions = [
@@ -72,7 +73,7 @@ export function getVaultEligibility({
   const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
   const genreMatches = inCollection.filter((game) => matchesAnyGenre(game, canonicalSelectedGenres));
   const sessionMatches = session ? genreMatches.filter((game) => game.sessionFit.includes(session)) : genreMatches;
-  const moodMatches = mood ? sessionMatches.filter((game) => game.moodTags.includes(mood)) : sessionMatches;
+  const moodMatches = sessionMatches;
   const goalMatches = moodMatches.filter((game) => goalEligible(game, goal));
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
   const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
@@ -87,7 +88,7 @@ export function getVaultEligibility({
     stages.push({ id: "session", label: `${sessionLabel(session)} Fits`, count: sessionMatches.length });
   }
   if (mood) {
-    stages.push({ id: "mood", label: `${labelForMood(mood)} Fits`, count: moodMatches.length });
+    stages.push({ id: "mood", label: `${labelForMood(mood)} Ranked`, count: moodMatches.length });
   }
   if (goal && goal !== "surprise") {
     stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
@@ -188,11 +189,10 @@ function scoreVaultGame(
     }
   }
 
-  if (mood && game.moodTags.includes(mood)) {
-    score += 24;
-    reasons.push(moodReason(mood));
-  } else if (mood) {
-    score += 11;
+  if (mood) {
+    const moodStrength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
+    score += 14 + moodStrength * 3;
+    if (moodStrength >= 3) reasons.push(moodReason(mood));
   }
 
   if (selectedGenres.length) {
@@ -220,6 +220,11 @@ function scoreVaultGame(
   }
 
   return { game, score, reasons: reasons.slice(0, 4) };
+}
+
+function moodScoreFor(scores: VaultMoodScores | undefined, mood: VaultMoodId, tagged: boolean) {
+  if (scores) return scores[mood];
+  return tagged ? 4 : 0;
 }
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {

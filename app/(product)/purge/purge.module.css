@@ -312,7 +312,7 @@
   object-fit: cover;
 }
 .reviewArtwork img {
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
 }
 .queueCopy {

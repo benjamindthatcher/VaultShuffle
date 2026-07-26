@@ -1,11 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 
-const SETTING_KEYS = {
-  snoozedIds: "vault_snoozed_ids",
-  currentPickId: "vault_current_pick_id",
-  wishlistPinnedIds: "wishlist_pinned_ids"
-} as const;
-
 export type VaultAction = "drawn" | "pinned" | "unpinned" | "snoozed" | "unsnoozed";
 
 export type VaultState = {
@@ -17,28 +11,37 @@ export type VaultState = {
 
 export async function getVaultState(userId: string): Promise<VaultState> {
   const supabase = getSupabaseAdmin();
-  const [{ data, error }, { data: pins, error: pinsError }] = await Promise.all([
-    supabase
-      .from("app_settings")
-      .select("key, value")
-      .eq("user_id", userId)
-      .in("key", [SETTING_KEYS.snoozedIds, SETTING_KEYS.currentPickId, SETTING_KEYS.wishlistPinnedIds]),
+  const [
+    { data: pins, error: pinsError },
+    { data: snoozes, error: snoozeError },
+    { data: vaultState, error: stateError }
+  ] = await Promise.all([
     supabase
       .from("user_game_pins")
-      .select("game_id, slot")
+      .select("game_id, slot, scope")
       .eq("user_id", userId)
-      .order("slot", { ascending: true })
+      .order("slot", { ascending: true }),
+    supabase
+      .from("user_game_snoozes")
+      .select("game_id")
+      .eq("user_id", userId)
+      .or(`snoozed_until.is.null,snoozed_until.gt.${new Date().toISOString()}`),
+    supabase
+      .from("user_vault_state")
+      .select("current_game_id")
+      .eq("user_id", userId)
+      .maybeSingle()
   ]);
 
-  if (error) throw error;
   if (pinsError) throw pinsError;
-  const values = new Map((data ?? []).map((row) => [String(row.key), String(row.value)]));
+  if (snoozeError) throw snoozeError;
+  if (stateError) throw stateError;
 
   return {
-    pinnedIds: (pins ?? []).map((pin) => String(pin.game_id)),
-    wishlistPinnedIds: parseIdList(values.get(SETTING_KEYS.wishlistPinnedIds)).slice(0, 3),
-    snoozedIds: parseIdList(values.get(SETTING_KEYS.snoozedIds)),
-    currentPickId: cleanId(values.get(SETTING_KEYS.currentPickId))
+    pinnedIds: (pins ?? []).filter((pin) => pin.scope === "library").map((pin) => String(pin.game_id)),
+    wishlistPinnedIds: (pins ?? []).filter((pin) => pin.scope === "wishlist").map((pin) => String(pin.game_id)),
+    snoozedIds: (snoozes ?? []).map((snooze) => String(snooze.game_id)),
+    currentPickId: cleanId(String(vaultState?.current_game_id ?? ""))
   };
 }
 
@@ -62,34 +65,52 @@ export async function recordVaultAction(
   const state = await getVaultState(userId);
   let next = reduceVaultState(state, action, gameId, context);
   const pinScope = context.pin_scope === "wishlist" ? "wishlist" : "library";
-  if (action === "pinned" && pinScope === "library") {
+  if (action === "pinned") {
     const replaceId = cleanId(String(context.replace_game_id ?? ""));
-    const { data: pinnedIds, error: pinError } = await supabase.rpc("pin_user_game", {
+    const { data: pinnedIds, error: pinError } = await supabase.rpc("pin_scoped_user_game", {
       p_user_id: userId,
       p_game_id: gameId,
+      p_scope: pinScope,
       p_replace_game_id: replaceId
     });
     if (pinError) throw pinError;
-    next = { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
+    next = pinScope === "library"
+      ? { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] }
+      : { ...next, wishlistPinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
   }
-  if (action === "unpinned" && pinScope === "library") {
-    const { data: pinnedIds, error: pinError } = await supabase.rpc("unpin_user_game", {
+  if (action === "unpinned") {
+    const { data: pinnedIds, error: pinError } = await supabase.rpc("unpin_scoped_user_game", {
       p_user_id: userId,
-      p_game_id: gameId
+      p_game_id: gameId,
+      p_scope: pinScope
     });
     if (pinError) throw pinError;
-    next = { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
+    next = pinScope === "library"
+      ? { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] }
+      : { ...next, wishlistPinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
   }
-  const rows = [
-    settingRow(userId, SETTING_KEYS.snoozedIds, JSON.stringify(next.snoozedIds)),
-    settingRow(userId, SETTING_KEYS.currentPickId, next.currentPickId ?? ""),
-    settingRow(userId, SETTING_KEYS.wishlistPinnedIds, JSON.stringify(next.wishlistPinnedIds))
-  ];
-
-  const { error: settingError } = await supabase
-    .from("app_settings")
-    .upsert(rows, { onConflict: "user_id,key" });
-  if (settingError) throw settingError;
+  if (action === "drawn") {
+    const { error } = await supabase
+      .from("user_vault_state")
+      .upsert({ user_id: userId, current_game_id: gameId, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
+    if (error) throw error;
+  } else if (action === "snoozed") {
+    const snoozedUntil = cleanSnoozeExpiry(context.snoozed_until);
+    const [{ error: snoozeError }, { error: stateError }] = await Promise.all([
+      supabase.from("user_game_snoozes").upsert(
+        { user_id: userId, game_id: gameId, snoozed_until: snoozedUntil },
+        { onConflict: "user_id,game_id" }
+      ),
+      supabase.from("user_vault_state").update({ current_game_id: null, updated_at: new Date().toISOString() })
+        .eq("user_id", userId).eq("current_game_id", gameId)
+    ]);
+    if (snoozeError) throw snoozeError;
+    if (stateError) throw stateError;
+  } else if (action === "unsnoozed") {
+    const { error } = await supabase.from("user_game_snoozes")
+      .delete().eq("user_id", userId).eq("game_id", gameId);
+    if (error) throw error;
+  }
 
   const { error: eventError } = await supabase.from("vault_events").insert({
     user_id: userId,
@@ -127,21 +148,14 @@ function reduceVaultState(state: VaultState, action: VaultAction, gameId: string
   return { pinnedIds, wishlistPinnedIds, snoozedIds: [...snoozed], currentPickId };
 }
 
-function settingRow(userId: string, key: string, value: string) {
-  return { user_id: userId, key, value, updated_at: new Date().toISOString() };
-}
-
-function parseIdList(value: string | undefined) {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed.map(String).filter(Boolean) : [];
-  } catch {
-    return [];
-  }
-}
-
 function cleanId(value: string | undefined) {
   const cleaned = String(value ?? "").trim();
   return cleaned || null;
+}
+
+function cleanSnoozeExpiry(value: unknown) {
+  const candidate = String(value ?? "").trim();
+  if (!candidate) return null;
+  const timestamp = Date.parse(candidate);
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
 }

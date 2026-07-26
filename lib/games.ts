@@ -60,7 +60,8 @@ export async function findGame(userId: string, gameId: string) {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Game | null;
+  if (!data) return null;
+  return (await applyCachedSteamMetadata([data as Game]))[0] ?? null;
 }
 
 export async function createGame(userId: string, payload: GamePayload) {

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  completionFromDuration,
   estimatedTimeToBeatMinutes,
+  formatGameDuration,
   getPreferredDurationMinutes
 } from "./game-duration.ts";
 
@@ -14,6 +16,12 @@ test("uses the midpoint of main-story and completionist estimates rounded to an 
 
   assert.equal(estimatedTimeToBeatMinutes(duration), 1_080);
   assert.equal(getPreferredDurationMinutes(duration), 1_080);
+});
+
+test("endless games always display Endless and use 99% progress with no playtime", () => {
+  const duration = { endless: true };
+  assert.equal(formatGameDuration(duration), "Endless");
+  assert.equal(completionFromDuration(0, duration), 99);
 });
 
 test("rounds the best available provider fallback to the closest hour", () => {
