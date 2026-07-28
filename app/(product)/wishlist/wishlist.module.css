@@ -239,6 +239,12 @@
   gap: 20px;
 }
 
+.importMessage {
+  margin: 14px 0 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
 .composerTitle {
   margin: 5px 0 0;
   font-size: 1.3rem;

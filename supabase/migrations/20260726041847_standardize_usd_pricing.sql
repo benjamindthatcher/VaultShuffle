@@ -1,3 +1,4 @@
+-- Applied to production as migration 20260726041847.
 -- VaultShuffle prices are sourced exclusively from Steam's US storefront.
 -- Never relabel foreign minor units as USD: clear them and queue a US refresh.
 

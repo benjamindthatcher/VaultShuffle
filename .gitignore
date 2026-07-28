@@ -1,6 +1,67 @@
+# Operating-system and editor state
 .DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
 
+# Local environment and credentials
+.env
+.env.*
+!.env.example
+!.env.*.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
 
-tsconfig.tsbuildinfo
-/.next
-/node_modules
+# Framework, dependency, and deployment output
+/.next/
+/node_modules/
+/out/
+/dist/
+/coverage/
+/.turbo/
+/.vercel/
+*.tsbuildinfo
+
+# Logs, caches, and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+.cache/
+tmp/
+temp/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Python tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Local database files, exports, and investigation artifacts
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.dump
+*.csv
+*.tsv
+*.xls
+*.xlsx
+*.zip
+data/private/
+data/exports/

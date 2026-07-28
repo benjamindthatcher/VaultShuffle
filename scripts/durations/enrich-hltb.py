@@ -57,8 +57,13 @@ def minutes(value):
 
 
 def best_match(title_variants):
+    errors = []
     for search_title in title_variants:
-        results = HowLongToBeat().search(search_title) or []
+        try:
+            results = HowLongToBeat().search(search_title) or []
+        except Exception as error:
+            errors.append(f"{type(error).__name__}: {error}")
+            continue
         if not results:
             continue
         best = max(results, key=lambda item: item.similarity)
@@ -66,41 +71,55 @@ def best_match(title_variants):
             continue
         durations = [minutes(best.main_story), minutes(best.main_extra), minutes(best.completionist)]
         if any(durations):
-            return best, search_title, durations
-    return None
+            return (best, search_title, durations), errors
+    return None, errors
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true", help="Persist high-confidence matches.")
+    parser.add_argument("--input", help="Read unresolved games from a local JSON export instead of Supabase.")
+    parser.add_argument("--output", help="Write the JSON report to this file instead of stdout.")
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--delay", type=float, default=1.25)
     args = parser.parse_args()
 
-    key = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
-    games = request(
-        "catalog_games",
-        key,
-        {
-            "select": "steam_appid,name,release_date",
-            "duration_kind": "eq.unknown",
-            "order": "steam_appid.asc",
-            "limit": str(args.limit),
-        },
-    )
-    aliases = request(
-        "game_duration_aliases",
-        key,
-        {"select": "steam_app_id,search_title", "review_status": "eq.approved"},
-    )
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    if args.input:
+        with open(args.input, encoding="utf-8") as source:
+            games = json.load(source)[: args.limit]
+        aliases = []
+    else:
+        if not key:
+            raise SystemExit("SUPABASE_SERVICE_ROLE_KEY is required unless --input is provided.")
+        games = request(
+            "catalog_games",
+            key,
+            {
+                "select": "steam_appid,name,release_date",
+                "duration_kind": "eq.unknown",
+                "order": "steam_appid.asc",
+                "limit": str(args.limit),
+            },
+        )
+        aliases = request(
+            "game_duration_aliases",
+            key,
+            {"select": "steam_app_id,search_title", "review_status": "eq.approved"},
+        )
     alias_by_appid = {int(row["steam_app_id"]): row["search_title"] for row in aliases}
     report = []
 
     for game in games:
         appid = int(game["steam_appid"])
-        match = best_match(variants(game["name"], alias_by_appid.get(appid)))
+        match, lookup_errors = best_match(variants(game["name"], alias_by_appid.get(appid)))
         if not match:
-            report.append({"steam_appid": appid, "title": game["name"], "status": "unmatched"})
+            report.append({
+                "steam_appid": appid,
+                "title": game["name"],
+                "status": "provider_error" if lookup_errors else "unmatched",
+                "errors": list(dict.fromkeys(lookup_errors))[:3],
+            })
             time.sleep(args.delay)
             continue
 
@@ -131,6 +150,8 @@ def main():
             }
         )
         if args.write:
+            if not key:
+                raise SystemExit("SUPABASE_SERVICE_ROLE_KEY is required with --write.")
             request(
                 "game_duration_estimates",
                 key,
@@ -149,7 +170,13 @@ def main():
             )
         time.sleep(args.delay)
 
-    print(json.dumps(report, indent=2))
+    serialized = json.dumps(report, indent=2)
+    if args.output:
+        with open(args.output, "w", encoding="utf-8") as destination:
+            destination.write(serialized)
+            destination.write("\n")
+    else:
+        print(serialized)
 
 
 if __name__ == "__main__":

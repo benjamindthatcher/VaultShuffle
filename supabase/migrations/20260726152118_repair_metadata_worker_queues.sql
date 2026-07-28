@@ -1,3 +1,4 @@
+-- Applied to production as migration 20260726152118.
 -- Recover abandoned worker leases and avoid repeatedly re-queueing duration
 -- results that are still inside their provider refresh window.
 

@@ -1,3 +1,4 @@
+-- Applied to production as migration 20260726042956.
 with blocked_labels(label) as (
   values
     ('animation & modeling'),

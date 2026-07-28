@@ -9,7 +9,6 @@ import { StatCard } from "@/components/shared/StatCard";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
-import { ScrollControls } from "@/components/shared/ScrollControls";
 import type { DemoGame } from "@/lib/demo-data";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import styles from "./library.module.css";
@@ -34,7 +33,6 @@ export default function LibraryPage() {
   const [managePinsOpen, setManagePinsOpen] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
   const undoTimerRef = useRef<number | null>(null);
-  const pinnedGridRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
@@ -211,8 +209,8 @@ export default function LibraryPage() {
           />
         </div>
         {statusTab === "active" && (visiblePinnedGames.length || !query) ? <div className={styles.pinnedShelf}>
-          <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><ScrollControls targetRef={pinnedGridRef} axis="horizontal" label="Browse pinned games" /><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
-          <div ref={pinnedGridRef} className={styles.pinnedGrid}>{visiblePinnedGames.map((game, index) => <div key={game.id} className={styles.pinnedCard}><GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress /><span className={styles.pinBadge}>⌖ {index + 1}</span></div>)}{!query ? Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>) : null}</div>
+          <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
+          <div className={styles.pinnedGrid}>{visiblePinnedGames.map((game, index) => <div key={game.id} className={styles.pinnedCard}><GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress /><span className={styles.pinBadge}>⌖ {index + 1}</span></div>)}{!query ? Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>) : null}</div>
         </div> : null}
         <div className={styles.gamesScroller} tabIndex={0} aria-label={`${filteredGames.length} games`}>
           {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={setSelectedGameId} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (

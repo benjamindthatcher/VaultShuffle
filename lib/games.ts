@@ -229,6 +229,89 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
   return saved;
 }
 
+export async function upsertSteamWishlistGames(userId: string, games: GamePayload[]) {
+  const incomingByAppId = new Map<string, GamePayload>();
+  for (const game of games.map(normalizeGamePayload)) {
+    if (game.steam_appid) incomingByAppId.set(game.steam_appid, { ...game, ownership: "Wishlist" });
+  }
+
+  const incomingGames = await applyCachedSteamMetadata([...incomingByAppId.values()]);
+  if (!incomingGames.length) return { games: [] as Game[], skippedOwned: 0 };
+
+  const quarantineByAppId = await quarantinedSteamImports(incomingGames);
+  await queueSteamMetadata(incomingGames.map((game) => String(game.steam_appid ?? "")));
+
+  const supabase = getSupabaseAdmin();
+  const appIds = incomingGames.map((game) => game.steam_appid as string);
+  const { data: existingData, error: existingError } = await supabase
+    .from("games")
+    .select("*")
+    .eq("user_id", userId)
+    .in("steam_appid", appIds);
+
+  if (existingError) throw existingError;
+
+  const existingByAppId = new Map(
+    ((existingData ?? []) as Game[])
+      .filter((game) => game.steam_appid)
+      .map((game) => [game.steam_appid as string, game])
+  );
+
+  let skippedOwned = 0;
+  const rows = incomingGames.flatMap((incoming) => {
+    const appid = incoming.steam_appid as string;
+    const existing = existingByAppId.get(appid);
+    if (existing?.ownership === "Owned") {
+      skippedOwned += 1;
+      return [];
+    }
+
+    const quarantineReason = quarantineByAppId.get(appid);
+    if (!existing) {
+      return [{
+        ...gameDatabaseRow(userId, { ...incoming, ownership: "Wishlist" }),
+        is_quarantined: Boolean(quarantineReason),
+        quarantine_reason: quarantineReason ?? null
+      }];
+    }
+
+    return [{
+      user_id: userId,
+      title: incoming.title,
+      genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
+      store: "Steam",
+      ownership: "Wishlist" as const,
+      status: existing.status,
+      rating: Number(existing.rating || 0) > 0 ? existing.rating : incoming.rating,
+      hours_played: existing.hours_played,
+      completion_percentage: existing.completion_percentage,
+      priority: existing.priority,
+      date_added: existing.date_added || incoming.date_added,
+      last_played_at: existing.last_played_at,
+      notes: cleanUserNotes(existing.notes),
+      steam_appid: appid,
+      completed_at: existing.completed_at,
+      slept_at: existing.slept_at,
+      completion_suggestion_dismissed_at: existing.completion_suggestion_dismissed_at,
+      completion_suggestion_dismissed_playtime: existing.completion_suggestion_dismissed_playtime,
+      is_quarantined: Boolean(quarantineReason),
+      quarantine_reason: quarantineReason ?? null
+    }];
+  });
+
+  const saved: Game[] = [];
+  for (let index = 0; index < rows.length; index += 400) {
+    const { data, error } = await supabase
+      .from("games")
+      .upsert(rows.slice(index, index + 400), { onConflict: "user_id,steam_appid" })
+      .select("*");
+    if (error) throw error;
+    saved.push(...((data ?? []) as Game[]));
+  }
+
+  return { games: saved, skippedOwned };
+}
+
 function gameDatabaseRow(userId: string, game: GamePayload): GameDatabaseRow {
   return {
     ...normalizeGamePayload(game),

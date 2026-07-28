@@ -204,7 +204,81 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
   return baseGames;
 }
 
-async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh = false) {
+export async function fetchPublicSteamWishlist(steamId: string, apiKey: string): Promise<GamePayload[]> {
+  const normalizedSteamId = String(steamId || "").trim();
+  if (!/^\d{16,20}$/.test(normalizedSteamId)) {
+    throw new Error("A valid Steam account is required to import a wishlist.");
+  }
+
+  const input = JSON.stringify({ steamid: normalizedSteamId });
+  const params = new URLSearchParams({ key: apiKey, input_json: input });
+  const response = await fetch(
+    `https://api.steampowered.com/IWishlistService/GetWishlist/v1/?${params.toString()}`,
+    {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "VaultShuffle/0.1"
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000)
+    }
+  );
+
+  if (response.status === 403 || response.status === 401) {
+    throw new Error("Steam wishlist access is private. Make your Steam profile and game details public, then try again.");
+  }
+  if (response.status === 429) {
+    throw new Error("Steam is temporarily limiting wishlist imports. Please try again shortly.");
+  }
+  if (!response.ok) {
+    throw new Error(`Steam wishlist import failed with HTTP ${response.status}.`);
+  }
+
+  const payload = await response.json() as {
+    response?: {
+      items?: Array<Record<string, unknown>>;
+      wishlist?: Array<Record<string, unknown>>;
+    };
+  };
+  const items = Array.isArray(payload?.response?.items)
+    ? payload.response.items
+    : Array.isArray(payload?.response?.wishlist) ? payload.response.wishlist : [];
+  const wishlistItems = items.flatMap((item) => {
+    const appid = String(item.appid ?? item.app_id ?? "").trim();
+    if (!/^\d+$/.test(appid)) return [];
+    return [{
+      appid,
+      dateAddedSeconds: Number(item.date_added ?? item.time_added ?? 0)
+    }];
+  });
+  const uniqueItems = [...new Map(wishlistItems.map((item) => [item.appid, item])).values()];
+  const details = await fetchSteamAppDetailsBatch(uniqueItems.map((item) => item.appid));
+
+  return uniqueItems.flatMap(({ appid, dateAddedSeconds }) => {
+    const detail = details.get(appid);
+    const title = String(detail?.title ?? "").trim();
+    if (!title) return [];
+    return [{
+      title,
+      genre: normaliseSteamGenreLabel(detail?.genre, title),
+      store: "Steam",
+      ownership: "Wishlist",
+      status: "Not Started",
+      rating: Number(detail?.rating ?? 0),
+      hours_played: 0,
+      completion_percentage: 0,
+      priority: "Medium",
+      date_added: Number.isFinite(dateAddedSeconds) && dateAddedSeconds > 0
+        ? new Date(dateAddedSeconds * 1000).toISOString().slice(0, 10)
+        : new Date().toISOString().slice(0, 10),
+      last_played_at: null,
+      notes: "",
+      steam_appid: appid
+    } satisfies GamePayload];
+  });
+}
+
+export async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh = false) {
   const uniqueAppIds = [...new Set(appids.map((appid) => String(appid || "").trim()).filter(Boolean))];
   const results = new Map<string, SteamAppDetails>();
   const missing: string[] = [];

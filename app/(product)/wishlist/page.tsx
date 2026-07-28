@@ -7,16 +7,14 @@ import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
-import { ScrollControls } from "@/components/shared/ScrollControls";
 import { WishlistRow } from "@/components/wishlist/WishlistRow";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./wishlist.module.css";
 import type { SteamSearchResult } from "@/lib/types";
 
 export default function WishlistPage() {
-  const { games, vaultState, isLive, searchSteam, addWishlistGame, removeGame, refreshSteamMetadata, recordVaultAction } = useAppData();
+  const { games, vaultState, isLive, searchSteam, addWishlistGame, syncSteamWishlist, removeGame, refreshSteamMetadata, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
-  const pinnedGridRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState("added");
   const [filter, setFilter] = useState("all");
   const [composerOpen, setComposerOpen] = useState(false);
@@ -26,6 +24,8 @@ export default function WishlistPage() {
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [refreshingPrices, setRefreshingPrices] = useState(false);
   const [priceMessage, setPriceMessage] = useState("");
+  const [importingWishlist, setImportingWishlist] = useState(false);
+  const [importMessage, setImportMessage] = useState("");
   const [managePinsOpen, setManagePinsOpen] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<(typeof games)[number] | null>(null);
   const refreshStarted = useRef(false);
@@ -126,6 +126,26 @@ export default function WishlistPage() {
     }
   }
 
+  async function importSteamWishlist() {
+    setImportingWishlist(true);
+    setImportMessage("");
+    try {
+      const result = await syncSteamWishlist();
+      if (!result.found) {
+        setImportMessage("No public Steam wishlist entries were found. Check that your Steam profile and game details are public.");
+      } else {
+        const skipped = result.skippedOwned
+          ? ` ${result.skippedOwned} already-owned ${result.skippedOwned === 1 ? "game was" : "games were"} left in your Library.`
+          : "";
+        setImportMessage(`${result.imported} wishlist ${result.imported === 1 ? "game" : "games"} synced from Steam.${skipped}`);
+      }
+    } catch (error) {
+      setImportMessage(error instanceof Error ? error.message : "Your Steam wishlist could not be imported.");
+    } finally {
+      setImportingWishlist(false);
+    }
+  }
+
   return (
     <section className={styles.wishlistPage}>
       <header className={styles.header}>
@@ -143,10 +163,9 @@ export default function WishlistPage() {
         <div className={styles.pinnedHeader}>
           <h2>Pinned Games <span>{pinnedGames.length}/3</span></h2>
           <div className={styles.slotDots} aria-label={`${pinnedGames.length} of 3 wishlist pins used`}>{[0, 1, 2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div>
-          <ScrollControls targetRef={pinnedGridRef} axis="horizontal" label="Browse pinned wishlist games" />
           <button type="button" onClick={() => { setPinCandidate(null); setManagePinsOpen(true); }}>Manage Pins</button>
         </div>
-        <div ref={pinnedGridRef} className={styles.pinnedGrid}>
+        <div className={styles.pinnedGrid}>
           {pinnedGames.map((game, index) => (
             <article key={game.id} className={styles.pinnedCard}>
               <span className={styles.pinnedArtwork}><Artwork src={game.bannerUrl} sizes="(max-width: 720px) 78vw, 360px" /></span>
@@ -165,16 +184,28 @@ export default function WishlistPage() {
             <h2 className={styles.composerTitle}>Add a new game</h2>
             <p className={styles.composerHint}>Search Steam for something that is not already on your wishlist.</p>
           </div>
-          <button
-            type="button"
-            className={styles.primaryAction}
-            aria-expanded={composerOpen}
-            onClick={() => setComposerOpen((current) => !current)}
-          >
-            <BrandedIcon group="actions" name="add-game" size={25} />
-            {composerOpen ? "Close Steam search" : "Search Steam"}
-          </button>
+          <div className={styles.composerActions}>
+            <button
+              type="button"
+              className={styles.secondaryAction}
+              disabled={!isLive || importingWishlist}
+              onClick={() => void importSteamWishlist()}
+            >
+              <VaultIcon name="wishlist" size={21} />
+              {importingWishlist ? "Importing…" : "Import Steam wishlist"}
+            </button>
+            <button
+              type="button"
+              className={styles.primaryAction}
+              aria-expanded={composerOpen}
+              onClick={() => setComposerOpen((current) => !current)}
+            >
+              <BrandedIcon group="actions" name="add-game" size={25} />
+              {composerOpen ? "Close Steam search" : "Search Steam"}
+            </button>
+          </div>
         </div>
+        {importMessage ? <p className={styles.importMessage} role="status">{importMessage}</p> : null}
 
         {composerOpen ? (
           <div className={styles.composerBody}>

@@ -25,6 +25,7 @@ type AppDataContextValue = {
   loadError: string | null;
   refresh: () => Promise<void>;
   syncSteamLibrary: () => Promise<number>;
+  syncSteamWishlist: () => Promise<{ found: number; imported: number; skippedOwned: number }>;
   refreshSteamMetadata: (force?: boolean) => Promise<number>;
   signOut: () => Promise<void>;
   createCollection: (payload: CollectionInput) => Promise<string>;
@@ -147,6 +148,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsSyncing(false);
     }
+  }
+
+  async function syncSteamWishlist() {
+    if (!isLive) throw new Error("Sign in with Steam before importing your wishlist.");
+
+    const result = await api<{ found: number; imported: number; skipped_owned: number }>("/api/steam/wishlist", {
+      method: "POST"
+    });
+    await load();
+    posthog.capture("steam_wishlist_synced", {
+      found_count: result.found,
+      imported_count: result.imported,
+      skipped_owned_count: result.skipped_owned
+    });
+    return {
+      found: result.found,
+      imported: result.imported,
+      skippedOwned: result.skipped_owned
+    };
   }
 
   async function refreshSteamMetadata(force = false) {
@@ -437,6 +457,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       loadError,
       refresh: load,
       syncSteamLibrary,
+      syncSteamWishlist,
       refreshSteamMetadata,
       signOut,
       createCollection,

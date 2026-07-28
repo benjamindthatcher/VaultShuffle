@@ -1,3 +1,4 @@
+-- Applied to production as migration 20260726051206.
 alter table public.catalog_games
   add column if not exists duration_kind text not null default 'unknown';
 
