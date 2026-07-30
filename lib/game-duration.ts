@@ -36,7 +36,7 @@ export function completionFromDuration(hoursPlayed: number, duration?: GameDurat
 export function formatDurationEstimate(minutes: number | null) {
   if (!minutes) return "Not available";
   const hours = minutes / 60;
-  return `About ${hours < 10 ? hours.toFixed(1).replace(/\.0$/, "") : Math.round(hours)}h`;
+  return `${hours < 10 ? hours.toFixed(1).replace(/\.0$/, "") : Math.round(hours)}h`;
 }
 
 export function formatGameDuration(duration?: GameDurationEstimate | null) {

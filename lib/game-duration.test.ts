@@ -24,6 +24,10 @@ test("endless games always display Endless and use 99% progress with no playtime
   assert.equal(completionFromDuration(0, duration), 99);
 });
 
+test("displays finite estimates without an About prefix", () => {
+  assert.equal(formatGameDuration({ mainStoryMinutes: 5_640 }), "94h estimated");
+});
+
 test("rounds the best available provider fallback to the closest hour", () => {
   assert.equal(estimatedTimeToBeatMinutes({ mainStoryMinutes: 610 }), 600);
   assert.equal(estimatedTimeToBeatMinutes({ mainExtrasMinutes: 690 }), 720);
