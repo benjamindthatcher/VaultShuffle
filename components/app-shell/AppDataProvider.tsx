@@ -66,7 +66,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [guestGames, setGuestGames] = useState<DemoGame[]>(demoGames);
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(demoCollections);
   const [liveGames, setLiveGames] = useState<DemoGame[]>([]);
-  const [liveCollections, setLiveCollections] = useState<DemoCollection[]>([]);
+  const [liveCollections, setLiveCollections] = useState<DemoCollection[]>(() => mapLiveCollections([]));
   const [guestVaultState, setGuestVaultState] = useState<VaultState>(emptyVaultState);
   const [liveVaultState, setLiveVaultState] = useState<VaultState>(emptyVaultState);
   const [guestVaultHistory, setGuestVaultHistory] = useState<VaultDraw[]>([]);

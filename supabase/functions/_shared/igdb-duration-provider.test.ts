@@ -153,6 +153,49 @@ test("a missing Steam mapping retries a cleaned edition title", async () => {
   assert.ok(requests.some((body) => body.includes('search "Outward"')));
 });
 
+test("title fallback accepts a Windows game that is also released on other platforms", async () => {
+  const requests: string[] = [];
+  const payloads: unknown[] = [
+    { access_token: "test-token", expires_in: 3600 },
+    [{ id: 1, name: "Steam" }],
+    [],
+    [{ id: 293, name: "Sid Meier's Civilization IV", platforms: [6, 14], first_release_date: 1_130_198_400 }],
+    [{ game_id: 293, hastily: 6_300, normally: 7_200, completely: 10_800, count: 12 }]
+  ];
+  let index = 0;
+  const fetcher: typeof fetch = async (_input, init) => {
+    requests.push(String(init?.body ?? ""));
+    return Response.json(payloads[index++]);
+  };
+
+  const result = await new IgdbDurationProvider("client", "secret", fetcher)
+    .findBySteamAppId(34440, { title: "Sid Meier's Civilization IV", releaseYear: 2005 });
+
+  assert.equal(result.status, "matched");
+  assert.equal(result.providerGameId, 293);
+  assert.ok(requests.some((body) => body.includes("fields id,name,platforms")));
+  assert.ok(requests.every((body) => !body.includes("where platforms = (6)")));
+});
+
+test("title fallback preserves an exact IGDB identity when timing data is absent", async () => {
+  const fetcher = mockFetch([
+    { access_token: "test-token", expires_in: 3600 },
+    [{ id: 1, name: "Steam" }],
+    [],
+    [{ id: 470, name: "Warhammer 40,000: Dawn of War II - Retribution", platforms: [3, 6, 14], first_release_date: 1_298_937_600 }],
+    []
+  ]);
+
+  const result = await new IgdbDurationProvider("client", "secret", fetcher).findBySteamAppId(56437, {
+    title: "Warhammer 40,000: Dawn of War II - Retribution",
+    releaseYear: 2011
+  });
+
+  assert.equal(result.status, "no_duration");
+  assert.equal(result.provider, "igdb-title");
+  assert.equal(result.providerGameId, 470);
+});
+
 function mockFetch(payloads: unknown[]): typeof fetch {
   let index = 0;
   return async () => Response.json(payloads[index++]);

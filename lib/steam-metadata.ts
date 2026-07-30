@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { clearSteamAppDetailsCache, fetchSteamAppDetails } from "@/lib/steam";
+import type { SteamAppDetails } from "@/lib/steam";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import type { Game, GamePayload } from "@/lib/types";
@@ -271,6 +272,10 @@ async function fetchAndStoreMetadata(appid: string, forceRefresh = false, previo
     if (updateError) throw updateError;
     throw error;
   }
+  const catalogueFallback = await loadCatalogueMetadataFallback(appid);
+  if (catalogueFallback) {
+    details = mergeSteamMetadata(details, catalogueFallback);
+  }
   const title = String(details?.title || "").trim();
   const genre = normaliseSteamGenreLabel(String(details?.genre || "").trim(), title);
   const rating = clamp(Math.round(Number(details?.rating || 0)), 0, 10);
@@ -341,6 +346,60 @@ async function fetchAndStoreMetadata(appid: string, forceRefresh = false, previo
   }
 
   return hasUsefulMetadata;
+}
+
+async function loadCatalogueMetadataFallback(appid: string): Promise<SteamAppDetails | null> {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("catalog_games")
+    .select("name, genres, review_positive, review_total, capsule_url, header_url, price_currency, price_initial, price_final, discount_percent, is_free")
+    .eq("steam_appid", appid)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+
+  const reviewTotal = Math.max(0, Number(data.review_total || 0));
+  const reviewPositive = Math.max(0, Number(data.review_positive || 0));
+  return {
+    steam_appid: appid,
+    store: "Steam",
+    title: String(data.name || "").trim(),
+    genre: Array.isArray(data.genres) ? data.genres.filter(Boolean).join(" / ") : "Unknown",
+    rating: reviewTotal > 0 ? Math.round(reviewPositive * 10 / reviewTotal) : 0,
+    review_total: reviewTotal,
+    review_positive: reviewPositive,
+    capsule_url: data.capsule_url || null,
+    header_url: data.header_url || null,
+    price_currency: data.price_currency === "USD" ? "USD" : undefined,
+    price_initial: data.price_currency === "USD" ? data.price_initial ?? undefined : undefined,
+    price_final: data.price_currency === "USD" ? data.price_final ?? undefined : undefined,
+    discount_percent: data.price_currency === "USD" ? data.discount_percent ?? 0 : 0,
+    is_free: Boolean(data.is_free)
+  };
+}
+
+function mergeSteamMetadata(
+  live: SteamAppDetails | null,
+  fallback: SteamAppDetails
+): SteamAppDetails {
+  if (!live) return fallback;
+  const liveGenre = String(live.genre || "").trim();
+  return {
+    ...fallback,
+    ...live,
+    title: live.title || fallback.title,
+    genre: liveGenre && !UNKNOWN_GENRES.has(liveGenre) ? liveGenre : fallback.genre,
+    rating: Number(live.rating || 0) > 0 ? live.rating : fallback.rating,
+    review_total: Number(live.review_total || 0) > 0 ? live.review_total : fallback.review_total,
+    review_positive: Number(live.review_total || 0) > 0 ? live.review_positive : fallback.review_positive,
+    capsule_url: live.capsule_url || fallback.capsule_url,
+    header_url: live.header_url || fallback.header_url,
+    price_currency: live.price_currency === "USD" ? "USD" : fallback.price_currency,
+    price_initial: live.price_currency === "USD" ? live.price_initial : fallback.price_initial,
+    price_final: live.price_currency === "USD" ? live.price_final : fallback.price_final,
+    discount_percent: live.price_currency === "USD" ? live.discount_percent : fallback.discount_percent,
+    is_free: Boolean(live.is_free || fallback.is_free)
+  };
 }
 
 async function applyLegacyCachedSteamMetadata<T extends GamePayload | Game>(games: T[], appIds: string[]): Promise<T[]> {

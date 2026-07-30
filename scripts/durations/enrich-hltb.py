@@ -9,7 +9,9 @@ import argparse
 import json
 import os
 import re
+import sys
 import time
+import unicodedata
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
@@ -47,9 +49,12 @@ def request(path, key, params=None, method="GET", payload=None, prefer=None):
 def variants(title, alias=None):
     values = [alias, title, MARKS.sub("", title), YEAR.sub("", MARKS.sub("", title))]
     values.append(EDITION_SUFFIX.sub("", values[-1]))
-    if ":" in values[-1]:
-        values.append(values[-1].split(":", 1)[0])
     return list(dict.fromkeys(value.strip(" -:") for value in values if value and value.strip()))
+
+
+def normalized(value):
+    ascii_value = unicodedata.normalize("NFKD", str(value)).encode("ascii", "ignore").decode()
+    return re.sub(r"[^a-z0-9]+", " ", ascii_value.lower()).strip()
 
 
 def minutes(value):
@@ -58,6 +63,7 @@ def minutes(value):
 
 def best_match(title_variants):
     errors = []
+    review_candidate = None
     for search_title in title_variants:
         try:
             results = HowLongToBeat().search(search_title) or []
@@ -70,24 +76,42 @@ def best_match(title_variants):
         if best.similarity < 0.8:
             continue
         durations = [minutes(best.main_story), minutes(best.main_extra), minutes(best.completionist)]
-        if any(durations):
+        if not any(durations):
+            continue
+        if normalized(best.game_name) == normalized(search_title):
             return (best, search_title, durations), errors
-    return None, errors
+        if review_candidate is None or best.similarity > review_candidate[0].similarity:
+            review_candidate = (best, search_title, durations)
+    return None, errors, review_candidate
+
+
+def write_report(path, report):
+    serialized = json.dumps(report, indent=2)
+    if path:
+        with open(path, "w", encoding="utf-8") as destination:
+            destination.write(serialized)
+            destination.write("\n")
+    else:
+        print(serialized)
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--write", action="store_true", help="Persist high-confidence matches.")
-    parser.add_argument("--input", help="Read unresolved games from a local JSON export instead of Supabase.")
+    parser.add_argument("--input", help="Read unresolved games from a local JSON export, or '-' for one-line JSON on stdin.")
     parser.add_argument("--output", help="Write the JSON report to this file instead of stdout.")
+    parser.add_argument("--resume", action="store_true", help="Resume from an existing --output report.")
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--delay", type=float, default=1.25)
     args = parser.parse_args()
 
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if args.input:
-        with open(args.input, encoding="utf-8") as source:
-            games = json.load(source)[: args.limit]
+        if args.input == "-":
+            games = json.loads(sys.stdin.readline())[: args.limit]
+        else:
+            with open(args.input, encoding="utf-8") as source:
+                games = json.load(source)[: args.limit]
         aliases = []
     else:
         if not key:
@@ -109,17 +133,42 @@ def main():
         )
     alias_by_appid = {int(row["steam_app_id"]): row["search_title"] for row in aliases}
     report = []
+    if args.resume and args.output and os.path.exists(args.output):
+        with open(args.output, encoding="utf-8") as existing:
+            report = json.load(existing)
+        completed_appids = {int(row["steam_appid"]) for row in report}
+        games = [game for game in games if int(game["steam_appid"]) not in completed_appids]
 
-    for game in games:
+    total_games = len(games)
+    for index, game in enumerate(games, start=1):
         appid = int(game["steam_appid"])
-        match, lookup_errors = best_match(variants(game["name"], alias_by_appid.get(appid)))
+        input_alias = game.get("search_title") if isinstance(game, dict) else None
+        match_result = best_match(variants(game["name"], input_alias or alias_by_appid.get(appid)))
+        match, lookup_errors = match_result[:2]
+        review_candidate = match_result[2] if len(match_result) > 2 else None
         if not match:
-            report.append({
+            unresolved = {
                 "steam_appid": appid,
                 "title": game["name"],
-                "status": "provider_error" if lookup_errors else "unmatched",
+                "status": "provider_error" if lookup_errors and review_candidate is None else "needs_review" if review_candidate else "unmatched",
                 "errors": list(dict.fromkeys(lookup_errors))[:3],
-            })
+            }
+            if review_candidate:
+                candidate, searched_as, duration_values = review_candidate
+                unresolved.update({
+                    "searched_as": searched_as,
+                    "candidate_game_id": int(candidate.game_id),
+                    "candidate_title": candidate.game_name,
+                    "candidate_similarity": candidate.similarity,
+                    "candidate_main_story_minutes": duration_values[0],
+                    "candidate_main_extra_minutes": duration_values[1],
+                    "candidate_completionist_minutes": duration_values[2],
+                })
+            report.append(unresolved)
+            if index == 1 or index % 25 == 0 or index == total_games:
+                print(f"Processed {index}/{total_games} duration lookups.", file=sys.stderr, flush=True)
+                if args.output:
+                    write_report(args.output, report)
             time.sleep(args.delay)
             continue
 
@@ -168,15 +217,13 @@ def main():
                 payload={"status": "completed", "updated_at": now},
                 prefer="return=minimal",
             )
+        if index == 1 or index % 25 == 0 or index == total_games:
+            print(f"Processed {index}/{total_games} duration lookups.", file=sys.stderr, flush=True)
+            if args.output:
+                write_report(args.output, report)
         time.sleep(args.delay)
 
-    serialized = json.dumps(report, indent=2)
-    if args.output:
-        with open(args.output, "w", encoding="utf-8") as destination:
-            destination.write(serialized)
-            destination.write("\n")
-    else:
-        print(serialized)
+    write_report(args.output, report)
 
 
 if __name__ == "__main__":

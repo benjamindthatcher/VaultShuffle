@@ -1,1 +1,1 @@
-howlongtobeatpy==1.0.18
+howlongtobeatpy==1.0.22

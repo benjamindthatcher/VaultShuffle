@@ -109,10 +109,15 @@ export class IgdbDurationProvider implements GameDurationProvider {
       const escaped = variant.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
       const rows = await this.igdb<Array<{ id?: number; name?: string; platforms?: number[]; first_release_date?: number; version_parent?: number }>>(
         "games",
-        `search "${escaped}"; fields id,name,platforms,first_release_date,version_parent; where platforms = (6); limit 10;`
+        `search "${escaped}"; fields id,name,platforms,first_release_date,version_parent; limit 20;`
       );
       const candidates = rows.filter((game) => {
-        if (!Number.isInteger(game.id) || game.id === excludedGameId || normalizeTitle(game.name) !== normalizeTitle(variant)) return false;
+        if (
+          !Number.isInteger(game.id)
+          || game.id === excludedGameId
+          || !game.platforms?.includes(6)
+          || normalizeTitle(game.name) !== normalizeTitle(variant)
+        ) return false;
         if (!releaseYear || !game.first_release_date) return true;
         return Math.abs(new Date(game.first_release_date * 1000).getUTCFullYear() - releaseYear) <= 1;
       });
@@ -121,12 +126,16 @@ export class IgdbDurationProvider implements GameDurationProvider {
       if (ids.length !== 1) continue;
 
       const direct = await this.findDurationForGame(steamAppId, ids[0], "igdb-title");
-      if (direct.status === "matched") return direct;
+      if (direct.status === "matched" || direct.status === "ambiguous") return direct;
       const parentId = candidates[0]?.version_parent;
       if (Number.isInteger(parentId)) {
         const parent = await this.findDurationForGame(steamAppId, Number(parentId), "igdb-parent");
-        if (parent.status === "matched") return parent;
+        if (parent.status === "matched" || parent.status === "ambiguous") return parent;
       }
+      // The identity match is still useful even when IGDB has no timing row.
+      // Preserve the matched game ID so a secondary duration provider can use
+      // an exact canonical title instead of treating this as an unknown game.
+      return direct;
     }
     return emptyResult(steamAppId, "not_found", "igdb-title");
   }

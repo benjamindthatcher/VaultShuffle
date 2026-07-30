@@ -14,8 +14,11 @@ export async function GET() {
   try {
     const { user } = await requireSession();
     return NextResponse.json(await getVaultState(user.id));
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("sign-in")) {
+      return unauthorizedResponse();
+    }
+    return jsonError(error, 500);
   }
 }
 
