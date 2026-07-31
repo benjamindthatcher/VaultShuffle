@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { AppDataProvider, useAppData } from "@/components/app-shell/AppDataProvider";
@@ -134,7 +133,7 @@ function AppShellContent({
 
   return (
     <div className={styles.appShell}>
-      <VaultShuffleLoader active={waitForAppData && pendingSteamImport} />
+      <VaultShuffleLoader active={holdInitialContent} />
       <AppHeader variant={headerVariant} />
 
       {loadError ? (
@@ -156,35 +155,8 @@ function AppShellContent({
       ) : null}
 
       <main className={styles.appContent}>
-        {holdInitialContent ? <ProductBootSkeleton /> : children}
+        {holdInitialContent ? null : children}
       </main>
-    </div>
-  );
-}
-
-function ProductBootSkeleton() {
-  return (
-    <div className={styles.bootPage} aria-busy="true" aria-label="Loading your library">
-      <section className={styles.bootHero}>
-        <Image
-          src="/assets/vault/vault-header.webp"
-          alt=""
-          fill
-          preload
-          sizes="100vw"
-          className={styles.bootHeroImage}
-        />
-        <span className={styles.bootHeroShade} aria-hidden="true" />
-      </section>
-      <section className={styles.bootStats} aria-hidden="true">
-        {Array.from({ length: 5 }, (_, index) => (
-          <span key={index} className={styles.bootStat} />
-        ))}
-      </section>
-      <section className={styles.bootPanel} aria-hidden="true">
-        <span className={styles.bootLine} />
-        <span className={`${styles.bootLine} ${styles.bootLineShort}`} />
-      </section>
     </div>
   );
 }

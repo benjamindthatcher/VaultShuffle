@@ -4,7 +4,7 @@
 .heading p { color: #cf79ff; font-size: .68rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
 .heading h3 { margin-top: 4px; color: var(--vault-text); font-size: 1rem; }
 .finalCount { color: #d9a2ff; font-size: .82rem; white-space: nowrap; }
-.funnel { display: flex; align-items: stretch; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.funnel { width: min(100%, 900px); display: flex; align-items: stretch; justify-self: center; gap: 10px; margin: 0; padding: 0; list-style: none; }
 .funnel li { min-width: 0; flex: 1; display: flex; align-items: center; gap: 10px; }
 .funnel li > span:first-child { min-width: 0; flex: 1; display: grid; gap: 2px; padding: 10px 12px; border-radius: 9px; background: rgba(12,17,40,.82); color: var(--vault-text-muted); font-size: .75rem; }
 .funnel strong { color: #f5f6ff; font-size: 1.15rem; }

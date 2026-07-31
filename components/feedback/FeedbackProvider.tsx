@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useId, useRef, useSt
 import posthog from "posthog-js";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./FeedbackProvider.module.css";
 
 type FeedbackType = "improvement" | "bug";
@@ -163,10 +164,10 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef} tabIndex={-1}>
         <header className={styles.header}>
           <div><p>Help shape the Vault</p><h2 id={titleId}>Share Feedback</h2></div>
-          <button type="button" onClick={onClose} disabled={submitting} aria-label="Close feedback">×</button>
+          <button type="button" onClick={onClose} disabled={submitting} aria-label="Close feedback"><VaultIcon name="close" size={20} /></button>
         </header>
         {status === "success" ? (
-          <div className={styles.success} role="status"><span>✓</span><h3>Thanks — your feedback has been sent.</h3><p>Your note is safely with the VaultShuffle team.</p><button type="button" onClick={onClose}>Close</button></div>
+          <div className={styles.success} role="status"><span><VaultIcon name="check" size={27} /></span><h3>Thanks — your feedback has been sent.</h3><p>Your note is safely with the VaultShuffle team.</p><button type="button" onClick={onClose}>Close</button></div>
         ) : (
           <form onSubmit={submit} className={styles.form}>
             <input type="text" name="website" value="" onChange={() => {}} tabIndex={-1} autoComplete="off" aria-hidden="true" hidden />

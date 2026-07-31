@@ -17,6 +17,7 @@ import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
 import {
+  buildVaultDeck,
   buildVaultPool,
   drawVaultGame,
   getVaultEligibility,
@@ -31,6 +32,8 @@ import type { VaultDraw } from "@/lib/vault-history";
 import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
+type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
+const EMPTY_GAME_IDS: string[] = [];
 
 export default function VaultPage() {
   const { games, collections, vaultState, vaultHistory, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
@@ -57,14 +60,17 @@ export default function VaultPage() {
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
+  const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
+  const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? null;
   const entireVault = collections.find((collection) => collection.id === "all") ?? collections[0];
   const collectionCounts = useMemo(() => Object.fromEntries(collections.map((collection) => [collection.id, collection.id === "all" ? ownedGames.length : ownedGames.filter((game) => game.collectionIds.includes(collection.id)).length])), [collections, ownedGames]);
+  const setupKey = `${session ?? ""}|${mood ?? ""}|${goal ?? ""}|${selectedCollectionId ?? "all"}|${selectedGenres.toSorted().join(",")}`;
 
-  const pool = useMemo(
+  const fullPool = useMemo(
     () =>
       buildVaultPool({
         games: ownedGames,
@@ -77,6 +83,8 @@ export default function VaultPage() {
       }),
     [goal, mood, ownedGames, selectedCollectionId, selectedGenres, session, snoozedIds]
   );
+  const activeDeferredGameIds = deferredQueue.setupKey === setupKey ? deferredQueue.gameIds : EMPTY_GAME_IDS;
+  const deck = useMemo(() => buildVaultDeck(fullPool, activeDeferredGameIds), [activeDeferredGameIds, fullPool]);
   const eligibility = useMemo(() => getVaultEligibility({
     games: ownedGames,
     session,
@@ -88,26 +96,50 @@ export default function VaultPage() {
     snoozedIds
   }), [goal, mood, ownedGames, selectedCollection?.name, selectedCollectionId, selectedGenres, session, snoozedIds]);
 
-  const currentPick = ownedGames.find((game) => game.id === vaultState.currentPickId) ?? null;
+  const currentPick = ownedGames.find((game) =>
+    game.id === vaultState.currentPickId &&
+    game.status !== "Completed" &&
+    game.status !== "Slept" &&
+    !snoozedIds.has(game.id)
+  ) ?? null;
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
   const missingSetup = [!session ? "Session" : "", !mood ? "Mood" : "", !goal ? "Goal" : ""].filter(Boolean);
-  const canDraw = missingSetup.length === 0 && pool.length > 0;
+  const canDraw = missingSetup.length === 0 && deck.length > 0;
 
   useEffect(() => {
+    const resetQueue = { setupKey, gameIds: [] };
     drawnCycleRef.current.clear();
+    deferredQueueRef.current = resetQueue;
+    setDeferredQueue(resetQueue);
     setHighlightedGameId(null);
-  }, [session, mood, goal, selectedCollectionId, selectedGenres]);
+  }, [setupKey]);
 
   useEffect(() => {
-    if (!pool.length) setLensOpen(true);
-  }, [pool.length]);
+    if (!deck.length) setLensOpen(true);
+  }, [deck.length]);
 
-  async function handleOpenVault() {
+  async function handleOpenVault({ deferCurrentPick = false }: { deferCurrentPick?: boolean } = {}) {
     if (drawingRef.current || !canDraw) return;
-    let availablePool = pool.filter((entry) => !drawnCycleRef.current.has(entry.game.id));
+
+    let activeDeck = deck;
+    if (deferCurrentPick && currentPick && fullPool.some((entry) => entry.game.id === currentPick.id)) {
+      const currentDeferredIds = deferredQueueRef.current.setupKey === setupKey
+        ? deferredQueueRef.current.gameIds
+        : [];
+      const nextDeferredIds = [
+        ...currentDeferredIds.filter((gameId) => gameId !== currentPick.id),
+        currentPick.id
+      ];
+      const nextQueue = { setupKey, gameIds: nextDeferredIds };
+      deferredQueueRef.current = nextQueue;
+      setDeferredQueue(nextQueue);
+      activeDeck = buildVaultDeck(fullPool, nextDeferredIds);
+    }
+
+    let availablePool = activeDeck.filter((entry) => !drawnCycleRef.current.has(entry.game.id));
     if (!availablePool.length) {
       drawnCycleRef.current.clear();
-      availablePool = pool;
+      availablePool = activeDeck;
     }
     const nextPick = drawVaultGame(availablePool, currentPick?.id);
     if (!nextPick) return;
@@ -128,7 +160,7 @@ export default function VaultPage() {
       const draw = await recordVaultDraw(nextPick.id, {
         steamAppId: nextPick.steamAppId,
         session: session!, mood: mood!, goal: goal!, collectionId: selectedCollectionId,
-        selectedGenres, eligiblePoolCount: pool.length, rerollIndex: drawnCycleRef.current.size - 1
+        selectedGenres, eligiblePoolCount: fullPool.length, rerollIndex: drawnCycleRef.current.size - 1
       });
       setCurrentDrawId(draw.id);
       setHighlightedGameId(nextPick.id);
@@ -140,7 +172,8 @@ export default function VaultPage() {
         goal,
         collection_selected: Boolean(selectedCollectionId),
         genre_count: selectedGenres.length,
-        pool_size: pool.length,
+        pool_size: fullPool.length,
+        deck_size: activeDeck.length,
         reroll_index: drawnCycleRef.current.size - 1,
       });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
@@ -166,7 +199,7 @@ export default function VaultPage() {
     if (!pendingHistoryDrawRef.current || !canDraw) return;
     pendingHistoryDrawRef.current = false;
     void handleOpenVault();
-  }, [canDraw, goal, mood, pool.length, selectedCollectionId, selectedGenres, session]);
+  }, [canDraw, deck.length, goal, mood, selectedCollectionId, selectedGenres, session]);
 
   function toggleGenre(genre: string) {
     setSelectedGenres((current) => {
@@ -276,10 +309,31 @@ export default function VaultPage() {
       <section className={styles.poolSection} id="vault-pool">
         <div className={styles.poolControls}>
           <div className={styles.poolHeader}>
-            <div className={styles.poolIdentity}><p className={styles.poolLabel}>Vault Deck</p><span className={styles.matchBadge}><VaultIcon name="new" size={15} />{pool.length} matches</span></div>
+            <div className={styles.poolIdentity}><p className={styles.poolLabel}>Vault Deck</p><span className={styles.matchBadge}><VaultIcon name="new" size={15} />{deck.length}{fullPool.length > deck.length ? ` of ${fullPool.length}` : ""} matches</span></div>
             <div className={styles.deckTools}>
-              <button type="button" className={styles.deckToolButton} aria-expanded={lensOpen} aria-controls="vault-lens-panel" onClick={() => setLensOpen((value) => !value)}>Vault Lens</button>
-              <button type="button" className={styles.deckToolButton} aria-expanded={historyOpen} onClick={() => { setHistoryOpen(true); void loadVaultHistory(); }}>History</button>
+              <button
+                type="button"
+                className={styles.deckToolButton}
+                data-active={lensOpen || undefined}
+                aria-expanded={lensOpen}
+                aria-controls="vault-lens-panel"
+                onClick={() => setLensOpen((value) => !value)}
+              >
+                <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
+                <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
+                <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
+              </button>
+              <button
+                type="button"
+                className={styles.deckToolButton}
+                aria-expanded={historyOpen}
+                aria-haspopup="dialog"
+                onClick={() => { setHistoryOpen(true); void loadVaultHistory(); }}
+              >
+                <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
+                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>Revisit previous picks</small></span>
+                <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
+              </button>
             </div>
           </div>
 
@@ -295,9 +349,9 @@ export default function VaultPage() {
           </div>
         </div>
 
-        {pool.length ? (
+        {deck.length ? (
           <VaultPoolPreview
-            entries={pool}
+            entries={deck}
             drawState={drawState}
             winner={ownedGames.find((game) => game.id === drawWinnerId) ?? null}
             highlightedId={highlightedGameId}
@@ -326,7 +380,7 @@ export default function VaultPage() {
           <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!canDraw || drawingRef.current} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
             <BrandedIcon group="actions" name="draw-from-vault" size={24} />{drawState === "focusing" || drawState === "revealing" ? "Drawing from the Vault…" : "Draw from the Vault"}
           </button>
-          <p className={styles.setupStatus} id="vault-setup-status">{missingSetup.length ? `Choose ${formatMissingSetup(missingSetup)}.` : !pool.length ? "No games match this setup." : "Your setup is ready."}</p>
+          <p className={styles.setupStatus} id="vault-setup-status">{missingSetup.length ? `Choose ${formatMissingSetup(missingSetup)}.` : !deck.length ? "No games match this setup." : "Your setup is ready."}</p>
         </div>
       </section>
 
@@ -336,34 +390,34 @@ export default function VaultPage() {
         <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
           <div className={styles.resultArtwork}>
             <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
-            <span className={styles.currentPickBadge}><BrandedIcon group="actions" name="pin" size={18} />Current pick</span>
+            <span className={styles.currentPickBadge}><img src="/assets/vaultshuffle/site-icons/utility/current-pick.svg" alt="" width={18} height={18} aria-hidden="true" />Current pick</span>
           </div>
           <div className={styles.resultBody}>
             <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
             <p className={styles.resultCopy}>{currentPick.description}</p>
             <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
             <div className={styles.resultReasonRow}>
-              {(pool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
+              {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
             </div>
             <p className={styles.actionsLabel}>Vault actions</p>
             <div className={styles.resultActions}>
               <a href={steamStoreUrl(currentPick.steamAppId)} className={`${styles.resultAction} ${styles.resultActionPrimary}`} target="_blank" rel="noreferrer" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
-                <span className={styles.resultActionIcon}><VaultIcon name="open-steam" size={38} /></span><span className={styles.resultActionCopy}><strong>Open on Steam</strong><small>Launch the game</small></span>
+                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>Open on Steam</strong><small>Launch the game</small></span>
               </a>
               <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned"); }}>
-                <VaultDecisionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
+                <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
               </button>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault(); }}>
-                <span className={styles.resultActionIcon}><VaultIcon name="draw-again" size={38} /></span><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
+              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault({ deferCurrentPick: true }); }}>
+                <VaultResultActionIcon name="draw-again" /><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
-                <VaultDecisionIcon name="sleep" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
+                <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
-                <span className={styles.resultActionIcon}><VaultIcon name="details" size={38} /></span><span className={styles.resultActionCopy}><strong>View Details</strong><small>See progress, notes and collections</small></span>
+                <VaultResultActionIcon name="view-details" /><span className={styles.resultActionCopy}><strong>View Details</strong><small>See progress, notes and collections</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed"); void completeGame(currentPick); }}>
-                <VaultDecisionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
+                <VaultResultActionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
               </button>
             </div>
           </div>
@@ -427,7 +481,8 @@ function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal"
   return <div className={styles.summaryItem}><VaultIcon name={icon} size={23} /><span><small>{label}</small><strong>{value}</strong></span></div>;
 }
 
-function VaultDecisionIcon({ name }: { name: "pin" | "sleep" | "mark-completed" }) {
-  const root = `/assets/vaultshuffle/purge/decisions`;
-  return <picture className={styles.resultActionIcon} aria-hidden="true"><source srcSet={`${root}/webp/${name}-48.webp 1x, ${root}/webp/${name}-96.webp 2x`} type="image/webp" /><img src={`${root}/png/${name}-48.png`} srcSet={`${root}/png/${name}-48.png 1x, ${root}/png/${name}-96.png 2x`} alt="" width={48} height={48} /></picture>;
+type VaultResultActionIconName = "open-steam" | "pin" | "draw-again" | "snooze-not-now" | "view-details" | "mark-completed";
+
+function VaultResultActionIcon({ name }: { name: VaultResultActionIconName }) {
+  return <span className={styles.resultActionIcon} aria-hidden="true"><img src={`/assets/vaultshuffle/site-icons/actions/${name}.svg`} alt="" width={48} height={48} /></span>;
 }

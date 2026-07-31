@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import styles from "./SiteExperience.module.css";
 
 type SiteFooterProps = {
@@ -18,7 +17,7 @@ const links = [
 ] as const;
 
 function FooterIcon({ name }: { name: string }) {
-  return <SiteGlyph className={styles.footerIcon} name={name} size={22} />;
+  return <img className={styles.footerIcon} src={`/assets/vaultshuffle/footer-icons/${name}.svg`} width={22} height={22} alt="" aria-hidden="true" />;
 }
 
 export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: SiteFooterProps) {

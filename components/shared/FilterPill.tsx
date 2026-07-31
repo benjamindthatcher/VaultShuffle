@@ -1,3 +1,4 @@
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./FilterPill.module.css";
 
 type FilterPillProps = {
@@ -12,7 +13,7 @@ export function FilterPill({ label, removable = false, onRemove }: FilterPillPro
       <button type="button" className={styles.pillButton} onClick={onRemove}>
         <span>{label}</span>
         <span className={styles.closeMark} aria-hidden="true">
-          ×
+          <VaultIcon name="close" size={13} />
         </span>
       </button>
     );

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="pick-stroke" x1="4" y1="20" x2="20" y2="4" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9B59FF"/>
+      <stop offset=".55" stop-color="#E6A5FF"/>
+      <stop offset="1" stop-color="#78A3FF"/>
+    </linearGradient>
+    <filter id="pick-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation=".7" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#pick-glow)" stroke="url(#pick-stroke)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m12 3 1.35 4.65L18 9l-4.65 1.35L12 15l-1.35-4.65L6 9l4.65-1.35L12 3Z"/>
+    <path d="m18.5 14 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"/>
+    <path d="M5 15.5h.01M7.5 19h.01"/>
+  </g>
+</svg>

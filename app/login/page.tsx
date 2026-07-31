@@ -29,10 +29,10 @@ export default function LoginPage() {
         <a href="/api/auth/steam" className={styles.steamButton}>
           <span className={styles.steamIcon}><LoginIcon name="steam" /></span>
           <span className={styles.steamLabel}>Sign in with Steam</span>
-          <span className={styles.steamArrow} aria-hidden="true">→</span>
+          <SiteGlyph name="chevron-right" size={22} className={styles.steamArrow} />
         </a>
         <p className={styles.note}>Secure. Private. Built for players.</p>
-        <Link href="/" className={styles.backLink}>← Back to home</Link>
+        <Link href="/" className={styles.backLink}><SiteGlyph name="back" size={18} />Back to home</Link>
       </section>
     </main>
   );

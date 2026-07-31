@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./VaultShuffleLoader.module.css";
 
-const SHOW_DELAY_MS = 150;
+const SHOW_DELAY_MS = 0;
 const MIN_VISIBLE_MS = 400;
 const FADE_OUT_MS = 200;
 
 export function VaultShuffleLoader({ active }: { active: boolean }) {
-  const [mounted, setMounted] = useState(false);
-  const [visible, setVisible] = useState(false);
-  const mountedRef = useRef(false);
+  const [mounted, setMounted] = useState(active);
+  const [visible, setVisible] = useState(active);
+  const mountedRef = useRef(active);
   const shownAtRef = useRef(0);
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -27,6 +27,7 @@ export function VaultShuffleLoader({ active }: { active: boolean }) {
       clearTimer(unmountTimerRef);
 
       if (mountedRef.current) {
+        if (shownAtRef.current === 0) shownAtRef.current = performance.now();
         setVisible(true);
       } else {
         showTimerRef.current = setTimeout(() => {
@@ -44,6 +45,7 @@ export function VaultShuffleLoader({ active }: { active: boolean }) {
           setVisible(false);
           unmountTimerRef.current = setTimeout(() => {
             mountedRef.current = false;
+            shownAtRef.current = 0;
             setMounted(false);
           }, FADE_OUT_MS);
         }, Math.max(0, MIN_VISIBLE_MS - elapsed));

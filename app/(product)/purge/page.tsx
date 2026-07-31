@@ -233,13 +233,13 @@ function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
 type PurgeDecisionIconName = "keep-active" | "pin" | "sleep" | "mark-completed";
 
 function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
-  const root = `/assets/vaultshuffle/purge/decisions`;
-  return <picture className={styles.decisionIcon} aria-hidden="true"><source srcSet={`${root}/webp/${name}-64.webp 1x, ${root}/webp/${name}-128.webp 2x`} type="image/webp" /><img src={`${root}/png/${name}-64.png`} srcSet={`${root}/png/${name}-64.png 1x, ${root}/png/${name}-128.png 2x`} alt="" width={40} height={40} draggable={false} /></picture>;
+  const iconName = name === "sleep" ? "snooze-not-now" : name;
+  return <span className={styles.decisionIcon} aria-hidden="true"><img src={`/assets/vaultshuffle/site-icons/actions/${iconName}.svg`} alt="" width={40} height={40} draggable={false} /></span>;
 }
 
 function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "actioned" | "no-review-needed"; label: string; count: number }) {
   return <span>
-    <picture className={styles.purgeStatIcon} aria-hidden="true"><source srcSet={`/assets/vaultshuffle/purge/stats/${icon}.webp`} type="image/webp" /><img src={`/assets/vaultshuffle/purge/stats/${icon}.png`} alt="" width={56} height={56} /></picture>
+    <span className={styles.purgeStatIcon} aria-hidden="true"><img src={`/assets/vaultshuffle/site-icons/stats/${icon}.svg`} alt="" width={56} height={56} draggable={false} /></span>
     <em>{label}</em>
     <strong>{count}</strong>
   </span>;

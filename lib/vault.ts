@@ -3,7 +3,7 @@ import { formatGameDuration } from "@/lib/game-duration";
 import type { VaultMoodScores } from "@/lib/vault-matching";
 
 export const MAX_VAULT_GENRES = 3;
-export const MAX_VAULT_POOL_SIZE = 24;
+export const MAX_VAULT_DECK_SIZE = 32;
 const VAULT_SELECTION_TEMPERATURE = 15;
 
 export const vaultSessionOptions = [
@@ -97,8 +97,8 @@ export function getVaultEligibility({
     stages.push({ id: "snoozes", label: "After Snoozes", count: available.length });
   }
   stages.push({ id: "available", label: "Available", count: available.length });
-  if (available.length > MAX_VAULT_POOL_SIZE) {
-    stages.push({ id: "shortlist", label: "Best-fit Deck", count: MAX_VAULT_POOL_SIZE });
+  if (available.length > MAX_VAULT_DECK_SIZE) {
+    stages.push({ id: "shortlist", label: "Best-fit Deck", count: MAX_VAULT_DECK_SIZE });
   }
 
   return { stages, games: available };
@@ -137,8 +137,20 @@ export function buildVaultPool({
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
       return left.game.title.localeCompare(right.game.title);
-    })
-    .slice(0, MAX_VAULT_POOL_SIZE);
+    });
+}
+
+export function buildVaultDeck(pool: VaultPoolEntry[], deferredGameIds: string[] = []) {
+  if (!deferredGameIds.length) return pool.slice(0, MAX_VAULT_DECK_SIZE);
+
+  const entriesById = new Map(pool.map((entry) => [entry.game.id, entry]));
+  const deferredIds = new Set(deferredGameIds);
+  const availableNow = pool.filter((entry) => !deferredIds.has(entry.game.id));
+  const deferred = deferredGameIds
+    .map((gameId) => entriesById.get(gameId))
+    .filter((entry): entry is VaultPoolEntry => Boolean(entry));
+
+  return [...availableNow, ...deferred].slice(0, MAX_VAULT_DECK_SIZE);
 }
 
 export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string | null, rng = Math.random) {

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="snooze-stroke" x1="11" y1="50" x2="52" y2="11" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8E4FFF"/>
+      <stop offset=".5" stop-color="#EBA7FF"/>
+      <stop offset="1" stop-color="#748EFF"/>
+    </linearGradient>
+    <filter id="snooze-glow" x="-45%" y="-45%" width="190%" height="190%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#snooze-glow)" stroke="url(#snooze-stroke)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M43 45A21 21 0 1 1 27 9c-3 18 4 29 20 32a21 21 0 0 1-4 4Z"/>
+    <path d="M39 15h12l-12 12h12"/>
+  </g>
+</svg>

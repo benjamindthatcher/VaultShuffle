@@ -141,7 +141,6 @@ export function SiteGlyph({ name, size = 24, className, title, style }: SiteGlyp
     aria-hidden={title ? undefined : true}
   >
     {title ? <title>{title}</title> : null}
-    <circle cx="12" cy="12" r="10.25" opacity=".08" fill="currentColor" stroke="none" />
     {glyph(name)}
   </svg>;
 }

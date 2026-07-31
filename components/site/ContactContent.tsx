@@ -3,6 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import posthog from "posthog-js";
 import { useFeedback } from "@/components/feedback/FeedbackProvider";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "@/app/contact/contact.module.css";
 
 const enquiryTypes = [
@@ -73,7 +74,7 @@ export function ContactContent() {
         </div>
         {success ? (
           <div className={styles.success} role="status">
-            <span>✓</span>
+            <span><VaultIcon name="check" size={27} /></span>
             <h3>Your message has been sent.</h3>
             <p>We'll get back to you as soon as possible.</p>
             <button type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
