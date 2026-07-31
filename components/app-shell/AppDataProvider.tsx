@@ -4,8 +4,9 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import posthog from "posthog-js";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
-import { guestSession, mapLiveCollections, mapLiveGames, type CollectionDetailPayload } from "@/lib/app-view-model";
+import { buildCollectionDetails, guestSession, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
+import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 
@@ -98,20 +99,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
       setIsLive(true);
       try {
-        const [{ games }, { collections }, nextVaultState] = await Promise.all([
+        const [{ games }, { collections, memberships }, nextVaultState] = await Promise.all([
           api<{ games: Game[] }>("/api/games"),
-          api<{ collections: Collection[] }>("/api/collections"),
+          api<{ collections: Collection[]; memberships: CollectionMembership[] }>("/api/collections"),
           api<VaultState>("/api/vault/state")
         ]);
 
-        const details = await Promise.all(
-          collections.map((collection) =>
-            api<CollectionDetailPayload>(`/api/collections/${collection.id}`).catch(() => ({
-              collection,
-              games: []
-            }))
-          )
-        );
+        const details = buildCollectionDetails(collections, games, memberships);
 
         setLiveCollections(mapLiveCollections(details));
         setLiveGames(mapLiveGames(games, details));

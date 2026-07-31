@@ -4,7 +4,20 @@ import type { Collection, CollectionGame, Game, SmartCollectionPreset } from "@/
 
 type CollectionInput = { name: string; description?: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
+export type CollectionMembership = Pick<
+  CollectionGame,
+  "collection_id" | "game_id" | "notes" | "position" | "created_at"
+>;
+
 export async function listCollections(userId: string) {
+  const { collections } = await listCollectionsWithMemberships(userId);
+  return collections;
+}
+
+export async function listCollectionsWithMemberships(
+  userId: string,
+  options: { includeSmartCounts?: boolean } = {}
+) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("collections")
@@ -14,13 +27,17 @@ export async function listCollections(userId: string) {
 
   if (error) throw error;
   const collections = (data ?? []) as Collection[];
-  if (!collections.length) return [];
+  if (!collections.length) {
+    return { collections: [] as Collection[], memberships: [] as CollectionMembership[] };
+  }
 
   const customIds = collections.filter((collection) => collection.kind !== "smart").map((collection) => collection.id);
   const { data: links, error: linkError } = customIds.length ? await supabase
     .from("collection_games")
-    .select("collection_id")
-    .in("collection_id", customIds) : { data: [], error: null };
+    .select("collection_id, game_id, notes, position, created_at")
+    .in("collection_id", customIds)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true }) : { data: [], error: null };
 
   if (linkError) throw linkError;
   const counts = new Map<string, number>();
@@ -29,7 +46,7 @@ export async function listCollections(userId: string) {
   }
 
   const smartCollections = collections.filter((collection) => collection.kind === "smart");
-  if (smartCollections.length) {
+  if (options.includeSmartCounts !== false && smartCollections.length) {
     const { data: games, error: gameError } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false);
     if (gameError) throw gameError;
     for (const collection of smartCollections) {
@@ -38,7 +55,13 @@ export async function listCollections(userId: string) {
     }
   }
 
-  return collections.map((collection) => ({ ...collection, game_count: counts.get(collection.id) ?? 0 }));
+  return {
+    collections: collections.map((collection) => ({
+      ...collection,
+      game_count: counts.get(collection.id) ?? 0
+    })),
+    memberships: (links ?? []) as CollectionMembership[]
+  };
 }
 
 export async function createCollection(userId: string, payload: CollectionInput) {

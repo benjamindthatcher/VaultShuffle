@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { AppDataProvider, useAppData } from "@/components/app-shell/AppDataProvider";
@@ -12,17 +13,31 @@ const STEAM_IMPORT_COOKIE = "vault_steam_import";
 type AppShellProps = {
   children: ReactNode;
   headerVariant?: "product" | "utility";
+  waitForAppData?: boolean;
 };
 
-export function AppShell({ children, headerVariant = "product" }: AppShellProps) {
+export function AppShell({
+  children,
+  headerVariant = "product",
+  waitForAppData = true
+}: AppShellProps) {
   return (
     <AppDataProvider>
-      <AppShellContent headerVariant={headerVariant}>{children}</AppShellContent>
+      <AppShellContent
+        headerVariant={headerVariant}
+        waitForAppData={waitForAppData}
+      >
+        {children}
+      </AppShellContent>
     </AppDataProvider>
   );
 }
 
-function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
+function AppShellContent({
+  children,
+  headerVariant,
+  waitForAppData
+}: Required<AppShellProps>) {
   const {
     loadError,
     isLive,
@@ -114,11 +129,12 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
   }
 
   const holdInitialContent =
-    !initialMarkerChecked || !bootComplete || pendingSteamImport;
+    waitForAppData &&
+    (!initialMarkerChecked || !bootComplete || pendingSteamImport);
 
   return (
     <div className={styles.appShell}>
-      <VaultShuffleLoader active={holdInitialContent} />
+      <VaultShuffleLoader active={waitForAppData && pendingSteamImport} />
       <AppHeader variant={headerVariant} />
 
       {loadError ? (
@@ -140,8 +156,35 @@ function AppShellContent({ children, headerVariant }: Required<AppShellProps>) {
       ) : null}
 
       <main className={styles.appContent}>
-        {holdInitialContent ? null : children}
+        {holdInitialContent ? <ProductBootSkeleton /> : children}
       </main>
+    </div>
+  );
+}
+
+function ProductBootSkeleton() {
+  return (
+    <div className={styles.bootPage} aria-busy="true" aria-label="Loading your library">
+      <section className={styles.bootHero}>
+        <Image
+          src="/assets/vault/vault-header.webp"
+          alt=""
+          fill
+          preload
+          sizes="100vw"
+          className={styles.bootHeroImage}
+        />
+        <span className={styles.bootHeroShade} aria-hidden="true" />
+      </section>
+      <section className={styles.bootStats} aria-hidden="true">
+        {Array.from({ length: 5 }, (_, index) => (
+          <span key={index} className={styles.bootStat} />
+        ))}
+      </section>
+      <section className={styles.bootPanel} aria-hidden="true">
+        <span className={styles.bootLine} />
+        <span className={`${styles.bootLine} ${styles.bootLineShort}`} />
+      </section>
     </div>
   );
 }

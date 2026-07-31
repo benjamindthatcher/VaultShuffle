@@ -3,8 +3,10 @@ import { splitGenres, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
+import type { CollectionMembership } from "@/lib/collections";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
 import { deriveMoodScores, deriveSessionFits, moodTagsFromScores } from "@/lib/vault-matching";
+import { matchesSmartPreset } from "@/lib/smart-collections";
 
 export type CollectionDetailPayload = {
   collection: Collection;
@@ -19,6 +21,51 @@ export const guestSession: SessionPayload = {
   avatar_url: "",
   has_steam_key: false
 };
+
+export function buildCollectionDetails(
+  collections: Collection[],
+  games: Game[],
+  memberships: CollectionMembership[]
+): CollectionDetailPayload[] {
+  const gameById = new Map(games.map((game) => [game.id, game]));
+  const membershipsByCollection = new Map<string, CollectionMembership[]>();
+
+  for (const membership of memberships) {
+    const current = membershipsByCollection.get(membership.collection_id) ?? [];
+    current.push(membership);
+    membershipsByCollection.set(membership.collection_id, current);
+  }
+
+  return collections.map((collection) => {
+    if (collection.kind === "smart") {
+      const preset = collection.rules?.preset;
+      const matchedGames = preset
+        ? games.filter((game) => matchesSmartPreset(game, preset))
+        : [];
+
+      return {
+        collection: { ...collection, game_count: matchedGames.length },
+        games: matchedGames.map((game, position) => ({
+          collection_id: collection.id,
+          game_id: game.id,
+          notes: null,
+          position,
+          created_at: collection.created_at,
+          game
+        }))
+      };
+    }
+
+    const collectionMemberships = membershipsByCollection.get(collection.id) ?? [];
+    return {
+      collection: { ...collection, game_count: collectionMemberships.length },
+      games: collectionMemberships.flatMap((membership) => {
+        const game = gameById.get(membership.game_id);
+        return game ? [{ ...membership, game }] : [];
+      })
+    };
+  });
+}
 
 export function mapLiveCollections(details: CollectionDetailPayload[]): DemoCollection[] {
   const allCollection: DemoCollection = {

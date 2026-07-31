@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
-import { createCollection, listCollections } from "@/lib/collections";
+import { createCollection, listCollectionsWithMemberships } from "@/lib/collections";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { collectionPayloadSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
     const { user } = await requireSession();
-    return NextResponse.json({ collections: await listCollections(user.id) });
+    return NextResponse.json(
+      await listCollectionsWithMemberships(user.id, { includeSmartCounts: false })
+    );
   } catch {
     return unauthorizedResponse();
   }

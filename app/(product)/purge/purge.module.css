@@ -36,7 +36,7 @@
       rgba(4, 7, 20, 0.22) 58%,
       var(--vault-bg) 100%
     ),
-    url("/assets/vault/vault-header.png") center 54% / cover no-repeat;
+    url("/assets/vault/vault-header.webp") center 54% / cover no-repeat;
 }
 .hero {
   position: relative;

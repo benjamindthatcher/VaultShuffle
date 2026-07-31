@@ -21,6 +21,98 @@
   padding: 0 0 44px;
 }
 
+.bootPage {
+  position: relative;
+  display: grid;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.bootHero {
+  position: relative;
+  left: 50%;
+  width: 100vw;
+  height: 350px;
+  transform: translateX(-50%);
+  overflow: hidden;
+}
+
+.bootHeroImage {
+  object-fit: cover;
+  object-position: center 54%;
+}
+
+.bootHeroShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      var(--vault-bg) 0%,
+      rgba(4, 7, 20, 0.82) 4%,
+      rgba(4, 7, 20, 0.34) 11%,
+      transparent 21%,
+      transparent 79%,
+      rgba(4, 7, 20, 0.34) 89%,
+      rgba(4, 7, 20, 0.82) 96%,
+      var(--vault-bg) 100%
+    ),
+    radial-gradient(circle at 50% 18%, rgba(66, 91, 210, 0.18), transparent 48%),
+    linear-gradient(180deg, rgba(3, 5, 16, 0.24), rgba(4, 7, 20, 0.22) 58%, var(--vault-bg) 100%);
+}
+
+.bootStats {
+  position: relative;
+  z-index: 1;
+  margin-top: -38px;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--vault-top-card-gap);
+}
+
+.bootStat,
+.bootPanel {
+  border: 1px solid rgba(145, 105, 255, 0.18);
+  background: rgba(8, 13, 31, 0.82);
+  box-shadow: var(--vault-shadow);
+}
+
+.bootStat {
+  min-height: 138px;
+  border-radius: 12px;
+}
+
+.bootPanel {
+  min-height: 210px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.bootLine {
+  width: min(360px, 64%);
+  height: 20px;
+  border-radius: 999px;
+  background: rgba(150, 128, 210, 0.12);
+}
+
+.bootLineShort {
+  width: min(220px, 42%);
+  height: 13px;
+}
+
+.bootStat,
+.bootLine {
+  animation: bootPulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes bootPulse {
+  from { opacity: 0.5; }
+  to { opacity: 0.82; }
+}
+
 .loadNotice {
   width: var(--vault-content-width);
   margin: 14px auto 0;
@@ -50,5 +142,29 @@
   .appContent {
     padding-top: 16px;
     padding-bottom: 40px;
+  }
+
+  .bootHero {
+    display: none;
+  }
+
+  .bootStats {
+    margin-top: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bootStat {
+    min-height: 104px;
+  }
+
+  .bootStat:last-child {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bootStat,
+  .bootLine {
+    animation: none;
   }
 }
