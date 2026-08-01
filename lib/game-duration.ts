@@ -1,4 +1,4 @@
-import type { GameDurationEstimate } from "@/lib/types";
+import type { GameDurationEstimate } from "./types.ts";
 
 function positiveMinutes(value?: number | null) {
   const minutes = Number(value);
@@ -10,16 +10,14 @@ function roundToClosestHour(minutes: number) {
 }
 
 export function estimatedTimeToBeatMinutes(duration?: GameDurationEstimate | null) {
-  const mainStory = positiveMinutes(duration?.mainStoryMinutes);
-  const completionist = positiveMinutes(duration?.completionistMinutes);
-  if (mainStory && completionist) {
-    return roundToClosestHour((mainStory + completionist) / 2);
-  }
+  const estimates = [
+    positiveMinutes(duration?.mainStoryMinutes),
+    positiveMinutes(duration?.mainExtrasMinutes),
+    positiveMinutes(duration?.completionistMinutes)
+  ].filter((minutes): minutes is number => minutes !== null);
 
-  const fallback = mainStory
-    ?? positiveMinutes(duration?.mainExtrasMinutes)
-    ?? completionist;
-  return fallback ? roundToClosestHour(fallback) : null;
+  if (!estimates.length) return null;
+  return roundToClosestHour(estimates.reduce((total, minutes) => total + minutes, 0) / estimates.length);
 }
 
 export function getPreferredDurationMinutes(duration?: GameDurationEstimate | null) {

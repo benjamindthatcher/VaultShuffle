@@ -95,6 +95,45 @@ const TAG_TO_TOP_LEVEL: Record<string, TopLevelGenre> = {
 
 const GENERIC_TAGS = new Set(["early access", "massively multiplayer"]);
 
+const NON_GENRE_STEAM_TAGS = new Set([
+  "captions available",
+  "co-op",
+  "controller",
+  "cross-platform multiplayer",
+  "family sharing",
+  "full controller support",
+  "in-app purchases",
+  "includes level editor",
+  "includes source sdk",
+  "local co-op",
+  "local multiplayer",
+  "mods",
+  "mods (require hl2)",
+  "multi-player",
+  "multiplayer",
+  "online co-op",
+  "partial controller support",
+  "remote play on phone",
+  "remote play on tablet",
+  "remote play on tv",
+  "remote play together",
+  "shared/split screen",
+  "shared/split screen co-op",
+  "shared/split screen pvp",
+  "single-player",
+  "singleplayer",
+  "stats",
+  "steam achievements",
+  "steam cloud",
+  "steam leaderboards",
+  "steam trading cards",
+  "steam workshop",
+  "tracked controller support",
+  "valve anti-cheat enabled"
+]);
+
+export type SteamTagMap = Record<string, number>;
+
 export function splitGenres(value?: string | null) {
   const genres = String(value || "")
     .split(/[\/,;|]+/g)
@@ -120,16 +159,39 @@ export function normaliseSteamGenreLabel(value?: string | string[] | null, title
 export function topLevelGenresFor(value?: string | null, title = ""): TopLevelGenre[] {
   const tags = splitGenres(value);
   const exact = tags.flatMap((tag) => (TOP_LEVEL_SET.has(tag) ? [tag as TopLevelGenre] : []));
-  if (exact.length) return uniqueTopLevels(exact);
-
-  const inferred = inferTopLevelGenre(title, tags);
-  if (inferred) return [inferred];
-
   const mapped = tags.flatMap((tag) => {
     const key = genreKey(tag);
     return TAG_TO_TOP_LEVEL[key] ? [TAG_TO_TOP_LEVEL[key]] : [];
   });
-  return uniqueTopLevels(mapped);
+  const combined = uniqueTopLevels([...exact, ...mapped]);
+  if (combined.length) return combined;
+
+  const inferred = inferTopLevelGenre(title, tags);
+  return inferred ? [inferred] : [];
+}
+
+/**
+ * Returns every stored Steam tag in provider weight order. The complete map is
+ * retained on the game model; callers can choose a display limit without
+ * throwing source information away.
+ */
+export function steamTagLabels(tags?: SteamTagMap | null, limit = Number.POSITIVE_INFINITY) {
+  if (!tags || typeof tags !== "object" || Array.isArray(tags)) return [];
+  const maximum = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : Number.POSITIVE_INFINITY;
+  return Object.entries(tags)
+    .filter(([label, weight]) => label.trim() && Number.isFinite(Number(weight)) && Number(weight) > 0)
+    .sort(([leftLabel, leftWeight], [rightLabel, rightWeight]) =>
+      Number(rightWeight) - Number(leftWeight) || leftLabel.localeCompare(rightLabel)
+    )
+    .slice(0, maximum)
+    .map(([label]) => cleanGenreLabel(label));
+}
+
+/** A compact genre/theme subset suitable for cards and Vault filters. */
+export function steamTagGenreLabels(tags?: SteamTagMap | null, limit = 6) {
+  return steamTagLabels(tags)
+    .filter((label) => !NON_GENRE_STEAM_TAGS.has(genreKey(label)))
+    .slice(0, Math.max(0, Math.floor(limit)));
 }
 
 export function matchesTopLevelGenre(value: string | null | undefined, genre: string, title = "") {

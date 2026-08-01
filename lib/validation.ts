@@ -1,7 +1,20 @@
 import { z } from "zod";
 
 const prioritySchema = z.enum(["Low", "Medium", "High", "Must Play"]);
-export const smartCollectionPresetSchema = z.enum(["backlog", "in-progress", "must-play", "short", "unplayed"]);
+export const smartCollectionPresetSchema = z.enum([
+  "nearly-finished",
+  "quick-wins",
+  "recently-played",
+  "fallen-off",
+  "long-haul",
+  "endless-rotation",
+  "untouched",
+  "backlog",
+  "in-progress",
+  "must-play",
+  "short",
+  "unplayed"
+]);
 
 export const gamePayloadSchema = z.object({
   title: z.string().trim().min(1).max(220),

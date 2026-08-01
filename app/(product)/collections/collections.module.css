@@ -1,7 +1,20 @@
 .collectionsPage {
   position: relative;
+  isolation: isolate;
   display: grid;
   gap: 12px;
+}
+
+.collectionsPage::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 50% 0 auto;
+  width: 100vw;
+  min-height: 100%;
+  transform: translateX(50%);
+  pointer-events: none;
+  background: var(--vault-bg);
 }
 
 .collectionsPage::before {

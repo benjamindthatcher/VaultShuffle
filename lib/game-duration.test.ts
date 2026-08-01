@@ -7,15 +7,23 @@ import {
   getPreferredDurationMinutes
 } from "./game-duration.ts";
 
-test("uses the midpoint of main-story and completionist estimates rounded to an hour", () => {
+test("uses the average of every available estimate rounded to an hour", () => {
   const duration = {
     mainStoryMinutes: 600,
     mainExtrasMinutes: 900,
     completionistMinutes: 1_500
   };
 
-  assert.equal(estimatedTimeToBeatMinutes(duration), 1_080);
-  assert.equal(getPreferredDurationMinutes(duration), 1_080);
+  assert.equal(estimatedTimeToBeatMinutes(duration), 1_020);
+  assert.equal(getPreferredDurationMinutes(duration), 1_020);
+});
+
+test("averages whichever positive provider estimates are available", () => {
+  assert.equal(estimatedTimeToBeatMinutes({
+    mainStoryMinutes: null,
+    mainExtrasMinutes: 600,
+    completionistMinutes: 1_200
+  }), 900);
 });
 
 test("endless games always display Endless and use 99% progress with no playtime", () => {
@@ -47,4 +55,9 @@ test("returns null when no positive duration exists", () => {
     mainExtrasMinutes: null,
     completionistMinutes: -1
   }), null);
+});
+
+test("derives progress from the averaged duration instead of stale stored percentages", () => {
+  assert.equal(completionFromDuration(17.5, { mainStoryMinutes: 2_580 }), 41);
+  assert.equal(completionFromDuration(10.1, { mainStoryMinutes: 780 }), 78);
 });

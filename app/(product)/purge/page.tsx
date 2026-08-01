@@ -5,6 +5,7 @@ import posthog from "posthog-js";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
 import { ScrollControls } from "@/components/shared/ScrollControls";
+import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 import {
   buildPurgeCandidates,
   type PurgeAction,
@@ -227,19 +228,24 @@ function PurgePageFrame({ children }: { children: ReactNode }) {
 }
 
 function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
-  return <picture className={styles.categoryIcon} aria-hidden="true"><source srcSet={`/assets/vaultshuffle/purge/${category}-48.webp`} type="image/webp" /><img src={`/assets/vaultshuffle/purge/${category}-48.png`} alt="" width={48} height={48} /></picture>;
+  const categoryIcons: Record<PurgeCategory, VaultIconName> = {
+    untouched: "likely-completed",
+    "barely-started": "abandoned",
+    dormant: "the-rest",
+  };
+
+  return <VaultIcon className={styles.categoryIcon} name={categoryIcons[category]} size={48} />;
 }
 
 type PurgeDecisionIconName = "keep-active" | "pin" | "sleep" | "mark-completed";
 
 function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
-  const iconName = name === "sleep" ? "snooze-not-now" : name;
-  return <span className={styles.decisionIcon} aria-hidden="true"><img src={`/assets/vaultshuffle/site-icons/actions/${iconName}.svg`} alt="" width={40} height={40} draggable={false} /></span>;
+  return <span className={styles.decisionIcon} aria-hidden="true"><VaultIcon name={name} size={34} /></span>;
 }
 
 function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "actioned" | "no-review-needed"; label: string; count: number }) {
   return <span>
-    <span className={styles.purgeStatIcon} aria-hidden="true"><img src={`/assets/vaultshuffle/site-icons/stats/${icon}.svg`} alt="" width={56} height={56} draggable={false} /></span>
+    <span className={styles.purgeStatIcon} aria-hidden="true"><VaultIcon name={icon} size={38} /></span>
     <em>{label}</em>
     <strong>{count}</strong>
   </span>;

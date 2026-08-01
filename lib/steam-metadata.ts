@@ -2,7 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { clearSteamAppDetailsCache, fetchSteamAppDetails } from "@/lib/steam";
 import type { SteamAppDetails } from "@/lib/steam";
 import { steamImageUrl } from "@/lib/images";
-import { normaliseSteamGenreLabel } from "@/lib/genres";
+import { normaliseSteamGenreLabel, steamTagGenreLabels } from "@/lib/genres";
 import type { Game, GamePayload } from "@/lib/types";
 
 type SteamMetadataRow = {
@@ -27,7 +27,7 @@ type SteamMetadataRow = {
 
 const UNKNOWN_GENRES = new Set(["", "Unknown"]);
 const METADATA_RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
-const METADATA_REFRESH_AFTER_MS = 24 * 60 * 60 * 1000;
+const METADATA_REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 
 export async function applyCachedSteamMetadata<T extends GamePayload | Game>(games: T[]): Promise<T[]> {
   const appIds = steamAppIds(games);
@@ -41,7 +41,7 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
       .in("steam_appid", appIds),
     supabase
       .from("catalog_games")
-      .select("steam_appid, name, genres, capsule_url, header_url, review_positive, review_total, price_currency, price_initial, price_final, discount_percent, is_free, main_story_minutes, main_extras_minutes, completionist_minutes, duration_source, duration_source_updated_at, duration_confidence, duration_kind")
+      .select("steam_appid, name, genres, tags, capsule_url, header_url, review_positive, review_total, price_currency, price_initial, price_final, discount_percent, is_free, main_story_minutes, main_extras_minutes, completionist_minutes, duration_source, duration_source_updated_at, duration_confidence, duration_kind")
       .in("steam_appid", appIds)
   ]);
 
@@ -57,18 +57,22 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
     const appid = game.steam_appid ? String(game.steam_appid) : "";
     const metadata = metadataByAppId.get(appid);
     const catalogue = catalogueByAppId.get(appid);
+    const steamTags = normaliseSteamTags(catalogue?.tags);
     const catalogueGenre = Array.isArray(catalogue?.genres) ? catalogue.genres.filter(Boolean).join(", ") : "";
+    const tagGenre = steamTagGenreLabels(steamTags).join(", ");
     const genre = metadata?.genre && !UNKNOWN_GENRES.has(metadata.genre)
       ? normaliseSteamGenreLabel(metadata.genre, metadata.title || game.title)
       : catalogueGenre
         ? normaliseSteamGenreLabel(catalogueGenre, catalogue?.name || game.title)
-        : null;
+        : tagGenre
+          ? normaliseSteamGenreLabel(tagGenre, catalogue?.name || game.title)
+          : null;
     const catalogueRating = Number(catalogue?.review_total || 0) > 0
       ? Math.round(Number(catalogue?.review_positive || 0) * 10 / Number(catalogue?.review_total || 1))
       : 0;
     const rating = Number(metadata?.rating || catalogueRating || 0);
-    const capsuleUrl = metadata?.capsule_url || catalogue?.capsule_url || steamImageUrl(appid, "capsule");
-    const headerUrl = metadata?.header_url || catalogue?.header_url || steamImageUrl(appid, "header");
+    const capsuleUrl = steamImageUrl(appid, "capsule") || metadata?.capsule_url || catalogue?.capsule_url;
+    const headerUrl = steamImageUrl(appid, "header") || metadata?.header_url || catalogue?.header_url;
     const nextGame = {
       ...game,
       title: catalogue?.name || game.title,
@@ -86,7 +90,8 @@ export async function applyCachedSteamMetadata<T extends GamePayload | Game>(gam
       duration_source: catalogue?.duration_source ?? null,
       duration_source_updated_at: catalogue?.duration_source_updated_at ?? null,
       duration_confidence: catalogue?.duration_confidence ?? null,
-      duration_kind: catalogue?.duration_kind ?? null
+      duration_kind: catalogue?.duration_kind ?? null,
+      steam_tags: steamTags
     };
     if (genre && UNKNOWN_GENRES.has(String(game.genre || ""))) return { ...nextGame, genre };
     return nextGame;
@@ -284,8 +289,8 @@ async function fetchAndStoreMetadata(appid: string, forceRefresh = false, previo
   const reviewScoreDesc = String(details?.review_score_desc || "").trim();
   const providerCapsuleUrl = String(details?.capsule_url || "").trim();
   const providerHeaderUrl = String(details?.header_url || "").trim();
-  const capsuleUrl = providerCapsuleUrl || steamImageUrl(appid, "capsule");
-  const headerUrl = providerHeaderUrl || steamImageUrl(appid, "header");
+  const capsuleUrl = steamImageUrl(appid, "capsule") || providerCapsuleUrl;
+  const headerUrl = steamImageUrl(appid, "header") || providerHeaderUrl;
   const isUsd = String(details?.price_currency || "").trim().toUpperCase() === "USD";
   const priceCurrency = isUsd ? "USD" : null;
   const priceInitial = isUsd ? cleanPrice(details?.price_initial) : null;
@@ -467,4 +472,12 @@ function clamp(value: number, min: number, max: number) {
 function cleanPrice(value: unknown) {
   const amount = Number(value);
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : null;
+}
+
+function normaliseSteamTags(value: unknown): Record<string, number> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const entries = Object.entries(value as Record<string, unknown>)
+    .map(([label, weight]) => [label.trim(), Number(weight)] as const)
+    .filter(([label, weight]) => label && Number.isFinite(weight) && weight > 0);
+  return entries.length ? Object.fromEntries(entries) : null;
 }

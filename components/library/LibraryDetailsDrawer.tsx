@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
-import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -59,6 +58,8 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
 
   const relatedCollections = collections.filter((collection) => game.collectionIds.includes(collection.id));
   const durationLabel = formatGameDuration(game.duration);
+  const pinLabel = pinSlot ? "Unpin game" : pinCount >= 3 ? "Manage pins" : "Pin game";
+  const pinHandler = pinSlot || pinCount < 3 ? onTogglePin : onManagePins;
 
   return createPortal(
     <>
@@ -80,22 +81,17 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
 
           <p className={styles.copy}>{game.description}</p>
           {game.status === "Completed" || game.status === "Slept" ? (
-            <div className={styles.pinControl}>
-              <div><strong>{game.status} game</strong><span>Restore it or move it directly to the other archived list.</span></div>
-              <div className={styles.pinActions}>
-                <button type="button" className={styles.restoreButton} disabled={saving} onClick={() => void onRestore?.()}><BrandedIcon group="actions" name="restore-active" size={22} />Restore to Active</button>
-                {game.status === "Completed"
-                  ? <button type="button" disabled={saving} onClick={() => void onSleep?.()}>Move to Slept</button>
-                  : <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>}
-              </div>
+            <div className={styles.quickActions} role="group" aria-label={`${game.status} game actions`}>
+              <button type="button" title="Restore to Active" aria-label="Restore to Active" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={30} /></button>
+              {game.status === "Completed"
+                ? <button type="button" title="Move to Slept" aria-label="Move to Slept" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={30} /></button>
+                : <button type="button" title="Mark as Completed" aria-label="Mark as Completed" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={30} /></button>}
             </div>
           ) : (
-            <div className={styles.pinControl}>
-              <div><strong>{pinSlot ? `Pinned in slot ${pinSlot}` : pinCount >= 3 ? "Pins full · 3/3" : "Pin game"}</strong><span>{pinSlot ? "Kept at the front of your Active Library." : `Keep it at the front of your Library · ${pinCount}/3 used`}</span></div>
-              <div className={styles.pinActions}>
-                <button type="button" onClick={pinSlot || pinCount < 3 ? onTogglePin : onManagePins}>{pinSlot ? "Unpin" : pinCount >= 3 ? "Manage Pins" : "Pin game"}</button>
-                <button type="button" disabled={saving} onClick={() => void onComplete?.()}>Mark as Completed</button>
-              </div>
+            <div className={styles.quickActions} role="group" aria-label="Game actions">
+              <button type="button" title={pinLabel} aria-label={pinLabel} disabled={!pinHandler} onClick={pinHandler}><VaultIcon name={pinSlot ? "unpin" : pinCount >= 3 ? "manage-pins" : "pin"} size={30} /></button>
+              <button type="button" title="Sleep game" aria-label="Sleep game" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={30} /></button>
+              <button type="button" title="Mark as Completed" aria-label="Mark as Completed" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={30} /></button>
             </div>
           )}
 
@@ -163,7 +159,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
               className={styles.steamButton}
               href={steamLaunchUrl(game.steamAppId)}
             >
-              <VaultIcon name="play-now" size={20} />
+              <VaultIcon name="open-steam" size={20} />
               <span>Play on Steam</span>
               <VaultIcon name="chevron-right" size={18} className={styles.steamArrow} />
             </a>

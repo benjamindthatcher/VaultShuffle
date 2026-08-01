@@ -227,16 +227,48 @@
 }
 .steamButton:hover { filter: brightness(1.08); transform: translateY(-1px); }
 .steamArrow { margin-left: auto; font-size: 1.25rem; }
-.pinControl { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 14px; border: 1px solid rgba(172, 105, 255, 0.28); border-radius: 12px; background: rgba(34, 24, 75, 0.32); }
-.pinControl > div:first-child { display: grid; gap: 4px; }
-.pinControl span { color: var(--vault-text-muted); font-size: .82rem; }
-.pinControl button { min-height: 40px; padding: 0 14px; border: 1px solid rgba(190,105,255,.38); border-radius: 999px; background: rgba(75,39,145,.42); color: var(--vault-text); }
-.pinActions { display: flex; flex-direction: column; align-items: stretch; gap: 8px; flex: 0 0 auto; }
-.pinActions .restoreButton { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 16px; border-radius: 10px; font-weight: 800; }
-.restoreButton { border: 1px solid rgba(116, 177, 255, 0.42); color: #dcecff; background: rgba(45, 97, 175, 0.16); }
+.quickActions {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(172, 105, 255, 0.28);
+  border-radius: 16px;
+  background: rgba(34, 24, 75, 0.32);
+}
+
+.quickActions button {
+  display: grid;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 62px;
+  place-items: center;
+  padding: 8px;
+  border: 1px solid rgba(190, 105, 255, 0.32);
+  border-radius: 14px;
+  background: rgba(35, 27, 76, 0.48);
+  color: #dca8ff;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.quickActions button:hover:not(:disabled) {
+  border-color: rgba(220, 150, 255, 0.8);
+  background: rgba(91, 46, 168, 0.5);
+  box-shadow: 0 0 22px rgba(181, 92, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.quickActions button:focus-visible {
+  outline: 2px solid #dca8ff;
+  outline-offset: 2px;
+}
+
+.quickActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
+}
 
 @media (max-width: 520px) {
-  .pinControl { align-items: stretch; flex-direction: column; }
   .statGrid { grid-template-columns: 1fr; }
   .actionRow { grid-template-columns: 1fr; }
 }

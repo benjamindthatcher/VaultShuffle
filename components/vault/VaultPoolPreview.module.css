@@ -149,6 +149,9 @@
 }
 
 .menu button {
+  display: flex;
+  align-items: center;
+  gap: 9px;
   min-height: 38px;
   padding: 8px 12px;
   color: #eee9ff;

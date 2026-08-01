@@ -6,7 +6,6 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
 import { Artwork } from "@/components/shared/Artwork";
-import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
@@ -28,7 +27,6 @@ import {
 } from "@/lib/vault";
 import { steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
-import type { VaultDraw } from "@/lib/vault-history";
 import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
@@ -56,7 +54,6 @@ export default function VaultPage() {
   const [lensOpen, setLensOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
-  const pendingHistoryDrawRef = useRef(false);
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
@@ -186,20 +183,6 @@ export default function VaultPage() {
       drawingRef.current = false;
     }
   }
-
-  function useHistorySetup(draw: VaultDraw, drawNow: boolean) {
-    setSession(draw.session); setMood(draw.mood); setGoal(draw.goal);
-    setSelectedCollectionId(collections.some((collection) => collection.id === draw.collectionId) ? draw.collectionId : null);
-    setSelectedGenres(draw.selectedGenres.slice(0, MAX_VAULT_GENRES));
-    pendingHistoryDrawRef.current = drawNow;
-    setHistoryOpen(false);
-  }
-
-  useEffect(() => {
-    if (!pendingHistoryDrawRef.current || !canDraw) return;
-    pendingHistoryDrawRef.current = false;
-    void handleOpenVault();
-  }, [canDraw, deck.length, goal, mood, selectedCollectionId, selectedGenres, session]);
 
   function toggleGenre(genre: string) {
     setSelectedGenres((current) => {
@@ -378,7 +361,7 @@ export default function VaultPage() {
 
         <div className={styles.poolActionArea}>
           <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!canDraw || drawingRef.current} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
-            <BrandedIcon group="actions" name="draw-from-vault" size={24} />{drawState === "focusing" || drawState === "revealing" ? "Drawing from the Vault…" : "Draw from the Vault"}
+            <VaultIcon name="draw-from-vault" size={24} />{drawState === "focusing" || drawState === "revealing" ? "Drawing from the Vault…" : "Draw from the Vault"}
           </button>
           <p className={styles.setupStatus} id="vault-setup-status">{missingSetup.length ? `Choose ${formatMissingSetup(missingSetup)}.` : !deck.length ? "No games match this setup." : "Your setup is ready."}</p>
         </div>
@@ -390,7 +373,7 @@ export default function VaultPage() {
         <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
           <div className={styles.resultArtwork}>
             <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
-            <span className={styles.currentPickBadge}><img src="/assets/vaultshuffle/site-icons/utility/current-pick.svg" alt="" width={18} height={18} aria-hidden="true" />Current pick</span>
+            <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
           </div>
           <div className={styles.resultBody}>
             <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
@@ -450,9 +433,20 @@ export default function VaultPage() {
         }}
         onClose={() => setDetailsGameId(null)}
         onComplete={() => detailsGame ? completeGame(detailsGame) : Promise.resolve()}
+        onSleep={() => detailsGame ? sleepPoolGame(detailsGame.id) : Promise.resolve()}
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}
       />
-      <VaultHistoryDrawer open={historyOpen} draws={vaultHistory} games={ownedGames} collections={collections} onClose={() => setHistoryOpen(false)} onClear={clearVaultHistory} onUseSetup={useHistorySetup} onPin={(game) => void togglePin(game.id)} onEvent={(drawId, type) => void recordDrawEvent(drawId, type)} />
+      <VaultHistoryDrawer
+        open={historyOpen}
+        draws={vaultHistory}
+        games={ownedGames}
+        onClose={() => setHistoryOpen(false)}
+        onClear={clearVaultHistory}
+        onViewDetails={(game) => {
+          setHistoryOpen(false);
+          setDetailsGameId(game.id);
+        }}
+      />
       {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}
       {pinMessage ? <div className={styles.pinToast} role="status">{pinMessage}<button type="button" onClick={() => setPinMessage("")}>Dismiss</button></div> : null}
       {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion()}>Undo</button></div> : null}
@@ -484,5 +478,5 @@ function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal"
 type VaultResultActionIconName = "open-steam" | "pin" | "draw-again" | "snooze-not-now" | "view-details" | "mark-completed";
 
 function VaultResultActionIcon({ name }: { name: VaultResultActionIconName }) {
-  return <span className={styles.resultActionIcon} aria-hidden="true"><img src={`/assets/vaultshuffle/site-icons/actions/${name}.svg`} alt="" width={48} height={48} /></span>;
+  return <span className={styles.resultActionIcon} aria-hidden="true"><VaultIcon name={name} size={48} /></span>;
 }

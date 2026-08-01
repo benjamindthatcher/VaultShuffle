@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import type { VaultPoolEntry } from "@/lib/vault";
+import { vaultMatchLabel, type VaultPoolEntry } from "@/lib/vault";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { candidateFallback } from "@/lib/vaultshuffle-assets";
@@ -138,7 +138,7 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
                 <p className={styles.cardCopy}>{game.description}</p>
                 <div className={styles.tagRow}>{game.genres.slice(0, 3).map((genre) => <span key={genre}>{genre}</span>)}</div>
                 <div className={styles.cardMeta}>
-                  <strong>{candidateLabel(index, entries.length, score)}</strong>
+                  <strong>{vaultMatchLabel(score)}</strong>
                   {durationLabel ? <span>{durationLabel}</span> : null}
                 </div>
               </div>
@@ -152,9 +152,9 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
                 onClick={() => setOpenMenuId((current) => current === game.id ? null : game.id)}
               ><VaultIcon name="menu-dots" size={20} /></button>
               {menuOpen ? <div className={styles.menu} role="menu">
-                <button type="button" role="menuitem" onClick={() => { setOpenMenuId(null); onPin?.(game.id); }}>{isPinned ? "Unpin game" : "Pin game"}</button>
-                <button type="button" role="menuitem" disabled={sleepingId === game.id} onClick={() => { setOpenMenuId(null); onSleep?.(game.id); }}>Sleep game</button>
-                <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setOpenMenuId(null); onComplete?.(game.id); }}>Mark as Completed</button>
+                <button type="button" role="menuitem" onClick={() => { setOpenMenuId(null); onPin?.(game.id); }}><VaultIcon name={isPinned ? "unpin" : "pin"} size={18} />{isPinned ? "Unpin game" : "Pin game"}</button>
+                <button type="button" role="menuitem" disabled={sleepingId === game.id} onClick={() => { setOpenMenuId(null); onSleep?.(game.id); }}><VaultIcon name="sleep" size={18} />Sleep game</button>
+                <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setOpenMenuId(null); onComplete?.(game.id); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button>
               </div> : null}
             </div>
           </article>
@@ -165,10 +165,4 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
       <div ref={progressTrackRef} className={styles.progressTrack} aria-hidden="true"><span ref={progressThumbRef} /></div>
     </div>
   );
-}
-
-function candidateLabel(index: number, count: number, score: number) {
-  if (count <= 1 || index === 0) return "Excellent match";
-  if (index < Math.max(2, Math.ceil(count * 0.35))) return "Strong match";
-  return score > 0 ? "Good match" : "Eligible pick";
 }

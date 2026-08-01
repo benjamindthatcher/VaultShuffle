@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 import styles from "./SiteExperience.module.css";
 
 type SiteFooterProps = {
@@ -16,8 +17,8 @@ const links = [
   { href: "/contact", label: "Contact Us", icon: "contact" }
 ] as const;
 
-function FooterIcon({ name }: { name: string }) {
-  return <img className={styles.footerIcon} src={`/assets/vaultshuffle/footer-icons/${name}.svg`} width={22} height={22} alt="" aria-hidden="true" />;
+function FooterIcon({ name }: { name: VaultIconName }) {
+  return <VaultIcon className={styles.footerIcon} name={name} size={22} />;
 }
 
 export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: SiteFooterProps) {

@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { hasStrongReplayabilitySignals } from "@/lib/game-classification";
 
 const STEAMSPY_MIN_INTERVAL_MS = 1_100;
 const TAG_REFRESH_AFTER_MS = 30 * 24 * 60 * 60 * 1_000;
@@ -8,7 +9,15 @@ const STALE_PROCESSING_AFTER_MS = 15 * 60 * 1_000;
 type SteamTagQueueRow = {
   steam_appid: number;
   tags_failure_count: number | null;
+  genres: string[] | null;
+  categories: string[] | null;
+  main_story_minutes: number | null;
+  main_extras_minutes: number | null;
+  completionist_minutes: number | null;
+  duration_kind: "finite" | "endless" | "not-applicable" | "unknown" | null;
 };
+
+const TAG_QUEUE_COLUMNS = "steam_appid, tags_failure_count, genres, categories, main_story_minutes, main_extras_minutes, completionist_minutes, duration_kind";
 
 let nextSteamSpyRequestAt = 0;
 
@@ -70,7 +79,7 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
 
   const { data, error } = await supabase
     .from("catalog_games")
-    .select("steam_appid, tags_failure_count")
+    .select(TAG_QUEUE_COLUMNS)
     .eq("tags_status", "pending")
     .or(`tags_next_attempt_at.is.null,tags_next_attempt_at.lte.${now.toISOString()}`)
     .order("tags_fetched_at", { ascending: true, nullsFirst: true })
@@ -91,7 +100,7 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
       })
       .eq("steam_appid", candidate.steam_appid)
       .eq("tags_status", "pending")
-      .select("steam_appid, tags_failure_count")
+      .select(TAG_QUEUE_COLUMNS)
       .maybeSingle();
     if (claimError) throw claimError;
     if (claimed) rows.push(claimed as SteamTagQueueRow);
@@ -108,6 +117,7 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
     try {
       const tags = await fetchSteamCommunityTags(row.steam_appid);
       const checkedAt = new Date().toISOString();
+      const inferEndless = shouldClassifyAsEndless(row, tags);
       const { error: updateError } = await supabase
         .from("catalog_games")
         .update({
@@ -119,6 +129,14 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
           tags_next_attempt_at: null,
           tags_failure_count: 0,
           tags_last_error: null,
+          ...(inferEndless ? {
+            duration_kind: "endless",
+            duration_status: "ready",
+            duration_source: "steam-tags",
+            duration_source_game_id: null,
+            duration_source_updated_at: checkedAt,
+            duration_confidence: "medium"
+          } : {}),
           updated_at: checkedAt
         })
         .eq("steam_appid", row.steam_appid);
@@ -158,6 +176,13 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
     failed,
     remaining: count ?? 0
   };
+}
+
+function shouldClassifyAsEndless(row: SteamTagQueueRow, tags: Record<string, number>) {
+  if (row.duration_kind && row.duration_kind !== "unknown") return false;
+  if ([row.main_story_minutes, row.main_extras_minutes, row.completionist_minutes]
+    .some((minutes) => Number(minutes) > 0)) return false;
+  return hasStrongReplayabilitySignals({ tags, genres: row.genres, categories: row.categories });
 }
 
 async function fetchSteamCommunityTags(steamAppId: number) {

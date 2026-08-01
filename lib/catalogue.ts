@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchSteamAppDetails } from "@/lib/steam";
+import { fetchSteamAppDetails, SteamAppUnavailableError } from "@/lib/steam";
 import type { GamePayload } from "@/lib/types";
 
 const AUTOMATIC_EXCLUSION_LABELS = new Set(["software", "utilities"]);
@@ -9,7 +9,8 @@ const AUTOMATIC_RELEASE_CHANNEL_RULES = [
   { matchedRule: "release_channel:test_environment", pattern: /\btest[\s-]+(?:realm|server)\b/i },
   { matchedRule: "release_channel:ptr", pattern: /\bptr\b/i },
   { matchedRule: "release_channel:pts", pattern: /\bpts\b/i },
-  { matchedRule: "release_channel:beta", pattern: /\bbeta\b/i }
+  { matchedRule: "release_channel:beta", pattern: /\bbeta\b/i },
+  { matchedRule: "release_channel:staging", pattern: /\bstaging(?:[\s-]+branch)?\b/i }
 ] as const;
 type CatalogueQueueRow = { steam_appid: number; attempts: number };
 type ManualQuarantineDecision = {
@@ -66,6 +67,15 @@ export async function recordImportedSteamAppIds(userId: string, appIds: string[]
   });
   if (error) throw error;
   return { queued: Number(queued || 0) };
+}
+
+export async function queueStaleCatalogueMetadata(limit = 100) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase.rpc("queue_stale_catalogue_metadata", {
+    p_limit: clamp(limit, 1, 250)
+  });
+  if (error) throw error;
+  return Number(data || 0);
 }
 
 export async function processCatalogueQueue(limit = 25, restrictToAppIds?: number[]) {
@@ -164,9 +174,13 @@ export async function processCatalogueQueue(limit = 25, restrictToAppIds?: numbe
       if (readyError) throw readyError;
     } catch (error) {
       const attempts = Number(row.attempts || 0) + 1;
-      const terminal = attempts >= 5;
+      const unavailable = error instanceof SteamAppUnavailableError;
+      const terminal = unavailable ? attempts >= 3 : attempts >= 5;
+      const retryDelay = unavailable
+        ? 24 * 60 * 60_000
+        : Math.min(2 ** attempts * 60_000, 6 * 60 * 60_000);
       const { error: failureUpdateError } = await supabase.from("catalog_ingest_queue").update({ status: terminal ? "failed" : "pending", attempts,
-        next_attempt_at: terminal ? null : new Date(Date.now() + Math.min(2 ** attempts * 60_000, 6 * 60 * 60_000)).toISOString(),
+        next_attempt_at: terminal ? null : new Date(Date.now() + retryDelay).toISOString(),
         processing_started_at: null, last_error: error instanceof Error ? error.message.slice(0, 500) : "Unknown catalogue ingestion error",
         updated_at: new Date().toISOString() }).eq("steam_appid", row.steam_appid);
       if (failureUpdateError) throw failureUpdateError;

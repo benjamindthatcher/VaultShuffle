@@ -1,6 +1,6 @@
-import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
-import { formatGameDuration } from "@/lib/game-duration";
-import type { VaultMoodScores } from "@/lib/vault-matching";
+import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
+import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
+import type { VaultMoodScores } from "./vault-matching.ts";
 
 export const MAX_VAULT_GENRES = 3;
 export const MAX_VAULT_DECK_SIZE = 32;
@@ -29,6 +29,13 @@ export type VaultPoolEntry = {
   score: number;
   reasons: string[];
 };
+
+const VAULT_SCORE_WEIGHTS = {
+  session: 30,
+  mood: 30,
+  goal: 30,
+  genres: 10
+} as const;
 
 export type VaultEligibilityStage = {
   id: "active" | "collection" | "genres" | "session" | "mood" | "goal" | "snoozes" | "available" | "shortlist";
@@ -73,7 +80,7 @@ export function getVaultEligibility({
   const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
   const genreMatches = inCollection.filter((game) => matchesAnyGenre(game, canonicalSelectedGenres));
   const sessionMatches = session ? genreMatches.filter((game) => game.sessionFit.includes(session)) : genreMatches;
-  const moodMatches = sessionMatches;
+  const moodMatches = mood ? sessionMatches.filter((game) => moodEligible(game, mood)) : sessionMatches;
   const goalMatches = moodMatches.filter((game) => goalEligible(game, goal));
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
   const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
@@ -88,7 +95,7 @@ export function getVaultEligibility({
     stages.push({ id: "session", label: `${sessionLabel(session)} Fits`, count: sessionMatches.length });
   }
   if (mood) {
-    stages.push({ id: "mood", label: `${labelForMood(mood)} Ranked`, count: moodMatches.length });
+    stages.push({ id: "mood", label: `${labelForMood(mood)} Fits`, count: moodMatches.length });
   }
   if (goal && goal !== "surprise") {
     stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
@@ -180,58 +187,66 @@ export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string 
   return finalists[finalists.length - 1].game;
 }
 
-function scoreVaultGame(
+export function scoreVaultGame(
   game: DemoGame,
   session: VaultSessionId | null,
   mood: VaultMoodId | null,
   goal: VaultGoalId | null,
   selectedGenres: string[]
 ): VaultPoolEntry {
-  let score = 0;
+  let earnedPoints = 0;
+  let availablePoints = 0;
   const reasons: string[] = [];
 
   if (session) {
-    const sessionScore = game.sessionFit.includes(session) ? 24 : 12;
-    score += sessionScore;
-    const durationLabel = formatGameDuration(game.duration);
-    if (sessionScore >= 20) {
-      reasons.push(durationLabel
-        ? `${sessionLabel(session)} fit · ${durationLabel}`
-        : `${sessionLabel(session)} fit`);
-    }
+    availablePoints += VAULT_SCORE_WEIGHTS.session;
+    earnedPoints += sessionPoints(game, session);
+    reasons.push(sessionReason(session));
   }
 
   if (mood) {
     const moodStrength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
-    score += 14 + moodStrength * 3;
-    if (moodStrength >= 3) reasons.push(moodReason(mood));
+    availablePoints += VAULT_SCORE_WEIGHTS.mood;
+    earnedPoints += moodPoints(moodStrength);
+    reasons.push(moodReason(mood));
   }
 
   if (selectedGenres.length) {
     const gameGenres = game.genres.map(canonicalGenre);
     const matches = selectedGenres.filter((genre) => gameGenres.includes(genre));
-    score += Math.round(8 + 12 * (matches.length / selectedGenres.length));
-    if (matches.length) reasons.push(`Matches ${matches.map(displayGenre).join(" and ")}`);
+    availablePoints += VAULT_SCORE_WEIGHTS.genres;
+    earnedPoints += VAULT_SCORE_WEIGHTS.genres * (matches.length / selectedGenres.length);
+    if (matches.length) reasons.push(matches.map(displayGenre).join(" · "));
   }
 
   if (goal === "new") {
-    score += game.hoursPlayed === 0 ? 40 : game.hoursPlayed <= 0.5 ? 34 : 28;
-    reasons.push(game.hoursPlayed === 0 ? "Fresh start · no recorded playtime" : "Barely sampled so far");
+    availablePoints += VAULT_SCORE_WEIGHTS.goal;
+    earnedPoints += newGamePoints(game);
+    reasons.push(game.hoursPlayed === 0 ? "Unplayed" : "Barely sampled");
   }
 
   if (goal === "finish") {
-    score += finishScore(game.completionPercent);
-    reasons.push(game.completionPercent > 0
-      ? `Finish Something · ${game.completionPercent}% complete`
-      : "Already started and ready to resume");
+    availablePoints += VAULT_SCORE_WEIGHTS.goal;
+    earnedPoints += finishPoints(game);
+    reasons.push(finishReason(game));
   }
 
   if (goal === "surprise") {
-    score += 30;
-    reasons.push("A wildcard from your eligible library");
+    // Surprise is deliberately neutral. It widens the pool, but must not
+    // dilute a precise session, mood or genre match by consuming score.
+    reasons.push("Wildcard");
   }
 
+  const score = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
   return { game, score, reasons: reasons.slice(0, 4) };
+}
+
+export function vaultMatchLabel(score: number) {
+  if (score >= 92) return "Perfect match";
+  if (score >= 82) return "Excellent match";
+  if (score >= 68) return "Strong match";
+  if (score >= 50) return "Good match";
+  return "Eligible pick";
 }
 
 function moodScoreFor(scores: VaultMoodScores | undefined, mood: VaultMoodId, tagged: boolean) {
@@ -239,9 +254,21 @@ function moodScoreFor(scores: VaultMoodScores | undefined, mood: VaultMoodId, ta
   return tagged ? 4 : 0;
 }
 
+function moodEligible(game: DemoGame, mood: VaultMoodId) {
+  return moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood)) >= 3;
+}
+
+function moodPoints(strength: number) {
+  if (strength <= 3) return 21;
+  if (strength === 4) return 24;
+  if (strength === 5) return 27;
+  return VAULT_SCORE_WEIGHTS.mood;
+}
+
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {
   if (!goal || goal === "surprise") return true;
-  if (goal === "new") return game.status === "Not Started" || game.completionPercent === 0;
+  if (goal === "new") return game.status === "Not Started" && game.hoursPlayed <= 0.5;
+  if (game.duration?.endless) return false;
   return game.status === "In Progress" || (game.completionPercent > 0 && game.completionPercent < 100);
 }
 
@@ -251,11 +278,56 @@ function matchesAnyGenre(game: DemoGame, selectedGenres: string[]) {
   return selectedGenres.some((genre) => gameGenres.includes(genre));
 }
 
-function finishScore(progress: number) {
-  if (progress >= 70) return 40;
-  if (progress >= 40) return 36;
-  if (progress >= 15) return 31;
-  return 25;
+function sessionPoints(game: DemoGame, session: VaultSessionId) {
+  if (!game.sessionFit.includes(session)) return 0;
+  if (game.duration?.endless) return session === "weekend" ? 27 : 24;
+
+  const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
+  if (!totalMinutes) return 20;
+  const remainingHours = totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60;
+
+  if (session === "short") {
+    if (remainingHours <= 3) return 30;
+    if (remainingHours <= 6) return 28;
+    if (remainingHours <= 8) return 26;
+    return 24;
+  }
+  if (session === "evening") {
+    if (remainingHours <= 18) return 30;
+    if (remainingHours <= 24) return 28;
+    return 25;
+  }
+  if (remainingHours <= 60) return 30;
+  if (remainingHours <= 100) return 28;
+  return 26;
+}
+
+function newGamePoints(game: DemoGame) {
+  if (game.hoursPlayed === 0) return VAULT_SCORE_WEIGHTS.goal;
+  if (game.hoursPlayed <= 0.25) return 27;
+  return 24;
+}
+
+function finishPoints(game: DemoGame) {
+  const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
+  const remainingHours = totalMinutes
+    ? totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60
+    : null;
+  const progressPoints = 8 + Math.min(12, Math.max(0, game.completionPercent) * 0.12);
+  const remainingPoints = remainingHours === null ? 4
+    : remainingHours <= 2 ? 10
+    : remainingHours <= 5 ? 9
+    : remainingHours <= 10 ? 8
+    : remainingHours <= 20 ? 6
+    : 4;
+  return Math.min(VAULT_SCORE_WEIGHTS.goal, Math.round(progressPoints + remainingPoints));
+}
+
+function finishReason(game: DemoGame) {
+  const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
+  if (!totalMinutes) return `${game.completionPercent}% complete`;
+  const remainingHours = Math.max(1, Math.round(totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60));
+  return `${remainingHours}h left`;
 }
 
 function canonicalGenre(value: string) {
@@ -276,9 +348,15 @@ function sessionLabel(session: VaultSessionId) {
 }
 
 function moodReason(mood: VaultMoodId) {
-  if (mood === "brain-off") return "Low-friction pick for switching off";
-  if (mood === "chill") return "Softer-energy fit for a chill session";
-  return "High-energy fit for an intense session";
+  if (mood === "brain-off") return "Low focus";
+  if (mood === "chill") return "Chill pace";
+  return "High energy";
+}
+
+function sessionReason(session: VaultSessionId) {
+  if (session === "short") return "Short fit";
+  if (session === "evening") return "Evening fit";
+  return "Weekend fit";
 }
 
 function labelForMood(mood: VaultMoodId) {

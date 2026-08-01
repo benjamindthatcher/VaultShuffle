@@ -1,6 +1,5 @@
 import styles from "./VaultOptionGroup.module.css";
 import type React from "react";
-import { BrandedIcon, type BrandedIconName } from "@/components/shared/BrandedIcon";
 import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 
 type VaultOption = {
@@ -35,7 +34,7 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect }: Vault
               aria-pressed={isActive}
               onClick={() => onSelect(option.id)}
             >
-              <BrandedIcon group="selections" name={optionIconName(option.id)} size={38} className={styles.optionIcon} />
+              <VaultIcon name={optionIconName(option.id)} size={38} className={styles.optionIcon} />
               <strong className={styles.optionLabel}>{option.label}</strong>
             </button>
           );
@@ -45,8 +44,8 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect }: Vault
   );
 }
 
-function optionIconName(id: string): BrandedIconName<"selections"> {
-  const iconNames: Record<string, BrandedIconName<"selections">> = {
+function optionIconName(id: string): VaultIconName {
+  const iconNames: Record<string, VaultIconName> = {
     short: "short-session",
     evening: "evening-session",
     weekend: "weekend-session",

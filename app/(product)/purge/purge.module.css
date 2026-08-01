@@ -147,16 +147,13 @@
   box-shadow: inset 0 0 22px rgba(151, 61, 255, 0.12);
 }
 .categoryIcon {
-  display: block;
+  display: grid;
+  place-items: center;
   width: 48px;
   height: 48px;
   flex: 0 0 48px;
-}
-.categoryIcon img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+  color: var(--accent-bright);
+  filter: drop-shadow(0 0 9px rgb(199 91 255 / 32%));
 }
 .category span,
 .categorySelected span {
@@ -224,9 +221,9 @@
   gap: 8px;
   margin: 0;
 }
-.snapshotMetrics span {
+.snapshotMetrics > span {
   display: grid;
-  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   grid-template-rows: minmax(2.1em, auto) auto;
   align-items: center;
   column-gap: 10px;
@@ -239,7 +236,7 @@
   background: rgba(8, 12, 32, 0.56);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
-.snapshotMetrics .categoryIcon {
+.snapshotMetrics > span > .categoryIcon {
   width: 30px;
   height: 30px;
   flex-basis: 30px;
@@ -247,15 +244,12 @@
 .purgeStatIcon {
   display: grid;
   grid-row: 1 / 3;
-  width: 56px;
-  height: 56px;
+  align-self: center;
+  width: 44px;
+  height: 44px;
   place-items: center;
-}
-.purgeStatIcon img {
-  display: block;
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+  color: #d47aff;
+  filter: drop-shadow(0 0 8px rgba(170, 75, 255, 0.28));
 }
 .snapshot em {
   align-self: end;
@@ -264,7 +258,7 @@
   font-style: normal;
   line-height: 1.15;
 }
-.snapshotMetrics strong {
+.snapshotMetrics > span > strong {
   align-self: start;
   color: #f7f5ff;
   font-size: 1rem;
@@ -424,12 +418,8 @@
   width: 40px;
   height: 40px;
   place-items: center;
-}
-.decisionIcon img {
-  display: block;
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
+  color: #ce79ff;
+  filter: drop-shadow(0 0 8px rgba(170, 75, 255, 0.22));
 }
 .decisions > button:disabled .decisionIcon {
   opacity: 0.72;

@@ -6,8 +6,7 @@ import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { BrandedIcon } from "@/components/shared/BrandedIcon";
-import { matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
+import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
 
@@ -19,7 +18,7 @@ export default function CollectionsPage() {
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
   const [kindDraft, setKindDraft] = useState<"custom" | "smart">("custom");
-  const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("backlog");
+  const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("nearly-finished");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const composerRef = useRef<HTMLElement>(null);
@@ -79,7 +78,7 @@ export default function CollectionsPage() {
       setNameDraft("");
       setDescriptionDraft("");
       setKindDraft("custom");
-      setPresetDraft("backlog");
+      setPresetDraft("nearly-finished");
       requestAnimationFrame(() => collectionRailRef.current?.scrollTo({ left: 0, behavior: "smooth" }));
     } finally {
       setSaving(false);
@@ -95,7 +94,7 @@ export default function CollectionsPage() {
     setNameDraft("");
     setDescriptionDraft("");
     setKindDraft("custom");
-    setPresetDraft("backlog");
+    setPresetDraft("nearly-finished");
     setComposerOpen(true);
     revealComposer();
   }
@@ -114,7 +113,7 @@ export default function CollectionsPage() {
     setNameDraft(selectedCollection.name);
     setDescriptionDraft(selectedCollection.description);
     setKindDraft(selectedCollection.kind === "smart" ? "smart" : "custom");
-    setPresetDraft(selectedCollection.smartPreset || "backlog");
+    setPresetDraft(editableSmartCollectionPreset(selectedCollection.smartPreset));
     setEditing(true);
     setComposerOpen(true);
     revealComposer();
@@ -170,7 +169,7 @@ export default function CollectionsPage() {
             <h2 id="collection-composer-title" className={styles.composerTitle}>{editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}</h2>
             <p className={styles.composerCopy}>{editing
               ? "Update its identity or change how its games are gathered."
-              : "Choose a hand-picked shelf or an automatic collection that stays current for you."}</p>
+              : "Build a hand-picked shelf or one that follows progress, playtime and recency automatically."}</p>
           </div>
           <button
             type="button"
@@ -178,7 +177,7 @@ export default function CollectionsPage() {
             aria-expanded={composerOpen}
             onClick={composerOpen ? closeComposer : openNewComposer}
           >
-            <BrandedIcon group="actions" name="new-collection" size={25} />
+            <VaultIcon name="new-collection" size={25} />
             {composerOpen ? "Close" : "New Collection"}
           </button>
         </div>
@@ -194,7 +193,7 @@ export default function CollectionsPage() {
                 <span>Collection type</span>
                 <select value={kindDraft} onChange={(event) => setKindDraft(event.target.value as "custom" | "smart")}>
                   <option value="custom">Custom collection</option>
-                  <option value="smart">Smart collection</option>
+                  <option value="smart">Automatic smart collection</option>
                 </select>
               </label>
               {kindDraft === "smart" ? (

@@ -1,4 +1,3 @@
-import { processCatalogueQueue } from "@/lib/catalogue";
 import { processDurationQueue } from "@/lib/duration-worker";
 import { upsertSteamGames } from "@/lib/games";
 import { fetchOwnedSteamGames } from "@/lib/steam";
@@ -39,21 +38,14 @@ export async function refreshNightlyMetadata() {
   const steamMetadata = [];
   try {
     metadataQueued = await queueAllKnownSteamMetadata();
-    const metadataDeadline = Date.now() + 210_000;
-    for (let batch = 0; batch < 15 && Date.now() < metadataDeadline; batch += 1) {
-      const result = await processSteamMetadataQueue(100, true);
+    const metadataDeadline = Date.now() + 120_000;
+    for (let batch = 0; batch < 4 && Date.now() < metadataDeadline; batch += 1) {
+      const result = await processSteamMetadataQueue(100, false);
       steamMetadata.push(result);
       if (!result.remaining) break;
     }
   } catch (error) {
     failures.push({ stage: "steam-app-metadata", error: errorMessage(error) });
-  }
-
-  let catalogue = null;
-  try {
-    catalogue = await processCatalogueQueue(100);
-  } catch (error) {
-    failures.push({ stage: "catalogue", error: errorMessage(error) });
   }
 
   const durations = [];
@@ -73,7 +65,6 @@ export async function refreshNightlyMetadata() {
     gamesRefreshed,
     metadataQueued,
     steamMetadata,
-    catalogue,
     durations,
     failures
   };

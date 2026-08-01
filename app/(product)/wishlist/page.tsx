@@ -5,7 +5,6 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { BrandedIcon } from "@/components/shared/BrandedIcon";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { WishlistRow } from "@/components/wishlist/WishlistRow";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -170,7 +169,7 @@ export default function WishlistPage() {
             <article key={game.id} className={styles.pinnedCard}>
               <span className={styles.pinnedArtwork}><Artwork src={game.bannerUrl} sizes="(max-width: 720px) 78vw, 360px" /></span>
               <div className={styles.pinnedBody}><strong>{game.title}</strong><span>{game.salePrice ?? game.addedLabel}</span></div>
-              <span className={styles.pinBadge}>⌖ {index + 1}</span>
+              <span className={styles.pinBadge}><VaultIcon name="pin" size={17} />{index + 1}</span>
             </article>
           ))}
           {Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>)}
@@ -200,7 +199,7 @@ export default function WishlistPage() {
               aria-expanded={composerOpen}
               onClick={() => setComposerOpen((current) => !current)}
             >
-              <BrandedIcon group="actions" name="add-game" size={25} />
+              <VaultIcon name="add-game" size={25} />
               {composerOpen ? "Close Steam search" : "Search Steam"}
             </button>
           </div>
@@ -304,7 +303,7 @@ export default function WishlistPage() {
           <div className={styles.priceTools}>
             {priceMessage ? <span role="status">{priceMessage}</span> : null}
             <button type="button" className={styles.secondaryAction} disabled={!isLive || refreshingPrices} onClick={() => void refreshPrices()}>
-              <BrandedIcon group="actions" name="refresh-prices" size={22} />
+              <VaultIcon name="refresh-prices" size={22} />
               {refreshingPrices ? "Refreshing…" : "Refresh Steam prices"}
             </button>
           </div>
@@ -321,7 +320,7 @@ export default function WishlistPage() {
                   <span>{game.saleOriginalPrice ? <s>{game.saleOriginalPrice}</s> : "Steam sale"}</span>
                   <strong>{game.salePrice}</strong>
                 </div>
-                <a href={`https://store.steampowered.com/app/${game.steamAppId}`} target="_blank" rel="noreferrer">View on Steam <span aria-hidden="true">↗</span></a>
+                <a href={`https://store.steampowered.com/app/${game.steamAppId}`} target="_blank" rel="noreferrer"><VaultIcon name="open-steam" size={18} />View on Steam</a>
               </div>
             </article>
           ))}

@@ -37,6 +37,8 @@ export type Game = {
   duration_source_updated_at?: string | null;
   duration_confidence?: "low" | "medium" | "high" | null;
   duration_kind?: "finite" | "endless" | "not-applicable" | "unknown" | null;
+  /** Full weighted SteamSpy tag map from the shared catalogue. */
+  steam_tags?: Record<string, number> | null;
   is_quarantined?: boolean;
   quarantine_reason?: string | null;
   created_at?: string;
@@ -110,7 +112,20 @@ export type Collection = {
   game_count?: number;
 };
 
-export type SmartCollectionPreset = "backlog" | "in-progress" | "must-play" | "short" | "unplayed";
+export type SmartCollectionPreset =
+  | "nearly-finished"
+  | "quick-wins"
+  | "recently-played"
+  | "fallen-off"
+  | "long-haul"
+  | "endless-rotation"
+  | "untouched"
+  // Kept so existing saved collections continue to work and can be edited.
+  | "backlog"
+  | "in-progress"
+  | "must-play"
+  | "short"
+  | "unplayed";
 
 export type CollectionGame = {
   collection_id: string;

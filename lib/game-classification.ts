@@ -1,10 +1,46 @@
-import type { Game, GamePayload } from "@/lib/types";
-import { completionFromDuration, estimatedTimeToBeatMinutes } from "@/lib/game-duration";
+import type { Game, GamePayload } from "./types.ts";
+import { completionFromDuration, estimatedTimeToBeatMinutes } from "./game-duration.ts";
 
 type GameLike = Pick<Game, "title" | "genre"> & Partial<Pick<Game,
   "hours_played" | "completion_percentage" | "status" | "main_story_minutes" |
   "main_extras_minutes" | "completionist_minutes" | "duration_kind"
 >>;
+
+type ReplayabilityMetadata = {
+  tags?: Record<string, unknown> | string[] | null;
+  genres?: string[] | null;
+  categories?: string[] | null;
+};
+
+const DECISIVE_ENDLESS_SIGNALS = new Set([
+  "auto battler",
+  "battle royale",
+  "clicker",
+  "idler",
+  "massively multiplayer",
+  "mmo",
+  "mmorpg",
+  "moba",
+]);
+
+const PERSISTENT_ONLINE_SIGNALS = new Set([
+  "live service",
+  "massively multiplayer",
+  "mmo",
+  "mmorpg",
+  "persistent online",
+]);
+
+const REPLAY_LOOP_SIGNALS = new Set([
+  "competitive",
+  "esports",
+  "open world survival craft",
+  "online co-op",
+  "online pvp",
+  "pvp",
+  "sandbox",
+  "survival",
+]);
 
 export const LENGTH_LABELS = ["Bitesize", "Short", "Weekend", "Campaign", "Meaty", "Marathon", "Odyssey", "Endless"] as const;
 
@@ -26,9 +62,10 @@ export function displayStatus(game: GameLike): GamePayload["status"] {
 }
 
 export function gameProgress(game: GameLike) {
-  if (game.status === "Completed") return clamp(Math.round(Number(game.completion_percentage || 0)), 0, 100);
+  if (game.status === "Completed") return 100;
   if (isEndlessGame(game)) return 99;
   const inferred = inferredProgressFromHours(game, Number(game.hours_played || 0));
+  if (estimatedTimeToBeatMinutes(durationForGame(game))) return inferred;
   const stored = Number(game.completion_percentage || 0);
   if (stored > 0) {
     const roundedStored = clamp(Math.round(stored), 0, 100);
@@ -103,11 +140,39 @@ export function lengthBucket(game: GameLike): LengthLabel {
 export function isEndlessGame(game: GameLike) {
   if (game.duration_kind === "endless") return true;
   if (game.duration_kind === "finite" || game.duration_kind === "not-applicable") return false;
+  if (estimatedTimeToBeatMinutes(durationForGame(game))) return false;
   const text = `${game.title} ${game.genre}`.toLowerCase();
   return (
     /(counter-?strike|destiny|apex legends|rust|palworld|new world|for honor|warframe|dota|team fortress|pubg|rainbow six|rocket league|dead by daylight|elder scrolls online|final fantasy xiv|path of exile|lost ark|factorio|rimworld|terraria|monster hunter)/.test(text) ||
-    /(mmo|massively multiplayer|multiplayer|battle royale|moba|live service|survival|sandbox|free to play|pvp|pve|online|roguelike|roguelite)/.test(text)
+    /(\bmmo\b|massively multiplayer|battle royale|\bmoba\b|live service)/.test(text)
   );
+}
+
+/**
+ * Classifies only decisive replayability metadata. It is intentionally stricter
+ * than the UI's fallback title heuristic because this result can be persisted.
+ * A real finite duration must be checked by the caller before using this result.
+ */
+export function hasStrongReplayabilitySignals(metadata: ReplayabilityMetadata) {
+  const signals = new Set([
+    ...normaliseSignals(metadata.tags),
+    ...normaliseSignals(metadata.genres),
+    ...normaliseSignals(metadata.categories),
+  ]);
+
+  if ([...DECISIVE_ENDLESS_SIGNALS].some((signal) => signals.has(signal))) return true;
+  const persistent = [...PERSISTENT_ONLINE_SIGNALS].some((signal) => signals.has(signal));
+  const replayLoop = [...REPLAY_LOOP_SIGNALS].some((signal) => signals.has(signal));
+  return persistent && replayLoop;
+}
+
+function normaliseSignals(value: ReplayabilityMetadata["tags"] | string[] | null | undefined) {
+  const values = Array.isArray(value)
+    ? value
+    : value && typeof value === "object"
+      ? Object.keys(value)
+      : [];
+  return values.map((item) => String(item).trim().toLowerCase()).filter(Boolean);
 }
 
 function clamp(value: number, min: number, max: number) {

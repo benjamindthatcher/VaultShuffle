@@ -12,10 +12,15 @@ export type VaultIconName =
   | "action" | "adventure" | "rpg" | "sci-fi" | "fantasy" | "strategy"
   | "survival" | "horror" | "indie" | "cozy" | "narrative" | "open-world"
   | "roguelike" | "platformer" | "puzzle" | "sim" | "shooter" | "exploration"
+  | "casual" | "racing" | "simulation" | "sports"
   | "heart" | "chevron-left" | "chevron-right" | "chevron-up" | "clear-filters"
   | "chevron-down" | "close" | "back" | "check" | "external-link" | "menu-dots"
-  | "manage-pins" | "collection-picker" | "undo" | "add"
-  | "open-steam" | "play-now" | "pin" | "draw-again" | "draw-from-vault" | "snooze" | "details" | "clock" | "search";
+  | "manage-pins" | "collection-picker" | "undo" | "add" | "add-game" | "new-collection" | "refresh-prices"
+  | "open-steam" | "play-now" | "pin" | "unpin" | "sleep" | "mark-completed" | "restore-active"
+  | "draw-again" | "draw-from-vault" | "snooze" | "details" | "clock" | "search" | "snooze-not-now" | "view-details"
+  | "all-collections" | "ready-to-review" | "actioned" | "no-review-needed" | "keep-active"
+  | "privacy" | "terms" | "steam-data" | "contact" | "feedback" | "cookies"
+  | "current-pick" | "likely-completed" | "abandoned" | "the-rest";
 
 type VaultIconProps = {
   name: VaultIconName;

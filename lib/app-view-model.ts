@@ -1,5 +1,5 @@
 import { gameProgress, isEndlessGame } from "@/lib/game-classification";
-import { splitGenres, topLevelGenresFor } from "@/lib/genres";
+import { splitGenres, steamTagGenreLabels, steamTagLabels, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
@@ -80,8 +80,8 @@ export function mapLiveCollections(details: CollectionDetailPayload[]): DemoColl
   const mapped = details.map(({ collection, games }) => {
     const firstGame = games[0]?.game;
     const artworkUrl = collectionBanner(collection.name) ||
-      firstGame?.header_url ||
-      (firstGame?.steam_appid ? steamHeaderImage(firstGame.steam_appid) : "/assets/vault/vault-stage-open.png");
+      (firstGame?.steam_appid ? steamHeaderImage(firstGame.steam_appid) : firstGame?.header_url) ||
+      "/assets/vault/vault-stage-open.png";
 
     return {
       id: collection.id,
@@ -112,9 +112,11 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
 
   return games.map((game) => {
     const genres = normaliseGenres(game);
+    const sourceTags = steamTagLabels(game.steam_tags);
     const moodScores = deriveMoodScores([
       ...splitGenres(game.genre),
-      ...topLevelGenresFor(game.genre, game.title)
+      ...topLevelGenresFor(game.genre, game.title),
+      ...sourceTags
     ]);
     return {
       id: game.id,
@@ -123,17 +125,19 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       ownership: game.ownership,
       status: game.status === "Sampled" ? "In Progress" : game.status,
       hoursPlayed: Number(game.hours_played || 0),
-      completionPercent: game.status === "Completed"
-        ? Number(game.completion_percentage || 0)
-        : gameProgress(game),
+      completionPercent: gameProgress(game),
       priority: normalisePriority(game.priority),
       genres,
       description:
         game.notes?.trim() ||
         `${genres.slice(0, 2).join(" / ")} pick from your live VaultShuffle library.`,
       notes: game.notes || "",
-      artworkUrl: game.capsule_url || steamCapsuleLargeImage(game.steam_appid || 753640),
-      bannerUrl: game.header_url || steamHeaderImage(game.steam_appid || 753640),
+      artworkUrl: game.steam_appid
+        ? steamCapsuleLargeImage(game.steam_appid)
+        : game.capsule_url || "/assets/vault/vault-stage-open.png",
+      bannerUrl: game.steam_appid
+        ? steamHeaderImage(game.steam_appid)
+        : game.header_url || "/assets/vault/vault-stage-open.png",
       lastPlayedLabel: game.last_played_at ? formatDateLabel(game.last_played_at) : "Not played recently",
       lastPlayedAt: game.last_played_at,
       addedLabel: game.date_added ? `Added ${game.date_added}` : "Added recently",
@@ -181,10 +185,11 @@ function formatSteamPrice(amount: number | null | undefined, currency: string | 
 }
 
 function normaliseGenres(game: Game) {
-  const split = splitGenres(game.genre);
-  const topLevel = topLevelGenresFor(game.genre, game.title);
-  const tags = [...topLevel, ...split].filter(Boolean);
-  return Array.from(new Set(tags)).slice(0, 4);
+  const canonical = splitGenres(game.genre);
+  const steamTags = steamTagGenreLabels(game.steam_tags, 8);
+  const topLevel = topLevelGenresFor([...canonical, ...steamTags].join(" / "), game.title);
+  const tags = [...topLevel, ...canonical, ...steamTags].filter(Boolean);
+  return Array.from(new Set(tags)).slice(0, 8);
 }
 
 function normalisePriority(gamePriority: Game["priority"]): DemoGame["priority"] {

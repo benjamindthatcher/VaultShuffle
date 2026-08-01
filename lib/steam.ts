@@ -6,6 +6,7 @@ export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const SEARCH_CACHE_MS = 10 * 60 * 1000;
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
 const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
+const STEAM_STORE_MIN_INTERVAL_MS = 350;
 
 type CacheEntry<T> = { expires: number; value: T };
 const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
@@ -28,6 +29,21 @@ export type SteamAppDetails = Partial<GamePayload> & {
   is_free?: boolean;
 };
 const appDetailCache = new Map<string, CacheEntry<SteamAppDetails | null>>();
+let nextSteamStoreRequestAt = 0;
+
+export class SteamAppUnavailableError extends Error {
+  constructor(appid: string) {
+    super(`Steam Store reports AppID ${appid} as unavailable.`);
+    this.name = "SteamAppUnavailableError";
+  }
+}
+
+export class SteamAppRequestError extends Error {
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+    this.name = "SteamAppRequestError";
+  }
+}
 
 export function siteBaseUrl(request?: Request) {
   const configured = process.env.NEXT_PUBLIC_SITE_URL?.trim();
@@ -149,8 +165,12 @@ export async function searchSteamStore(term: string): Promise<SteamSearchResult[
 export async function fetchSteamAppDetails(appid: string, forceRefresh = false): Promise<SteamAppDetails | null> {
   const normalizedAppId = String(appid || "").trim();
   if (!normalizedAppId) return null;
-  const details = await fetchSteamAppDetailsBatch([normalizedAppId], forceRefresh);
-  return details.get(normalizedAppId) ?? null;
+  const cached = forceRefresh ? undefined : appDetailCache.get(normalizedAppId);
+  if (cached && cached.expires > Date.now()) return cached.value;
+
+  const [, detail] = await fetchSingleSteamAppDetail(normalizedAppId);
+  appDetailCache.set(normalizedAppId, { expires: Date.now() + APP_DETAIL_CACHE_MS, value: detail });
+  return detail;
 }
 
 export function clearSteamAppDetailsCache(appids: string[]) {
@@ -295,8 +315,10 @@ export async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh =
   const chunkSize = 6;
   for (let index = 0; index < missing.length; index += chunkSize) {
     const chunk = missing.slice(index, index + chunkSize);
-    const chunkResults = await Promise.all(chunk.map(fetchSingleSteamAppDetail));
-    for (const [appid, detail] of chunkResults) {
+    const settled = await Promise.allSettled(chunk.map(fetchSingleSteamAppDetail));
+    for (const result of settled) {
+      if (result.status === "rejected") continue;
+      const [appid, detail] = result.value;
       appDetailCache.set(appid, { expires: Date.now() + APP_DETAIL_CACHE_MS, value: detail });
       if (detail) results.set(appid, detail);
     }
@@ -312,33 +334,44 @@ async function fetchSingleSteamAppDetail(appid: string): Promise<[string, SteamA
     l: "en"
   });
 
-  try {
-    const [details, reviews] = await Promise.all([
-      fetchSteamStoreAppDetail(appid, params),
-      fetchSteamReviewSummary(appid)
-    ]);
-    if (!details && !reviews) return [appid, null];
-    return [appid, { ...(details || { store: "Steam", steam_appid: appid }), ...(reviews || {}) }];
-  } catch {
-    return [appid, null];
-  }
+  // App details are authoritative. A reviews-only response must never be
+  // promoted into a partial game record because it has no title, genres or
+  // artwork and previously made healthy games look malformed during a rate
+  // limit or transient Store failure.
+  const details = await fetchSteamStoreAppDetail(appid, params);
+  const reviews = await fetchSteamReviewSummary(appid);
+  return [appid, { ...details, ...(reviews || {}) }];
 }
 
-async function fetchSteamStoreAppDetail(appid: string, params: URLSearchParams): Promise<SteamAppDetails | null> {
+async function fetchSteamStoreAppDetail(appid: string, params: URLSearchParams): Promise<SteamAppDetails> {
+  await waitForSteamStoreRateLimit();
   try {
     const response = await fetch(`https://store.steampowered.com/api/appdetails?${params.toString()}`, {
       headers: { "User-Agent": "VaultShuffle/0.1" },
-      cache: "no-store"
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000)
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) {
+      throw new SteamAppRequestError(`Steam Store app details returned HTTP ${response.status}.`);
+    }
     const payload = await response.json();
+    if (payload?.[appid]?.success === false) throw new SteamAppUnavailableError(appid);
     const data = payload?.[appid]?.data;
-    if (!data || payload?.[appid]?.success === false) return null;
+    if (!data || typeof data !== "object") {
+      throw new SteamAppRequestError("Steam Store returned an incomplete app-details response.");
+    }
     return steamDetailPayload(appid, data);
-  } catch {
-    return null;
+  } catch (error) {
+    if (error instanceof SteamAppUnavailableError || error instanceof SteamAppRequestError) throw error;
+    throw new SteamAppRequestError("Steam Store app details request failed.", { cause: error });
   }
+}
+
+async function waitForSteamStoreRateLimit() {
+  const delay = Math.max(0, nextSteamStoreRequestAt - Date.now());
+  if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+  nextSteamStoreRequestAt = Date.now() + STEAM_STORE_MIN_INTERVAL_MS;
 }
 
 async function fetchSteamReviewSummary(appid: string): Promise<SteamAppDetails | null> {
