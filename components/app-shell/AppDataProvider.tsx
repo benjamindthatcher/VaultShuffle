@@ -186,6 +186,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await api("/api/logout", { method: "POST" });
+    posthog.capture("user_signed_out");
     posthog.reset();
     window.location.assign("/login");
   }
@@ -362,6 +363,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: assigned ? JSON.stringify({ game_id: gameId }) : undefined
       });
       await load();
+      posthog.capture("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
       return;
     }
 
@@ -371,6 +373,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         ? Array.from(new Set([...game.collectionIds, collectionId]))
         : game.collectionIds.filter((id) => id !== collectionId)
     } : game));
+    posthog.capture("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
   }
 
   async function removeGame(gameId: string) {
@@ -428,9 +431,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
       setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [event, ...draw.events] } : draw));
+      posthog.capture("vault_draw_action", { action: eventType });
       return;
     }
     setGuestVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [{ id: crypto.randomUUID(), drawId, eventType, createdAt: new Date().toISOString() }, ...draw.events] } : draw));
+    posthog.capture("vault_draw_action", { action: eventType });
   }
 
   async function clearVaultHistory() {
