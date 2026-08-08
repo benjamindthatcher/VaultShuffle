@@ -216,7 +216,6 @@ async function persistSteamCatalogueDetails(
     header_url: details.header_url || null,
     review_positive: reviewPositive,
     review_negative: Math.max(0, reviewTotal - reviewPositive),
-    review_total: reviewTotal,
     price_currency: isUsd ? "USD" : null,
     price_initial: isUsd ? details.price_initial ?? null : null,
     price_final: isUsd ? details.price_final ?? null : null,
