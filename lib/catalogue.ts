@@ -78,7 +78,11 @@ export async function queueStaleCatalogueMetadata(limit = 100) {
   return Number(data || 0);
 }
 
-export async function processCatalogueQueue(limit = 25, restrictToAppIds?: number[]) {
+export async function processCatalogueQueue(
+  limit = 25,
+  restrictToAppIds?: number[],
+  deadlineAt = Number.POSITIVE_INFINITY
+) {
   const supabase = getSupabaseAdmin();
   const appIds = restrictToAppIds?.length ? uniqueNumericAppIds(restrictToAppIds) : null;
   const { data, error } = await supabase.rpc("claim_catalogue_ingest_jobs", {
@@ -87,15 +91,36 @@ export async function processCatalogueQueue(limit = 25, restrictToAppIds?: numbe
   });
   if (error) throw error;
   const rows = (data ?? []) as CatalogueQueueRow[];
-  if (!rows.length) return { processed: 0, accepted: 0, rejected: 0 };
-  const manualDecisions = await loadManualQuarantineDecisions(
-    supabase,
-    rows.map((row) => row.steam_appid)
-  );
+  if (!rows.length) {
+    return { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0 };
+  }
+  let manualDecisions: Awaited<ReturnType<typeof loadManualQuarantineDecisions>>;
+  try {
+    manualDecisions = await loadManualQuarantineDecisions(
+      supabase,
+      rows.map((row) => row.steam_appid)
+    );
+  } catch (setupError) {
+    // Claims must not remain leased if queue setup fails before row processing
+    // begins. Releasing them here makes the batch immediately recoverable.
+    await releaseCatalogueClaims(rows.map((row) => row.steam_appid));
+    throw setupError;
+  }
 
   let accepted = 0;
   let rejected = 0;
-  for (const row of rows) {
+  let processed = 0;
+  let failed = 0;
+  let deferred = 0;
+  for (const [index, row] of rows.entries()) {
+    if (Date.now() + 20_000 >= deadlineAt) {
+      const deferredAppIds = rows.slice(index).map((pendingRow) => pendingRow.steam_appid);
+      await releaseCatalogueClaims(deferredAppIds);
+      deferred += deferredAppIds.length;
+      break;
+    }
+
+    processed += 1;
     const appid = String(row.steam_appid);
     try {
       const details = await fetchSteamAppDetails(appid);
@@ -142,6 +167,7 @@ export async function processCatalogueQueue(limit = 25, restrictToAppIds?: numbe
         processing_started_at: null, last_error: null, updated_at: now }).eq("steam_appid", row.steam_appid);
       if (readyError) throw readyError;
     } catch (error) {
+      failed += 1;
       const attempts = Number(row.attempts || 0) + 1;
       const unavailable = error instanceof SteamAppUnavailableError;
       const terminal = unavailable ? attempts >= 3 : attempts >= 5;
@@ -155,7 +181,23 @@ export async function processCatalogueQueue(limit = 25, restrictToAppIds?: numbe
       if (failureUpdateError) throw failureUpdateError;
     }
   }
-  return { processed: rows.length, accepted, rejected };
+  return { claimed: rows.length, processed, accepted, rejected, failed, deferred };
+}
+
+async function releaseCatalogueClaims(steamAppIds: number[]) {
+  if (!steamAppIds.length) return;
+  const now = new Date().toISOString();
+  const { error } = await getSupabaseAdmin()
+    .from("catalog_ingest_queue")
+    .update({
+      status: "pending",
+      processing_started_at: null,
+      next_attempt_at: now,
+      updated_at: now
+    })
+    .in("steam_appid", steamAppIds)
+    .eq("status", "processing");
+  if (error) throw error;
 }
 
 async function persistSteamCatalogueDetails(

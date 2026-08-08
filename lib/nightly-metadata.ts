@@ -17,11 +17,20 @@ export async function refreshNightlyMetadata() {
   if (!apiKey) throw new Error("STEAM_WEB_API_KEY is required for the nightly refresh.");
 
   const users = await loadSteamUsers();
+  const deadlineAt = Date.now() + 275_000;
+  const libraryDeadlineAt = Math.min(deadlineAt - 150_000, Date.now() + 90_000);
   let librariesRefreshed = 0;
+  let librariesDeferred = 0;
   let gamesRefreshed = 0;
   const failures: Array<{ userId?: string; stage: string; error: string }> = [];
 
-  for (const batch of chunks(users, 3)) {
+  for (let index = 0; index < users.length; index += 3) {
+    if (Date.now() + 20_000 >= libraryDeadlineAt) {
+      librariesDeferred = users.length - index;
+      break;
+    }
+
+    const batch = users.slice(index, index + 3);
     await Promise.all(batch.map(async (user) => {
       try {
         const ownedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
@@ -38,11 +47,11 @@ export async function refreshNightlyMetadata() {
   const steamMetadata = [];
   try {
     metadataQueued = await queueAllKnownSteamMetadata();
-    const metadataDeadline = Date.now() + 120_000;
-    for (let batch = 0; batch < 3 && Date.now() < metadataDeadline; batch += 1) {
-      const result = await processSteamMetadataQueue(40, false, metadataDeadline);
+    const metadataDeadline = Math.min(deadlineAt - 35_000, Date.now() + 150_000);
+    while (Date.now() + 5_000 < metadataDeadline) {
+      const result = await processSteamMetadataQueue(60, false, metadataDeadline);
       steamMetadata.push(result);
-      if (!result.remaining) break;
+      if (!result.claimed || !result.processed || !result.remaining || result.deferred) break;
     }
   } catch (error) {
     failures.push({ stage: "steam-app-metadata", error: errorMessage(error) });
@@ -50,12 +59,10 @@ export async function refreshNightlyMetadata() {
 
   const durations = [];
   try {
-    for (let batch = 0; batch < 3; batch += 1) {
-      // Keep the whole invocation to 48 provider lookups. The claim function
-      // supports larger manual batches, but a nightly cron should stay gentle.
-      const result = await processDurationQueue(16);
+    while (Date.now() + 25_000 < deadlineAt) {
+      const result = await processDurationQueue(16, deadlineAt);
       durations.push(result);
-      if (!result.claimed) break;
+      if (!result.claimed || result.deferred) break;
     }
   } catch (error) {
     failures.push({ stage: "durations", error: errorMessage(error) });
@@ -64,6 +71,7 @@ export async function refreshNightlyMetadata() {
   return {
     users: users.length,
     librariesRefreshed,
+    librariesDeferred,
     gamesRefreshed,
     metadataQueued,
     steamMetadata,
@@ -94,10 +102,4 @@ async function loadSteamUsers() {
   }
 
   return users;
-}
-
-function chunks<T>(values: T[], size: number) {
-  const result: T[][] = [];
-  for (let index = 0; index < values.length; index += size) result.push(values.slice(index, index + size));
-  return result;
 }

@@ -6,6 +6,8 @@ import { fetchOwnedSteamGames } from "@/lib/steam";
 import { enrichSteamMetadataForUser } from "@/lib/steam-metadata";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
+export const maxDuration = 60;
+
 export async function POST() {
   return importLibrary();
 }
@@ -34,9 +36,10 @@ async function importLibrary() {
     // Metadata and catalogue enrichment are useful, but they must not delay the
     // sign-in/import response. They continue after the updated library is saved.
     after(async () => {
+      const deadlineAt = Date.now() + 45_000;
       await Promise.allSettled([
-        processCatalogueQueue(50, importedAppIds.map(Number)),
-        enrichSteamMetadataForUser(user.id, 50, false)
+        processCatalogueQueue(20, importedAppIds.map(Number), deadlineAt),
+        enrichSteamMetadataForUser(user.id, 20, false, false, deadlineAt)
       ]);
     });
 

@@ -73,8 +73,10 @@ function containsPartialResult(value: unknown): boolean {
 
   const record = value as Record<string, unknown>;
   if (Array.isArray(record.failures) && record.failures.length > 0) return true;
-  for (const key of ["failed", "failures", "retried", "deferred"]) {
-    if (typeof record[key] === "number" && record[key] > 0) return true;
+  for (const [key, count] of Object.entries(record)) {
+    const partialCount = ["failed", "failures", "retried", "deferred"].includes(key)
+      || key.toLowerCase().endsWith("deferred");
+    if (partialCount && typeof count === "number" && count > 0) return true;
   }
   return Object.values(record).some(containsPartialResult);
 }

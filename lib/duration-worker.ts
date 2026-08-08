@@ -7,7 +7,10 @@ type DurationJob = { steam_app_id: number; attempts: number };
 
 const MAX_ATTEMPTS = 5;
 
-export async function processDurationQueue(limit = 8) {
+export async function processDurationQueue(
+  limit = 8,
+  deadlineAt = Number.POSITIVE_INFINITY
+) {
   const clientId = process.env.IGDB_CLIENT_ID;
   const clientSecret = process.env.IGDB_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new Error("Duration provider is not configured.");
@@ -23,9 +26,16 @@ export async function processDurationQueue(limit = 8) {
 
   const provider = new IgdbDurationProvider(clientId, clientSecret);
   const jobs = (data ?? []) as DurationJob[];
-  const summary = { claimed: jobs.length, matched: 0, noDuration: 0, notFound: 0, ambiguous: 0, retried: 0, failed: 0 };
+  const summary = { claimed: jobs.length, matched: 0, noDuration: 0, notFound: 0, ambiguous: 0, retried: 0, failed: 0, deferred: 0 };
 
-  for (const job of jobs) {
+  for (const [index, job] of jobs.entries()) {
+    if (Date.now() + 25_000 >= deadlineAt) {
+      const deferredAppIds = jobs.slice(index).map((pendingJob) => pendingJob.steam_app_id);
+      await releaseDurationClaims(deferredAppIds, workerId);
+      summary.deferred += deferredAppIds.length;
+      break;
+    }
+
     try {
       const [{ data: catalogue }, { data: alias }] = await Promise.all([
         supabase.from("catalog_games").select("name,release_date").eq("steam_appid", job.steam_app_id).maybeSingle(),
@@ -89,4 +99,22 @@ export async function processDurationQueue(limit = 8) {
   }
 
   return summary;
+}
+
+async function releaseDurationClaims(steamAppIds: number[], workerId: string) {
+  if (!steamAppIds.length) return;
+  const now = new Date().toISOString();
+  const { error } = await getSupabaseAdmin()
+    .from("game_duration_jobs")
+    .update({
+      status: "retry",
+      next_attempt_at: now,
+      locked_at: null,
+      locked_by: null,
+      updated_at: now
+    })
+    .in("steam_app_id", steamAppIds)
+    .eq("status", "processing")
+    .eq("locked_by", workerId);
+  if (error) throw error;
 }

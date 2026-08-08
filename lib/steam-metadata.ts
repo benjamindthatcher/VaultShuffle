@@ -179,7 +179,13 @@ export async function queueSteamMetadata(appIds: string[]) {
   return rows.length;
 }
 
-export async function enrichSteamMetadataForUser(userId: string, limit = 12, force = false, wishlistOnly = false) {
+export async function enrichSteamMetadataForUser(
+  userId: string,
+  limit = 12,
+  force = false,
+  wishlistOnly = false,
+  deadlineAt = Number.POSITIVE_INFINITY
+) {
   const supabase = getSupabaseAdmin();
   let gameQuery = supabase
     .from("games")
@@ -218,7 +224,7 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
     if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
   }
 
-  return processSteamMetadataQueue(limit, force, Number.POSITIVE_INFINITY, appIds);
+  return processSteamMetadataQueue(limit, force, deadlineAt, appIds);
 }
 
 export async function queueAllKnownSteamMetadata() {

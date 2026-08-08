@@ -6,6 +6,8 @@ import { fetchPublicSteamWishlist } from "@/lib/steam";
 import { enrichSteamMetadataForUser } from "@/lib/steam-metadata";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
+export const maxDuration = 60;
+
 export async function POST() {
   try {
     const { user } = await requireSession();
@@ -24,9 +26,10 @@ export async function POST() {
     const result = await upsertSteamWishlistGames(user.id, wishlist);
 
     after(async () => {
+      const deadlineAt = Date.now() + 45_000;
       await Promise.allSettled([
-        processCatalogueQueue(50, appIds.map(Number)),
-        enrichSteamMetadataForUser(user.id, 50, false, true)
+        processCatalogueQueue(20, appIds.map(Number), deadlineAt),
+        enrichSteamMetadataForUser(user.id, 20, false, true, deadlineAt)
       ]);
     });
 

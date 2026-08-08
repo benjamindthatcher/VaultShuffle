@@ -10,12 +10,27 @@ export async function GET(request: Request) {
   }
 
   try {
-    // Steam's store endpoint is intentionally processed sequentially. Keep a
-    // conservative ceiling so one slow upstream response cannot consume the
-    // whole function window or overlap the next worker lease.
     const result = await withMetadataWorkerRun("catalogue-metadata", async () => {
-      const queued = await queueStaleCatalogueMetadata(60);
-      return { queued, ...await processCatalogueQueue(60) };
+      const deadlineAt = Date.now() + 275_000;
+      const queued = await queueStaleCatalogueMetadata(250);
+      const totals = { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0 };
+      let batches = 0;
+
+      // Steam's store endpoint remains sequential, but the cron now claims
+      // another batch whenever time remains instead of stopping after 60.
+      while (Date.now() + 20_000 < deadlineAt) {
+        const batch = await processCatalogueQueue(50, undefined, deadlineAt);
+        batches += 1;
+        totals.claimed += batch.claimed;
+        totals.processed += batch.processed;
+        totals.accepted += batch.accepted;
+        totals.rejected += batch.rejected;
+        totals.failed += batch.failed;
+        totals.deferred += batch.deferred;
+        if (!batch.claimed || !batch.processed || batch.deferred) break;
+      }
+
+      return { queued, batches, ...totals };
     });
     return NextResponse.json(result);
   } catch (error) {
