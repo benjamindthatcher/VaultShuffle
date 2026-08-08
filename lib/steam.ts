@@ -6,7 +6,10 @@ export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const SEARCH_CACHE_MS = 10 * 60 * 1000;
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
 const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
-const STEAM_STORE_MIN_INTERVAL_MS = 350;
+// Steam's public Store endpoint is sensitive to short bursts, particularly
+// from shared cloud egress addresses. Reserve request slots up front so
+// concurrent metadata jobs are spaced out instead of waking together.
+const STEAM_STORE_MIN_INTERVAL_MS = 650;
 
 type CacheEntry<T> = { expires: number; value: T };
 const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
@@ -369,9 +372,11 @@ async function fetchSteamStoreAppDetail(appid: string, params: URLSearchParams):
 }
 
 async function waitForSteamStoreRateLimit() {
-  const delay = Math.max(0, nextSteamStoreRequestAt - Date.now());
+  const now = Date.now();
+  const requestAt = Math.max(now, nextSteamStoreRequestAt);
+  nextSteamStoreRequestAt = requestAt + STEAM_STORE_MIN_INTERVAL_MS;
+  const delay = requestAt - now;
   if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
-  nextSteamStoreRequestAt = Date.now() + STEAM_STORE_MIN_INTERVAL_MS;
 }
 
 async function fetchSteamReviewSummary(appid: string): Promise<SteamAppDetails | null> {

@@ -175,7 +175,7 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
   if (!pendingRows.length) return { processed: 0, updated: 0, remaining: 0 };
 
   let updated = 0;
-  for (const chunk of chunks(pendingRows, 4)) {
+  for (const chunk of chunks(pendingRows, 2)) {
     const results = await Promise.allSettled(
       chunk.map((row) => fetchAndStoreMetadata(row.steam_appid, force, Number(row.failure_count || 0)))
     );
@@ -241,7 +241,7 @@ export async function processSteamMetadataQueue(limit = 60, force = false) {
   const rows = (data ?? []) as SteamMetadataRow[];
   let updated = 0;
   let failed = 0;
-  for (const chunk of chunks(rows, 4)) {
+  for (const chunk of chunks(rows, 2)) {
     const results = await Promise.allSettled(
       chunk.map((row) => fetchAndStoreMetadata(row.steam_appid, force, Number(row.failure_count || 0)))
     );

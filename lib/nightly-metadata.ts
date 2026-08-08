@@ -39,8 +39,8 @@ export async function refreshNightlyMetadata() {
   try {
     metadataQueued = await queueAllKnownSteamMetadata();
     const metadataDeadline = Date.now() + 120_000;
-    for (let batch = 0; batch < 4 && Date.now() < metadataDeadline; batch += 1) {
-      const result = await processSteamMetadataQueue(100, false);
+    for (let batch = 0; batch < 3 && Date.now() < metadataDeadline; batch += 1) {
+      const result = await processSteamMetadataQueue(40, false);
       steamMetadata.push(result);
       if (!result.remaining) break;
     }
