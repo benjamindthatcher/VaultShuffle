@@ -4,7 +4,6 @@ import { hasStrongReplayabilitySignals } from "@/lib/game-classification";
 const STEAMSPY_MIN_INTERVAL_MS = 1_100;
 const TAG_REFRESH_AFTER_MS = 30 * 24 * 60 * 60 * 1_000;
 const FAILED_RETRY_AFTER_MS = 7 * 24 * 60 * 60 * 1_000;
-const STALE_PROCESSING_AFTER_MS = 15 * 60 * 1_000;
 
 type SteamTagQueueRow = {
   steam_appid: number;
@@ -16,8 +15,6 @@ type SteamTagQueueRow = {
   completionist_minutes: number | null;
   duration_kind: "finite" | "endless" | "not-applicable" | "unknown" | null;
 };
-
-const TAG_QUEUE_COLUMNS = "steam_appid, tags_failure_count, genres, categories, main_story_minutes, main_extras_minutes, completionist_minutes, duration_kind";
 
 let nextSteamSpyRequestAt = 0;
 
@@ -61,50 +58,11 @@ export async function queueAllKnownSteamTags() {
 
 export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() + 270_000) {
   const supabase = getSupabaseAdmin();
-  const now = new Date();
-  const staleBefore = new Date(now.getTime() - STALE_PROCESSING_AFTER_MS).toISOString();
-
-  const { error: recoveryError } = await supabase
-    .from("catalog_games")
-    .update({
-      tags_status: "pending",
-      tags_processing_started_at: null,
-      tags_next_attempt_at: now.toISOString(),
-      tags_last_error: "Recovered an expired Steam tag worker lease.",
-      updated_at: now.toISOString()
-    })
-    .eq("tags_status", "processing")
-    .lt("tags_processing_started_at", staleBefore);
-  if (recoveryError) throw recoveryError;
-
-  const { data, error } = await supabase
-    .from("catalog_games")
-    .select(TAG_QUEUE_COLUMNS)
-    .eq("tags_status", "pending")
-    .or(`tags_next_attempt_at.is.null,tags_next_attempt_at.lte.${now.toISOString()}`)
-    .order("tags_fetched_at", { ascending: true, nullsFirst: true })
-    .order("steam_appid", { ascending: true })
-    .limit(clamp(limit, 1, 220));
+  const { data, error } = await supabase.rpc("claim_steam_tag_jobs", {
+    p_limit: clamp(limit, 1, 220)
+  });
   if (error) throw error;
-
-  const candidates = (data ?? []) as SteamTagQueueRow[];
-  const rows: SteamTagQueueRow[] = [];
-  for (const candidate of candidates) {
-    const claimedAt = new Date().toISOString();
-    const { data: claimed, error: claimError } = await supabase
-      .from("catalog_games")
-      .update({
-        tags_status: "processing",
-        tags_processing_started_at: claimedAt,
-        updated_at: claimedAt
-      })
-      .eq("steam_appid", candidate.steam_appid)
-      .eq("tags_status", "pending")
-      .select(TAG_QUEUE_COLUMNS)
-      .maybeSingle();
-    if (claimError) throw claimError;
-    if (claimed) rows.push(claimed as SteamTagQueueRow);
-  }
+  const rows = (data ?? []) as SteamTagQueueRow[];
 
   let updated = 0;
   let failed = 0;

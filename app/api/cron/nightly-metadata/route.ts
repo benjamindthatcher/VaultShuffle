@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { refreshNightlyMetadata } from "@/lib/nightly-metadata";
+import { withMetadataWorkerRun } from "@/lib/worker-runs";
 
 export const maxDuration = 300;
 
@@ -9,7 +10,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    return NextResponse.json(await refreshNightlyMetadata());
+    return NextResponse.json(await withMetadataWorkerRun("nightly-metadata", refreshNightlyMetadata));
   } catch (error) {
     console.error("Nightly metadata refresh failed.", error);
     return NextResponse.json({ error: "Nightly metadata refresh failed." }, { status: 500 });

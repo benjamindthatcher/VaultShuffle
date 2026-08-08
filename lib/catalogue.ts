@@ -80,45 +80,14 @@ export async function queueStaleCatalogueMetadata(limit = 100) {
 
 export async function processCatalogueQueue(limit = 25, restrictToAppIds?: number[]) {
   const supabase = getSupabaseAdmin();
-  const now = new Date();
-  const staleBefore = new Date(now.getTime() - 15 * 60_000).toISOString();
-  const { error: recoveryError } = await supabase
-    .from("catalog_ingest_queue")
-    .update({
-      status: "pending",
-      processing_started_at: null,
-      next_attempt_at: now.toISOString(),
-      last_error: "Recovered an expired catalogue worker lease.",
-      updated_at: now.toISOString()
-    })
-    .eq("status", "processing")
-    .lt("processing_started_at", staleBefore);
-  if (recoveryError) throw recoveryError;
-
-  let query = supabase.from("catalog_ingest_queue").select("steam_appid, attempts").eq("status", "pending")
-    .or(`next_attempt_at.is.null,next_attempt_at.lte.${now.toISOString()}`)
-    .order("priority", { ascending: false }).order("first_requested_at", { ascending: true }).limit(clamp(limit, 1, 100));
-  if (restrictToAppIds?.length) query = query.in("steam_appid", restrictToAppIds);
-  const { data, error } = await query;
+  const appIds = restrictToAppIds?.length ? uniqueNumericAppIds(restrictToAppIds) : null;
+  const { data, error } = await supabase.rpc("claim_catalogue_ingest_jobs", {
+    p_limit: clamp(limit, 1, 100),
+    p_appids: appIds
+  });
   if (error) throw error;
-  const candidates = (data ?? []) as CatalogueQueueRow[];
-  if (!candidates.length) return { processed: 0, accepted: 0, rejected: 0 };
-
-  // Claim each item optimistically. Concurrent workers may read the same candidate
-  // list, but only one can transition an item from pending to processing.
-  const claims = await Promise.all(candidates.map(async (row) => {
-    const claimedAt = new Date().toISOString();
-    const { data: claimed, error: claimError } = await supabase
-      .from("catalog_ingest_queue")
-      .update({ status: "processing", processing_started_at: claimedAt, updated_at: claimedAt })
-      .eq("steam_appid", row.steam_appid)
-      .eq("status", "pending")
-      .select("steam_appid, attempts")
-      .maybeSingle();
-    if (claimError) throw claimError;
-    return claimed as CatalogueQueueRow | null;
-  }));
-  const rows = claims.filter((row): row is CatalogueQueueRow => Boolean(row));
+  const rows = (data ?? []) as CatalogueQueueRow[];
+  if (!rows.length) return { processed: 0, accepted: 0, rejected: 0 };
   const manualDecisions = await loadManualQuarantineDecisions(
     supabase,
     rows.map((row) => row.steam_appid)
@@ -299,7 +268,7 @@ function automaticExclusionReason(matchedRule: string) {
   return "The Steam title identifies this AppID as a beta, PTR, playtest, or other test environment.";
 }
 
-function uniqueNumericAppIds(appIds: string[]) {
+function uniqueNumericAppIds(appIds: Array<string | number>) {
   return [...new Set(appIds.map(Number).filter((appid) => Number.isSafeInteger(appid) && appid > 0))];
 }
 function normalizeName(value: string) { return value.normalize("NFKD").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim(); }

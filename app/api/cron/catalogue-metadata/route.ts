@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { processCatalogueQueue, queueStaleCatalogueMetadata } from "@/lib/catalogue";
+import { withMetadataWorkerRun } from "@/lib/worker-runs";
 
 export const maxDuration = 300;
 
@@ -12,9 +13,11 @@ export async function GET(request: Request) {
     // Steam's store endpoint is intentionally processed sequentially. Keep a
     // conservative ceiling so one slow upstream response cannot consume the
     // whole function window or overlap the next worker lease.
-    const queued = await queueStaleCatalogueMetadata(60);
-    const result = await processCatalogueQueue(60);
-    return NextResponse.json({ queued, ...result });
+    const result = await withMetadataWorkerRun("catalogue-metadata", async () => {
+      const queued = await queueStaleCatalogueMetadata(60);
+      return { queued, ...await processCatalogueQueue(60) };
+    });
+    return NextResponse.json(result);
   } catch (error) {
     console.error("Shared Steam catalogue refresh failed.", error);
     return NextResponse.json({ error: "Shared Steam catalogue refresh failed." }, { status: 500 });

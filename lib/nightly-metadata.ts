@@ -40,7 +40,7 @@ export async function refreshNightlyMetadata() {
     metadataQueued = await queueAllKnownSteamMetadata();
     const metadataDeadline = Date.now() + 120_000;
     for (let batch = 0; batch < 3 && Date.now() < metadataDeadline; batch += 1) {
-      const result = await processSteamMetadataQueue(40, false);
+      const result = await processSteamMetadataQueue(40, false, metadataDeadline);
       steamMetadata.push(result);
       if (!result.remaining) break;
     }
@@ -51,7 +51,9 @@ export async function refreshNightlyMetadata() {
   const durations = [];
   try {
     for (let batch = 0; batch < 3; batch += 1) {
-      const result = await processDurationQueue(48);
+      // Keep the whole invocation to 48 provider lookups. The claim function
+      // supports larger manual batches, but a nightly cron should stay gentle.
+      const result = await processDurationQueue(16);
       durations.push(result);
       if (!result.claimed) break;
     }

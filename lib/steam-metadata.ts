@@ -1,5 +1,9 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { clearSteamAppDetailsCache, fetchSteamAppDetails } from "@/lib/steam";
+import {
+  clearSteamAppDetailsCache,
+  fetchSteamAppDetails,
+  SteamAppUnavailableError
+} from "@/lib/steam";
 import type { SteamAppDetails } from "@/lib/steam";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel, steamTagGenreLabels } from "@/lib/genres";
@@ -20,14 +24,20 @@ type SteamMetadataRow = {
   price_final: number | null;
   discount_percent: number | null;
   is_free: boolean;
-  status: "pending" | "ready" | "failed";
+  status: "pending" | "processing" | "ready" | "failed";
   checked_at: string | null;
   failure_count?: number | null;
+  next_attempt_at?: string | null;
+  processing_started_at?: string | null;
 };
 
 const UNKNOWN_GENRES = new Set(["", "Unknown"]);
 const METADATA_RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
 const METADATA_REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
+const METADATA_DEADLINE_GUARD_MS = 1_500;
+const MAX_METADATA_FAILURES = 6;
+
+type SteamMetadataOutcome = "updated" | "deferred" | "failed";
 
 export async function applyCachedSteamMetadata<T extends GamePayload | Game>(games: T[]): Promise<T[]> {
   const appIds = steamAppIds(games);
@@ -103,31 +113,66 @@ export async function queueSteamMetadata(appIds: string[]) {
   if (!uniqueAppIds.length) return 0;
 
   const supabase = getSupabaseAdmin();
-  const rows = uniqueAppIds.map((steam_appid) => ({ steam_appid, status: "pending" }));
-  const { error } = await supabase
+  const now = new Date().toISOString();
+  const rows = uniqueAppIds.map((steam_appid) => ({
+    steam_appid,
+    status: "pending",
+    next_attempt_at: now
+  }));
+  let { error } = await supabase
     .from("steam_app_metadata")
     .upsert(rows, { onConflict: "steam_appid", ignoreDuplicates: true });
+
+  // Allow a rolling deployment where application code briefly arrives before
+  // the queue lease migration.
+  if (isMissingWorkerLeaseSupport(error)) {
+    ({ error } = await supabase
+      .from("steam_app_metadata")
+      .upsert(
+        uniqueAppIds.map((steam_appid) => ({ steam_appid, status: "pending" })),
+        { onConflict: "steam_appid", ignoreDuplicates: true }
+      ));
+  }
 
   if (isMissingMetadataTable(error)) return 0;
   if (error) throw error;
 
-  const retryBefore = new Date(Date.now() - METADATA_RETRY_AFTER_MS).toISOString();
-  const { error: retryError } = await supabase
+  let { error: retryError } = await supabase
     .from("steam_app_metadata")
-    .update({ status: "pending", last_error: null })
+    .update({ status: "pending", processing_started_at: null })
     .in("steam_appid", uniqueAppIds)
     .eq("status", "failed")
-    .lt("checked_at", retryBefore);
+    .lt("failure_count", MAX_METADATA_FAILURES)
+    .lte("next_attempt_at", now);
+
+  if (isMissingWorkerLeaseSupport(retryError)) {
+    const retryBefore = new Date(Date.now() - METADATA_RETRY_AFTER_MS).toISOString();
+    ({ error: retryError } = await supabase
+      .from("steam_app_metadata")
+      .update({ status: "pending", last_error: null })
+      .in("steam_appid", uniqueAppIds)
+      .eq("status", "failed")
+      .lt("checked_at", retryBefore));
+  }
 
   if (retryError && !isMissingMetadataTable(retryError)) throw retryError;
 
   const refreshBefore = new Date(Date.now() - METADATA_REFRESH_AFTER_MS).toISOString();
-  const { error: refreshError } = await supabase
+  let { error: refreshError } = await supabase
     .from("steam_app_metadata")
-    .update({ status: "pending", last_error: null })
+    .update({ status: "pending", next_attempt_at: now, processing_started_at: null })
     .in("steam_appid", uniqueAppIds)
     .eq("status", "ready")
     .lt("checked_at", refreshBefore);
+
+  if (isMissingWorkerLeaseSupport(refreshError)) {
+    ({ error: refreshError } = await supabase
+      .from("steam_app_metadata")
+      .update({ status: "pending", last_error: null })
+      .in("steam_appid", uniqueAppIds)
+      .eq("status", "ready")
+      .lt("checked_at", refreshBefore));
+  }
 
   if (refreshError && !isMissingMetadataTable(refreshError)) throw refreshError;
 
@@ -152,49 +197,28 @@ export async function enrichSteamMetadataForUser(userId: string, limit = 12, for
   await queueSteamMetadata(appIds);
   if (force) {
     clearSteamAppDetailsCache(appIds);
-    const { error: forceError } = await supabase
+    let { error: forceError } = await supabase
       .from("steam_app_metadata")
-      .update({ status: "pending", last_error: null })
+      .update({
+        status: "pending",
+        failure_count: 0,
+        last_error: null,
+        next_attempt_at: new Date().toISOString(),
+        processing_started_at: null
+      })
       .in("steam_appid", appIds);
+
+    if (isMissingWorkerLeaseSupport(forceError)) {
+      ({ error: forceError } = await supabase
+        .from("steam_app_metadata")
+        .update({ status: "pending", failure_count: 0, last_error: null })
+        .in("steam_appid", appIds));
+    }
 
     if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
   }
 
-  const { data: pendingData, error: pendingError } = await supabase
-    .from("steam_app_metadata")
-    .select("steam_appid, status, checked_at, failure_count")
-    .in("steam_appid", appIds)
-    .eq("status", "pending")
-    .order("checked_at", { ascending: true, nullsFirst: true })
-    .limit(clampLimit(limit));
-
-  if (isMissingMetadataTable(pendingError)) return { processed: 0, updated: 0, remaining: 0 };
-  if (pendingError) throw pendingError;
-
-  const pendingRows = (pendingData ?? []) as SteamMetadataRow[];
-  if (!pendingRows.length) return { processed: 0, updated: 0, remaining: 0 };
-
-  let updated = 0;
-  for (const chunk of chunks(pendingRows, 2)) {
-    const results = await Promise.allSettled(
-      chunk.map((row) => fetchAndStoreMetadata(row.steam_appid, force, Number(row.failure_count || 0)))
-    );
-    updated += results.filter((result) => result.status === "fulfilled" && result.value).length;
-  }
-
-  const { count, error: countError } = await supabase
-    .from("steam_app_metadata")
-    .select("steam_appid", { count: "exact", head: true })
-    .in("steam_appid", appIds)
-    .eq("status", "pending");
-
-  if (countError && !isMissingMetadataTable(countError)) throw countError;
-
-  return {
-    processed: pendingRows.length,
-    updated,
-    remaining: count ?? 0
-  };
+  return processSteamMetadataQueue(limit, force, Number.POSITIVE_INFINITY, appIds);
 }
 
 export async function queueAllKnownSteamMetadata() {
@@ -228,57 +252,230 @@ export async function queueAllKnownSteamMetadata() {
   return ids.length;
 }
 
-export async function processSteamMetadataQueue(limit = 60, force = false) {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("steam_app_metadata")
-    .select("steam_appid, status, checked_at, failure_count")
-    .eq("status", "pending")
-    .order("checked_at", { ascending: true, nullsFirst: true })
-    .limit(clampLimit(limit));
-  if (error) throw error;
-
-  const rows = (data ?? []) as SteamMetadataRow[];
+export async function processSteamMetadataQueue(
+  limit = 60,
+  force = false,
+  deadlineMs = Number.POSITIVE_INFINITY,
+  appIds: string[] | null = null
+) {
+  const rows = await claimSteamMetadataJobs(clampLimit(limit), appIds);
   let updated = 0;
   let failed = 0;
-  for (const chunk of chunks(rows, 2)) {
+  let deferred = 0;
+  let processed = 0;
+
+  for (let index = 0; index < rows.length; index += 2) {
+    if (Date.now() + METADATA_DEADLINE_GUARD_MS >= deadlineMs) {
+      await releaseSteamMetadataClaims(rows.slice(index).map((row) => row.steam_appid));
+      break;
+    }
+
+    const chunk = rows.slice(index, index + 2);
     const results = await Promise.allSettled(
       chunk.map((row) => fetchAndStoreMetadata(row.steam_appid, force, Number(row.failure_count || 0)))
     );
-    updated += results.filter((result) => result.status === "fulfilled" && result.value).length;
-    failed += results.filter((result) => result.status === "rejected" || !result.value).length;
+    processed += results.length;
+    const rejectedAppIds: string[] = [];
+
+    results.forEach((result, resultIndex) => {
+      if (result.status === "rejected") {
+        const steamAppId = chunk[resultIndex]?.steam_appid;
+        failed += 1;
+        if (steamAppId) rejectedAppIds.push(steamAppId);
+        console.error(
+          `Steam metadata worker failed unexpectedly for app ${steamAppId ?? "unknown"}:`,
+          result.reason
+        );
+        return;
+      }
+
+      if (result.value === "updated") updated += 1;
+      else if (result.value === "deferred") deferred += 1;
+      else failed += 1;
+    });
+
+    if (rejectedAppIds.length) {
+      try {
+        await releaseSteamMetadataClaims(rejectedAppIds);
+      } catch (releaseError) {
+        // The lease expiry remains the final recovery path if the database is
+        // unavailable while we try to release an unexpectedly failed claim.
+        console.error("Failed to release rejected Steam metadata claims:", releaseError);
+      }
+    }
   }
 
-  const { count, error: countError } = await supabase
+  const remaining = await countPendingSteamMetadata(appIds);
+  return { claimed: rows.length, processed, updated, deferred, failed, remaining };
+}
+
+async function claimSteamMetadataJobs(limit: number, appIds: string[] | null) {
+  const supabase = getSupabaseAdmin();
+  const scopedAppIds = appIds ? uniqueSteamAppIds(appIds) : null;
+  const { data, error } = await supabase.rpc("claim_steam_metadata_jobs", {
+    p_limit: limit,
+    p_app_ids: scopedAppIds
+  });
+
+  if (!error) return (data ?? []) as Pick<SteamMetadataRow, "steam_appid" | "failure_count" | "checked_at">[];
+  if (!isMissingClaimFunction(error) && !isMissingWorkerLeaseSupport(error)) throw error;
+
+  // Compatibility path for a rolling deployment. The migration replaces this
+  // non-atomic select with a proper leased claim as soon as it is available.
+  let query = supabase
+    .from("steam_app_metadata")
+    .select("steam_appid, failure_count, checked_at")
+    .eq("status", "pending")
+    .order("checked_at", { ascending: true, nullsFirst: true })
+    .limit(limit);
+  if (scopedAppIds?.length) query = query.in("steam_appid", scopedAppIds);
+  const { data: legacyRows, error: legacyError } = await query;
+  if (isMissingMetadataTable(legacyError)) return [];
+  if (legacyError) throw legacyError;
+  return (legacyRows ?? []) as Pick<SteamMetadataRow, "steam_appid" | "failure_count" | "checked_at">[];
+}
+
+async function releaseSteamMetadataClaims(appIds: string[]) {
+  const ids = uniqueSteamAppIds(appIds);
+  if (!ids.length) return;
+
+  const { error } = await getSupabaseAdmin()
+    .from("steam_app_metadata")
+    .update({
+      status: "pending",
+      processing_started_at: null,
+      next_attempt_at: new Date().toISOString()
+    })
+    .in("steam_appid", ids)
+    .eq("status", "processing");
+  if (error && !isMissingWorkerLeaseSupport(error) && !isMissingMetadataTable(error)) throw error;
+}
+
+async function countPendingSteamMetadata(appIds: string[] | null) {
+  const supabase = getSupabaseAdmin();
+  const scopedAppIds = appIds ? uniqueSteamAppIds(appIds) : null;
+  let query = supabase
+    .from("steam_app_metadata")
+    .select("steam_appid", { count: "exact", head: true })
+    .in("status", ["pending", "processing"]);
+  if (scopedAppIds?.length) query = query.in("steam_appid", scopedAppIds);
+  const { count, error } = await query;
+  if (!error) return count ?? 0;
+  if (!isMissingWorkerLeaseSupport(error)) {
+    if (isMissingMetadataTable(error)) return 0;
+    throw error;
+  }
+
+  let legacyQuery = supabase
     .from("steam_app_metadata")
     .select("steam_appid", { count: "exact", head: true })
     .eq("status", "pending");
-  if (countError) throw countError;
-  return { processed: rows.length, updated, failed, remaining: count ?? 0 };
+  if (scopedAppIds?.length) legacyQuery = legacyQuery.in("steam_appid", scopedAppIds);
+  const { count: legacyCount, error: legacyError } = await legacyQuery;
+  if (isMissingMetadataTable(legacyError)) return 0;
+  if (legacyError) throw legacyError;
+  return legacyCount ?? 0;
 }
 
-async function fetchAndStoreMetadata(appid: string, forceRefresh = false, previousFailureCount = 0) {
-  const supabase = getSupabaseAdmin();
+async function storeSteamMetadataFailure(
+  appid: string,
+  previousFailureCount: number,
+  error: unknown,
+  permanent = false
+): Promise<SteamMetadataOutcome> {
+  const failureCount = Math.max(0, previousFailureCount) + 1;
+  const terminal = permanent || failureCount >= MAX_METADATA_FAILURES;
   const checkedAt = new Date().toISOString();
-  let details: Awaited<ReturnType<typeof fetchSteamAppDetails>>;
-  try {
-    details = await fetchSteamAppDetails(appid, forceRefresh);
-  } catch (error) {
-    const failureCount = previousFailureCount + 1;
-    const { error: updateError } = await supabase
+  const lastError = metadataErrorMessage(error);
+  const nextAttemptAt = terminal
+    ? null
+    : new Date(Date.now() + metadataRetryDelayMs(error, failureCount, appid)).toISOString();
+  const supabase = getSupabaseAdmin();
+
+  let { error: updateError } = await supabase
+    .from("steam_app_metadata")
+    .update({
+      status: terminal ? "failed" : "pending",
+      failure_count: failureCount,
+      last_error: lastError,
+      checked_at: checkedAt,
+      next_attempt_at: nextAttemptAt,
+      processing_started_at: null
+    })
+    .eq("steam_appid", appid);
+
+  if (isMissingWorkerLeaseSupport(updateError)) {
+    // The legacy schema has no due timestamp, so its existing checked_at based
+    // retry path expects failures to stay in the failed state.
+    ({ error: updateError } = await supabase
       .from("steam_app_metadata")
       .update({
         status: "failed",
-        checked_at: checkedAt,
         failure_count: failureCount,
-        last_error: error instanceof Error ? error.message.slice(0, 500) : "Steam metadata request failed."
+        last_error: lastError,
+        checked_at: checkedAt
       })
-      .eq("steam_appid", appid);
-    if (updateError) throw updateError;
-    throw error;
+      .eq("steam_appid", appid));
   }
-  const catalogueFallback = await loadCatalogueMetadataFallback(appid);
-  if (catalogueFallback) {
+
+  if (updateError && !isMissingMetadataTable(updateError)) throw updateError;
+  return terminal ? "failed" : "deferred";
+}
+
+function metadataRetryDelayMs(error: unknown, failureCount: number, appid: string) {
+  const status = metadataHttpStatus(error);
+  const base = status === 403
+    ? 24 * 60 * 60 * 1000
+    : status === 429
+      ? 12 * 60 * 60 * 1000
+      : 15 * 60 * 1000;
+  const cap = status === 403
+    ? 7 * 24 * 60 * 60 * 1000
+    : status === 429
+      ? 3 * 24 * 60 * 60 * 1000
+      : 6 * 60 * 60 * 1000;
+  const exponent = Math.max(0, Math.min(failureCount - 1, 4));
+  const delay = Math.min(cap, base * 2 ** exponent);
+  // Stable jitter prevents every deferred row from becoming due at the same
+  // instant without making the queue ordering unpredictable between runs.
+  const jitter = [...appid].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 11;
+  return Math.round(delay * (1 + jitter / 100));
+}
+
+function metadataHttpStatus(error: unknown) {
+  const message = metadataErrorMessage(error);
+  const match = message.match(/HTTP\s+(\d{3})/i);
+  return match ? Number(match[1]) : null;
+}
+
+function metadataErrorMessage(error: unknown) {
+  return (error instanceof Error ? error.message : String(error || "Unknown Steam metadata error.")).slice(0, 1_000);
+}
+
+async function fetchAndStoreMetadata(
+  appid: string,
+  forceRefresh = false,
+  previousFailureCount = 0
+): Promise<SteamMetadataOutcome> {
+  const supabase = getSupabaseAdmin();
+  const checkedAt = new Date().toISOString();
+  let details: Awaited<ReturnType<typeof fetchSteamAppDetails>> = null;
+  try {
+    details = await fetchSteamAppDetails(appid, forceRefresh);
+  } catch (error) {
+    // Steam occasionally stops exposing a valid app-details record for a
+    // delisted title. Only that permanent condition may use our catalogue
+    // snapshot; transient 429/403/provider failures must remain retryable.
+    if (error instanceof SteamAppUnavailableError) {
+      details = await loadCatalogueMetadataFallback(appid);
+      if (!details) return storeSteamMetadataFailure(appid, previousFailureCount, error, true);
+    } else {
+      return storeSteamMetadataFailure(appid, previousFailureCount, error);
+    }
+  }
+
+  const catalogueFallback = details ? await loadCatalogueMetadataFallback(appid) : null;
+  if (details && catalogueFallback) {
     details = mergeSteamMetadata(details, catalogueFallback);
   }
   const title = String(details?.title || "").trim();
@@ -325,32 +522,38 @@ async function fetchAndStoreMetadata(appid: string, forceRefresh = false, previo
     price_final: priceFinal,
     discount_percent: discountPercent,
     is_free: Boolean(details?.is_free),
-    status: hasUsefulMetadata ? "ready" : "failed",
+    status: "ready",
     checked_at: checkedAt,
-    failure_count: hasUsefulMetadata ? 0 : previousFailureCount + 1,
-    last_error: hasUsefulMetadata ? null : "Steam did not return usable app metadata."
+    failure_count: 0,
+    last_error: null,
+    next_attempt_at: null,
+    processing_started_at: null
   };
 
-  const { error } = await supabase.from("steam_app_metadata").upsert(row, { onConflict: "steam_appid" });
-  if (isMissingArtworkColumns(error)) {
-    const { error: legacyError } = await supabase.from("steam_app_metadata").upsert(
-      {
-        steam_appid: row.steam_appid,
-        title: row.title,
-        genre: row.genre,
-        status: row.status,
-        checked_at: row.checked_at,
-        failure_count: row.failure_count,
-        last_error: row.last_error
-      },
-      { onConflict: "steam_appid" }
+  if (!hasUsefulMetadata) {
+    return storeSteamMetadataFailure(
+      appid,
+      previousFailureCount,
+      new Error("Steam did not return usable app metadata.")
     );
-    if (legacyError) throw legacyError;
-  } else if (error) {
-    throw error;
   }
 
-  return hasUsefulMetadata;
+  let { error } = await supabase.from("steam_app_metadata").upsert(row, { onConflict: "steam_appid" });
+  if (isMissingWorkerLeaseSupport(error)) {
+    ({ error } = await supabase.from("steam_app_metadata").upsert(
+      legacySteamMetadataRow(row),
+      { onConflict: "steam_appid" }
+    ));
+  }
+  if (isMissingArtworkColumns(error)) {
+    ({ error } = await supabase.from("steam_app_metadata").upsert(
+      minimalLegacySteamMetadataRow(row),
+      { onConflict: "steam_appid" }
+    ));
+  }
+  if (error) throw error;
+
+  return "updated";
 }
 
 async function loadCatalogueMetadataFallback(appid: string): Promise<SteamAppDetails | null> {
@@ -463,6 +666,76 @@ function isMissingMetadataTable(error: { code?: string } | null) {
 
 function isMissingArtworkColumns(error: { code?: string } | null) {
   return error?.code === "42703";
+}
+
+function isMissingWorkerLeaseSupport(error: { code?: string } | null) {
+  return error?.code === "42703";
+}
+
+function isMissingClaimFunction(error: { code?: string } | null) {
+  return error?.code === "42883" || error?.code === "PGRST202" || error?.code === "PGRST203";
+}
+
+function legacySteamMetadataRow(row: {
+  steam_appid: string;
+  title: string | null;
+  genre: string;
+  rating: number;
+  review_score_desc: string | null;
+  review_total: number;
+  review_positive: number;
+  capsule_url: string | null;
+  header_url: string | null;
+  price_currency: string | null;
+  price_initial: number | null;
+  price_final: number | null;
+  discount_percent: number;
+  is_free: boolean;
+  status: string;
+  checked_at: string;
+  failure_count: number;
+  last_error: string | null;
+}) {
+  return {
+    steam_appid: row.steam_appid,
+    title: row.title,
+    genre: row.genre,
+    rating: row.rating,
+    review_score_desc: row.review_score_desc,
+    review_total: row.review_total,
+    review_positive: row.review_positive,
+    capsule_url: row.capsule_url,
+    header_url: row.header_url,
+    price_currency: row.price_currency,
+    price_initial: row.price_initial,
+    price_final: row.price_final,
+    discount_percent: row.discount_percent,
+    is_free: row.is_free,
+    status: row.status,
+    checked_at: row.checked_at,
+    failure_count: row.failure_count,
+    last_error: row.last_error
+  };
+}
+
+function minimalLegacySteamMetadataRow(row: {
+  steam_appid: string;
+  title: string | null;
+  genre: string;
+  status: string;
+  checked_at: string;
+  failure_count: number;
+  last_error: string | null;
+}) {
+  return {
+    steam_appid: row.steam_appid,
+    title: row.title,
+    genre: row.genre,
+    status: row.status,
+    checked_at: row.checked_at,
+    failure_count: row.failure_count,
+    last_error: row.last_error
+  };
 }
 
 function clamp(value: number, min: number, max: number) {
