@@ -6,6 +6,7 @@ import {
   queueAllKnownSteamMetadata
 } from "@/lib/steam-metadata";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { formatMetadataWorkerError } from "@/lib/worker-runs";
 
 type SteamUser = {
   id: string;
@@ -38,7 +39,11 @@ export async function refreshNightlyMetadata() {
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
       } catch (error) {
-        failures.push({ userId: user.id, stage: "owned-library", error: errorMessage(error) });
+        failures.push({
+          userId: user.id,
+          stage: "owned-library",
+          error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
+        });
       }
     }));
   }
@@ -54,7 +59,10 @@ export async function refreshNightlyMetadata() {
       if (!result.claimed || !result.processed || !result.remaining || result.deferred) break;
     }
   } catch (error) {
-    failures.push({ stage: "steam-app-metadata", error: errorMessage(error) });
+    failures.push({
+      stage: "steam-app-metadata",
+      error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
+    });
   }
 
   const durations = [];
@@ -65,7 +73,10 @@ export async function refreshNightlyMetadata() {
       if (!result.claimed || result.deferred) break;
     }
   } catch (error) {
-    failures.push({ stage: "durations", error: errorMessage(error) });
+    failures.push({
+      stage: "durations",
+      error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
+    });
   }
 
   return {
@@ -78,10 +89,6 @@ export async function refreshNightlyMetadata() {
     durations,
     failures
   };
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message.slice(0, 500) : "Unknown worker error";
 }
 
 async function loadSteamUsers() {

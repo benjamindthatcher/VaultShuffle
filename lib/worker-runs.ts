@@ -55,7 +55,7 @@ async function finishRun(
       duration_ms: Math.max(0, Date.now() - startedAt),
       counts: numericCounts(summary),
       summary,
-      error_message: errorMessage(error)
+      error_message: formatMetadataWorkerError(error)
     })
     .eq("id", runId);
 
@@ -98,9 +98,30 @@ function serialisableRecord(value: unknown): Record<string, unknown> {
   }
 }
 
-function errorMessage(error: unknown) {
+export function formatMetadataWorkerError(error: unknown, maxLength = 1_000) {
   if (!error) return null;
-  return error instanceof Error ? error.message.slice(0, 1_000) : String(error).slice(0, 1_000);
+  if (error instanceof Error) return error.message.slice(0, maxLength);
+  if (typeof error === "string") return error.slice(0, maxLength);
+
+  if (typeof error === "object") {
+    const record = error as Record<string, unknown>;
+    const details = [
+      typeof record.message === "string" ? record.message : null,
+      typeof record.details === "string" ? record.details : null,
+      typeof record.hint === "string" ? `Hint: ${record.hint}` : null,
+      typeof record.code === "string" ? `Code: ${record.code}` : null
+    ].filter((value): value is string => Boolean(value));
+
+    if (details.length > 0) return details.join(" · ").slice(0, maxLength);
+
+    try {
+      return JSON.stringify(record).slice(0, maxLength);
+    } catch {
+      // Fall through to String() for non-serialisable error-like values.
+    }
+  }
+
+  return String(error).slice(0, maxLength);
 }
 
 function logRunError(workerName: string, stage: "start" | "finish", error: unknown) {
