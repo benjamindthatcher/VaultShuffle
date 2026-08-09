@@ -2,6 +2,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import {
   clearSteamAppDetailsCache,
   fetchSteamAppDetails,
+  SteamAppRequestError,
   SteamAppUnavailableError
 } from "@/lib/steam";
 import type { SteamAppDetails } from "@/lib/steam";
@@ -36,8 +37,14 @@ const METADATA_RETRY_AFTER_MS = 6 * 60 * 60 * 1000;
 const METADATA_REFRESH_AFTER_MS = 7 * 24 * 60 * 60 * 1000;
 const METADATA_DEADLINE_GUARD_MS = 1_500;
 const MAX_METADATA_FAILURES = 6;
+const STEAM_RATE_LIMIT_MIN_RETRY_MS = 30 * 60 * 1000;
 
 type SteamMetadataOutcome = "updated" | "deferred" | "failed";
+type SteamMetadataResult = {
+  outcome: SteamMetadataOutcome;
+  rateLimited: boolean;
+  retryAfterMs: number | null;
+};
 
 export async function applyCachedSteamMetadata<T extends GamePayload | Game>(games: T[]): Promise<T[]> {
   const appIds = steamAppIds(games);
@@ -269,6 +276,8 @@ export async function processSteamMetadataQueue(
   let failed = 0;
   let deferred = 0;
   let processed = 0;
+  let rateLimited = false;
+  let rateLimitRetryAfterMs = 0;
 
   for (let index = 0; index < rows.length; index += 2) {
     if (Date.now() + METADATA_DEADLINE_GUARD_MS >= deadlineMs) {
@@ -295,9 +304,17 @@ export async function processSteamMetadataQueue(
         return;
       }
 
-      if (result.value === "updated") updated += 1;
-      else if (result.value === "deferred") deferred += 1;
+      if (result.value.outcome === "updated") updated += 1;
+      else if (result.value.outcome === "deferred") deferred += 1;
       else failed += 1;
+
+      if (result.value.rateLimited) {
+        rateLimited = true;
+        rateLimitRetryAfterMs = Math.max(
+          rateLimitRetryAfterMs,
+          result.value.retryAfterMs ?? STEAM_RATE_LIMIT_MIN_RETRY_MS
+        );
+      }
     });
 
     if (rejectedAppIds.length) {
@@ -309,10 +326,22 @@ export async function processSteamMetadataQueue(
         console.error("Failed to release rejected Steam metadata claims:", releaseError);
       }
     }
+
+    if (rateLimited) {
+      // Steam applies the same Store API quota to the entire worker. Stop on
+      // the first 429 and defer every untouched lease without incrementing its
+      // failure count, rather than spending the remainder of the batch on
+      // requests that cannot succeed yet.
+      await releaseSteamMetadataClaims(
+        rows.slice(index + chunk.length).map((row) => row.steam_appid),
+        Math.max(rateLimitRetryAfterMs, STEAM_RATE_LIMIT_MIN_RETRY_MS)
+      );
+      break;
+    }
   }
 
   const remaining = await countPendingSteamMetadata(appIds);
-  return { claimed: rows.length, processed, updated, deferred, failed, remaining };
+  return { claimed: rows.length, processed, updated, deferred, failed, remaining, rateLimited };
 }
 
 async function claimSteamMetadataJobs(limit: number, appIds: string[] | null) {
@@ -341,7 +370,7 @@ async function claimSteamMetadataJobs(limit: number, appIds: string[] | null) {
   return (legacyRows ?? []) as Pick<SteamMetadataRow, "steam_appid" | "failure_count" | "checked_at">[];
 }
 
-async function releaseSteamMetadataClaims(appIds: string[]) {
+async function releaseSteamMetadataClaims(appIds: string[], delayMs = 0) {
   const ids = uniqueSteamAppIds(appIds);
   if (!ids.length) return;
 
@@ -350,7 +379,7 @@ async function releaseSteamMetadataClaims(appIds: string[]) {
     .update({
       status: "pending",
       processing_started_at: null,
-      next_attempt_at: new Date().toISOString()
+      next_attempt_at: new Date(Date.now() + Math.max(0, delayMs)).toISOString()
     })
     .in("steam_appid", ids)
     .eq("status", "processing");
@@ -388,14 +417,15 @@ async function storeSteamMetadataFailure(
   previousFailureCount: number,
   error: unknown,
   permanent = false
-): Promise<SteamMetadataOutcome> {
+): Promise<SteamMetadataResult> {
   const failureCount = Math.max(0, previousFailureCount) + 1;
   const terminal = permanent || failureCount >= MAX_METADATA_FAILURES;
   const checkedAt = new Date().toISOString();
   const lastError = metadataErrorMessage(error);
+  const retryAfterMs = terminal ? null : metadataRetryDelayMs(error, failureCount, appid);
   const nextAttemptAt = terminal
     ? null
-    : new Date(Date.now() + metadataRetryDelayMs(error, failureCount, appid)).toISOString();
+    : new Date(Date.now() + retryAfterMs!).toISOString();
   const supabase = getSupabaseAdmin();
 
   let { error: updateError } = await supabase
@@ -425,7 +455,11 @@ async function storeSteamMetadataFailure(
   }
 
   if (updateError && !isMissingMetadataTable(updateError)) throw updateError;
-  return terminal ? "failed" : "deferred";
+  return {
+    outcome: terminal ? "failed" : "deferred",
+    rateLimited: metadataHttpStatus(error) === 429,
+    retryAfterMs
+  };
 }
 
 function metadataRetryDelayMs(error: unknown, failureCount: number, appid: string) {
@@ -433,22 +467,27 @@ function metadataRetryDelayMs(error: unknown, failureCount: number, appid: strin
   const base = status === 403
     ? 24 * 60 * 60 * 1000
     : status === 429
-      ? 12 * 60 * 60 * 1000
+      ? STEAM_RATE_LIMIT_MIN_RETRY_MS
       : 15 * 60 * 1000;
   const cap = status === 403
     ? 7 * 24 * 60 * 60 * 1000
     : status === 429
-      ? 3 * 24 * 60 * 60 * 1000
+      ? 12 * 60 * 60 * 1000
       : 6 * 60 * 60 * 1000;
   const exponent = Math.max(0, Math.min(failureCount - 1, 4));
   const delay = Math.min(cap, base * 2 ** exponent);
   // Stable jitter prevents every deferred row from becoming due at the same
   // instant without making the queue ordering unpredictable between runs.
   const jitter = [...appid].reduce((sum, character) => sum + character.charCodeAt(0), 0) % 11;
-  return Math.round(delay * (1 + jitter / 100));
+  const jitteredDelay = Math.round(delay * (1 + jitter / 100));
+  const providerRetryAfterMs = error instanceof SteamAppRequestError
+    ? Math.max(0, Number(error.retryAfterMs || 0))
+    : 0;
+  return Math.max(jitteredDelay, providerRetryAfterMs);
 }
 
 function metadataHttpStatus(error: unknown) {
+  if (error instanceof SteamAppRequestError && error.status) return error.status;
   const message = metadataErrorMessage(error);
   const match = message.match(/HTTP\s+(\d{3})/i);
   return match ? Number(match[1]) : null;
@@ -462,7 +501,7 @@ async function fetchAndStoreMetadata(
   appid: string,
   forceRefresh = false,
   previousFailureCount = 0
-): Promise<SteamMetadataOutcome> {
+): Promise<SteamMetadataResult> {
   const supabase = getSupabaseAdmin();
   const checkedAt = new Date().toISOString();
   let details: Awaited<ReturnType<typeof fetchSteamAppDetails>> = null;
@@ -559,7 +598,7 @@ async function fetchAndStoreMetadata(
   }
   if (error) throw error;
 
-  return "updated";
+  return { outcome: "updated", rateLimited: false, retryAfterMs: null };
 }
 
 async function loadCatalogueMetadataFallback(appid: string): Promise<SteamAppDetails | null> {

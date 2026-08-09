@@ -56,7 +56,7 @@ export async function refreshNightlyMetadata() {
     while (Date.now() + 5_000 < metadataDeadline) {
       const result = await processSteamMetadataQueue(60, false, metadataDeadline);
       steamMetadata.push(result);
-      if (!result.claimed || !result.processed || !result.remaining || result.deferred) break;
+      if (!result.claimed || !result.processed || !result.remaining || result.deferred || result.rateLimited) break;
     }
   } catch (error) {
     failures.push({
