@@ -118,7 +118,9 @@ export async function recordVaultAction(
     action,
     context
   });
-  if (eventError) throw eventError;
+  // The state mutation above is authoritative. Audit logging must never turn a
+  // successfully applied user action into a visible failure.
+  if (eventError) console.error("Could not record vault event.", eventError);
 
   return next;
 }

@@ -4,6 +4,13 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
 
+function apiError(error: string, status: number) {
+  return NextResponse.json(
+    { error },
+    { status, headers: { "Cache-Control": "private, no-store, max-age=0" } }
+  );
+}
+
 function allowedOrigins(request: NextRequest) {
   const origins = new Set([request.nextUrl.origin]);
   const configured = process.env.NEXT_PUBLIC_SITE_URL;
@@ -42,16 +49,16 @@ export function proxy(request: NextRequest) {
     const origin = request.headers.get("origin");
     const fetchSite = request.headers.get("sec-fetch-site");
     if (fetchSite === "cross-site" || !origin || !allowedOrigins(request).has(origin)) {
-      return NextResponse.json({ error: "Cross-site request blocked." }, { status: 403 });
+      return apiError("Cross-site request blocked.", 403);
     }
 
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_API_BODY_BYTES) {
-      return NextResponse.json({ error: "Request body is too large." }, { status: 413 });
+      return apiError("Request body is too large.", 413);
     }
 
     if (contentLength > 0 && !request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
-      return NextResponse.json({ error: "Content-Type must be application/json." }, { status: 415 });
+      return apiError("Content-Type must be application/json.", 415);
     }
   }
 

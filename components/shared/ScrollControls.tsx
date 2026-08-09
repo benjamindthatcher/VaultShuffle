@@ -13,10 +13,13 @@ type Props = {
 };
 
 export function ScrollControls({ targetRef, axis, step, className = "", label = "Scroll controls" }: Props) {
-  const [position, setPosition] = useState({ start: true, end: false });
+  const [position, setPosition] = useState({ start: true, end: true });
   const update = useCallback(() => {
     const node = targetRef.current;
-    if (!node) return;
+    if (!node) {
+      setPosition({ start: true, end: true });
+      return;
+    }
     const offset = node.scrollLeft;
     const visible = node.clientWidth;
     const total = node.scrollWidth;

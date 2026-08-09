@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 import { deleteGame, patchGame, restoreGameToActive, updateGame } from "@/lib/games";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { gamePayloadSchema, patchGameSchema } from "@/lib/validation";
@@ -42,7 +42,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const game = await deleteGame(session.user.id, id);
     if (!game) return NextResponse.json({ error: "Game not found." }, { status: 404 });
     return NextResponse.json({ ok: true, removed: game.title });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    return jsonError(error);
   }
 }

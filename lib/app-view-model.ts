@@ -189,7 +189,7 @@ function normaliseGenres(game: Game) {
   const steamTags = steamTagGenreLabels(game.steam_tags, 8);
   const topLevel = topLevelGenresFor([...canonical, ...steamTags].join(" / "), game.title);
   const tags = [...topLevel, ...canonical, ...steamTags].filter(Boolean);
-  return Array.from(new Set(tags)).slice(0, 8);
+  return splitGenres(tags.join(" / ")).slice(0, 8);
 }
 
 function normalisePriority(gamePriority: Game["priority"]): DemoGame["priority"] {

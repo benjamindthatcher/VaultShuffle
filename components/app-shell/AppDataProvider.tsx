@@ -328,6 +328,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         })
       });
       setLiveGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
+      if (patch.status === "Completed" || patch.status === "Slept") {
+        setLiveVaultState((current) => ({
+          ...current,
+          pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
+          currentPickId: current.currentPickId === gameId ? null : current.currentPickId
+        }));
+      }
       if (patch.status === 'Completed') posthog.capture('game_marked_completed');
       if (patch.status === 'Slept') posthog.capture('game_put_to_sleep');
       return;

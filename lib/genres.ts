@@ -178,13 +178,13 @@ export function topLevelGenresFor(value?: string | null, title = ""): TopLevelGe
 export function steamTagLabels(tags?: SteamTagMap | null, limit = Number.POSITIVE_INFINITY) {
   if (!tags || typeof tags !== "object" || Array.isArray(tags)) return [];
   const maximum = Number.isFinite(limit) ? Math.max(0, Math.floor(limit)) : Number.POSITIVE_INFINITY;
-  return Object.entries(tags)
+  return unique(Object.entries(tags)
     .filter(([label, weight]) => label.trim() && Number.isFinite(Number(weight)) && Number(weight) > 0)
     .sort(([leftLabel, leftWeight], [rightLabel, rightWeight]) =>
       Number(rightWeight) - Number(leftWeight) || leftLabel.localeCompare(rightLabel)
     )
-    .slice(0, maximum)
-    .map(([label]) => cleanGenreLabel(label));
+    .map(([label]) => cleanGenreLabel(label)))
+    .slice(0, maximum);
 }
 
 /** A compact genre/theme subset suitable for cards and Vault filters. */
@@ -242,7 +242,13 @@ function genreKey(value: string) {
 }
 
 function unique<T>(items: T[]) {
-  return Array.from(new Set(items));
+  const seen = new Set<T | string>();
+  return items.filter((item) => {
+    const key = typeof item === "string" ? genreKey(item) : item;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function uniqueTopLevels(items: TopLevelGenre[]) {

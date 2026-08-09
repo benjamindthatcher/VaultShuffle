@@ -9,7 +9,8 @@
     "start": "next start -p 8766",
     "lint": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm run build",
+    "check": "npm run lint && npm test && npm run build",
+    "test": "node --experimental-strip-types --test lib/*.test.ts supabase/functions/_shared/igdb-duration-provider.test.ts",
     "catalogue:fetch-top": "node scripts/catalogue/fetch-steamspy-top.mjs",
     "catalogue:build-seed": "node scripts/catalogue/build-seed-sql.mjs",
     "catalogue:import-durations": "node scripts/catalogue/import-duration-estimates.mjs",
@@ -22,20 +23,21 @@
     "@supabase/supabase-js": "^2.57.4",
     "@vercel/analytics": "^2.0.1",
     "@vercel/speed-insights": "^2.0.0",
-    "next": "^16.2.10",
+    "next": "^16.3.0",
     "posthog-js": "^1.181.0",
     "posthog-node": "^4.3.3",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
     "zod": "^4.1.11"
   },
   "devDependencies": {
     "@types/node": "^24.5.2",
-    "@types/react": "^19.1.13",
-    "@types/react-dom": "^19.1.9",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "typescript": "^5.9.2"
   },
   "overrides": {
-    "postcss": "^8.5.10"
+    "dompurify": "^3.4.13",
+    "postcss": "^8.5.26"
   }
 }

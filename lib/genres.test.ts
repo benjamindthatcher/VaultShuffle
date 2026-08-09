@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  splitGenres,
   steamTagGenreLabels,
   steamTagLabels,
   topLevelGenresFor
@@ -40,4 +41,12 @@ test("combines exact and mapped top-level genres", () => {
 
 test("ignores invalid provider weights", () => {
   assert.deepEqual(steamTagLabels({ RPG: 0, Adventure: -4, Strategy: Number.NaN }), []);
+});
+
+test("deduplicates genre labels without treating casing as meaningful", () => {
+  assert.deepEqual(
+    steamTagLabels({ "Free To Play": 100, "Free to Play": 90, Action: 80 }),
+    ["Free To Play", "Action"]
+  );
+  assert.deepEqual(splitGenres("Free To Play / Free to Play / Action"), ["Free To Play", "Action"]);
 });

@@ -111,32 +111,56 @@ export default function PurgePage() {
     setSelectedOffset(0);
   }
 
+  async function rollbackAppliedAction(action: PurgeAction, candidate: PurgeCandidate) {
+    if (action === "pin") await recordVaultAction("unpinned", candidate.game.id);
+    if (action === "sleep" || action === "complete") await restoreGame(candidate.game.id);
+  }
+
   async function act(action: PurgeAction, candidate = current) {
     if (!candidate || saving) return;
     if (action === "pin" && pinsFull) return;
     setSaving(true);
     setError("");
     const previousStatus = candidate.game.status;
-    let review: PurgeReview | null = null;
     try {
-      const actionRequest = action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)
+      const shouldApplyPin = action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id);
+      const didApplyAction = shouldApplyPin || action === "sleep" || action === "complete";
+      const actionRequest = shouldApplyPin
         ? recordVaultAction("pinned", candidate.game.id)
         : action === "sleep"
           ? updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() })
           : action === "complete"
             ? updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null })
             : Promise.resolve();
-      [review] = await Promise.all([saveReview(candidate, action), actionRequest]);
+      const [reviewResult, actionResult] = await Promise.allSettled([saveReview(candidate, action), actionRequest]);
+
+      if (reviewResult.status === "fulfilled" && actionResult.status === "rejected") {
+        try {
+          await deleteReview(reviewResult.value.id);
+        } catch {
+          // Preserve the authoritative action error; saved reviews reconcile on reload.
+        }
+        throw actionResult.reason;
+      }
+
+      if (reviewResult.status === "rejected" && actionResult.status === "fulfilled") {
+        if (didApplyAction) {
+          try {
+            await rollbackAppliedAction(action, candidate);
+          } catch (rollbackError) {
+            console.error("Could not roll back a partially saved Purge decision.", rollbackError);
+          }
+        }
+        throw reviewResult.reason;
+      }
+
+      if (reviewResult.status === "rejected") throw reviewResult.reason;
+      if (actionResult.status === "rejected") throw actionResult.reason;
+
+      const review = reviewResult.value;
       posthog.capture('purge_decision', { action, category: candidate.category });
       finishDecision(candidate, action, previousStatus, review);
     } catch (caught) {
-      if (review) {
-        try {
-          await deleteReview(review.id);
-        } catch {
-          // Preserve the original action error; the next load reconciles saved reviews.
-        }
-      }
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");
     } finally {
       setSaving(false);
@@ -195,7 +219,7 @@ export default function PurgePage() {
       </aside>
     </section>
       <section className={styles.queuePanel}>
-        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div><ScrollControls targetRef={queueRef} axis="horizontal" label="Browse review queue" /></div>
+        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div>{queue.length ? <ScrollControls targetRef={queueRef} axis="horizontal" label="Browse review queue" /> : null}</div>
         {queue.length ? <div className={styles.queue} ref={queueRef}>
           {queue.map((candidate, offset) => {
             const selected = current?.game.id === candidate.game.id;
