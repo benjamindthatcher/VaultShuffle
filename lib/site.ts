@@ -5,12 +5,12 @@ export const siteConfig = {
   displayName: "Vault Shuffle",
   url: "https://vaultshuffle.com",
   description:
-    "VaultShuffle organises your Steam library, tracks your wishlist, builds collections, and helps you decide what to play next.",
+    "A free Steam game picker and backlog manager that helps you choose what to play based on your time, mood, goal, genres, and collections.",
   socialDescription:
-    "Cut through your Steam backlog and find the right game for your time, mood, and energy.",
+    "Stop scrolling through your Steam backlog. Pick the right game for your time, mood, and energy.",
   supportEmail: "support@vaultshuffle.com",
   locale: "en_GB",
-  ogImage: "/assets/landing/futuristic-vault-hero.png"
+  ogImage: "/opengraph-image"
 } as const;
 
 export const privateProductRobots: Metadata["robots"] = {

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   applicationName: siteConfig.name,
   title: {
-    default: "VaultShuffle | Decide What to Play Next",
+    default: "Steam Game Picker for Your Backlog | VaultShuffle",
     template: "%s | VaultShuffle"
   },
   description: siteConfig.description,
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
   },
   manifest: "/manifest.webmanifest",
   openGraph: {
-    title: "VaultShuffle | Decide What to Play Next",
+    title: "Steam Game Picker for Your Backlog | VaultShuffle",
     description: siteConfig.socialDescription,
     siteName: siteConfig.name,
     type: "website",
@@ -40,14 +40,14 @@ export const metadata: Metadata = {
     locale: siteConfig.locale,
     images: [{
       url: siteConfig.ogImage,
-      width: 1672,
-      height: 941,
-      alt: "VaultShuffle game recommendation vault"
+      width: 1200,
+      height: 630,
+      alt: "VaultShuffle — pick the right Steam game for tonight"
     }]
   },
   twitter: {
     card: "summary_large_image",
-    title: "VaultShuffle | Decide What to Play Next",
+    title: "Steam Game Picker for Your Backlog | VaultShuffle",
     description: siteConfig.socialDescription,
     images: [siteConfig.ogImage]
   },

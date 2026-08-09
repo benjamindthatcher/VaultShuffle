@@ -13,11 +13,19 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#07091a",
     orientation: "any",
     categories: ["games", "entertainment", "utilities"],
-    icons: [{
-      src: "/icon.png",
-      sizes: "1254x1254",
-      type: "image/png",
-      purpose: "any"
-    }]
+    icons: [
+      {
+        src: "/icons/vaultshuffle-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any"
+      },
+      {
+        src: "/icons/vaultshuffle-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any"
+      }
+    ]
   };
 }

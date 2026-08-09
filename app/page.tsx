@@ -1,17 +1,31 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import Image from "next/image";
+import Link from "next/link";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
-import { getCurrentSession } from "@/lib/auth";
+import { marketingNavigation } from "@/lib/marketing-pages";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: { absolute: "VaultShuffle | Decide What to Play Next" },
-  description: siteConfig.description,
+  title: { absolute: "Steam Game Picker for Your Backlog | VaultShuffle" },
+  description:
+    "Can't decide what to play? Connect Steam and let VaultShuffle pick a game for your time, mood, and goal—then organise your backlog and wishlist.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "VaultShuffle | Decide What to Play Next",
+    title: "Stop scrolling. Pick the right Steam game tonight.",
     description: siteConfig.socialDescription,
-    url: "/"
+    url: "/",
+    images: [{
+      url: siteConfig.ogImage,
+      width: 1200,
+      height: 630,
+      alt: "VaultShuffle — pick the right Steam game for tonight"
+    }]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Stop scrolling. Pick the right Steam game tonight.",
+    description: siteConfig.socialDescription,
+    images: [siteConfig.ogImage]
   }
 };
 
@@ -45,6 +59,13 @@ const structuredData = {
       operatingSystem: "Any modern web browser",
       browserRequirements: "Requires JavaScript and a modern web browser",
       isAccessibleForFree: true,
+      featureList: [
+        "Steam game picker based on session, mood, and goal",
+        "Steam library and backlog organisation",
+        "Custom and automatic game collections",
+        "Steam wishlist price and discount tracking",
+        "Game progress, notes, and priority tracking"
+      ],
       offers: {
         "@type": "Offer",
         price: "0",
@@ -84,7 +105,7 @@ const productCards = [
     text: "All your games in one clean, powerful view.",
     bullets: ["Filter and sort", "Track playtime", "See what's next"],
     action: "Explore Library",
-    href: "/library",
+    href: "/steam-library-manager",
     icon: "books",
     preview: "library",
     rows: [
@@ -115,7 +136,7 @@ const productCards = [
     text: "Turn endless wishlists into your next obsession.",
     bullets: ["Track discounts", "Prioritise picks", "Never lose a gem"],
     action: "Explore Wishlist",
-    href: "/wishlist",
+    href: "/steam-wishlist-tracker",
     icon: "bookmark",
     preview: "wishlist",
     rows: [
@@ -146,7 +167,7 @@ const productCards = [
     text: "Create custom collections for any mood.",
     bullets: ["Build your themes", "Tag what matters", "Shuffle your way"],
     action: "Explore Collections",
-    href: "/collections",
+    href: "/steam-backlog-manager",
     icon: "layers",
     preview: "collections",
     rows: [
@@ -182,10 +203,7 @@ function LandingIcon({ name }: { name: string }) {
   return <SiteGlyph name={name} size={26} />;
 }
 
-export default async function HomePage() {
-  const session = await getCurrentSession();
-  if (session) redirect("/vault");
-
+export default function HomePage() {
   return (
     <>
       <script
@@ -196,31 +214,44 @@ export default async function HomePage() {
       />
       <link rel="stylesheet" href="/landing.css" precedence="high" />
       <main className="vs-landing">
+        <header className="vs-marketing-header">
+          <Link className="vs-brand" href="/" aria-label="VaultShuffle home">
+            <span><LandingIcon name="open-vault" /></span>
+            VaultShuffle
+          </Link>
+          <nav aria-label="Learn about VaultShuffle">
+            <Link href="/steam-game-picker">Game Picker</Link>
+            <Link href="/steam-backlog-manager">Backlog</Link>
+            <Link href="/how-it-works">How It Works</Link>
+          </nav>
+          <Link className="vs-header-cta" href="/vault">Try free</Link>
+        </header>
+
         <section className="vs-hero" aria-labelledby="landing-title">
           <div className="vs-hero-copy">
-            <p className="vs-kicker">Focused play. Better games.</p>
+            <p className="vs-kicker">Free Steam game picker</p>
 
             <h1 id="landing-title">
-              Tonight&apos;s pick.
-              <span>Finally decide.</span>
+              Pick the right
+              <span>Steam game tonight.</span>
             </h1>
 
             <p className="vs-hero-text">
-              Vault Shuffle cuts through the noise and helps you find the one game that fits your mood, time, and
-              energy.
+              Stop scrolling through your Steam backlog. VaultShuffle finds the game that fits your available time,
+              current mood, and goal—then helps you organise everything else.
             </p>
 
             <div className="vs-cta-row" aria-label="Get started">
-              <a className="vs-cta vs-cta-primary" href="/login">
+              <Link className="vs-cta vs-cta-primary" href="/login">
                 <span className="vs-cta-icon"><LandingIcon name="steam" /></span>
-                <span className="vs-cta-label">Continue with Steam</span>
+                <span className="vs-cta-label">Pick from my Steam library</span>
                 <span className="vs-cta-arrow" aria-hidden="true">&rarr;</span>
-              </a>
+              </Link>
 
-              <a className="vs-cta vs-cta-secondary" href="/vault">
+              <Link className="vs-cta vs-cta-secondary" href="/vault">
                 <LandingIcon name="guest" />
-                Try Guest Mode
-              </a>
+                Try free guest mode
+              </Link>
             </div>
 
             <div className="vs-trust-row" aria-label="Vault Shuffle promises">
@@ -236,19 +267,31 @@ export default async function HomePage() {
 
               <span>
                 <LandingIcon name="players" />
-                You control your data
+                No account needed to try
               </span>
             </div>
           </div>
 
           <div className="vs-hero-visual" aria-hidden="true">
-  <img className="vs-stage-art" src="/assets/landing/futuristic-vault-hero.png" alt="" />
+  <Image
+    className="vs-stage-art"
+    src="/assets/landing/futuristic-vault-hero.png"
+    alt=""
+    width={1672}
+    height={941}
+    priority
+    sizes="(max-width: 1120px) 100vw, 53vw"
+    quality={78}
+  />
 
   <article className="vs-featured-game-card">
-    <img
+    <Image
       className="vs-featured-game-art"
       src="https://cdn.cloudflare.steamstatic.com/steam/apps/1245620/header.jpg"
       alt=""
+      width={460}
+      height={215}
+      sizes="(max-width: 760px) 245px, 315px"
     />
 
     <div className="vs-featured-game-body">
@@ -281,6 +324,25 @@ export default async function HomePage() {
           ))}
         </section>
 
+        <section className="vs-discover" aria-labelledby="discover-title">
+          <div>
+            <p className="vs-discover-eyebrow">Made for large Steam libraries</p>
+            <h2 id="discover-title">One place to choose, organise, and make progress</h2>
+            <p>
+              Start with tonight&apos;s decision, then turn the same library into a backlog you can understand,
+              collections you will use, and a wishlist worth paying attention to.
+            </p>
+          </div>
+          <nav aria-label="VaultShuffle product guides">
+            {marketingNavigation.map((link) => (
+              <Link href={link.href} key={link.href}>
+                <span>{link.label}</span>
+                <LandingIcon name="chevron-right" />
+              </Link>
+            ))}
+          </nav>
+        </section>
+
         <section className="vs-product-grid" aria-label="Vault Shuffle features">
           {productCards.map((card) => (
             <article className="vs-product-card" key={card.title}>
@@ -298,9 +360,9 @@ export default async function HomePage() {
                   ))}
                 </ul>
 
-                <a href={card.href}>
+                <Link href={card.href}>
                   {card.action} <span aria-hidden="true">&rarr;</span>
-                </a>
+                </Link>
               </div>
 
               <div className={`vs-mini-panel vs-mini-${card.preview}`} aria-hidden="true">
@@ -319,11 +381,26 @@ export default async function HomePage() {
                     {"appids" in row ? (
                       <span className="vs-collection-stack">
                         {row.appids.map((appid) => (
-                          <img key={appid} src={steamCapsule(appid)} alt="" />
+                          <img
+                            key={appid}
+                            src={steamCapsule(appid)}
+                            alt=""
+                            width="231"
+                            height="87"
+                            loading="lazy"
+                            decoding="async"
+                          />
                         ))}
                       </span>
                     ) : (
-                      <img src={steamCapsule(row.appid)} alt="" />
+                      <img
+                        src={steamCapsule(row.appid)}
+                        alt=""
+                        width="231"
+                        height="87"
+                        loading="lazy"
+                        decoding="async"
+                      />
                     )}
 
                     <strong>{row.name}</strong>
@@ -335,9 +412,9 @@ export default async function HomePage() {
             </article>
           ))}
         </section>
-	<div className="vs-data-note">
-	<LandingIcon name="lock" />
-	<span>Steam handles sign-in securely. Vault Shuffle never sees your Steam password or login details.</span>
+        <div className="vs-data-note">
+          <LandingIcon name="lock" />
+          <span>Steam handles sign-in securely. VaultShuffle never sees your Steam password or login details.</span>
         </div>
       </main>
     </>
