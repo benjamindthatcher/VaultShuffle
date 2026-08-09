@@ -199,6 +199,7 @@ export default function PurgePage() {
   }
 
   return <PurgePageFrame>
+    <h1 className="visually-hidden">Purge</h1>
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
         <div className={styles.categoryGrid}>
