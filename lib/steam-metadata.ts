@@ -236,7 +236,8 @@ export async function enrichSteamMetadataForUser(
 
 export async function queueAllKnownSteamMetadata() {
   const supabase = getSupabaseAdmin();
-  const appIds = new Set<string>();
+  const catalogueAppIds = new Set<string>();
+  const userAppIds = new Set<string>();
   const pageSize = 1_000;
 
   for (let from = 0; ; from += pageSize) {
@@ -245,7 +246,7 @@ export async function queueAllKnownSteamMetadata() {
       .select("steam_appid")
       .range(from, from + pageSize - 1);
     if (error) throw error;
-    for (const row of data ?? []) appIds.add(String(row.steam_appid));
+    for (const row of data ?? []) catalogueAppIds.add(String(row.steam_appid));
     if ((data ?? []).length < pageSize) break;
   }
 
@@ -256,11 +257,17 @@ export async function queueAllKnownSteamMetadata() {
       .not("steam_appid", "is", null)
       .range(from, from + pageSize - 1);
     if (error) throw error;
-    for (const row of data ?? []) appIds.add(String(row.steam_appid));
+    for (const row of data ?? []) userAppIds.add(String(row.steam_appid));
     if ((data ?? []).length < pageSize) break;
   }
 
-  const ids = uniqueSteamAppIds([...appIds]);
+  // The shared catalogue is the canonical metadata source. The legacy queue is
+  // retained only as a fallback for user-owned AppIDs that have not made it into
+  // that catalogue yet; queueing catalogue rows here duplicates the same Steam
+  // requests and can starve real imports behind a permanent refresh backlog.
+  const ids = uniqueSteamAppIds(
+    [...userAppIds].filter((steamAppId) => !catalogueAppIds.has(steamAppId))
+  );
   for (const chunk of chunks(ids, 500)) await queueSteamMetadata(chunk);
   return ids.length;
 }

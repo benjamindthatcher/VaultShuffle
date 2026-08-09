@@ -3,7 +3,6 @@ import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { upsertSteamWishlistGames } from "@/lib/games";
 import { jsonError } from "@/lib/http";
 import { fetchPublicSteamWishlist } from "@/lib/steam";
-import { enrichSteamMetadataForUser } from "@/lib/steam-metadata";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
 export const maxDuration = 60;
@@ -27,10 +26,7 @@ export async function POST() {
 
     after(async () => {
       const deadlineAt = Date.now() + 45_000;
-      await Promise.allSettled([
-        processCatalogueQueue(20, appIds.map(Number), deadlineAt),
-        enrichSteamMetadataForUser(user.id, 20, false, true, deadlineAt)
-      ]);
+      await processCatalogueQueue(20, appIds.map(Number), deadlineAt).catch(() => undefined);
     });
 
     return NextResponse.json({

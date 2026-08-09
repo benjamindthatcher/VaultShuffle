@@ -6,7 +6,7 @@ import {
   isCompletedGame,
   statusFromGameProgress
 } from "@/lib/game-classification";
-import { applyCachedSteamMetadata, queueSteamMetadata } from "@/lib/steam-metadata";
+import { applyCachedSteamMetadata } from "@/lib/steam-metadata";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import { quarantinedSteamImports } from "@/lib/catalogue";
 import type { Game, GamePayload, StatsPayload } from "@/lib/types";
@@ -155,7 +155,6 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
   const incomingGames = await applyCachedSteamMetadata([...steamGames.values()]);
   if (!incomingGames.length) return [];
   const quarantineByAppId = await quarantinedSteamImports(incomingGames);
-  await queueSteamMetadata(incomingGames.map((game) => String(game.steam_appid ?? "")));
 
   const supabase = getSupabaseAdmin();
   const { data: existingData, error: existingError } = await supabase
@@ -239,7 +238,6 @@ export async function upsertSteamWishlistGames(userId: string, games: GamePayloa
   if (!incomingGames.length) return { games: [] as Game[], skippedOwned: 0 };
 
   const quarantineByAppId = await quarantinedSteamImports(incomingGames);
-  await queueSteamMetadata(incomingGames.map((game) => String(game.steam_appid ?? "")));
 
   const supabase = getSupabaseAdmin();
   const appIds = incomingGames.map((game) => game.steam_appid as string);

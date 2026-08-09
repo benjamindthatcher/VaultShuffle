@@ -3,7 +3,6 @@ import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { upsertSteamGames } from "@/lib/games";
 import { jsonError } from "@/lib/http";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import { enrichSteamMetadataForUser } from "@/lib/steam-metadata";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
 export const maxDuration = 60;
@@ -37,10 +36,7 @@ async function importLibrary() {
     // sign-in/import response. They continue after the updated library is saved.
     after(async () => {
       const deadlineAt = Date.now() + 45_000;
-      await Promise.allSettled([
-        processCatalogueQueue(20, importedAppIds.map(Number), deadlineAt),
-        enrichSteamMetadataForUser(user.id, 20, false, false, deadlineAt)
-      ]);
+      await processCatalogueQueue(20, importedAppIds.map(Number), deadlineAt).catch(() => undefined);
     });
 
     return NextResponse.json({ imported: games.length, catalogue });

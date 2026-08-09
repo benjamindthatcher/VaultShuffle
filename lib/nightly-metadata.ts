@@ -1,5 +1,6 @@
 import { processDurationQueue } from "@/lib/duration-worker";
 import { upsertSteamGames } from "@/lib/games";
+import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames } from "@/lib/steam";
 import {
   processSteamMetadataQueue,
@@ -35,6 +36,16 @@ export async function refreshNightlyMetadata() {
     await Promise.all(batch.map(async (user) => {
       try {
         const ownedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
+        const appIds = ownedGames.flatMap((game) => game.steam_appid ? [String(game.steam_appid)] : []);
+        try {
+          await recordImportedSteamAppIds(user.id, appIds);
+        } catch (error) {
+          failures.push({
+            userId: user.id,
+            stage: "catalogue-registration",
+            error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
+          });
+        }
         const savedGames = await upsertSteamGames(user.id, ownedGames);
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
