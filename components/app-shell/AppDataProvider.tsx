@@ -12,6 +12,15 @@ import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-
 
 type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
+type AppBootstrapPayload = {
+  session: SessionPayload;
+  games?: Game[];
+  collections?: Collection[];
+  memberships?: CollectionMembership[];
+  vaultState?: VaultState;
+  data_error?: boolean;
+};
+
 const emptyVaultState: VaultState = { pinnedIds: [], wishlistPinnedIds: [], snoozedIds: [], currentPickId: null };
 
 type AppDataContextValue = {
@@ -81,7 +90,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const nextSession = await api<SessionPayload>("/api/session");
+      const bootstrap = await api<AppBootstrapPayload>("/api/app-data");
+      const nextSession = bootstrap.session;
       setSession(nextSession);
 
       if (!nextSession.logged_in) {
@@ -98,23 +108,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
 
       setIsLive(true);
-      try {
-        const [{ games }, { collections, memberships }, nextVaultState] = await Promise.all([
-          api<{ games: Game[] }>("/api/games"),
-          api<{ collections: Collection[]; memberships: CollectionMembership[] }>("/api/collections"),
-          api<VaultState>("/api/vault/state")
-        ]);
-
-        const details = buildCollectionDetails(collections, games, memberships);
-
-        setLiveCollections(mapLiveCollections(details));
-        setLiveGames(mapLiveGames(games, details));
-        setLiveVaultState(nextVaultState);
-      } catch (error) {
-        setLoadError(error instanceof Error && error.message !== "Request failed."
-          ? error.message
-          : "Your VaultShuffle data could not be loaded. Please retry.");
+      const { games, collections, memberships, vaultState } = bootstrap;
+      if (bootstrap.data_error || !games || !collections || !memberships || !vaultState) {
+        setLoadError("Your VaultShuffle data could not be loaded. Please retry.");
+        return;
       }
+
+      const details = buildCollectionDetails(collections, games, memberships);
+
+      setLiveCollections(mapLiveCollections(details));
+      setLiveGames(mapLiveGames(games, details));
+      setLiveVaultState(vaultState);
     } catch (error) {
       setSession(guestSession);
       setIsLive(false);
