@@ -42,9 +42,17 @@ export class SteamAppUnavailableError extends Error {
 }
 
 export class SteamAppRequestError extends Error {
-  constructor(message: string, options?: ErrorOptions) {
+  readonly status?: number;
+  readonly retryAfterMs?: number;
+
+  constructor(
+    message: string,
+    options?: ErrorOptions & { status?: number; retryAfterMs?: number }
+  ) {
     super(message, options);
     this.name = "SteamAppRequestError";
+    this.status = options?.status;
+    this.retryAfterMs = options?.retryAfterMs;
   }
 }
 
@@ -356,7 +364,12 @@ async function fetchSteamStoreAppDetail(appid: string, params: URLSearchParams):
     });
 
     if (!response.ok) {
-      throw new SteamAppRequestError(`Steam Store app details returned HTTP ${response.status}.`);
+      throw new SteamAppRequestError(`Steam Store app details returned HTTP ${response.status}.`, {
+        status: response.status,
+        retryAfterMs: response.status === 429
+          ? parseRetryAfterMs(response.headers.get("retry-after"))
+          : undefined
+      });
     }
     const payload = await response.json();
     if (payload?.[appid]?.success === false) throw new SteamAppUnavailableError(appid);
@@ -369,6 +382,14 @@ async function fetchSteamStoreAppDetail(appid: string, params: URLSearchParams):
     if (error instanceof SteamAppUnavailableError || error instanceof SteamAppRequestError) throw error;
     throw new SteamAppRequestError("Steam Store app details request failed.", { cause: error });
   }
+}
+
+function parseRetryAfterMs(value: string | null) {
+  if (!value) return undefined;
+  const seconds = Number(value);
+  if (Number.isFinite(seconds) && seconds >= 0) return Math.ceil(seconds * 1_000);
+  const retryAt = Date.parse(value);
+  return Number.isFinite(retryAt) ? Math.max(0, retryAt - Date.now()) : undefined;
 }
 
 async function waitForSteamStoreRateLimit() {

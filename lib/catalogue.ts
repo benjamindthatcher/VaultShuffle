@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchSteamAppDetails, SteamAppUnavailableError } from "@/lib/steam";
+import { fetchSteamAppDetails, SteamAppRequestError, SteamAppUnavailableError } from "@/lib/steam";
 import type { GamePayload } from "@/lib/types";
 
 const AUTOMATIC_EXCLUSION_LABELS = new Set(["software", "utilities"]);
@@ -92,7 +92,7 @@ export async function processCatalogueQueue(
   if (error) throw error;
   const rows = (data ?? []) as CatalogueQueueRow[];
   if (!rows.length) {
-    return { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0 };
+    return { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0, rateLimited: false };
   }
   let manualDecisions: Awaited<ReturnType<typeof loadManualQuarantineDecisions>>;
   try {
@@ -112,6 +112,7 @@ export async function processCatalogueQueue(
   let processed = 0;
   let failed = 0;
   let deferred = 0;
+  let rateLimited = false;
   for (const [index, row] of rows.entries()) {
     if (Date.now() + 20_000 >= deadlineAt) {
       const deferredAppIds = rows.slice(index).map((pendingRow) => pendingRow.steam_appid);
@@ -167,6 +168,16 @@ export async function processCatalogueQueue(
         processing_started_at: null, last_error: null, updated_at: now }).eq("steam_appid", row.steam_appid);
       if (readyError) throw readyError;
     } catch (error) {
+      if (error instanceof SteamAppRequestError && error.status === 429) {
+        const retryDelay = Math.max(error.retryAfterMs ?? 0, 30 * 60_000);
+        const retryAt = new Date(Date.now() + retryDelay).toISOString();
+        const deferredRows = rows.slice(index);
+        await deferCatalogueClaimsAfterRateLimit(deferredRows, row, retryAt, error.message);
+        processed -= 1;
+        deferred += deferredRows.length;
+        rateLimited = true;
+        break;
+      }
       failed += 1;
       const attempts = Number(row.attempts || 0) + 1;
       const unavailable = error instanceof SteamAppUnavailableError;
@@ -181,7 +192,50 @@ export async function processCatalogueQueue(
       if (failureUpdateError) throw failureUpdateError;
     }
   }
-  return { claimed: rows.length, processed, accepted, rejected, failed, deferred };
+  return { claimed: rows.length, processed, accepted, rejected, failed, deferred, rateLimited };
+}
+
+async function deferCatalogueClaimsAfterRateLimit(
+  rows: CatalogueQueueRow[],
+  attemptedRow: CatalogueQueueRow,
+  retryAt: string,
+  message: string
+) {
+  if (!rows.length) return;
+  const supabase = getSupabaseAdmin();
+  const now = new Date().toISOString();
+  const attemptedAppId = attemptedRow.steam_appid;
+  const untouchedAppIds = rows
+    .map((row) => row.steam_appid)
+    .filter((steamAppId) => steamAppId !== attemptedAppId);
+
+  const { error: attemptedError } = await supabase
+    .from("catalog_ingest_queue")
+    .update({
+      status: "pending",
+      attempts: Number(attemptedRow.attempts || 0) + 1,
+      next_attempt_at: retryAt,
+      processing_started_at: null,
+      last_error: message.slice(0, 500),
+      updated_at: now
+    })
+    .eq("steam_appid", attemptedAppId)
+    .eq("status", "processing");
+  if (attemptedError) throw attemptedError;
+
+  if (!untouchedAppIds.length) return;
+  const { error: untouchedError } = await supabase
+    .from("catalog_ingest_queue")
+    .update({
+      status: "pending",
+      next_attempt_at: retryAt,
+      processing_started_at: null,
+      last_error: "Deferred because the Steam Store rate-limited this worker batch.",
+      updated_at: now
+    })
+    .in("steam_appid", untouchedAppIds)
+    .eq("status", "processing");
+  if (untouchedError) throw untouchedError;
 }
 
 async function releaseCatalogueClaims(steamAppIds: number[]) {

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
     const result = await withMetadataWorkerRun("catalogue-metadata", async () => {
       const deadlineAt = Date.now() + 275_000;
       const queued = await queueStaleCatalogueMetadata(250);
-      const totals = { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0 };
+      const totals = { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0, rateLimited: false };
       let batches = 0;
 
       // Steam's store endpoint remains sequential, but the cron now claims
@@ -27,7 +27,8 @@ export async function GET(request: Request) {
         totals.rejected += batch.rejected;
         totals.failed += batch.failed;
         totals.deferred += batch.deferred;
-        if (!batch.claimed || !batch.processed || batch.deferred) break;
+        totals.rateLimited ||= batch.rateLimited;
+        if (!batch.claimed || !batch.processed || batch.deferred || batch.rateLimited) break;
       }
 
       return { queued, batches, ...totals };
