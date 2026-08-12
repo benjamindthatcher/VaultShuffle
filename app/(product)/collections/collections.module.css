@@ -296,15 +296,13 @@
 }
 
 @media (max-width: 760px) {
+  .collectionsPage::after,
   .collectionsPage::before {
     display: none;
   }
 
   .header {
-    align-items: center;
-    flex-direction: column;
-    min-height: 0;
-    padding: 4px 0 0;
+    display: none;
   }
 
   .statsGrid {

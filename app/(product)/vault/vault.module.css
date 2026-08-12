@@ -49,6 +49,12 @@
   box-shadow: none;
 }
 
+.setupLayout {
+  display: grid;
+  gap: 10px;
+  margin-top: -26px;
+}
+
 @media (max-width: 720px) {
   .heroPanel {
     display: none;
@@ -61,12 +67,6 @@
   .setupLayout {
     margin-top: 0;
   }
-}
-
-.setupLayout {
-  display: grid;
-  gap: 10px;
-  margin-top: -26px;
 }
 
 .optionStack {
