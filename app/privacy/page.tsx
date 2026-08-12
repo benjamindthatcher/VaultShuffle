@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 25 July 2026"
+        eyebrow="Legal · Updated 13 August 2026"
         title="Privacy Policy"
         intro="This notice explains what personal data VaultShuffle uses, where it comes from, why it is needed, and the choices available to you."
         sections={[
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           },
           {
             title: "Analytics and device storage",
-            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your cookie choice. Vercel service telemetry is used for hosting reliability. PostHog product analytics and session capture are optional and must remain disabled when you choose Essential only. You can change this choice at any time through Cookie Settings."
+            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. PostHog is optional: you may disable it completely, choose cookieless analytics, or allow full analytics and session replay. Cookieless mode does not use cookies or browser storage for tracking, does not identify your account, and uses a server-generated privacy-preserving hash to count visits without linking them to your signed-in account. It also disables session replay, GeoIP enrichment and bot detection. Full analytics may use browser storage and identify a signed-in account. You can change your choice at any time through Analytics Settings."
           },
           {
             title: "Suppliers and international processing",

@@ -44,7 +44,7 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
             <li>
               <button className={styles.footerLink} type="button" onClick={onCookieSettings}>
                 <FooterIcon name="cookies" />
-                <span>Cookie Settings</span>
+                <span>Analytics Settings</span>
               </button>
             </li>
           </ul>
