@@ -327,7 +327,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
       });
-      setLiveGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
+      setLiveGames((current) => current.map((game) => game.id === gameId
+        ? applyGamePatch(game, patch, liveGameSummary(game))
+        : game));
       if (patch.status === "Completed" || patch.status === "Slept") {
         setLiveVaultState((current) => ({
           ...current,
@@ -493,7 +495,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
 function applyGamePatch(
   game: DemoGame,
-  patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }
+  patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
+  emptyNotesDescription = game.description
 ): DemoGame {
   const status = patch.status ?? game.status;
   return {
@@ -505,7 +508,9 @@ function applyGamePatch(
     hoursPlayed: patch.hoursPlayed ?? game.hoursPlayed,
     priority: patch.priority ?? game.priority,
     notes: patch.notes ?? game.notes,
-    description: patch.notes?.trim() ? patch.notes : game.description,
+    description: patch.notes === undefined
+      ? game.description
+      : patch.notes.trim() || emptyNotesDescription,
     completedAt: patch.completedAt !== undefined
       ? patch.completedAt
       : status === "Completed" ? new Date().toISOString() : patch.status ? null : game.completedAt,
@@ -518,6 +523,11 @@ function applyGamePatch(
     completionSuggestionDismissedAt: patch.completionSuggestionDismissedAt ?? game.completionSuggestionDismissedAt,
     completionSuggestionDismissedPlaytime: patch.completionSuggestionDismissedPlaytime ?? game.completionSuggestionDismissedPlaytime
   };
+}
+
+function liveGameSummary(game: DemoGame) {
+  const genreLabel = game.genres.slice(0, 2).join(" / ") || "Steam";
+  return `${genreLabel} pick from your live VaultShuffle library.`;
 }
 
 function restoreActiveGame(game: DemoGame): DemoGame {
