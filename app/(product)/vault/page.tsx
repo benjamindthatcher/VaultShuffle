@@ -24,7 +24,7 @@ import {
   vaultMoodOptions,
   vaultSessionOptions
 } from "@/lib/vault";
-import { steamStoreUrl } from "@/lib/steam-images";
+import { steamLaunchUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
 import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./vault.module.css";
@@ -384,7 +384,7 @@ export default function VaultPage() {
             </div>
             <p className={styles.actionsLabel}>Vault actions</p>
             <div className={styles.resultActions}>
-              <a href={steamStoreUrl(currentPick.steamAppId)} className={`${styles.resultAction} ${styles.resultActionPrimary}`} target="_blank" rel="noreferrer" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
+              <a href={steamLaunchUrl(currentPick.steamAppId)} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>Open on Steam</strong><small>Launch the game</small></span>
               </a>
               <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned"); }}>
