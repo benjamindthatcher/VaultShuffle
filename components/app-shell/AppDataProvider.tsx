@@ -2,9 +2,9 @@
 
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import posthog from "posthog-js";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { buildCollectionDetails, guestSession, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
+import { captureProductEvent, identifyProductUser, resetProductAnalytics } from "@/lib/posthog-client";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
@@ -100,7 +100,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
 
       if (nextSession.user_id) {
-        posthog.identify(nextSession.user_id, {
+        identifyProductUser(nextSession.user_id, {
           steam_id: nextSession.steam_id,
           ...(nextSession.display_name ? { display_name: nextSession.display_name } : {}),
           ...(nextSession.avatar_url ? { $avatar: nextSession.avatar_url } : {}),
@@ -141,7 +141,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     try {
       const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST" });
       await load();
-      posthog.capture('steam_library_synced', { imported_count: result.imported });
+      captureProductEvent("steam_library_synced", { imported_count: result.imported });
       return result.imported;
     } finally {
       setIsSyncing(false);
@@ -155,7 +155,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       method: "POST"
     });
     await load();
-    posthog.capture("steam_wishlist_synced", {
+    captureProductEvent("steam_wishlist_synced", {
       found_count: result.found,
       imported_count: result.imported,
       skipped_owned_count: result.skipped_owned
@@ -184,14 +184,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } while (remaining > 0 && batch < 10);
 
     if (updated > 0) await load();
-    posthog.capture("steam_metadata_refreshed", { updated_count: updated, forced: force });
+    captureProductEvent("steam_metadata_refreshed", { updated_count: updated, forced: force });
     return updated;
   }
 
   async function signOut() {
     await api("/api/logout", { method: "POST" });
-    posthog.capture("user_signed_out");
-    posthog.reset();
+    captureProductEvent("user_signed_out");
+    resetProductAnalytics();
     window.location.assign("/login");
   }
 
@@ -202,7 +202,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(payload)
       });
       await load();
-      posthog.capture('collection_created', { kind: payload.kind ?? 'custom' });
+      captureProductEvent("collection_created", { kind: payload.kind ?? "custom" });
       return collection.id;
     }
 
@@ -217,7 +217,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     setGuestCollections((current) => [nextCollection, ...current]);
-    posthog.capture('collection_created', { kind: payload.kind ?? 'custom' });
+    captureProductEvent("collection_created", { kind: payload.kind ?? "custom" });
     return nextCollection.id;
   }
 
@@ -225,7 +225,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) });
       await load();
-      posthog.capture("collection_updated", { kind: payload.kind ?? "custom" });
+      captureProductEvent("collection_updated", { kind: payload.kind ?? "custom" });
       return;
     }
     setGuestCollections((current) => current.map((collection) => collection.id === collectionId ? {
@@ -235,14 +235,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       kind: payload.kind ?? collection.kind,
       smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
     } : collection));
-    posthog.capture("collection_updated", { kind: payload.kind ?? "custom" });
+    captureProductEvent("collection_updated", { kind: payload.kind ?? "custom" });
   }
 
   async function removeCollection(collectionId: string) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "DELETE" });
       await load();
-      posthog.capture('collection_deleted');
+      captureProductEvent("collection_deleted");
       return;
     }
     setGuestCollections((current) => current.filter((collection) => collection.id !== collectionId));
@@ -250,7 +250,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...game,
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
-    posthog.capture('collection_deleted');
+    captureProductEvent("collection_deleted");
   }
 
   async function searchSteam(query: string) {
@@ -279,7 +279,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         })
       });
       await load();
-      posthog.capture('wishlist_game_added');
+      captureProductEvent("wishlist_game_added");
       return;
     }
 
@@ -305,7 +305,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       },
       ...current
     ]);
-    posthog.capture('wishlist_game_added');
+    captureProductEvent("wishlist_game_added");
   }
 
   async function updateGame(
@@ -335,15 +335,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           currentPickId: current.currentPickId === gameId ? null : current.currentPickId
         }));
       }
-      if (patch.status === 'Completed') posthog.capture('game_marked_completed');
-      if (patch.status === 'Slept') posthog.capture('game_put_to_sleep');
+      if (patch.status === "Completed") captureProductEvent("game_marked_completed");
+      if (patch.status === "Slept") captureProductEvent("game_put_to_sleep");
       return;
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
     if (patch.status === "Completed" || patch.status === "Slept") {
-      if (patch.status === "Completed") posthog.capture('game_marked_completed');
-      if (patch.status === "Slept") posthog.capture('game_put_to_sleep');
+      if (patch.status === "Completed") captureProductEvent("game_marked_completed");
+      if (patch.status === "Slept") captureProductEvent("game_put_to_sleep");
       setGuestVaultState((current) => ({
         ...current,
         pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
@@ -359,12 +359,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ restore_active: true })
       });
       setLiveGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-      posthog.capture("game_restored_to_active");
+      captureProductEvent("game_restored_to_active");
       return;
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-    posthog.capture("game_restored_to_active");
+    captureProductEvent("game_restored_to_active");
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
@@ -374,7 +374,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: assigned ? JSON.stringify({ game_id: gameId }) : undefined
       });
       await load();
-      posthog.capture("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
+      captureProductEvent("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
       return;
     }
 
@@ -384,18 +384,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         ? Array.from(new Set([...game.collectionIds, collectionId]))
         : game.collectionIds.filter((id) => id !== collectionId)
     } : game));
-    posthog.capture("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
+    captureProductEvent("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
   }
 
   async function removeGame(gameId: string) {
     if (isLive) {
       await api(`/api/games/${gameId}`, { method: "DELETE" });
       await load();
-      posthog.capture('wishlist_game_removed');
+      captureProductEvent("wishlist_game_removed");
       return;
     }
     setGuestGames((current) => current.filter((game) => game.id !== gameId));
-    posthog.capture('wishlist_game_removed');
+    captureProductEvent("wishlist_game_removed");
   }
 
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
@@ -405,7 +405,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ action, game_id: gameId, context })
       });
       setLiveVaultState(nextState);
-      posthog.capture(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
+      captureProductEvent(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
         action,
         pin_scope: context.pin_scope ?? "library"
       });
@@ -413,7 +413,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
 
     setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
-    posthog.capture(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
+    captureProductEvent(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
       action,
       pin_scope: context.pin_scope ?? "library"
     });
@@ -442,11 +442,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
       setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [event, ...draw.events] } : draw));
-      posthog.capture("vault_draw_action", { action: eventType });
+      captureProductEvent("vault_draw_action", { action: eventType });
       return;
     }
     setGuestVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [{ id: crypto.randomUUID(), drawId, eventType, createdAt: new Date().toISOString() }, ...draw.events] } : draw));
-    posthog.capture("vault_draw_action", { action: eventType });
+    captureProductEvent("vault_draw_action", { action: eventType });
   }
 
   async function clearVaultHistory() {

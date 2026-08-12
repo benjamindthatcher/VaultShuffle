@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import posthog from "posthog-js";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
 import { ScrollControls } from "@/components/shared/ScrollControls";
@@ -15,6 +14,7 @@ import {
 } from "@/lib/purge";
 import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
+import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./purge.module.css";
 
 const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
@@ -158,7 +158,7 @@ export default function PurgePage() {
       if (actionResult.status === "rejected") throw actionResult.reason;
 
       const review = reviewResult.value;
-      posthog.capture('purge_decision', { action, category: candidate.category });
+      captureProductEvent("purge_decision", { action, category: candidate.category });
       finishDecision(candidate, action, previousStatus, review);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");

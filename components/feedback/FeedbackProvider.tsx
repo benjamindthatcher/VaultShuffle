@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useId, useRef, useState, type ReactNode } from "react";
-import posthog from "posthog-js";
 import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./FeedbackProvider.module.css";
 
 type FeedbackType = "improvement" | "bug";
@@ -146,7 +146,7 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
       });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error || "We couldn't send your feedback. Please try again.");
-      posthog.capture('feedback_submitted', { feedback_type: type, app_area: appArea(route), source });
+      captureProductEvent("feedback_submitted", { feedback_type: type, app_area: appArea(route), source });
       sessionStorage.removeItem("vault-feedback-draft");
       setStatus("success");
     } catch (submissionError) {

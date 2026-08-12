@@ -356,25 +356,25 @@ export default function HomePage() {
                     {"appids" in row ? (
                       <span className="vs-collection-stack">
                         {row.appids.map((appid) => (
-                          <img
+                          <Image
                             key={appid}
                             src={steamCapsule(appid)}
                             alt=""
-                            width="231"
-                            height="87"
-                            loading="lazy"
-                            decoding="async"
+                            width={231}
+                            height={87}
+                            sizes="18px"
+                            quality={60}
                           />
                         ))}
                       </span>
                     ) : (
-                      <img
+                      <Image
                         src={steamCapsule(row.appid)}
                         alt=""
-                        width="231"
-                        height="87"
-                        loading="lazy"
-                        decoding="async"
+                        width={231}
+                        height={87}
+                        sizes="46px"
+                        quality={60}
                       />
                     )}
 

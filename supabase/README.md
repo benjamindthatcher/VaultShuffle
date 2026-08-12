@@ -1,6 +1,6 @@
 # Duration enrichment
 
-The `igdb-duration-worker` function is the only component that contacts Twitch or IGDB. The frontend reads stored estimates from Supabase.
+Duration jobs can be processed by the authenticated `igdb-duration-worker` Edge Function or the protected server-side Vercel cron worker. The browser never contacts Twitch or IGDB; it only reads stored estimates.
 
 ## Link and deploy
 
@@ -12,7 +12,7 @@ npx supabase db push
 npx supabase functions deploy igdb-duration-worker
 ```
 
-Configure `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` in **Supabase Edge Functions > Secrets**. Do not add either value to Vercel or a client environment variable.
+Configure `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` in **Supabase Edge Functions > Secrets** and in the protected Vercel server environment when using both workers. Never expose either value through a `NEXT_PUBLIC_` variable.
 
 If configuring them from a private local terminal, use placeholders and paste the values only when running the command:
 

@@ -1,9 +1,9 @@
 "use client";
 
 import { useRef, useState, type FormEvent } from "react";
-import posthog from "posthog-js";
 import { useFeedback } from "@/components/feedback/FeedbackProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "@/app/contact/contact.module.css";
 
 const enquiryTypes = [
@@ -40,7 +40,7 @@ export function ContactContent() {
       });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error || "We couldn't send your message. Please try again.");
-      posthog.capture('contact_submitted', { enquiry_type: enquiryType });
+      captureProductEvent("contact_submitted", { enquiry_type: enquiryType });
       setSuccess(true);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "We couldn't send your message. Please try again.");

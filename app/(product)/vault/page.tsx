@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import posthog from "posthog-js";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
@@ -27,6 +26,7 @@ import {
 } from "@/lib/vault";
 import { steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
+import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
@@ -163,7 +163,7 @@ export default function VaultPage() {
       setHighlightedGameId(nextPick.id);
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
-      posthog.capture('vault_draw', {
+      captureProductEvent("vault_draw", {
         session,
         mood,
         goal,

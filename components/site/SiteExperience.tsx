@@ -2,12 +2,12 @@
 
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import posthog from "posthog-js";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { FeedbackProvider, useFeedback } from "@/components/feedback/FeedbackProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { captureProductEvent, disableProductAnalytics, enableProductAnalytics } from "@/lib/posthog-client";
 import styles from "./SiteExperience.module.css";
 
 type Consent = "accepted" | "essential" | null;
@@ -40,15 +40,13 @@ function SiteFrame({ children }: { children: ReactNode }) {
     document.cookie = `${CONSENT_COOKIE}=${consent}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
 
     if (consent === "accepted") {
-      posthog.set_config({ autocapture: true, capture_pageview: true, capture_pageleave: true });
-      posthog.opt_in_capturing();
-      posthog.startSessionRecording();
-      posthog.capture("$pageview", { $current_url: window.location.href });
+      void enableProductAnalytics().then(() => {
+        captureProductEvent("$pageview", { $current_url: window.location.href });
+      });
     } else {
-      posthog.stopSessionRecording();
-      posthog.opt_out_capturing();
+      disableProductAnalytics();
     }
-  }, [consent, loaded]);
+  }, [consent, loaded, pathname]);
 
   const chooseConsent = (value: Exclude<Consent, null>) => {
     localStorage.setItem(CONSENT_STORAGE_KEY, value);

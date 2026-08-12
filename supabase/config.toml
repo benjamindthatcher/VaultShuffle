@@ -1,5 +1,4 @@
 project_id = "vaultshuffle"
 
 [functions.igdb-duration-worker]
-verify_jwt = false
-
+verify_jwt = true
