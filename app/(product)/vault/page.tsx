@@ -57,6 +57,7 @@ export default function VaultPage() {
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
+  const activeDrawRef = useRef(0);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
@@ -94,7 +95,7 @@ export default function VaultPage() {
   }), [goal, mood, ownedGames, selectedCollection?.name, selectedCollectionId, selectedGenres, session, snoozedIds]);
 
   const currentPick = ownedGames.find((game) =>
-    game.id === vaultState.currentPickId &&
+    game.id === drawWinnerId &&
     game.status !== "Completed" &&
     game.status !== "Slept" &&
     !snoozedIds.has(game.id)
@@ -105,10 +106,16 @@ export default function VaultPage() {
 
   useEffect(() => {
     const resetQueue = { setupKey, gameIds: [] };
+    activeDrawRef.current += 1;
+    drawingRef.current = false;
     drawnCycleRef.current.clear();
     deferredQueueRef.current = resetQueue;
     setDeferredQueue(resetQueue);
     setHighlightedGameId(null);
+    setDrawWinnerId(null);
+    setCurrentDrawId(null);
+    setDrawState("idle");
+    setDrawMessage("");
   }, [setupKey]);
 
   useEffect(() => {
@@ -117,6 +124,8 @@ export default function VaultPage() {
 
   async function handleOpenVault({ deferCurrentPick = false }: { deferCurrentPick?: boolean } = {}) {
     if (drawingRef.current || !canDraw) return;
+    const activeDraw = activeDrawRef.current + 1;
+    activeDrawRef.current = activeDraw;
 
     let activeDeck = deck;
     if (deferCurrentPick && currentPick && fullPool.some((entry) => entry.game.id === currentPick.id)) {
@@ -151,14 +160,17 @@ export default function VaultPage() {
 
     try {
       await wait(reducedMotion ? 80 : 480);
+      if (activeDraw !== activeDrawRef.current) return;
       setDrawState("revealing");
       await wait(reducedMotion ? 100 : 370);
+      if (activeDraw !== activeDrawRef.current) return;
 
       const draw = await recordVaultDraw(nextPick.id, {
         steamAppId: nextPick.steamAppId,
         session: session!, mood: mood!, goal: goal!, collectionId: selectedCollectionId,
         selectedGenres, eligiblePoolCount: fullPool.length, rerollIndex: drawnCycleRef.current.size - 1
       });
+      if (activeDraw !== activeDrawRef.current) return;
       setCurrentDrawId(draw.id);
       setHighlightedGameId(nextPick.id);
       setDrawState("revealed");
@@ -175,12 +187,13 @@ export default function VaultPage() {
       });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
     } catch (error) {
+      if (activeDraw !== activeDrawRef.current) return;
       console.error("Vault draw failed", error);
       drawnCycleRef.current.delete(nextPick.id);
       setDrawState("error");
       setDrawMessage("The Vault could not complete the draw. Please try again.");
     } finally {
-      drawingRef.current = false;
+      if (activeDraw === activeDrawRef.current) drawingRef.current = false;
     }
   }
 
