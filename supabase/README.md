@@ -8,7 +8,6 @@ This checkout is not currently linked. Confirm the target, then run:
 
 ```bash
 npx supabase link --project-ref pfvblcopcmairdfeqdep
-npx supabase db push
 npx supabase functions deploy igdb-duration-worker
 ```
 
@@ -38,4 +37,4 @@ npm run duration:admin -- coverage
 npm run duration:admin -- process --limit 4
 ```
 
-The migration only creates jobs for newly confirmed catalogue games. Run the bounded backfill explicitly after deployment.
+Run the bounded backfill explicitly after deployment when existing catalogue rows need duration jobs.

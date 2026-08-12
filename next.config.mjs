@@ -10,7 +10,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://cdn.cloudflare.steamstatic.com https://cdn.akamai.steamstatic.com https://shared.akamai.steamstatic.com https://avatars.steamstatic.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.supabase.co https://vitals.vercel-insights.com https://*.vercel-insights.com https://eu.i.posthog.com", 
+  "connect-src 'self' https://vitals.vercel-insights.com https://*.vercel-insights.com https://eu.i.posthog.com",
   "frame-src 'none'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",

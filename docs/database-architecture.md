@@ -25,8 +25,8 @@ out an update across every user's copy of the same Steam game.
   timestamps stay on `games`.
 - Legacy title, genre, rating, quarantine, and duration columns are
   compatibility snapshots. New reads overlay canonical catalogue metadata.
-  They can be dropped in a later migration after all deployed clients use the
-  catalogue-backed read model.
+  They can be dropped in a later database revision after all deployed clients
+  use the catalogue-backed read model.
 
 ## Bounded user state and history
 
@@ -41,13 +41,12 @@ out an update across every user's copy of the same Steam game.
   than silently deleting existing history.
 
 `app_settings` is reserved for genuine preferences, not collections of game
-IDs or mutable domain state. Migrated compatibility keys are retained for one
-release so a rollback does not lose state.
+IDs or mutable domain state. Compatibility keys are retained for one release
+so a rollback does not lose state.
 
 ## Deployment order
 
-1. Apply Supabase migrations, including
-   `20260726043000_normalize_multi_user_state.sql`.
+1. Apply the reviewed database changes through the production Supabase project.
 2. Deploy the matching application revision.
 3. Run the Supabase security and performance advisors.
 4. After one stable release, remove the compatibility snapshot columns and
