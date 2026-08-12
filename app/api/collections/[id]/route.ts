@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { deleteCollection, getCollectionWithGames, updateCollection } from "@/lib/collections";
 import { jsonError, readJsonBody } from "@/lib/http";
-import { collectionPayloadSchema } from "@/lib/validation";
+import { collectionPatchSchema } from "@/lib/validation";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: RouteContext) {
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
-    const payload = collectionPayloadSchema.partial().parse(await readJsonBody(request));
+    const payload = collectionPatchSchema.parse(await readJsonBody(request));
     const collection = await updateCollection(user.id, id, payload);
     if (!collection) return NextResponse.json({ error: "Collection not found." }, { status: 404 });
     return NextResponse.json({ ok: true, collection });

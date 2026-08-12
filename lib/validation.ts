@@ -47,15 +47,30 @@ export const patchGameSchema = z.object({
   restore_active: z.boolean().optional()
 }).strict();
 
+const collectionNameSchema = z.string().trim().min(1).max(90);
+const collectionDescriptionSchema = z.string().trim().max(280);
+const collectionKindSchema = z.enum(["custom", "smart"]);
+const collectionRulesSchema = z.object({ preset: smartCollectionPresetSchema });
+
 export const collectionPayloadSchema = z.object({
-  name: z.string().trim().min(1).max(90),
-  description: z.string().trim().max(280).optional().default(""),
-  kind: z.enum(["custom", "smart"]).optional().default("custom"),
-  rules: z.object({ preset: smartCollectionPresetSchema }).optional()
+  name: collectionNameSchema,
+  description: collectionDescriptionSchema.optional().default(""),
+  kind: collectionKindSchema.optional().default("custom"),
+  rules: collectionRulesSchema.optional()
 }).superRefine((value, context) => {
   if (value.kind === "smart" && !value.rules?.preset) {
     context.addIssue({ code: "custom", message: "Choose a rule for this smart collection.", path: ["rules", "preset"] });
   }
+});
+
+// Keep the patch schema separate from the refined create schema. Zod cannot
+// call `.partial()` on an object after refinements have been attached, and
+// create defaults must not overwrite fields omitted by a patch request.
+export const collectionPatchSchema = z.object({
+  name: collectionNameSchema.optional(),
+  description: collectionDescriptionSchema.optional(),
+  kind: collectionKindSchema.optional(),
+  rules: collectionRulesSchema.optional()
 });
 
 export const collectionGamePayloadSchema = z.object({

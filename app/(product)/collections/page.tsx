@@ -21,6 +21,7 @@ export default function CollectionsPage() {
   const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("nearly-finished");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [mutationError, setMutationError] = useState("");
   const composerRef = useRef<HTMLElement>(null);
   const collectionRailRef = useRef<HTMLDivElement>(null);
 
@@ -65,6 +66,7 @@ export default function CollectionsPage() {
   async function handleCreateCollection() {
     const trimmedName = nameDraft.trim();
     if (!trimmedName) return;
+    setMutationError("");
     setSaving(true);
     try {
       const collectionId = await createCollection({
@@ -80,6 +82,8 @@ export default function CollectionsPage() {
       setKindDraft("custom");
       setPresetDraft("nearly-finished");
       requestAnimationFrame(() => collectionRailRef.current?.scrollTo({ left: 0, behavior: "smooth" }));
+    } catch (error) {
+      setMutationError(collectionMutationMessage(error));
     } finally {
       setSaving(false);
     }
@@ -95,6 +99,7 @@ export default function CollectionsPage() {
     setDescriptionDraft("");
     setKindDraft("custom");
     setPresetDraft("nearly-finished");
+    setMutationError("");
     setComposerOpen(true);
     revealComposer();
   }
@@ -102,6 +107,7 @@ export default function CollectionsPage() {
   function closeComposer() {
     setComposerOpen(false);
     setEditing(false);
+    setMutationError("");
   }
 
   function scrollCollections(direction: -1 | 1) {
@@ -114,6 +120,7 @@ export default function CollectionsPage() {
     setDescriptionDraft(selectedCollection.description);
     setKindDraft(selectedCollection.kind === "smart" ? "smart" : "custom");
     setPresetDraft(editableSmartCollectionPreset(selectedCollection.smartPreset));
+    setMutationError("");
     setEditing(true);
     setComposerOpen(true);
     revealComposer();
@@ -121,6 +128,7 @@ export default function CollectionsPage() {
 
   async function handleUpdateCollection() {
     if (!selectedCollection || !nameDraft.trim()) return;
+    setMutationError("");
     setSaving(true);
     try {
       await updateCollection(selectedCollection.id, {
@@ -133,6 +141,8 @@ export default function CollectionsPage() {
       setEditing(false);
       setNameDraft("");
       setDescriptionDraft("");
+    } catch (error) {
+      setMutationError(collectionMutationMessage(error));
     } finally {
       setSaving(false);
     }
@@ -140,10 +150,13 @@ export default function CollectionsPage() {
 
   async function handleDeleteCollection() {
     if (!selectedCollection || !window.confirm(`Delete “${selectedCollection.name}”? Games will stay in your library.`)) return;
+    setMutationError("");
     setSaving(true);
     try {
       await removeCollection(selectedCollection.id);
       setSelectedCollectionId(null);
+    } catch (error) {
+      setMutationError(collectionMutationMessage(error));
     } finally {
       setSaving(false);
     }
@@ -222,6 +235,7 @@ export default function CollectionsPage() {
                 {saving ? "Saving…" : editing ? "Save Collection" : "Create Collection"}
               </button>
             </div>
+            {mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
           </div>
         ) : null}
       </section>
@@ -264,6 +278,7 @@ export default function CollectionsPage() {
               <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
             </div>
           </div>
+          {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
           <div className={styles.selectedGames}>
             {selectedGames.length ? (
               selectedGames.map((game) => <GameCard key={game.id} game={game} />)
@@ -280,4 +295,10 @@ export default function CollectionsPage() {
       ) : null}
     </section>
   );
+}
+
+function collectionMutationMessage(error: unknown) {
+  return error instanceof Error && error.message
+    ? error.message
+    : "We couldn't save that collection. Please try again.";
 }
