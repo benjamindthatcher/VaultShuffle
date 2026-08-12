@@ -246,12 +246,12 @@ export default function CollectionsPage() {
             <h2 className={styles.collectionPanelTitle}>Your Collections</h2>
             <p className={styles.collectionPanelCopy}>Browse every shelf in your vault.</p>
           </div>
-          <div className={styles.railActions} aria-label="Browse collections">
+          <div className={styles.railActions} role="group" aria-label="Browse collections">
             <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
             <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
           </div>
         </div>
-        <div ref={collectionRailRef} className={styles.collectionGrid} tabIndex={0} aria-label="Your collections">
+        <div ref={collectionRailRef} className={styles.collectionGrid} role="region" tabIndex={0} aria-label="Your collections">
           {baseCollections.map((collection) => (
             <CollectionCard
               key={collection.id}

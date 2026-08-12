@@ -172,7 +172,7 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
           <form onSubmit={submit} className={styles.form}>
             <input type="text" name="website" value="" onChange={() => {}} tabIndex={-1} autoComplete="off" aria-hidden="true" hidden />
             <p className={styles.intro}>What could be better? Spotted a bug? Let us know.</p>
-            <div className={styles.segmented} aria-label="Feedback type">
+            <div className={styles.segmented} role="group" aria-label="Feedback type">
               <button type="button" aria-pressed={type === "improvement"} onClick={() => setType("improvement")}>Improvement</button>
               <button type="button" aria-pressed={type === "bug"} onClick={() => setType("bug")}>Bug Report</button>
             </div>

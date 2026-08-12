@@ -161,10 +161,10 @@ export default function WishlistPage() {
       <section className={`${styles.sectionCard} ${styles.pinnedShelf}`}>
         <div className={styles.pinnedHeader}>
           <h2>Pinned Games <span>{pinnedGames.length}/3</span></h2>
-          <div className={styles.slotDots} aria-label={`${pinnedGames.length} of 3 wishlist pins used`}>{[0, 1, 2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div>
+          <div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 wishlist pins used`}>{[0, 1, 2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div>
           <button type="button" onClick={() => { setPinCandidate(null); setManagePinsOpen(true); }}>Manage Pins</button>
         </div>
-        <div className={styles.pinnedGrid}>
+        <div className={styles.pinnedGrid} role="region" aria-label="Pinned wishlist games" tabIndex={0}>
           {pinnedGames.map((game, index) => (
             <article key={game.id} className={styles.pinnedCard}>
               <span className={styles.pinnedArtwork}><Artwork src={game.bannerUrl} sizes="(max-width: 720px) 78vw, 360px" /></span>

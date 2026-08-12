@@ -62,7 +62,7 @@ export function LibraryToolbar({
           </select>
         </div>
 
-        <div className={styles.viewToggle} aria-label="View mode">
+        <div className={styles.viewToggle} role="group" aria-label="View mode">
           <button
             type="button"
             className={viewMode === "grid" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}

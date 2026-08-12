@@ -188,6 +188,12 @@
   scrollbar-width: thin;
 }
 
+.collectionGrid:focus-visible {
+  border-radius: 8px;
+  outline: 2px solid rgba(172, 113, 255, 0.72);
+  outline-offset: 3px;
+}
+
 .collectionGrid > * {
   flex: 0 0 clamp(320px, 36vw, 520px);
   scroll-snap-align: start;

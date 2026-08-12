@@ -235,7 +235,7 @@ export default function HomePage() {
               current mood, and goal—then helps you organise everything else.
             </p>
 
-            <div className="vs-cta-row" aria-label="Get started">
+            <div className="vs-cta-row" role="group" aria-label="Get started">
               <Link className="vs-cta vs-cta-primary" href="/login">
                 <span className="vs-cta-icon"><LandingIcon name="steam" /></span>
                 <span className="vs-cta-label">Pick from my Steam library</span>
@@ -248,7 +248,7 @@ export default function HomePage() {
               </Link>
             </div>
 
-            <div className="vs-trust-row" aria-label="Vault Shuffle promises">
+            <div className="vs-trust-row" role="group" aria-label="Vault Shuffle promises">
               <span>
                 <LandingIcon name="shield" />
                 No spam

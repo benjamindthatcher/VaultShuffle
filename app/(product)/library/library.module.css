@@ -136,6 +136,7 @@
 .slotDots span { width: 8px; height: 8px; border: 1px solid #a871ff; border-radius: 50%; }
 .slotDots span[data-filled="true"] { background: #c15fff; box-shadow: 0 0 8px rgba(193,95,255,.5); }
 .pinnedGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.pinnedGrid:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
 .pinnedCard { position: relative; min-width: 0; }
 .pinBadge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 5px 8px; border: 1px solid rgba(205,105,255,.54); border-radius: 999px; background: rgba(45,22,78,.9); color: #e29cff; font-size: .72rem; }
 .emptyPin { min-height: 96px; display: grid; place-items: center; border: 1px dashed rgba(145,105,255,.24); border-radius: 10px; color: var(--vault-text-soft); }

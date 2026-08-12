@@ -40,7 +40,7 @@
 }
 
 .footerApp .footerCopyright {
-  color: var(--vault-text-soft);
+  color: var(--vault-text-muted);
 }
 
 .footerLinks {
