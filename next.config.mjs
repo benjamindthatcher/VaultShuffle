@@ -67,7 +67,8 @@ const nextConfig = {
       { protocol: "https", hostname: "avatars.steamstatic.com" }
     ],
     formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 86400
+    minimumCacheTTL: 86400,
+    qualities: [60, 75, 78]
   }
 };
 

@@ -213,38 +213,30 @@ export default function HomePage() {
       />
       <link rel="stylesheet" href="/landing.css" precedence="high" />
       <main className="vs-landing">
-        <header className="vs-marketing-header">
-          <Link className="vs-brand" href="/" aria-label="VaultShuffle home">
-            <span><LandingIcon name="open-vault" /></span>
-            VaultShuffle
-          </Link>
-          <Link className="vs-header-cta" href="/vault">Try free</Link>
-        </header>
-
         <section className="vs-hero" aria-labelledby="landing-title">
           <div className="vs-hero-copy">
-            <p className="vs-kicker">Free Steam game picker</p>
+            <p className="vs-kicker">Focused play. Better games.</p>
 
             <h1 id="landing-title">
-              Pick the right
-              <span>Steam game tonight.</span>
+              Tonight&apos;s pick.
+              <span>Finally decide.</span>
             </h1>
 
             <p className="vs-hero-text">
-              Stop scrolling through your Steam backlog. VaultShuffle finds the game that fits your available time,
-              current mood, and goal—then helps you organise everything else.
+              Vault Shuffle cuts through the noise and helps you find the one game that fits your mood, time, and
+              energy.
             </p>
 
             <div className="vs-cta-row" role="group" aria-label="Get started">
               <Link className="vs-cta vs-cta-primary" href="/login">
                 <span className="vs-cta-icon"><LandingIcon name="steam" /></span>
-                <span className="vs-cta-label">Pick from my Steam library</span>
+                <span className="vs-cta-label">Continue with Steam</span>
                 <span className="vs-cta-arrow" aria-hidden="true">&rarr;</span>
               </Link>
 
               <Link className="vs-cta vs-cta-secondary" href="/vault">
                 <LandingIcon name="guest" />
-                Try free guest mode
+                Try Guest Mode
               </Link>
             </div>
 
@@ -261,7 +253,7 @@ export default function HomePage() {
 
               <span>
                 <LandingIcon name="players" />
-                No account needed to try
+                You control your data
               </span>
             </div>
           </div>
