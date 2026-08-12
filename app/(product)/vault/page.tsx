@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
@@ -11,6 +11,7 @@ import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
 import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
 import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
+import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
@@ -32,9 +33,10 @@ import styles from "./vault.module.css";
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
 type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 const EMPTY_GAME_IDS: string[] = [];
+const GUEST_SIGN_IN_PROMPT_KEY = "vaultshuffle:guest-first-draw-prompt:v1";
 
 export default function VaultPage() {
-  const { games, collections, vaultState, vaultHistory, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, collections, vaultState, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
@@ -54,11 +56,14 @@ export default function VaultPage() {
   const [lensOpen, setLensOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
+  const [guestSignInOpen, setGuestSignInOpen] = useState(false);
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
+  const guestPromptQueuedRef = useRef(false);
+  const guestPromptTimerRef = useRef<number | null>(null);
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
@@ -103,6 +108,7 @@ export default function VaultPage() {
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
   const missingSetup = [!session ? "Session" : "", !mood ? "Mood" : "", !goal ? "Goal" : ""].filter(Boolean);
   const canDraw = missingSetup.length === 0 && deck.length > 0;
+  const closeGuestSignInPrompt = useCallback(() => setGuestSignInOpen(false), []);
 
   useEffect(() => {
     const resetQueue = { setupKey, gameIds: [] };
@@ -121,6 +127,34 @@ export default function VaultPage() {
   useEffect(() => {
     if (!deck.length) setLensOpen(true);
   }, [deck.length]);
+
+  useEffect(() => () => {
+    if (guestPromptTimerRef.current !== null) window.clearTimeout(guestPromptTimerRef.current);
+  }, []);
+
+  function queueFirstGuestSignInPrompt() {
+    if (isLive || guestPromptQueuedRef.current) return;
+
+    try {
+      if (window.sessionStorage.getItem(GUEST_SIGN_IN_PROMPT_KEY)) {
+        guestPromptQueuedRef.current = true;
+        return;
+      }
+    } catch {
+      // The in-memory guard still prevents repeat prompts when storage is unavailable.
+    }
+
+    guestPromptQueuedRef.current = true;
+    guestPromptTimerRef.current = window.setTimeout(() => {
+      try {
+        window.sessionStorage.setItem(GUEST_SIGN_IN_PROMPT_KEY, "shown");
+      } catch {
+        // Private browsing can disable storage; showing the prompt should still work.
+      }
+      setGuestSignInOpen(true);
+      guestPromptTimerRef.current = null;
+    }, 650);
+  }
 
   async function handleOpenVault({ deferCurrentPick = false }: { deferCurrentPick?: boolean } = {}) {
     if (drawingRef.current || !canDraw) return;
@@ -186,6 +220,7 @@ export default function VaultPage() {
         reroll_index: drawnCycleRef.current.size - 1,
       });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
+      queueFirstGuestSignInPrompt();
     } catch (error) {
       if (activeDraw !== activeDrawRef.current) return;
       console.error("Vault draw failed", error);
@@ -460,6 +495,7 @@ export default function VaultPage() {
           setDetailsGameId(game.id);
         }}
       />
+      <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} />
       {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}
       {pinMessage ? <div className={styles.pinToast} role="status">{pinMessage}<button type="button" onClick={() => setPinMessage("")}>Dismiss</button></div> : null}
       {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion()}>Undo</button></div> : null}
