@@ -11,11 +11,6 @@ type SiteFooterProps = {
 };
 
 const links = [
-  { href: "/steam-game-picker", label: "Game Picker", icon: "draw-from-vault" },
-  { href: "/steam-backlog-manager", label: "Backlog", icon: "backlog" },
-  { href: "/steam-library-manager", label: "Library Guide", icon: "all-games" },
-  { href: "/steam-wishlist-tracker", label: "Wishlist Guide", icon: "wishlist" },
-  { href: "/how-it-works", label: "How It Works", icon: "details" },
   { href: "/privacy", label: "Privacy", icon: "privacy" },
   { href: "/terms", label: "Terms", icon: "terms" },
   { href: "/steam-data", label: "Steam Data", icon: "steam-data" },
@@ -30,7 +25,7 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
   return (
     <footer className={`${styles.footer} ${variant === "app" ? styles.footerApp : ""}`}>
       <div className={styles.footerPanel}>
-        <nav aria-label="VaultShuffle product, legal, and support links">
+        <nav aria-label="Legal and support">
           <ul className={styles.footerLinks}>
             {links.map((link) => (
               <li key={link.href}>

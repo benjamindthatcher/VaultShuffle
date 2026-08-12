@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
-import { marketingNavigation } from "@/lib/marketing-pages";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -105,7 +104,7 @@ const productCards = [
     text: "All your games in one clean, powerful view.",
     bullets: ["Filter and sort", "Track playtime", "See what's next"],
     action: "Explore Library",
-    href: "/steam-library-manager",
+    href: "/library",
     icon: "books",
     preview: "library",
     rows: [
@@ -136,7 +135,7 @@ const productCards = [
     text: "Turn endless wishlists into your next obsession.",
     bullets: ["Track discounts", "Prioritise picks", "Never lose a gem"],
     action: "Explore Wishlist",
-    href: "/steam-wishlist-tracker",
+    href: "/wishlist",
     icon: "bookmark",
     preview: "wishlist",
     rows: [
@@ -167,7 +166,7 @@ const productCards = [
     text: "Create custom collections for any mood.",
     bullets: ["Build your themes", "Tag what matters", "Shuffle your way"],
     action: "Explore Collections",
-    href: "/steam-backlog-manager",
+    href: "/collections",
     icon: "layers",
     preview: "collections",
     rows: [
@@ -219,11 +218,6 @@ export default function HomePage() {
             <span><LandingIcon name="open-vault" /></span>
             VaultShuffle
           </Link>
-          <nav aria-label="Learn about VaultShuffle">
-            <Link href="/steam-game-picker">Game Picker</Link>
-            <Link href="/steam-backlog-manager">Backlog</Link>
-            <Link href="/how-it-works">How It Works</Link>
-          </nav>
           <Link className="vs-header-cta" href="/vault">Try free</Link>
         </header>
 
@@ -322,25 +316,6 @@ export default function HomePage() {
               </div>
             </article>
           ))}
-        </section>
-
-        <section className="vs-discover" aria-labelledby="discover-title">
-          <div>
-            <p className="vs-discover-eyebrow">Made for large Steam libraries</p>
-            <h2 id="discover-title">One place to choose, organise, and make progress</h2>
-            <p>
-              Start with tonight&apos;s decision, then turn the same library into a backlog you can understand,
-              collections you will use, and a wishlist worth paying attention to.
-            </p>
-          </div>
-          <nav aria-label="VaultShuffle product guides">
-            {marketingNavigation.map((link) => (
-              <Link href={link.href} key={link.href}>
-                <span>{link.label}</span>
-                <LandingIcon name="chevron-right" />
-              </Link>
-            ))}
-          </nav>
         </section>
 
         <section className="vs-product-grid" aria-label="Vault Shuffle features">
