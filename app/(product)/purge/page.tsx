@@ -33,6 +33,13 @@ type Undo = {
   previousStatus: DemoGame["status"];
 };
 
+class PurgeRequestError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = "PurgeRequestError";
+  }
+}
+
 export default function PurgePage() {
   const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
@@ -41,7 +48,11 @@ export default function PurgePage() {
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
   const savingRef = useRef(false);
+  const pendingGameIdsRef = useRef(new Set<string>());
+  const decisionQueueRef = useRef(Promise.resolve());
   const [saving, setSaving] = useState(false);
+  const [queuedCount, setQueuedCount] = useState(0);
+  const [optimisticPinnedIds, setOptimisticPinnedIds] = useState<string[]>([]);
   const [reviewsReady, setReviewsReady] = useState(false);
   const [error, setError] = useState("");
 
@@ -62,7 +73,8 @@ export default function PurgePage() {
   const activeIndex = Math.min(selectedOffset, Math.max(0, filteredCandidates.length - 1));
   const current = filteredCandidates[activeIndex] ?? null;
   const queue = filteredCandidates.slice(0, 5);
-  const pinsFull = vaultState.pinnedIds.length >= 3 && current ? !vaultState.pinnedIds.includes(current.game.id) : false;
+  const effectivePinnedIds = new Set([...vaultState.pinnedIds, ...optimisticPinnedIds]);
+  const pinsFull = effectivePinnedIds.size >= 3 && current ? !effectivePinnedIds.has(current.game.id) : false;
 
   const categoryCounts = useMemo(() => Object.fromEntries(CATEGORIES.map(({ id }) => [id, candidates.filter((item) => item.category === id).length])) as Record<PurgeCategory, number>, [candidates]);
   const purgeStats = useMemo(() => {
@@ -115,10 +127,19 @@ export default function PurgePage() {
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => null) as { error?: string } | null;
-      if (response.status === 409) await refresh().catch(() => undefined);
-      throw new Error(payload?.error ?? "Could not save this Purge decision.");
+      throw new PurgeRequestError(payload?.error ?? "Could not save this Purge decision.", response.status);
     }
     return (await response.json()).review as PurgeReview;
+  }
+
+  async function saveReviewWithRetry(candidate: PurgeCandidate, action: PurgeAction) {
+    try {
+      return await saveReview(candidate, action);
+    } catch (caught) {
+      if (caught instanceof PurgeRequestError && caught.status < 500) throw caught;
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+      return saveReview(candidate, action);
+    }
   }
 
   async function deleteReview(reviewId: string) {
@@ -133,21 +154,66 @@ export default function PurgePage() {
     setSelectedOffset(0);
   }
 
+  function queueLiveDecision(candidate: PurgeCandidate, action: PurgeAction) {
+    if (pendingGameIdsRef.current.has(candidate.game.id)) return;
+
+    const previousStatus = candidate.game.status;
+    const optimisticReview: PurgeReview = {
+      id: `pending-${crypto.randomUUID()}`,
+      gameId: candidate.game.id,
+      action,
+      category: candidate.category,
+      reviewedAt: new Date().toISOString()
+    };
+
+    pendingGameIdsRef.current.add(candidate.game.id);
+    setQueuedCount((value) => value + 1);
+    if (action === "pin") {
+      setOptimisticPinnedIds((value) => value.includes(candidate.game.id) ? value : [...value, candidate.game.id]);
+    }
+    setReviews((value) => [optimisticReview, ...value]);
+    setUndo(null);
+    setSelectedOffset(0);
+
+    decisionQueueRef.current = decisionQueueRef.current.then(async () => {
+      try {
+        const review = await saveReviewWithRetry(candidate, action);
+        setReviews((value) => [review, ...value.filter((item) => item.id !== optimisticReview.id && item.id !== review.id)]);
+        setUndo({ candidate, review, previousStatus });
+        captureProductEvent("purge_decision", { action: review.action, category: candidate.category });
+      } catch (caught) {
+        setReviews((value) => value.filter((item) => item.id !== optimisticReview.id));
+        if (action === "pin") {
+          setOptimisticPinnedIds((value) => value.filter((id) => id !== candidate.game.id));
+        }
+        setError(`${candidate.game.title}: ${caught instanceof Error ? caught.message : "Could not save this Purge decision."}`);
+      } finally {
+        pendingGameIdsRef.current.delete(candidate.game.id);
+        setQueuedCount((value) => Math.max(0, value - 1));
+        if (pendingGameIdsRef.current.size === 0) {
+          await refresh();
+          setOptimisticPinnedIds([]);
+        }
+      }
+    });
+  }
+
   async function act(action: PurgeAction, candidate = current) {
-    if (!candidate || !reviewsReady || savingRef.current) return;
+    if (!candidate || !reviewsReady) return;
     if (action === "pin" && pinsFull) return;
+    setError("");
+    if (isLive) {
+      queueLiveDecision(candidate, action);
+      return;
+    }
+    if (savingRef.current) return;
     savingRef.current = true;
     setSaving(true);
-    setError("");
     const previousStatus = candidate.game.status;
     try {
       const review = await saveReview(candidate, action);
       const committedAction = review.action;
-      if (isLive) {
-        // Advance from the committed response immediately; refresh reconciles the rest of the app.
-        finishDecision(candidate, committedAction, previousStatus, review);
-        await refresh();
-      } else if (committedAction === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)) {
+      if (committedAction === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)) {
         await recordVaultAction("pinned", candidate.game.id);
       } else if (committedAction === "sleep") {
         await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
@@ -155,7 +221,7 @@ export default function PurgePage() {
         await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
       }
       captureProductEvent("purge_decision", { action: committedAction, category: candidate.category });
-      if (!isLive) finishDecision(candidate, committedAction, previousStatus, review);
+      finishDecision(candidate, committedAction, previousStatus, review);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");
     } finally {
@@ -165,7 +231,7 @@ export default function PurgePage() {
   }
 
   async function undoLast() {
-    if (!undo || savingRef.current) return;
+    if (!undo || savingRef.current || pendingGameIdsRef.current.size > 0) return;
     savingRef.current = true;
     setSaving(true);
     setError("");
@@ -236,7 +302,7 @@ export default function PurgePage() {
         </div> : <div className={styles.empty}><h3>No games currently match this Purge setup.</h3><p>Adjust the categories or revisit after your Library has had more time to settle.</p></div>}
       </section>
 
-      {current ? <section className={styles.reviewPanel} aria-busy={saving}>
+      {current ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
         <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
         <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p><div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
         <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
@@ -246,7 +312,7 @@ export default function PurgePage() {
           <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
         </div>
       </section> : null}
-    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving} onClick={() => void undoLast()}>Undo last decision</button><span>Every decision saves and advances automatically.</span></footer>
+    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : "Every decision saves and advances automatically."}</span></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
   </PurgePageFrame>;
