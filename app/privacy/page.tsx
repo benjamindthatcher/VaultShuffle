@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           },
           {
             title: "Analytics and device storage",
-            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. PostHog product analytics and session replay remain off unless you choose Allow analytics. If enabled, PostHog may use browser storage and identify a signed-in account so we can understand product usage and improve the experience. You can withdraw consent at any time through Analytics Settings."
+            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. We use PostHog in cookieless mode by default solely to produce product-usage statistics that help us improve VaultShuffle. This mode does not use persistent browser storage for tracking, identify your account, enrich events with GeoIP, create heatmaps or record session replays. PostHog uses a privacy-preserving server-generated hash for anonymous event grouping. You can object and turn PostHog off at any time through Analytics Settings."
           },
           {
             title: "Suppliers and international processing",
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           },
           {
             title: "Your rights",
-            body: "Depending on your location, you may ask for a copy of your personal data, correction, deletion, restriction, portability or an objection to certain processing. You may withdraw analytics consent without affecting earlier lawful processing. UK users may also complain to the Information Commissioner's Office. Contact us first if you would like help exercising a right."
+            body: "Depending on your location, you may ask for a copy of your personal data, correction, deletion, restriction, portability or an objection to certain processing. You may object to cookieless analytics at any time through Analytics Settings. UK users may also complain to the Information Commissioner's Office. Contact us first if you would like help exercising a right."
           },
           {
             title: "Changes and age limits",

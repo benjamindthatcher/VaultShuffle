@@ -3,7 +3,7 @@
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 
 type PostHogClient = typeof import("posthog-js").default;
-type ProductAnalyticsMode = "full" | "disabled";
+type ProductAnalyticsMode = "cookieless" | "disabled";
 
 let client: PostHogClient | null = null;
 let clientPromise: Promise<PostHogClient | null> | null = null;
@@ -13,8 +13,7 @@ function productAnalyticsMode(): ProductAnalyticsMode {
   if (typeof window === "undefined") return "disabled";
   try {
     const choice = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    if (choice === "accepted") return "full";
-    return "disabled";
+    return choice === "disabled" || choice === "essential" ? "disabled" : "cookieless";
   } catch {
     return "disabled";
   }
@@ -36,12 +35,18 @@ async function loadClient() {
       api_host: "/ingest",
       ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST?.replace(".i.posthog.com", ".posthog.com"),
       defaults: "2026-01-30",
+      cookieless_mode: "on_reject",
       opt_out_capturing_by_default: true,
-      person_profiles: "identified_only",
+      person_profiles: "never",
       autocapture: true,
-      capture_exceptions: true,
+      capture_exceptions: false,
       capture_pageview: false,
       capture_pageleave: true,
+      capture_heatmaps: false,
+      disable_session_recording: true,
+      disable_surveys: true,
+      advanced_disable_flags: true,
+      respect_dnt: true,
       tracing_headers: [window.location.hostname],
       debug: process.env.NODE_ENV === "development",
     });
@@ -58,19 +63,22 @@ async function loadClient() {
 
 function applyProductAnalyticsMode(posthog: PostHogClient, mode: ProductAnalyticsMode) {
   const consentStatus = posthog.get_explicit_consent_status();
-  posthog.config.cookieless_mode = undefined;
 
   if (mode === "disabled") {
+    const wasCookieless = posthog.config.cookieless_mode === "on_reject";
+    posthog.config.cookieless_mode = undefined;
     posthog.stopSessionRecording();
-    if (consentStatus !== "denied") {
+    if (consentStatus !== "denied" || wasCookieless) {
       posthog.reset();
       posthog.opt_out_capturing();
     }
     return;
   }
 
-  if (consentStatus !== "granted") posthog.opt_in_capturing();
-  posthog.startSessionRecording();
+  const alreadyCookieless = posthog.config.cookieless_mode === "on_reject" && consentStatus === "denied";
+  posthog.set_config({ cookieless_mode: "on_reject" });
+  posthog.stopSessionRecording();
+  if (!alreadyCookieless) posthog.opt_out_capturing();
 }
 
 async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
@@ -85,8 +93,8 @@ async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
   return configuredMode === "disabled" ? null : posthog;
 }
 
-export async function enableProductAnalytics() {
-  await setProductAnalyticsMode("full");
+export async function enableCookielessProductAnalytics() {
+  await setProductAnalyticsMode("cookieless");
 }
 
 export function disableProductAnalytics() {
@@ -108,17 +116,4 @@ export function captureProductEvent(event: string, properties?: Record<string, u
     ? Promise.resolve(client)
     : setProductAnalyticsMode(mode);
   void ready.then((posthog) => posthog?.capture(event, properties));
-}
-
-export function identifyProductUser(userId: string, properties?: Record<string, unknown>) {
-  if (productAnalyticsMode() !== "full") return;
-
-  const ready = configuredMode === "full" && client
-    ? Promise.resolve(client)
-    : setProductAnalyticsMode("full");
-  void ready.then((posthog) => posthog?.identify(userId, properties));
-}
-
-export function resetProductAnalytics() {
-  if (productAnalyticsMode() === "full") client?.reset();
 }

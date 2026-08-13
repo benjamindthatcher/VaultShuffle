@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { buildCollectionDetails, guestSession, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
-import { captureProductEvent, identifyProductUser, resetProductAnalytics } from "@/lib/posthog-client";
+import { captureProductEvent } from "@/lib/posthog-client";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
@@ -99,14 +99,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      if (nextSession.user_id) {
-        identifyProductUser(nextSession.user_id, {
-          steam_id: nextSession.steam_id,
-          ...(nextSession.display_name ? { display_name: nextSession.display_name } : {}),
-          ...(nextSession.avatar_url ? { $avatar: nextSession.avatar_url } : {}),
-        });
-      }
-
       setIsLive(true);
       const { games, collections, memberships, vaultState } = bootstrap;
       if (bootstrap.data_error || !games || !collections || !memberships || !vaultState) {
@@ -191,7 +183,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await api("/api/logout", { method: "POST" });
     captureProductEvent("user_signed_out");
-    resetProductAnalytics();
     window.location.assign("/login");
   }
 
