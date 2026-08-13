@@ -3,6 +3,7 @@ import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { upsertSteamGames } from "@/lib/games";
 import { jsonError } from "@/lib/http";
 import { fetchOwnedSteamGames } from "@/lib/steam";
+import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
 export const maxDuration = 60;
@@ -12,6 +13,8 @@ export async function POST() {
 }
 
 async function importLibrary() {
+  const startedAt = Date.now();
+  console.log(JSON.stringify({ level: "info", message: "Steam library import started", route: "/api/steam/owned-games" }));
   try {
     const { user } = await requireSession();
     const apiKey = process.env.STEAM_WEB_API_KEY;
@@ -39,10 +42,26 @@ async function importLibrary() {
       await processCatalogueQueue(20, importedAppIds.map(Number), deadlineAt).catch(() => undefined);
     });
 
+    console.log(JSON.stringify({
+      level: "info",
+      message: "Steam library import completed",
+      route: "/api/steam/owned-games",
+      imported: games.length,
+      duration_ms: Date.now() - startedAt
+    }));
     return NextResponse.json({ imported: games.length, catalogue });
   } catch (error) {
     if (error instanceof Error && error.message.includes("sign-in")) {
       return unauthorizedResponse();
+    }
+    if (error instanceof SteamLibraryUnavailableError) {
+      console.warn(JSON.stringify({
+        level: "warning",
+        message: "Steam returned no visible owned games",
+        route: "/api/steam/owned-games",
+        duration_ms: Date.now() - startedAt
+      }));
+      return NextResponse.json({ error: error.message }, { status: 409 });
     }
     return jsonError(error, 502);
   }

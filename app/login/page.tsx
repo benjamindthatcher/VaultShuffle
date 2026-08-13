@@ -31,7 +31,7 @@ export default function LoginPage() {
           <span className={styles.steamLabel}>Sign in with Steam</span>
           <SiteGlyph name="chevron-right" size={22} className={styles.steamArrow} />
         </a>
-        <p className={styles.note}>Secure. Private. Built for players.</p>
+        <p className={styles.note}>Steam must be allowed to share your Game details for library syncing. VaultShuffle never receives your password.</p>
         <Link href="/" className={styles.backLink}><SiteGlyph name="back" size={18} />Back to home</Link>
       </section>
     </main>

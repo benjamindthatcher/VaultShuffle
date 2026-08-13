@@ -1,6 +1,7 @@
 import type { GamePayload, SteamPlayerSummary, SteamSearchResult } from "@/lib/types";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
+import { steamOwnedGamesFromPayload } from "@/lib/steam-owned-games";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const SEARCH_CACHE_MS = 10 * 60 * 1000;
@@ -207,32 +208,7 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
   }
 
   const payload = await response.json();
-  const games = Array.isArray(payload?.response?.games) ? payload.response.games : [];
-  const today = new Date().toLocaleDateString("en-GB");
-
-  const baseGames: GamePayload[] = games.flatMap((item: Record<string, unknown>) => {
-    const appid = String(item.appid ?? "").trim();
-    const title = String(item.name ?? "").trim();
-    if (!appid || !title) return [];
-    const hours = Math.round((Number(item.playtime_forever ?? 0) / 60) * 10) / 10;
-    return {
-      title,
-      genre: "Unknown",
-      store: "Steam",
-      ownership: "Owned",
-      status: hours > 0 ? "In Progress" : "Not Started",
-      rating: 0,
-      hours_played: hours,
-      completion_percentage: 0,
-      priority: "Medium",
-      date_added: today,
-      last_played_at: steamLastPlayedDate(item.rtime_last_played),
-      notes: "",
-      steam_appid: appid
-    };
-  });
-
-  return baseGames;
+  return steamOwnedGamesFromPayload(payload);
 }
 
 export async function fetchPublicSteamWishlist(steamId: string, apiKey: string): Promise<GamePayload[]> {
