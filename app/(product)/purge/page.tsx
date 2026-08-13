@@ -34,7 +34,7 @@ type Undo = {
 };
 
 export default function PurgePage() {
-  const { games, vaultState, isLive, updateGame, restoreGame, recordVaultAction } = useAppData();
+  const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>(["untouched"]);
   const queueRef = useRef<HTMLDivElement>(null);
@@ -111,11 +111,6 @@ export default function PurgePage() {
     setSelectedOffset(0);
   }
 
-  async function rollbackAppliedAction(action: PurgeAction, candidate: PurgeCandidate) {
-    if (action === "pin") await recordVaultAction("unpinned", candidate.game.id);
-    if (action === "sleep" || action === "complete") await restoreGame(candidate.game.id);
-  }
-
   async function act(action: PurgeAction, candidate = current) {
     if (!candidate || saving) return;
     if (action === "pin" && pinsFull) return;
@@ -124,40 +119,17 @@ export default function PurgePage() {
     const previousStatus = candidate.game.status;
     try {
       const shouldApplyPin = action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id);
-      const didApplyAction = shouldApplyPin || action === "sleep" || action === "complete";
-      const actionRequest = shouldApplyPin
-        ? recordVaultAction("pinned", candidate.game.id)
-        : action === "sleep"
-          ? updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() })
-          : action === "complete"
-            ? updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null })
-            : Promise.resolve();
-      const [reviewResult, actionResult] = await Promise.allSettled([saveReview(candidate, action), actionRequest]);
-
-      if (reviewResult.status === "fulfilled" && actionResult.status === "rejected") {
-        try {
-          await deleteReview(reviewResult.value.id);
-        } catch {
-          // Preserve the authoritative action error; saved reviews reconcile on reload.
-        }
-        throw actionResult.reason;
+      const review = await saveReview(candidate, action);
+      if (isLive) {
+        // The server applies the review and its game action in one transaction.
+        await refresh();
+      } else if (shouldApplyPin) {
+        await recordVaultAction("pinned", candidate.game.id);
+      } else if (action === "sleep") {
+        await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
+      } else if (action === "complete") {
+        await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
       }
-
-      if (reviewResult.status === "rejected" && actionResult.status === "fulfilled") {
-        if (didApplyAction) {
-          try {
-            await rollbackAppliedAction(action, candidate);
-          } catch (rollbackError) {
-            console.error("Could not roll back a partially saved Purge decision.", rollbackError);
-          }
-        }
-        throw reviewResult.reason;
-      }
-
-      if (reviewResult.status === "rejected") throw reviewResult.reason;
-      if (actionResult.status === "rejected") throw actionResult.reason;
-
-      const review = reviewResult.value;
       captureProductEvent("purge_decision", { action, category: candidate.category });
       finishDecision(candidate, action, previousStatus, review);
     } catch (caught) {
@@ -172,12 +144,17 @@ export default function PurgePage() {
     setSaving(true);
     setError("");
     try {
-      if (undo.review.action === "pin") {
-        await recordVaultAction("unpinned", undo.candidate.game.id);
+      if (isLive) {
+        // The server reverses the action and removes its review atomically.
+        await deleteReview(undo.review.id);
+        await refresh();
+      } else {
+        if (undo.review.action === "pin") {
+          await recordVaultAction("unpinned", undo.candidate.game.id);
+        }
+        if (undo.review.action === "sleep") await updateGame(undo.candidate.game.id, { status: undo.previousStatus, sleptAt: null });
+        if (undo.review.action === "complete") await restoreGame(undo.candidate.game.id);
       }
-      if (undo.review.action === "sleep") await updateGame(undo.candidate.game.id, { status: undo.previousStatus, sleptAt: null });
-      if (undo.review.action === "complete") await restoreGame(undo.candidate.game.id);
-      await deleteReview(undo.review.id);
       setReviews((value) => value.filter((review) => review.id !== undo.review.id));
       setSelectedOffset(0);
       setUndo(null);

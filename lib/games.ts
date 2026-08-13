@@ -67,13 +67,14 @@ export async function findGame(userId: string, gameId: string) {
 export async function createGame(userId: string, payload: GamePayload) {
   const game = normalizeGamePayload(payload);
   await ensureCatalogueGameStubs([game]);
-  const supabase = getSupabaseAdmin();
 
   if (game.steam_appid) {
-    const existing = await findGameBySteamAppId(userId, game.steam_appid);
-    if (existing) return updateSteamBackedGame(userId, existing, game);
+    const [saved] = await upsertSteamImportRows(userId, [game], game.ownership);
+    if (!saved) throw new Error("Could not save this Steam game.");
+    return saved;
   }
 
+  const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("games")
     .insert({ ...game, user_id: userId })
@@ -218,18 +219,7 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
     };
   });
 
-  const saved: Game[] = [];
-  for (let index = 0; index < rows.length; index += 400) {
-    const { data, error } = await supabase
-      .from("games")
-      .upsert(rows.slice(index, index + 400), { onConflict: "user_id,steam_appid" })
-      .select("*");
-
-    if (error) throw error;
-    saved.push(...((data ?? []) as Game[]));
-  }
-
-  return saved;
+  return upsertSteamImportRows(userId, rows, "Owned");
 }
 
 export async function upsertSteamWishlistGames(userId: string, games: GamePayload[]) {
@@ -303,17 +293,32 @@ export async function upsertSteamWishlistGames(userId: string, games: GamePayloa
     }];
   });
 
+  const persisted = await upsertSteamImportRows(userId, rows, "Wishlist");
+  const saved = persisted.filter((game) => game.ownership === "Wishlist");
+  skippedOwned += persisted.length - saved.length;
+
+  return { games: saved, skippedOwned };
+}
+
+async function upsertSteamImportRows<T extends object>(
+  userId: string,
+  rows: T[],
+  ownership: GamePayload["ownership"]
+) {
+  if (!rows.length) return [] as Game[];
+
+  const supabase = getSupabaseAdmin();
   const saved: Game[] = [];
   for (let index = 0; index < rows.length; index += 400) {
-    const { data, error } = await supabase
-      .from("games")
-      .upsert(rows.slice(index, index + 400), { onConflict: "user_id,steam_appid" })
-      .select("*");
+    const { data, error } = await supabase.rpc("upsert_user_steam_games", {
+      p_user_id: userId,
+      p_games: rows.slice(index, index + 400),
+      p_ownership: ownership
+    });
     if (error) throw error;
     saved.push(...((data ?? []) as Game[]));
   }
-
-  return { games: saved, skippedOwned };
+  return saved;
 }
 
 function gameDatabaseRow(userId: string, game: GamePayload): GameDatabaseRow {
@@ -337,39 +342,6 @@ export function statsPayload(games: Game[]): StatsPayload {
     avg_rating: ratings.length ? round1(ratings.reduce((total, rating) => total + rating, 0) / ratings.length) : 0,
     avg_completion: games.length ? round1(completionTotal / games.length) : 0
   };
-}
-
-async function findGameBySteamAppId(userId: string, steamAppId: string) {
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from("games")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("steam_appid", steamAppId)
-    .maybeSingle();
-  if (error) throw error;
-  return data as Game | null;
-}
-
-async function updateSteamBackedGame(userId: string, existing: Game, incoming: GamePayload) {
-  const update: Partial<GamePayload> = {
-    title: incoming.title,
-    store: "Steam",
-    steam_appid: incoming.steam_appid,
-    hours_played: incoming.hours_played,
-    genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
-    status: existing.status,
-    date_added: existing.date_added || incoming.date_added,
-    last_played_at: incoming.last_played_at || existing.last_played_at,
-    notes: cleanUserNotes(existing.notes) || incoming.notes,
-    ownership: existing.ownership,
-    rating: Number(existing.rating || 0) > 0 ? existing.rating : incoming.rating,
-    completion_percentage: existing.completion_percentage,
-    priority: existing.priority
-  };
-  const saved = await updateGame(userId, existing.id, { ...existing, ...update });
-  if (!saved) throw new Error("Could not update existing Steam game.");
-  return saved;
 }
 
 function normalizePatchPayload(payload: Partial<GamePayload>) {

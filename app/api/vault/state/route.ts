@@ -5,7 +5,7 @@ import { jsonError, readJsonBody } from "@/lib/http";
 import { getVaultState, recordVaultAction } from "@/lib/vault-state";
 
 const vaultActionSchema = z.object({
-  action: z.enum(["drawn", "pinned", "unpinned", "snoozed", "unsnoozed"]),
+  action: z.enum(["pinned", "unpinned", "snoozed", "unsnoozed"]),
   game_id: z.string().uuid(),
   context: z.record(z.string().max(80), z.union([z.string().max(500), z.number(), z.boolean(), z.null(), z.array(z.string().max(80)).max(20)])).optional().default({})
 }).strict();

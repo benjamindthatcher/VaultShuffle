@@ -31,32 +31,16 @@ export async function POST(request: Request) {
     const { user } = await requireSession();
     const input = reviewSchema.parse(await readJsonBody(request));
     const supabase = getSupabaseAdmin();
-    const { data: ownedGame, error: gameError } = await supabase
-      .from("games")
-      .select("id, hours_played, completion_percentage, last_played_at")
-      .eq("id", input.game_id)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (gameError) throw gameError;
-    if (!ownedGame) return NextResponse.json({ error: "Game not found." }, { status: 404 });
-
     const { data, error } = await supabase
-      .from("purge_reviews")
-      .insert({
-        user_id: user.id,
-        game_id: input.game_id,
-        action: input.action,
-        category: input.category,
-        playtime_minutes_at_review: Math.max(0, Math.round(Number(ownedGame.hours_played || 0) * 60)),
-        progress_at_review: ownedGame.completion_percentage,
-        last_played_at_review: ownedGame.last_played_at
-      })
-      .select("*")
-      .single();
+      .rpc("apply_user_purge_decision", {
+        p_user_id: user.id,
+        p_game_id: input.game_id,
+        p_action: input.action,
+        p_category: input.category
+      });
 
     if (error) throw error;
-    return NextResponse.json({ review: mapReview(data) }, { status: 201 });
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     return jsonError(error, 500);
   }
@@ -67,10 +51,10 @@ export async function DELETE(request: Request) {
     const { user } = await requireSession();
     const id = z.string().uuid().parse(new URL(request.url).searchParams.get("id"));
     const { error } = await getSupabaseAdmin()
-      .from("purge_reviews")
-      .delete()
-      .eq("id", id)
-      .eq("user_id", user.id);
+      .rpc("undo_user_purge_decision", {
+        p_user_id: user.id,
+        p_review_id: id
+      });
 
     if (error) throw error;
     return NextResponse.json({ ok: true });

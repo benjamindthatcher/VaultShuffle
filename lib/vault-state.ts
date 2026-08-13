@@ -52,112 +52,23 @@ export async function recordVaultAction(
   context: Record<string, unknown> = {}
 ) {
   const supabase = getSupabaseAdmin();
-  const { data: game, error: gameError } = await supabase
-    .from("games")
-    .select("id")
-    .eq("id", gameId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (gameError) throw gameError;
-  if (!game) throw new Error("Game not found in your library.");
-
-  const state = await getVaultState(userId);
-  let next = reduceVaultState(state, action, gameId, context);
-  const pinScope = context.pin_scope === "wishlist" ? "wishlist" : "library";
-  if (action === "pinned") {
-    const replaceId = cleanId(String(context.replace_game_id ?? ""));
-    const { data: pinnedIds, error: pinError } = await supabase.rpc("pin_scoped_user_game", {
-      p_user_id: userId,
-      p_game_id: gameId,
-      p_scope: pinScope,
-      p_replace_game_id: replaceId
-    });
-    if (pinError) throw pinError;
-    next = pinScope === "library"
-      ? { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] }
-      : { ...next, wishlistPinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
-  }
-  if (action === "unpinned") {
-    const { data: pinnedIds, error: pinError } = await supabase.rpc("unpin_scoped_user_game", {
-      p_user_id: userId,
-      p_game_id: gameId,
-      p_scope: pinScope
-    });
-    if (pinError) throw pinError;
-    next = pinScope === "library"
-      ? { ...next, pinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] }
-      : { ...next, wishlistPinnedIds: Array.isArray(pinnedIds) ? pinnedIds.map(String) : [] };
-  }
-  if (action === "drawn") {
-    const { error } = await supabase
-      .from("user_vault_state")
-      .upsert({ user_id: userId, current_game_id: gameId, updated_at: new Date().toISOString() }, { onConflict: "user_id" });
-    if (error) throw error;
-  } else if (action === "snoozed") {
-    const snoozedUntil = cleanSnoozeExpiry(context.snoozed_until);
-    const [{ error: snoozeError }, { error: stateError }] = await Promise.all([
-      supabase.from("user_game_snoozes").upsert(
-        { user_id: userId, game_id: gameId, snoozed_until: snoozedUntil },
-        { onConflict: "user_id,game_id" }
-      ),
-      supabase.from("user_vault_state").update({ current_game_id: null, updated_at: new Date().toISOString() })
-        .eq("user_id", userId).eq("current_game_id", gameId)
-    ]);
-    if (snoozeError) throw snoozeError;
-    if (stateError) throw stateError;
-  } else if (action === "unsnoozed") {
-    const { error } = await supabase.from("user_game_snoozes")
-      .delete().eq("user_id", userId).eq("game_id", gameId);
-    if (error) throw error;
-  }
-
-  const { error: eventError } = await supabase.from("vault_events").insert({
-    user_id: userId,
-    game_id: gameId,
-    action,
-    context
+  const { data, error } = await supabase.rpc("apply_user_vault_action", {
+    p_user_id: userId,
+    p_action: action,
+    p_game_id: gameId,
+    p_context: context
   });
-  // The state mutation above is authoritative. Audit logging must never turn a
-  // successfully applied user action into a visible failure.
-  if (eventError) console.error("Could not record vault event.", eventError);
-
-  return next;
+  if (error) throw error;
+  const state = (data ?? {}) as Partial<VaultState>;
+  return {
+    pinnedIds: Array.isArray(state.pinnedIds) ? state.pinnedIds.map(String) : [],
+    wishlistPinnedIds: Array.isArray(state.wishlistPinnedIds) ? state.wishlistPinnedIds.map(String) : [],
+    snoozedIds: Array.isArray(state.snoozedIds) ? state.snoozedIds.map(String) : [],
+    currentPickId: cleanId(state.currentPickId ?? null)
+  };
 }
 
-function reduceVaultState(state: VaultState, action: VaultAction, gameId: string, context: Record<string, unknown>): VaultState {
-  let pinnedIds = [...state.pinnedIds];
-  let wishlistPinnedIds = [...state.wishlistPinnedIds];
-  const snoozed = new Set(state.snoozedIds);
-  let currentPickId = state.currentPickId;
-  const pinScope = context.pin_scope === "wishlist" ? "wishlist" : "library";
-
-  if (action === "drawn") currentPickId = gameId;
-  if (action === "pinned" && pinScope === "wishlist" && !wishlistPinnedIds.includes(gameId)) {
-    const replaceId = cleanId(String(context.replace_game_id ?? ""));
-    if (wishlistPinnedIds.length < 3) wishlistPinnedIds.push(gameId);
-    else if (replaceId && wishlistPinnedIds.includes(replaceId)) wishlistPinnedIds[wishlistPinnedIds.indexOf(replaceId)] = gameId;
-  }
-  if (action === "unpinned" && pinScope === "wishlist") wishlistPinnedIds = wishlistPinnedIds.filter((id) => id !== gameId);
-  if (action === "pinned" && pinScope === "library" && !pinnedIds.includes(gameId)) pinnedIds.push(gameId);
-  if (action === "unpinned" && pinScope === "library") pinnedIds = pinnedIds.filter((id) => id !== gameId);
-  if (action === "snoozed") {
-    snoozed.add(gameId);
-    if (currentPickId === gameId) currentPickId = null;
-  }
-  if (action === "unsnoozed") snoozed.delete(gameId);
-
-  return { pinnedIds, wishlistPinnedIds, snoozedIds: [...snoozed], currentPickId };
-}
-
-function cleanId(value: string | undefined) {
+function cleanId(value: string | null | undefined) {
   const cleaned = String(value ?? "").trim();
   return cleaned || null;
-}
-
-function cleanSnoozeExpiry(value: unknown) {
-  const candidate = String(value ?? "").trim();
-  if (!candidate) return null;
-  const timestamp = Date.parse(candidate);
-  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
 }

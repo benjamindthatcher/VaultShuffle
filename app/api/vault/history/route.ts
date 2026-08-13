@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { recordVaultAction } from "@/lib/vault-state";
 import { jsonError, readJsonBody } from "@/lib/http";
 
 const drawSchema = z.object({
@@ -34,11 +33,21 @@ export async function POST(request: Request) {
   try {
     const { user } = await requireSession();
     const input = drawSchema.parse(await readJsonBody(request));
-    const state = await recordVaultAction(user.id, "drawn", input.game_id, { session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collection_id, genres: input.selected_genres });
     const supabase = getSupabaseAdmin();
-    const { data, error } = await supabase.from("vault_draws").insert({ user_id: user.id, steam_appid: input.steam_app_id, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collection_id, selected_genres: input.selected_genres, eligible_pool_count: input.eligible_pool_count, reroll_index: input.reroll_index }).select("id, drawn_at").single();
+    const { data, error } = await supabase.rpc("record_user_vault_draw", {
+      p_user_id: user.id,
+      p_game_id: input.game_id,
+      p_steam_appid: input.steam_app_id,
+      p_session: input.session,
+      p_mood: input.mood,
+      p_goal: input.goal,
+      p_collection_id: input.collection_id,
+      p_selected_genres: input.selected_genres,
+      p_eligible_pool_count: input.eligible_pool_count,
+      p_reroll_index: input.reroll_index
+    });
     if (error) throw error;
-    return NextResponse.json({ state, draw: { id: data.id, steamAppId: input.steam_app_id, drawnAt: data.drawn_at, session: input.session, mood: input.mood, goal: input.goal, collectionId: input.collection_id, selectedGenres: input.selected_genres, eligiblePoolCount: input.eligible_pool_count, rerollIndex: input.reroll_index, events: [] } }, { status: 201 });
+    return NextResponse.json(data, { status: 201 });
   } catch (error) { return jsonError(error, error instanceof Error && error.message.includes("sign-in") ? 401 : 400); }
 }
 
