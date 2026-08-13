@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
-import { ScrollControls } from "@/components/shared/ScrollControls";
 import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 import {
   buildPurgeCandidates,
@@ -44,7 +43,6 @@ export default function PurgePage() {
   const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>(["untouched"]);
-  const queueRef = useRef<HTMLDivElement>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
   const savingRef = useRef(false);
@@ -290,8 +288,8 @@ export default function PurgePage() {
       </aside>
     </section>
       <section className={styles.queuePanel}>
-        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div>{queue.length ? <ScrollControls targetRef={queueRef} axis="horizontal" label="Browse review queue" /> : null}</div>
-        {queue.length ? <div className={styles.queue} ref={queueRef}>
+        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div></div>
+        {queue.length ? <div className={styles.queue}>
           {queue.map((candidate, offset) => {
             const selected = current?.game.id === candidate.game.id;
             return <button key={candidate.game.id} type="button" className={selected ? styles.queueCardSelected : styles.queueCard} onClick={() => setSelectedOffset(offset)}>
