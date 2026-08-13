@@ -8,7 +8,7 @@ import {
 } from "@/lib/game-classification";
 import { applyCachedSteamMetadata } from "@/lib/steam-metadata";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
-import { quarantinedSteamImports } from "@/lib/catalogue";
+import { ensureCatalogueGameStubs, quarantinedSteamImports } from "@/lib/catalogue";
 import type { Game, GamePayload, StatsPayload } from "@/lib/types";
 
 type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
@@ -66,6 +66,7 @@ export async function findGame(userId: string, gameId: string) {
 
 export async function createGame(userId: string, payload: GamePayload) {
   const game = normalizeGamePayload(payload);
+  await ensureCatalogueGameStubs([game]);
   const supabase = getSupabaseAdmin();
 
   if (game.steam_appid) {
@@ -85,6 +86,7 @@ export async function createGame(userId: string, payload: GamePayload) {
 
 export async function updateGame(userId: string, gameId: string, payload: GamePayload) {
   const game = normalizeGamePayload(payload);
+  await ensureCatalogueGameStubs([game]);
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
     .from("games")
@@ -152,7 +154,9 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
     if (game.steam_appid) steamGames.set(game.steam_appid, game);
   }
 
-  const incomingGames = await applyCachedSteamMetadata([...steamGames.values()]);
+  const importedGames = [...steamGames.values()];
+  await ensureCatalogueGameStubs(importedGames);
+  const incomingGames = await applyCachedSteamMetadata(importedGames);
   if (!incomingGames.length) return [];
   const quarantineByAppId = await quarantinedSteamImports(incomingGames);
 
@@ -234,7 +238,9 @@ export async function upsertSteamWishlistGames(userId: string, games: GamePayloa
     if (game.steam_appid) incomingByAppId.set(game.steam_appid, { ...game, ownership: "Wishlist" });
   }
 
-  const incomingGames = await applyCachedSteamMetadata([...incomingByAppId.values()]);
+  const importedGames = [...incomingByAppId.values()];
+  await ensureCatalogueGameStubs(importedGames);
+  const incomingGames = await applyCachedSteamMetadata(importedGames);
   if (!incomingGames.length) return { games: [] as Game[], skippedOwned: 0 };
 
   const quarantineByAppId = await quarantinedSteamImports(incomingGames);

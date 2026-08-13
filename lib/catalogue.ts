@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchSteamAppDetails, SteamAppRequestError, SteamAppUnavailableError } from "@/lib/steam";
 import type { GamePayload } from "@/lib/types";
+import { catalogueGameStubRows } from "@/lib/catalogue-stubs";
 
 const AUTOMATIC_EXCLUSION_LABELS = new Set(["software", "utilities"]);
 const AUTOMATIC_RELEASE_CHANNEL_RULES = [
@@ -67,6 +68,30 @@ export async function recordImportedSteamAppIds(userId: string, appIds: string[]
   });
   if (error) throw error;
   return { queued: Number(queued || 0) };
+}
+
+/**
+ * Creates only the shared identity required by the games foreign key. Steam's
+ * owned-games response already gives us the AppID and title, so a catalogue
+ * miss must never roll back an otherwise usable library import. The existing
+ * ingest queue replaces these deliberately stale stubs with full metadata.
+ */
+export async function ensureCatalogueGameStubs(games: GamePayload[]) {
+  const rows = catalogueGameStubRows(games);
+  if (!rows.length) return 0;
+
+  const supabase = getSupabaseAdmin();
+  for (let index = 0; index < rows.length; index += 500) {
+    const { error } = await supabase
+      .from("catalog_games")
+      .upsert(rows.slice(index, index + 500), {
+        onConflict: "steam_appid",
+        ignoreDuplicates: true
+      });
+    if (error) throw error;
+  }
+
+  return rows.length;
 }
 
 export async function queueStaleCatalogueMetadata(limit = 100) {
