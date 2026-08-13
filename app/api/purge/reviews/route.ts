@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession } from "@/lib/auth";
-import { jsonError, readJsonBody } from "@/lib/http";
+import { HttpError, jsonError, readJsonBody } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 const reviewSchema = z.object({
@@ -39,6 +39,9 @@ export async function POST(request: Request) {
         p_category: input.category
       });
 
+    if (error?.message === "GAME_NOT_REVIEWABLE") {
+      throw new HttpError("This game has already changed. Refresh the Purge queue and try again.", 409);
+    }
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
   } catch (error) {

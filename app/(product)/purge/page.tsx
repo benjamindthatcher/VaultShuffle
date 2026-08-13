@@ -40,7 +40,9 @@ export default function PurgePage() {
   const queueRef = useRef<HTMLDivElement>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
+  const savingRef = useRef(false);
   const [saving, setSaving] = useState(false);
+  const [reviewsReady, setReviewsReady] = useState(false);
   const [error, setError] = useState("");
 
   const candidates = useMemo(
@@ -77,13 +79,29 @@ export default function PurgePage() {
   }, [candidates, games, reviews]);
 
   useEffect(() => {
+    let cancelled = false;
     if (!isLive) {
       setReviews([]);
+      setReviewsReady(true);
       return;
     }
+    setReviewsReady(false);
     void fetch("/api/purge/reviews")
-      .then((response) => response.ok ? response.json() : { reviews: [] })
-      .then((payload) => setReviews(payload.reviews ?? []));
+      .then((response) => {
+        if (!response.ok) throw new Error("Could not load your previous Purge decisions.");
+        return response.json();
+      })
+      .then((payload) => {
+        if (cancelled) return;
+        setReviews(payload.reviews ?? []);
+        setReviewsReady(true);
+      })
+      .catch((caught) => {
+        if (!cancelled) setError(caught instanceof Error ? caught.message : "Could not load your Purge queue.");
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [isLive]);
 
   async function saveReview(candidate: PurgeCandidate, action: PurgeAction) {
@@ -95,7 +113,11 @@ export default function PurgePage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game_id: candidate.game.id, action, category: candidate.category })
     });
-    if (!response.ok) throw new Error("Could not save this Purge decision.");
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null) as { error?: string } | null;
+      if (response.status === 409) await refresh().catch(() => undefined);
+      throw new Error(payload?.error ?? "Could not save this Purge decision.");
+    }
     return (await response.json()).review as PurgeReview;
   }
 
@@ -112,8 +134,9 @@ export default function PurgePage() {
   }
 
   async function act(action: PurgeAction, candidate = current) {
-    if (!candidate || saving) return;
+    if (!candidate || !reviewsReady || savingRef.current) return;
     if (action === "pin" && pinsFull) return;
+    savingRef.current = true;
     setSaving(true);
     setError("");
     const previousStatus = candidate.game.status;
@@ -135,12 +158,14 @@ export default function PurgePage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
 
   async function undoLast() {
-    if (!undo || saving) return;
+    if (!undo || savingRef.current) return;
+    savingRef.current = true;
     setSaving(true);
     setError("");
     try {
@@ -161,6 +186,7 @@ export default function PurgePage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not undo that decision.");
     } finally {
+      savingRef.current = false;
       setSaving(false);
     }
   }
@@ -213,10 +239,10 @@ export default function PurgePage() {
         <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
         <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p><div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
         <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
-          <button type="button" disabled={saving} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
-          <button type="button" disabled={saving} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
-          <button type="button" disabled={saving} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
-          <button type="button" disabled={saving || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
+          <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
+          <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
+          <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
+          <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
         </div>
       </section> : null}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving} onClick={() => void undoLast()}>Undo last decision</button><span>Every decision saves and advances automatically.</span></footer>
