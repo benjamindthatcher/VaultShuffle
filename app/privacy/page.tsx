@@ -24,7 +24,7 @@ export default function PrivacyPage() {
           },
           {
             title: "Analytics and device storage",
-            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. PostHog is optional: you may disable it completely, choose cookieless analytics, or allow full analytics and session replay. Cookieless mode does not use cookies or browser storage for tracking, does not identify your account, and uses a server-generated privacy-preserving hash to count visits without linking them to your signed-in account. It also disables session replay, GeoIP enrichment and bot detection. Full analytics may use browser storage and identify a signed-in account. You can change your choice at any time through Analytics Settings."
+            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. PostHog product analytics and session replay remain off unless you choose Allow analytics. If enabled, PostHog may use browser storage and identify a signed-in account so we can understand product usage and improve the experience. You can withdraw consent at any time through Analytics Settings."
           },
           {
             title: "Suppliers and international processing",

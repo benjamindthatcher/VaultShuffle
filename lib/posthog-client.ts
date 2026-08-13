@@ -3,7 +3,7 @@
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 
 type PostHogClient = typeof import("posthog-js").default;
-type ProductAnalyticsMode = "full" | "cookieless" | "disabled";
+type ProductAnalyticsMode = "full" | "disabled";
 
 let client: PostHogClient | null = null;
 let clientPromise: Promise<PostHogClient | null> | null = null;
@@ -14,7 +14,6 @@ function productAnalyticsMode(): ProductAnalyticsMode {
   try {
     const choice = window.localStorage.getItem(CONSENT_STORAGE_KEY);
     if (choice === "accepted") return "full";
-    if (choice === "cookieless") return "cookieless";
     return "disabled";
   } catch {
     return "disabled";
@@ -37,7 +36,6 @@ async function loadClient() {
       api_host: "/ingest",
       ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST?.replace(".i.posthog.com", ".posthog.com"),
       defaults: "2026-01-30",
-      cookieless_mode: "on_reject",
       opt_out_capturing_by_default: true,
       person_profiles: "identified_only",
       autocapture: true,
@@ -60,29 +58,19 @@ async function loadClient() {
 
 function applyProductAnalyticsMode(posthog: PostHogClient, mode: ProductAnalyticsMode) {
   const consentStatus = posthog.get_explicit_consent_status();
+  posthog.config.cookieless_mode = undefined;
 
   if (mode === "disabled") {
-    // PostHog's set_config deliberately ignores undefined values, so clear the
-    // optional mode directly before using its standard complete opt-out path.
-    const wasCookieless = posthog.config.cookieless_mode === "on_reject";
-    posthog.config.cookieless_mode = undefined;
     posthog.stopSessionRecording();
-    if (consentStatus !== "denied" || wasCookieless) {
+    if (consentStatus !== "denied") {
       posthog.reset();
       posthog.opt_out_capturing();
     }
     return;
   }
 
-  const alreadyCookieless = posthog.config.cookieless_mode === "on_reject" && consentStatus === "denied";
-  posthog.set_config({ cookieless_mode: "on_reject" });
-  if (mode === "full") {
-    if (consentStatus !== "granted") posthog.opt_in_capturing();
-    posthog.startSessionRecording();
-  } else {
-    posthog.stopSessionRecording();
-    if (!alreadyCookieless) posthog.opt_out_capturing();
-  }
+  if (consentStatus !== "granted") posthog.opt_in_capturing();
+  posthog.startSessionRecording();
 }
 
 async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
@@ -99,10 +87,6 @@ async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
 
 export async function enableProductAnalytics() {
   await setProductAnalyticsMode("full");
-}
-
-export async function enableCookielessProductAnalytics() {
-  await setProductAnalyticsMode("cookieless");
 }
 
 export function disableProductAnalytics() {
