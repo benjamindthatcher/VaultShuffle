@@ -38,6 +38,7 @@ function AppShellContent({
   waitForAppData
 }: Required<AppShellProps>) {
   const {
+    games,
     loadError,
     isLive,
     isLoading,
@@ -82,7 +83,10 @@ function AppShellContent({
   }, [isLoading]);
 
   useEffect(() => {
-    if (!initialMarkerChecked || !pendingSteamImport || isLoading) return;
+    if (!initialMarkerChecked || isLoading) return;
+
+    const recoveringEmptyLibrary = isLive && games.length === 0;
+    if (!pendingSteamImport && !recoveringEmptyLibrary) return;
 
     if (!isLive) {
       setImportError("Steam sign-in did not produce an active session.");
@@ -111,6 +115,7 @@ function AppShellContent({
     pendingSteamImport,
     isLive,
     isLoading,
+    games.length,
     syncSteamLibrary
   ]);
 
@@ -129,7 +134,12 @@ function AppShellContent({
 
   const holdInitialContent =
     waitForAppData &&
-    (!initialMarkerChecked || !bootComplete || pendingSteamImport);
+    (
+      !initialMarkerChecked ||
+      !bootComplete ||
+      pendingSteamImport ||
+      (isLive && games.length === 0 && !importError)
+    );
 
   return (
     <div className={styles.appShell}>
