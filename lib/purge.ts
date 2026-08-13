@@ -1,5 +1,5 @@
-import type { DemoGame } from "@/lib/demo-data";
-import { formatGameDuration } from "@/lib/game-duration";
+import type { DemoGame } from "./demo-data.ts";
+import { formatGameDuration } from "./game-duration.ts";
 
 export type PurgeCategory = "untouched" | "barely-started" | "dormant";
 export type PurgeAction = "keep" | "pin" | "sleep" | "complete";
@@ -45,6 +45,15 @@ export function buildPurgeCandidates({
       )
       .map((review) => review.gameId)
   );
+  const recentlyActioned = new Set(
+    reviews
+      .filter(
+        (review) =>
+          review.action !== "keep" &&
+          now.getTime() - Date.parse(review.reviewedAt) < 5 * 60000
+      )
+      .map((review) => review.gameId)
+  );
   const result: PurgeCandidate[] = [];
 
   for (const game of games) {
@@ -53,7 +62,8 @@ export function buildPurgeCandidates({
       game.status === "Completed" ||
       game.status === "Slept" ||
       protectedIds.has(game.id) ||
-      recentlyKept.has(game.id)
+      recentlyKept.has(game.id) ||
+      recentlyActioned.has(game.id)
     ) {
       continue;
     }

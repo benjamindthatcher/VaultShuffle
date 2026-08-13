@@ -141,20 +141,21 @@ export default function PurgePage() {
     setError("");
     const previousStatus = candidate.game.status;
     try {
-      const shouldApplyPin = action === "pin" && !vaultState.pinnedIds.includes(candidate.game.id);
       const review = await saveReview(candidate, action);
+      const committedAction = review.action;
       if (isLive) {
-        // The server applies the review and its game action in one transaction.
+        // Advance from the committed response immediately; refresh reconciles the rest of the app.
+        finishDecision(candidate, committedAction, previousStatus, review);
         await refresh();
-      } else if (shouldApplyPin) {
+      } else if (committedAction === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)) {
         await recordVaultAction("pinned", candidate.game.id);
-      } else if (action === "sleep") {
+      } else if (committedAction === "sleep") {
         await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
-      } else if (action === "complete") {
+      } else if (committedAction === "complete") {
         await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
       }
-      captureProductEvent("purge_decision", { action, category: candidate.category });
-      finishDecision(candidate, action, previousStatus, review);
+      captureProductEvent("purge_decision", { action: committedAction, category: candidate.category });
+      if (!isLive) finishDecision(candidate, committedAction, previousStatus, review);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");
     } finally {
