@@ -7,7 +7,7 @@ import { siteConfig } from "@/lib/site";
 export const metadata: Metadata = {
   title: { absolute: "Steam Game Picker for Your Backlog | VaultShuffle" },
   description:
-    "Can't decide what to play? Connect Steam and let VaultShuffle pick a game for your time, mood, and goal—then organise your backlog and wishlist.",
+    "Can't decide what to play? Connect Steam and let VaultShuffle pick a game for your time, mood, and goal—then organise your backlog.",
   alternates: { canonical: "/" },
   openGraph: {
     title: "Stop scrolling. Pick the right Steam game tonight.",
@@ -62,7 +62,6 @@ const structuredData = {
         "Steam game picker based on session, mood, and goal",
         "Steam library and backlog organisation",
         "Custom and automatic game collections",
-        "Steam wishlist price and discount tracking",
         "Game progress, notes, and priority tracking"
       ],
       offers: {
@@ -127,37 +126,6 @@ const productCards = [
         name: "Red Dead Redemption 2",
         meta: "43h",
         appid: 1174180
-      }
-    ]
-  },
-  {
-    title: "Wishlist",
-    text: "Turn endless wishlists into your next obsession.",
-    bullets: ["Track discounts", "Prioritise picks", "Never lose a gem"],
-    action: "Explore Wishlist",
-    href: "/wishlist",
-    icon: "bookmark",
-    preview: "wishlist",
-    rows: [
-      {
-        name: "Hollow Knight",
-        meta: "-25%",
-        appid: 367520
-      },
-      {
-        name: "Persona 5 Royal",
-        meta: "-40%",
-        appid: 1687950
-      },
-      {
-        name: "Stardew Valley",
-        meta: "-30%",
-        appid: 413150
-      },
-      {
-        name: "Sekiro™: Shadows Die Twice",
-        meta: "-20%",
-        appid: 814380
       }
     ]
   },
@@ -336,9 +304,7 @@ export default function HomePage() {
                 <h3>
                   {card.preview === "library"
                     ? "All Games"
-                    : card.preview === "wishlist"
-                      ? "Your Wishlist (32)"
-                      : "Your Collections"}
+                    : "Your Collections"}
                 </h3>
 
                 {card.preview === "library" && <div className="vs-mini-search">Filter library...</div>}

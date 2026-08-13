@@ -33,7 +33,6 @@ function appArea(pathname: string) {
   if (pathname.startsWith("/library")) return "Library";
   if (pathname.startsWith("/purge")) return "Purge";
   if (pathname.startsWith("/collections")) return "Collections";
-  if (pathname.startsWith("/wishlist")) return "Wishlist";
   if (pathname === "/contact") return "Contact";
   return pathname === "/" ? "Landing" : "Website";
 }

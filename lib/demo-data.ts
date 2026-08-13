@@ -35,9 +35,6 @@ export type DemoGame = {
   lastPlayedAt?: string | null;
   addedLabel: string;
   dateAdded?: string | null;
-  salePrice?: string;
-  saleOriginalPrice?: string;
-  saleDiscount?: string;
   collectionIds: string[];
   sessionFit: VaultSessionId[];
   moodTags: VaultMoodId[];
@@ -357,87 +354,6 @@ export const demoGames: DemoGame[] = [
     lastPlayedLabel: "New",
     addedLabel: "Added 8 Jul, 2025",
     collectionIds: ["cosmic-odyssey"],
-    sessionFit: ["evening", "weekend"],
-    moodTags: ["intense"]
-  },
-  {
-    id: "silksong",
-    title: "Hollow Knight: Silksong",
-    steamAppId: 1030300,
-    ownership: "Wishlist",
-    status: "Not Started",
-    hoursPlayed: 0,
-    completionPercent: 0,
-    priority: "Must Play",
-    genres: ["Action", "Platformer", "Fantasy"],
-    description: "High on the wishlist for the moment it drops.",
-    artworkUrl: steamCapsuleLargeImage(1030300),
-    bannerUrl: steamHeaderImage(1030300),
-    lastPlayedLabel: "Wishlist",
-    addedLabel: "Added 12 Jun, 2025",
-    salePrice: "£15.99",
-    collectionIds: [],
-    sessionFit: ["short", "evening"],
-    moodTags: ["intense"]
-  },
-  {
-    id: "stalker-2",
-    title: "S.T.A.L.K.E.R. 2",
-    steamAppId: 1643320,
-    ownership: "Wishlist",
-    status: "Not Started",
-    hoursPlayed: 0,
-    completionPercent: 0,
-    priority: "High",
-    genres: ["Action", "Horror", "Sci-Fi"],
-    description: "A heavier atmospheric pick once you are ready for it.",
-    artworkUrl: steamCapsuleLargeImage(1643320),
-    bannerUrl: steamHeaderImage(1643320),
-    lastPlayedLabel: "Wishlist",
-    addedLabel: "Added 5 Jun, 2025",
-    salePrice: "£54.99",
-    collectionIds: [],
-    sessionFit: ["weekend"],
-    moodTags: ["intense"]
-  },
-  {
-    id: "frostpunk-2",
-    title: "Frostpunk 2",
-    steamAppId: 1601580,
-    ownership: "Wishlist",
-    status: "Not Started",
-    hoursPlayed: 0,
-    completionPercent: 0,
-    priority: "Medium",
-    genres: ["Strategy", "Simulation"],
-    description: "A strategy-heavy wishlist pick for future longer sessions.",
-    artworkUrl: steamCapsuleLargeImage(1601580),
-    bannerUrl: steamHeaderImage(1601580),
-    lastPlayedLabel: "Wishlist",
-    addedLabel: "Added 1 Jun, 2025",
-    salePrice: "£34.99",
-    saleDiscount: "-10%",
-    collectionIds: [],
-    sessionFit: ["weekend"],
-    moodTags: []
-  },
-  {
-    id: "black-myth-wukong",
-    title: "Black Myth: Wukong",
-    steamAppId: 2358720,
-    ownership: "Wishlist",
-    status: "Not Started",
-    hoursPlayed: 0,
-    completionPercent: 0,
-    priority: "Must Play",
-    genres: ["Action", "Fantasy"],
-    description: "A high-intensity action wishlist game worth tracking closely.",
-    artworkUrl: steamCapsuleLargeImage(2358720),
-    bannerUrl: steamHeaderImage(2358720),
-    lastPlayedLabel: "Wishlist",
-    addedLabel: "Added 7 Jun, 2025",
-    salePrice: "£49.99",
-    collectionIds: [],
     sessionFit: ["evening", "weekend"],
     moodTags: ["intense"]
   }

@@ -6,7 +6,7 @@ export default function SteamDataPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Data · Updated 25 July 2026"
+        eyebrow="Data · Updated 13 August 2026"
         title="Steam Data"
         intro="This page describes the Steam information VaultShuffle requests, how each field is used, and what can prevent a complete sync."
         sections={[
@@ -20,7 +20,7 @@ export default function SteamDataPage() {
           },
           {
             title: "What the data powers",
-            body: "App IDs identify games consistently. Total playtime and last-played timestamps power Library sorting, recent activity, Purge eligibility and progress estimates. Genres, duration and your Session, Mood and Goal choices help narrow Vault draws. Store metadata supports artwork and wishlist price displays."
+            body: "App IDs identify games consistently. Total playtime and last-played timestamps power Library sorting, recent activity, Purge eligibility and progress estimates. Genres, duration and your Session, Mood and Goal choices help narrow Vault draws. Store metadata supports artwork and accurate game details."
           },
           {
             title: "Privacy settings and missing games",

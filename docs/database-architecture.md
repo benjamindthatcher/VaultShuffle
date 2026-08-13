@@ -30,8 +30,8 @@ out an update across every user's copy of the same Steam game.
 
 ## Bounded user state and history
 
-- `user_game_pins` stores both `library` and `wishlist` scopes, with three
-  slots per user and scope enforced by unique constraints.
+- `user_game_pins` still accepts the retired `wishlist` scope so historical
+  rows remain readable; the current product only creates `library` pins.
 - `user_game_snoozes` replaces an unbounded JSON array in `app_settings`.
 - `user_vault_state` stores one current-pick row per user.
 - `vault_draws` retains the latest 50 draws per user. `vault_draw_events`

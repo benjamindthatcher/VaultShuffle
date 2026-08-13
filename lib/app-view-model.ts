@@ -142,11 +142,6 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       lastPlayedAt: game.last_played_at,
       addedLabel: game.date_added ? `Added ${game.date_added}` : "Added recently",
       dateAdded: game.date_added,
-      salePrice: formatSteamPrice(game.price_final, game.price_currency, game.is_free),
-      saleOriginalPrice: Number(game.discount_percent || 0) > 0
-        ? formatSteamPrice(game.price_initial, game.price_currency, false)
-        : undefined,
-      saleDiscount: Number(game.discount_percent || 0) > 0 ? `-${game.discount_percent}%` : undefined,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
       sessionFit: deriveSessionFits({
         duration: {
@@ -176,12 +171,6 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       }
     };
   });
-}
-
-function formatSteamPrice(amount: number | null | undefined, currency: string | null | undefined, isFree = false) {
-  if (isFree) return "Free";
-  if (amount == null || currency !== "USD") return undefined;
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount / 100);
 }
 
 function normaliseGenres(game: Game) {

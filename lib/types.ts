@@ -64,7 +64,6 @@ export type StatsPayload = {
   total: number;
   completed: number;
   in_progress: number;
-  wishlist: number;
   hours: number;
   avg_rating: number;
   avg_completion: number;
@@ -90,14 +89,6 @@ export type SteamPlayerSummary = {
   steam_id: string;
   display_name: string | null;
   avatar_url: string | null;
-};
-
-export type SteamSearchResult = {
-  appid: string;
-  name: string;
-  image: string;
-  store_url: string;
-  genre?: string;
 };
 
 export type Collection = {

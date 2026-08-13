@@ -53,7 +53,8 @@ const nextConfig = {
       { source: "/app/library", destination: "/library", permanent: true },
       { source: "/app/purge", destination: "/purge", permanent: true },
       { source: "/app/collections", destination: "/collections", permanent: true },
-      { source: "/app/wishlist", destination: "/wishlist", permanent: true }
+      { source: "/app/wishlist", destination: "/vault", permanent: true },
+      { source: "/wishlist", destination: "/vault", permanent: true }
     ];
   },
   async headers() {

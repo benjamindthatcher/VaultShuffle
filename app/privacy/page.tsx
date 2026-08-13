@@ -16,11 +16,11 @@ export default function PrivacyPage() {
           },
           {
             title: "Account and Steam data",
-            body: "When you sign in with Steam, we receive your SteamID and public profile details through Steam OpenID. With your public Steam data and the Steam Web API we sync owned game identifiers, titles, playtime and last-played timestamps. If you choose Import Steam wishlist, we also request your public Steam wishlist and merge those game identifiers into your VaultShuffle Wishlist. We never receive your Steam password. You may also add wishlist entries manually, along with collections, notes, progress, pins and game-status choices."
+            body: "When you sign in with Steam, we receive your SteamID and public profile details through Steam OpenID. With your public Steam data and the Steam Web API we sync owned game identifiers, titles, playtime and last-played timestamps. We never receive your Steam password. You may also create collections and save notes, progress, pins and game-status choices."
           },
           {
             title: "How and why we use data",
-            body: "We use account and game data to authenticate you, maintain your library, calculate progress, provide Vault recommendations, run Purge reviews, keep collections and wishlists current, prevent abuse, diagnose faults and respond to support. This processing is necessary to provide the service you request and, for security and service improvement, supports our legitimate interests in operating a reliable product."
+            body: "We use account and game data to authenticate you, maintain your library, calculate progress, provide Vault recommendations, run Purge reviews, keep collections current, prevent abuse, diagnose faults and respond to support. This processing is necessary to provide the service you request and, for security and service improvement, supports our legitimate interests in operating a reliable product."
           },
           {
             title: "Analytics and device storage",

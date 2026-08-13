@@ -20,7 +20,7 @@ export const gamePayloadSchema = z.object({
   title: z.string().trim().min(1).max(220),
   genre: z.string().trim().max(80).default("Unknown"),
   store: z.string().trim().max(80).default("Steam"),
-  ownership: z.enum(["Owned", "Wishlist"]).default("Wishlist"),
+  ownership: z.enum(["Owned", "Wishlist"]).default("Owned"),
   status: z.enum(["Not Started", "Sampled", "In Progress", "Slept", "Completed"]).default("Not Started"),
   rating: z.coerce.number().int().min(0).max(10).default(0),
   hours_played: z.coerce.number().min(0).default(0),

@@ -1,10 +1,9 @@
-import type { GamePayload, SteamPlayerSummary, SteamSearchResult } from "@/lib/types";
+import type { GamePayload, SteamPlayerSummary } from "@/lib/types";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import { steamOwnedGamesFromPayload } from "@/lib/steam-owned-games";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
-const SEARCH_CACHE_MS = 10 * 60 * 1000;
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
 const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
 // Steam's public Store endpoint is sensitive to short bursts, particularly
@@ -13,7 +12,6 @@ const APP_DETAIL_CACHE_MS = 60 * 60 * 1000;
 const STEAM_STORE_MIN_INTERVAL_MS = 650;
 
 type CacheEntry<T> = { expires: number; value: T };
-const searchCache = new Map<string, CacheEntry<SteamSearchResult[]>>();
 const playerCache = new Map<string, CacheEntry<SteamPlayerSummary | null>>();
 export type SteamAppDetails = Partial<GamePayload> & {
   steam_type?: string;
@@ -134,46 +132,6 @@ export async function fetchSteamPlayerSummary(steamId: string, apiKey: string): 
   return summary;
 }
 
-export async function searchSteamStore(term: string): Promise<SteamSearchResult[]> {
-  const normalizedTerm = term.trim().replace(/\s+/g, " ").toLowerCase();
-  if (normalizedTerm.length < 2) return [];
-  const cached = searchCache.get(normalizedTerm);
-  if (cached && cached.expires > Date.now()) return cached.value;
-
-  const params = new URLSearchParams({
-    term: normalizedTerm,
-    cc: "US",
-    l: "en"
-  });
-
-  const response = await fetch(`https://store.steampowered.com/api/storesearch/?${params.toString()}`, {
-    headers: { "User-Agent": "VaultShuffle/0.1" },
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw new Error(`Steam search failed with HTTP ${response.status}.`);
-  }
-
-  const payload = await response.json();
-  const items = Array.isArray(payload.items) ? payload.items : [];
-
-  const results = items.slice(0, 12).flatMap((item: Record<string, unknown>) => {
-    const appid = String(item.id ?? item.appid ?? "").trim();
-    const name = String(item.name ?? "").trim();
-    if (!appid || !name) return [];
-    return {
-      appid,
-      name,
-      image: String(item.tiny_image ?? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_184x69.jpg`),
-      store_url: `https://store.steampowered.com/app/${appid}/`,
-      genre: steamGenreLabel(item, name)
-    };
-  });
-  searchCache.set(normalizedTerm, { expires: Date.now() + SEARCH_CACHE_MS, value: results });
-  return results;
-}
-
 export async function fetchSteamAppDetails(appid: string, forceRefresh = false): Promise<SteamAppDetails | null> {
   const normalizedAppId = String(appid || "").trim();
   if (!normalizedAppId) return null;
@@ -183,10 +141,6 @@ export async function fetchSteamAppDetails(appid: string, forceRefresh = false):
   const [, detail] = await fetchSingleSteamAppDetail(normalizedAppId);
   appDetailCache.set(normalizedAppId, { expires: Date.now() + APP_DETAIL_CACHE_MS, value: detail });
   return detail;
-}
-
-export function clearSteamAppDetailsCache(appids: string[]) {
-  for (const appid of appids) appDetailCache.delete(String(appid || "").trim());
 }
 
 export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Promise<GamePayload[]> {
@@ -209,80 +163,6 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
 
   const payload = await response.json();
   return steamOwnedGamesFromPayload(payload);
-}
-
-export async function fetchPublicSteamWishlist(steamId: string, apiKey: string): Promise<GamePayload[]> {
-  const normalizedSteamId = String(steamId || "").trim();
-  if (!/^\d{16,20}$/.test(normalizedSteamId)) {
-    throw new Error("A valid Steam account is required to import a wishlist.");
-  }
-
-  const input = JSON.stringify({ steamid: normalizedSteamId });
-  const params = new URLSearchParams({ key: apiKey, input_json: input });
-  const response = await fetch(
-    `https://api.steampowered.com/IWishlistService/GetWishlist/v1/?${params.toString()}`,
-    {
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "VaultShuffle/0.1"
-      },
-      cache: "no-store",
-      signal: AbortSignal.timeout(15_000)
-    }
-  );
-
-  if (response.status === 403 || response.status === 401) {
-    throw new Error("Steam wishlist access is private. Make your Steam profile and game details public, then try again.");
-  }
-  if (response.status === 429) {
-    throw new Error("Steam is temporarily limiting wishlist imports. Please try again shortly.");
-  }
-  if (!response.ok) {
-    throw new Error(`Steam wishlist import failed with HTTP ${response.status}.`);
-  }
-
-  const payload = await response.json() as {
-    response?: {
-      items?: Array<Record<string, unknown>>;
-      wishlist?: Array<Record<string, unknown>>;
-    };
-  };
-  const items = Array.isArray(payload?.response?.items)
-    ? payload.response.items
-    : Array.isArray(payload?.response?.wishlist) ? payload.response.wishlist : [];
-  const wishlistItems = items.flatMap((item) => {
-    const appid = String(item.appid ?? item.app_id ?? "").trim();
-    if (!/^\d+$/.test(appid)) return [];
-    return [{
-      appid,
-      dateAddedSeconds: Number(item.date_added ?? item.time_added ?? 0)
-    }];
-  });
-  const uniqueItems = [...new Map(wishlistItems.map((item) => [item.appid, item])).values()];
-  const details = await fetchSteamAppDetailsBatch(uniqueItems.map((item) => item.appid));
-
-  return uniqueItems.flatMap(({ appid, dateAddedSeconds }) => {
-    const detail = details.get(appid);
-    const title = String(detail?.title ?? "").trim();
-    if (!title) return [];
-    return [{
-      title,
-      genre: normaliseSteamGenreLabel(detail?.genre, title),
-      store: "Steam",
-      ownership: "Wishlist",
-      status: "Not Started",
-      rating: Number(detail?.rating ?? 0),
-      hours_played: 0,
-      completion_percentage: 0,
-      priority: "Medium",
-      date_added: Number.isFinite(dateAddedSeconds) && dateAddedSeconds > 0
-        ? new Date(dateAddedSeconds * 1000).toISOString().slice(0, 10)
-        : new Date().toISOString().slice(0, 10),
-      last_played_at: null,
-      notes: "",
-      steam_appid: appid
-    } satisfies GamePayload];
-  });
 }
 
 export async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh = false) {

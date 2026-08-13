@@ -6,9 +6,9 @@ export default function TermsPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 25 July 2026"
+        eyebrow="Legal · Updated 13 August 2026"
         title="Terms of Use"
-        intro="These terms apply when you access VaultShuffle, create an account, sync Steam data or use its library, recommendation, collection, purge and wishlist tools."
+        intro="These terms apply when you access VaultShuffle, create an account, sync Steam data or use its library, recommendation, collection and purge tools."
         sections={[
           {
             title: "Your account",

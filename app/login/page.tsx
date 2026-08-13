@@ -4,7 +4,7 @@ import styles from "./login.module.css";
 
 const features = [
   ["lock", "Your password stays with Steam", "Vault Shuffle never sees or stores your password."],
-  ["id", "We only receive your SteamID", "Used to sync your library, wishlist, playtime and game details."],
+  ["id", "We only receive your SteamID", "Used to sync your library, playtime and game details."],
   ["browser", "Your session is remembered", "This browser can open the app directly next time."],
   ["shield", "Private, secure, transparent", "Your data stays under your control."]
 ] as const;

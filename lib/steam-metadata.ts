@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import {
-  clearSteamAppDetailsCache,
   fetchSteamAppDetails,
   SteamAppRequestError,
   SteamAppUnavailableError
@@ -184,54 +183,6 @@ export async function queueSteamMetadata(appIds: string[]) {
   if (refreshError && !isMissingMetadataTable(refreshError)) throw refreshError;
 
   return rows.length;
-}
-
-export async function enrichSteamMetadataForUser(
-  userId: string,
-  limit = 12,
-  force = false,
-  wishlistOnly = false,
-  deadlineAt = Number.POSITIVE_INFINITY
-) {
-  const supabase = getSupabaseAdmin();
-  let gameQuery = supabase
-    .from("games")
-    .select("steam_appid, ownership")
-    .eq("user_id", userId)
-    .not("steam_appid", "is", null);
-  if (wishlistOnly) gameQuery = gameQuery.eq("ownership", "Wishlist");
-  const { data: gameData, error: gameError } = await gameQuery;
-
-  if (gameError) throw gameError;
-
-  const appIds = uniqueSteamAppIds((gameData ?? []).map((game) => String(game.steam_appid ?? "")));
-  if (!appIds.length) return { processed: 0, updated: 0, remaining: 0 };
-
-  await queueSteamMetadata(appIds);
-  if (force) {
-    clearSteamAppDetailsCache(appIds);
-    let { error: forceError } = await supabase
-      .from("steam_app_metadata")
-      .update({
-        status: "pending",
-        failure_count: 0,
-        last_error: null,
-        next_attempt_at: new Date().toISOString(),
-        processing_started_at: null
-      })
-      .in("steam_appid", appIds);
-
-    if (isMissingWorkerLeaseSupport(forceError)) {
-      ({ error: forceError } = await supabase
-        .from("steam_app_metadata")
-        .update({ status: "pending", failure_count: 0, last_error: null })
-        .in("steam_appid", appIds));
-    }
-
-    if (forceError && !isMissingMetadataTable(forceError) && !isMissingArtworkColumns(forceError)) throw forceError;
-  }
-
-  return processSteamMetadataQueue(limit, force, deadlineAt, appIds);
 }
 
 export async function queueAllKnownSteamMetadata() {

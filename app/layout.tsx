@@ -17,7 +17,6 @@ export const metadata: Metadata = {
     "Steam backlog",
     "game picker",
     "what game should I play",
-    "Steam wishlist tracker",
     "game collections"
   ],
   authors: [{ name: siteConfig.name, url: siteConfig.url }],

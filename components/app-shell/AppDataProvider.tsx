@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { buildCollectionDetails, guestSession, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
 import { captureProductEvent } from "@/lib/posthog-client";
-import type { Collection, Game, SessionPayload, SmartCollectionPreset, SteamSearchResult } from "@/lib/types";
+import type { Collection, Game, SessionPayload, SmartCollectionPreset } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
@@ -35,18 +35,13 @@ type AppDataContextValue = {
   loadError: string | null;
   refresh: () => Promise<void>;
   syncSteamLibrary: () => Promise<number>;
-  syncSteamWishlist: () => Promise<{ found: number; imported: number; skippedOwned: number }>;
-  refreshSteamMetadata: (force?: boolean) => Promise<number>;
   signOut: () => Promise<void>;
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
-  searchSteam: (query: string) => Promise<SteamSearchResult[]>;
-  addWishlistGame: (payload: { title: string; genre: string; steamAppId?: string; image?: string }) => Promise<void>;
   updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }) => Promise<void>;
   restoreGame: (gameId: string) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
-  removeGame: (gameId: string) => Promise<void>;
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
   recordVaultDraw: (gameId: string, input: VaultDrawInput) => Promise<VaultDraw>;
   loadVaultHistory: () => Promise<void>;
@@ -140,46 +135,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function syncSteamWishlist() {
-    if (!isLive) throw new Error("Sign in with Steam before importing your wishlist.");
-
-    const result = await api<{ found: number; imported: number; skipped_owned: number }>("/api/steam/wishlist", {
-      method: "POST"
-    });
-    await load();
-    captureProductEvent("steam_wishlist_synced", {
-      found_count: result.found,
-      imported_count: result.imported,
-      skipped_owned_count: result.skipped_owned
-    });
-    return {
-      found: result.found,
-      imported: result.imported,
-      skippedOwned: result.skipped_owned
-    };
-  }
-
-  async function refreshSteamMetadata(force = false) {
-    if (!isLive) return 0;
-    let updated = 0;
-    let remaining = 0;
-    let batch = 0;
-
-    do {
-      const result = await api<{ updated: number; remaining: number }>("/api/steam/metadata", {
-        method: "POST",
-        body: JSON.stringify({ limit: 24, wishlist_only: true, force: force && batch === 0 })
-      });
-      updated += result.updated;
-      remaining = result.remaining;
-      batch += 1;
-    } while (remaining > 0 && batch < 10);
-
-    if (updated > 0) await load();
-    captureProductEvent("steam_metadata_refreshed", { updated_count: updated, forced: force });
-    return updated;
-  }
-
   async function signOut() {
     await api("/api/logout", { method: "POST" });
     captureProductEvent("user_signed_out");
@@ -242,61 +197,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
     captureProductEvent("collection_deleted");
-  }
-
-  async function searchSteam(query: string) {
-    const result = await api<{ results: SteamSearchResult[] }>(`/api/steam/search?q=${encodeURIComponent(query.trim())}`);
-    return result.results;
-  }
-
-  async function addWishlistGame(payload: { title: string; genre: string; steamAppId?: string; image?: string }) {
-    if (isLive) {
-      await api("/api/games", {
-        method: "POST",
-        body: JSON.stringify({
-          title: payload.title,
-          genre: payload.genre || "Unknown",
-          store: "Steam",
-          ownership: "Wishlist",
-          status: "Not Started",
-          rating: 0,
-          hours_played: 0,
-          completion_percentage: 0,
-          priority: "High",
-          date_added: new Date().toLocaleDateString("en-GB"),
-          last_played_at: null,
-          notes: "",
-          steam_appid: payload.steamAppId || null
-        })
-      });
-      await load();
-      captureProductEvent("wishlist_game_added");
-      return;
-    }
-
-    setGuestGames((current) => [
-      {
-        id: `wishlist-${payload.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`,
-        title: payload.title,
-        steamAppId: Number(payload.steamAppId || 753640),
-        ownership: "Wishlist",
-        status: "Not Started",
-        hoursPlayed: 0,
-        completionPercent: 0,
-        priority: "High",
-        genres: [payload.genre || "Adventure"],
-        description: "Freshly added to the redesign wishlist flow.",
-        artworkUrl: payload.image || "/assets/vault/vault-stage-open.png",
-        bannerUrl: payload.image || "/assets/vault/vault-stage-open.png",
-        lastPlayedLabel: "Wishlist",
-        addedLabel: "Added just now",
-        collectionIds: [],
-        sessionFit: ["evening"],
-        moodTags: []
-      },
-      ...current
-    ]);
-    captureProductEvent("wishlist_game_added");
   }
 
   async function updateGame(
@@ -380,17 +280,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     captureProductEvent("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
   }
 
-  async function removeGame(gameId: string) {
-    if (isLive) {
-      await api(`/api/games/${gameId}`, { method: "DELETE" });
-      await load();
-      captureProductEvent("wishlist_game_removed");
-      return;
-    }
-    setGuestGames((current) => current.filter((game) => game.id !== gameId));
-    captureProductEvent("wishlist_game_removed");
-  }
-
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
     if (isLive) {
       const nextState = await api<VaultState>("/api/vault/state", {
@@ -460,18 +349,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       loadError,
       refresh: load,
       syncSteamLibrary,
-      syncSteamWishlist,
-      refreshSteamMetadata,
       signOut,
       createCollection,
       updateCollection,
       removeCollection,
-      searchSteam,
-      addWishlistGame,
       updateGame,
       restoreGame,
       setGameCollection,
-      removeGame,
       recordVaultAction,
       recordVaultDraw,
       loadVaultHistory,

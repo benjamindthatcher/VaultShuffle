@@ -76,7 +76,6 @@ export const config = {
     "/vault",
     "/library",
     "/purge",
-    "/collections",
-    "/wishlist"
+    "/collections"
   ]
 };
