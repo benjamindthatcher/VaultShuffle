@@ -13,9 +13,11 @@ type VaultCollectionCardProps = {
   collections: DemoCollection[];
   collectionCounts: Record<string, number>;
   onSelect: (id: string) => void;
+  guestLocked?: boolean;
+  onGuestLocked?: () => void;
 };
 
-export function VaultCollectionCard({ selectedCollection, collections, collectionCounts, onSelect }: VaultCollectionCardProps) {
+export function VaultCollectionCard({ selectedCollection, collections, collectionCounts, onSelect, guestLocked = false, onGuestLocked }: VaultCollectionCardProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -62,18 +64,18 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
 
   return (
     <section className={styles.wrap}>
-      <button ref={triggerRef} type="button" className={styles.heroCard} onClick={() => setOpen(true)} aria-haspopup="dialog">
+      <button ref={triggerRef} type="button" className={styles.heroCard} onClick={() => guestLocked ? onGuestLocked?.() : setOpen(true)} aria-haspopup={guestLocked ? undefined : "dialog"}>
         <div className={styles.artwork}><Artwork src={selectedCollection.artworkUrl} sizes="(max-width: 720px) 100vw, 360px" /></div>
         <div className={styles.content}>
           <p className={styles.eyebrow}>Selected collection</p>
           <h2 className={styles.title}>{selectedCollection.name}</h2>
           <p className={styles.description}>{selectedCollection.description}</p>
-          <span className={styles.changeButton}><VaultIcon name="filter" size={16} />Change Collection</span>
+          <span className={styles.changeButton}><VaultIcon name={guestLocked ? "privacy" : "filter"} size={16} />{guestLocked ? "Sign in for your collections" : "Change Collection"}</span>
         </div>
         <VaultIcon name="chevron-right" size={22} />
       </button>
 
-      {open ? createPortal(<div className={styles.modalLayer}>
+      {open && !guestLocked ? createPortal(<div className={styles.modalLayer}>
         <button type="button" className={styles.backdrop} onClick={close} aria-label="Close collection picker" />
         <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="collection-picker-title">
           <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" className={styles.closeButton} onClick={close} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>

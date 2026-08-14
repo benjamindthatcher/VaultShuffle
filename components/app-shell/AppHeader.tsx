@@ -88,6 +88,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
           <nav className={styles.nav} aria-label="Primary">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
+              const isGuestLocked = !isLive && item.href !== "/vault";
               return (
                 <Link
                   key={item.href}
@@ -95,6 +96,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                   className={isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
                 >
                   {item.label}
+                  {isGuestLocked ? <VaultIcon name="privacy" size={12} className={styles.navLock} /> : null}
                 </Link>
               );
             })}

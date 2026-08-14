@@ -33,6 +33,7 @@
 }
 
 .optionButton {
+  position: relative;
   min-height: 70px;
   height: 100%;
   display: flex;
@@ -49,6 +50,25 @@
     border-color 160ms ease,
     box-shadow 160ms ease,
     background-color 160ms ease;
+}
+
+.optionButtonLocked {
+  border-style: dashed;
+  color: var(--vault-text-muted);
+}
+
+.lockMark {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(200, 123, 255, 0.3);
+  border-radius: 50%;
+  background: rgba(26, 19, 54, 0.88);
+  color: #d795ff;
 }
 
 .optionIcon {

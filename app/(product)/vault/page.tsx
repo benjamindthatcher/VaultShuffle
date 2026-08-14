@@ -25,7 +25,7 @@ import {
   vaultMoodOptions,
   vaultSessionOptions
 } from "@/lib/vault";
-import { steamLaunchUrl } from "@/lib/steam-images";
+import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
 import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./vault.module.css";
@@ -311,11 +311,17 @@ export default function VaultPage() {
         <h1 className="visually-hidden">Vault</h1>
       </div>
 
+      {!isLive ? <aside className={styles.guestPreviewBanner} aria-label="Guest preview">
+        <span className={styles.guestPreviewIcon}><VaultIcon name="current-pick" size={24} /></span>
+        <span className={styles.guestPreviewCopy}><strong>Guest preview · {ownedGames.length} popular Steam games</strong><small>Try the Vault with live catalogue data, then connect Steam to shuffle your own library and save your picks.</small></span>
+        <a href="/api/auth/steam" onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
+      </aside> : null}
+
       <section className={styles.setupLayout} aria-label="Vault preferences, collection and genres">
         <div className={styles.optionStack}>
           <VaultOptionGroup title="Session" options={vaultSessionOptions} selectedId={session} onSelect={(id) => setSession(id as VaultSessionId)} />
           <VaultOptionGroup title="Mood" options={vaultMoodOptions} selectedId={mood} onSelect={(id) => setMood(id as VaultMoodId)} />
-          <VaultOptionGroup title="Goal" options={vaultGoalOptions} selectedId={goal} onSelect={(id) => setGoal(id as VaultGoalId)} />
+          <VaultOptionGroup title="Goal" options={vaultGoalOptions} selectedId={goal} onSelect={(id) => setGoal(id as VaultGoalId)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
         </div>
 
         <div className={styles.setupStack}>
@@ -332,6 +338,8 @@ export default function VaultPage() {
               collections={collections}
               collectionCounts={collectionCounts}
               onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)}
+              guestLocked={!isLive}
+              onGuestLocked={() => setGuestSignInOpen(true)}
             />
           </div>
         </div>
@@ -357,12 +365,19 @@ export default function VaultPage() {
               <button
                 type="button"
                 className={styles.deckToolButton}
-                aria-expanded={historyOpen}
+                aria-expanded={isLive ? historyOpen : false}
                 aria-haspopup="dialog"
-                onClick={() => { setHistoryOpen(true); void loadVaultHistory(); }}
+                onClick={() => {
+                  if (!isLive) {
+                    setGuestSignInOpen(true);
+                    return;
+                  }
+                  setHistoryOpen(true);
+                  void loadVaultHistory();
+                }}
               >
                 <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>Revisit previous picks</small></span>
+                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Sign in to save draws"}</small></span>
                 <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
               </button>
             </div>
@@ -386,7 +401,7 @@ export default function VaultPage() {
             drawState={drawState}
             winner={ownedGames.find((game) => game.id === drawWinnerId) ?? null}
             highlightedId={highlightedGameId}
-            onSelect={setDetailsGameId}
+            onSelect={isLive ? setDetailsGameId : () => setGuestSignInOpen(true)}
             sleepingId={sleepingGameId}
             onSleep={(id) => void sleepPoolGame(id)}
             pinnedIds={vaultState.pinnedIds}
@@ -396,6 +411,7 @@ export default function VaultPage() {
               if (game) void completeGame(game);
             }}
             onUserScroll={() => setHighlightedGameId(null)}
+            allowActions={isLive}
           />
         ) : (
           <div className={styles.emptyState}>
@@ -430,18 +446,20 @@ export default function VaultPage() {
             <div className={styles.resultReasonRow}>
               {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
             </div>
-            <p className={styles.actionsLabel}>Vault actions</p>
-            <div className={styles.resultActions}>
-              <a href={steamLaunchUrl(currentPick.steamAppId)} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
-                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>Open on Steam</strong><small>Launch the game</small></span>
+            <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
+            <div className={`${styles.resultActions}${!isLive ? ` ${styles.guestResultActions}` : ""}`}>
+              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
+                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong><small>{isLive ? "Launch the game" : "Open the store page"}</small></span>
               </a>
+              {isLive ? <>
               <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned"); }}>
                 <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
               </button>
+              </> : null}
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault({ deferCurrentPick: true }); }}>
                 <VaultResultActionIcon name="draw-again" /><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
               </button>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
+              {isLive ? <><button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
                 <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
@@ -449,20 +467,22 @@ export default function VaultPage() {
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed"); void completeGame(currentPick); }}>
                 <VaultResultActionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
-              </button>
+              </button></> : <a href="/api/auth/steam" className={styles.resultAction} onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "vault_result" })}>
+                <VaultResultActionIcon name="all-games" /><span className={styles.resultActionCopy}><strong>Shuffle My Library</strong><small>Connect Steam for personal draws</small></span>
+              </a>}
             </div>
           </div>
           <aside className={styles.resultContext} aria-label="Selected setup">
             <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Not selected"} />
             <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
             <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
-            <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : selectedCollection?.name ?? "Entire Vault"} />
+            <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : selectedCollection?.name ?? (isLive ? "Entire Vault" : "Guest Catalogue")} />
             {formatGameDuration(currentPick.duration) ? <ResultSummary icon="clock" label="Estimated playthrough" value={formatGameDuration(currentPick.duration)!} /> : null}
           </aside>
         </section>
       ) : null}
 
-      <LibraryDetailsDrawer
+      {isLive ? <LibraryDetailsDrawer
         game={detailsGame}
         collections={collections}
         saving={savingGameId === detailsGame?.id}
@@ -483,8 +503,8 @@ export default function VaultPage() {
         onComplete={() => detailsGame ? completeGame(detailsGame) : Promise.resolve()}
         onSleep={() => detailsGame ? sleepPoolGame(detailsGame.id) : Promise.resolve()}
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}
-      />
-      <VaultHistoryDrawer
+      /> : null}
+      {isLive ? <VaultHistoryDrawer
         open={historyOpen}
         draws={vaultHistory}
         games={ownedGames}
@@ -494,8 +514,8 @@ export default function VaultPage() {
           setHistoryOpen(false);
           setDetailsGameId(game.id);
         }}
-      />
-      <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} />
+      /> : null}
+      <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} catalogueSize={ownedGames.length} />
       {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}
       {pinMessage ? <div className={styles.pinToast} role="status">{pinMessage}<button type="button" onClick={() => setPinMessage("")}>Dismiss</button></div> : null}
       {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion()}>Undo</button></div> : null}
@@ -524,7 +544,7 @@ function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal"
   return <div className={styles.summaryItem}><VaultIcon name={icon} size={23} /><span><small>{label}</small><strong>{value}</strong></span></div>;
 }
 
-type VaultResultActionIconName = "open-steam" | "pin" | "draw-again" | "snooze-not-now" | "view-details" | "mark-completed";
+type VaultResultActionIconName = "open-steam" | "pin" | "draw-again" | "snooze-not-now" | "view-details" | "mark-completed" | "all-games";
 
 function VaultResultActionIcon({ name }: { name: VaultResultActionIconName }) {
   return <span className={styles.resultActionIcon} aria-hidden="true"><VaultIcon name={name} size={48} /></span>;

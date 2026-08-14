@@ -13,9 +13,11 @@ type VaultOptionGroupProps = {
   options: readonly VaultOption[];
   selectedId: string | null;
   onSelect: (id: string) => void;
+  lockedOptionIds?: readonly string[];
+  onLockedSelect?: (id: string) => void;
 };
 
-export function VaultOptionGroup({ title, options, selectedId, onSelect }: VaultOptionGroupProps) {
+export function VaultOptionGroup({ title, options, selectedId, onSelect, lockedOptionIds = [], onLockedSelect }: VaultOptionGroupProps) {
   return (
     <section className={styles.group}>
       <div className={styles.headingRow}>
@@ -26,16 +28,20 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect }: Vault
       <div className={styles.optionGrid} style={{ "--option-count": options.length } as React.CSSProperties}>
         {options.map((option) => {
           const isActive = option.id === selectedId;
+          const isLocked = lockedOptionIds.includes(option.id);
           return (
             <button
               key={option.id}
               type="button"
-              className={isActive ? `${styles.optionButton} ${styles.optionButtonActive}` : styles.optionButton}
+              className={`${styles.optionButton}${isActive ? ` ${styles.optionButtonActive}` : ""}${isLocked ? ` ${styles.optionButtonLocked}` : ""}`}
               aria-pressed={isActive}
-              onClick={() => onSelect(option.id)}
+              aria-disabled={isLocked}
+              aria-label={isLocked ? `${option.label}. Sign in with Steam to use this option.` : option.label}
+              onClick={() => isLocked ? onLockedSelect?.(option.id) : onSelect(option.id)}
             >
               <VaultIcon name={optionIconName(option.id)} size={38} className={styles.optionIcon} />
               <strong className={styles.optionLabel}>{option.label}</strong>
+              {isLocked ? <span className={styles.lockMark} title="Sign in required"><VaultIcon name="privacy" size={14} /></span> : null}
             </button>
           );
         })}

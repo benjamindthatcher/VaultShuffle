@@ -6,12 +6,13 @@ import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
 
 export default function CollectionsPage() {
-  const { collections, games, createCollection, updateCollection, removeCollection } = useAppData();
+  const { collections, games, isLive, createCollection, updateCollection, removeCollection } = useAppData();
   const baseCollections = useMemo(() => collections.filter((collection) => collection.id !== "all"), [collections]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(baseCollections[0]?.id ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -160,6 +161,16 @@ export default function CollectionsPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  if (!isLive) {
+    return <GuestFeatureGate
+      feature="Collections"
+      icon="collections"
+      title="Build shelves from the games you own"
+      description="Collections become meaningful once Steam is connected: create your own shelves or let smart rules organise games from your live library."
+      benefits={["Create custom game shelves", "Use smart rules based on progress and playtime", "Choose a collection as the source for a Vault draw"]}
+    />;
   }
 
   return (

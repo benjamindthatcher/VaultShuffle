@@ -55,6 +55,70 @@
   margin-top: -26px;
 }
 
+.guestPreviewBanner {
+  min-height: 74px;
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin-top: -26px;
+  padding: 12px 14px;
+  border: 1px solid rgba(188, 103, 255, 0.44);
+  border-radius: 13px;
+  background:
+    linear-gradient(110deg, rgba(91, 39, 178, 0.28), rgba(9, 13, 34, 0.92) 52%),
+    rgba(8, 12, 31, 0.94);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.guestPreviewBanner + .setupLayout {
+  margin-top: 0;
+}
+
+.guestPreviewIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(211, 131, 255, 0.46);
+  border-radius: 11px;
+  background: rgba(113, 48, 218, 0.28);
+  color: #dfa0ff;
+}
+
+.guestPreviewCopy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.guestPreviewCopy strong {
+  color: #f5efff;
+  font-size: 0.92rem;
+}
+
+.guestPreviewCopy small {
+  color: var(--vault-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.guestPreviewBanner > a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #7133fa, #9f42ff);
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 @media (max-width: 720px) {
   .heroPanel {
     display: none;
@@ -429,6 +493,12 @@
   gap: 10px;
 }
 
+.resultActions.guestResultActions {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-rows: none;
+  grid-auto-flow: row;
+}
+
 .actionsLabel {
   margin: 2px 0 -5px;
   color: #d392ff;
@@ -515,6 +585,16 @@
 .pinToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 
 @media (max-width: 720px) {
+  .guestPreviewBanner {
+    grid-template-columns: 42px minmax(0, 1fr);
+    margin-top: 0;
+  }
+
+  .guestPreviewBanner > a {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
   .poolHeader {
     align-items: flex-start;
     flex-direction: column;
@@ -525,7 +605,7 @@
   .deckToolButton { width: 50%; min-width: 0; }
   .poolActionArea { width: 100%; justify-items: stretch; }
   .ctaButton { width: 100%; max-width: none; }
-  .resultSummary, .resultActions { grid-template-columns: 1fr; }
+  .resultSummary, .resultActions, .resultActions.guestResultActions { grid-template-columns: 1fr; }
   .resultBody { padding: 22px 18px; }
   .resultContext { padding: 18px; border-top: 1px solid rgba(145, 105, 255, 0.2); border-left: 0; }
 

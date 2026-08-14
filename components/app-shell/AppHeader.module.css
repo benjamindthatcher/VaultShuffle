@@ -91,10 +91,16 @@
   font-size: 0.96rem;
   font-weight: 750;
   white-space: nowrap;
+  gap: 6px;
   transition:
     color 160ms ease,
     background-color 160ms ease,
     transform 160ms ease;
+}
+
+.navLock {
+  flex: 0 0 auto;
+  color: rgba(205, 142, 255, 0.72);
 }
 
 .navLink:hover {

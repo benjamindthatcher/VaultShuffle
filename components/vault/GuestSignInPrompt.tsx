@@ -3,14 +3,16 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./GuestSignInPrompt.module.css";
 
 type GuestSignInPromptProps = {
   open: boolean;
   onClose: () => void;
+  catalogueSize: number;
 };
 
-export function GuestSignInPrompt({ open, onClose }: GuestSignInPromptProps) {
+export function GuestSignInPrompt({ open, onClose, catalogueSize }: GuestSignInPromptProps) {
   const [mounted, setMounted] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +75,7 @@ export function GuestSignInPrompt({ open, onClose }: GuestSignInPromptProps) {
         <span className={styles.icon}><VaultIcon name="current-pick" size={30} /></span>
         <p className={styles.eyebrow}>Nice pick</p>
         <h2 id="guest-sign-in-title">Ready to shuffle your own games?</h2>
-        <p className={styles.copy}>Sign in with Steam for the full VaultShuffle experience—draw from your real library, keep your history and organise the games you already own.</p>
+        <p className={styles.copy}>This preview draws from {catalogueSize} popular games. Sign in with Steam to replace it with the games you actually own and make every recommendation personal.</p>
 
         <div className={styles.benefits} aria-label="Benefits of signing in">
           <span><VaultIcon name="all-games" size={18} />Your Steam library</span>
@@ -82,7 +84,7 @@ export function GuestSignInPrompt({ open, onClose }: GuestSignInPromptProps) {
         </div>
 
         <div className={styles.actions}>
-          <a href="/api/auth/steam" className={styles.primary}><VaultIcon name="open-steam" size={20} />Continue with Steam<VaultIcon name="chevron-right" size={17} /></a>
+          <a href="/api/auth/steam" className={styles.primary} onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "first_draw_prompt" })}><VaultIcon name="open-steam" size={20} />Continue with Steam<VaultIcon name="chevron-right" size={17} /></a>
           <button type="button" className={styles.secondary} onClick={onClose}>Keep exploring as guest</button>
         </div>
 

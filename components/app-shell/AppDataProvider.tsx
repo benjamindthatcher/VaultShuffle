@@ -2,8 +2,8 @@
 
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { demoCollections, demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
-import { buildCollectionDetails, guestSession, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
+import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
+import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
 import { captureProductEvent } from "@/lib/posthog-client";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
@@ -19,6 +19,7 @@ type AppBootstrapPayload = {
   memberships?: CollectionMembership[];
   vaultState?: VaultState;
   data_error?: boolean;
+  guest_pool_source?: "live_catalogue" | "fallback";
 };
 
 const emptyVaultState: VaultState = { pinnedIds: [], wishlistPinnedIds: [], snoozedIds: [], currentPickId: null };
@@ -68,8 +69,8 @@ async function api<T>(path: string, options: RequestInit = {}) {
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload>(guestSession);
-  const [guestGames, setGuestGames] = useState<DemoGame[]>(demoGames);
-  const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(demoCollections);
+  const [guestGames, setGuestGames] = useState<DemoGame[]>(guestFallbackGames);
+  const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(() => guestPreviewCollection(guestFallbackGames.length));
   const [liveGames, setLiveGames] = useState<DemoGame[]>([]);
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>(() => mapLiveCollections([]));
   const [guestVaultState, setGuestVaultState] = useState<VaultState>(emptyVaultState);
@@ -91,6 +92,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
       if (!nextSession.logged_in) {
         setIsLive(false);
+        if (bootstrap.games?.length) {
+          const mappedGuestGames = mapGuestGames(bootstrap.games);
+          setGuestGames(mappedGuestGames);
+          setGuestCollections(guestPreviewCollection(mappedGuestGames.length));
+        } else if (bootstrap.data_error) {
+          setLoadError("The live guest catalogue is temporarily unavailable. A smaller preview is still ready.");
+        }
         return;
       }
 
@@ -367,6 +375,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
+
+const guestFallbackGames = demoGames.map((game) => ({
+  ...game,
+  status: "Not Started" as const,
+  hoursPlayed: 0,
+  completionPercent: 0,
+  priority: "Medium" as const,
+  lastPlayedLabel: "Guest preview",
+  addedLabel: "Popular on Steam",
+  collectionIds: []
+}));
 
 function applyGamePatch(
   game: DemoGame,

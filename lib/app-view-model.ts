@@ -173,6 +173,32 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
   });
 }
 
+export function mapGuestGames(games: Game[]): DemoGame[] {
+  const mapped = mapLiveGames(games, []);
+  return mapped.map((game, index) => ({
+    ...game,
+    status: "Not Started",
+    hoursPlayed: 0,
+    completionPercent: 0,
+    priority: "Medium",
+    description: games[index]?.notes?.trim() || `${game.genres.slice(0, 2).join(" / ") || "Steam"} pick from the VaultShuffle guest catalogue.`,
+    lastPlayedLabel: "Guest preview",
+    addedLabel: "Popular on Steam",
+    collectionIds: []
+  }));
+}
+
+export function guestPreviewCollection(gameCount: number): DemoCollection[] {
+  return [{
+    id: "all",
+    kind: "system",
+    name: "Guest Catalogue",
+    description: `${gameCount} popular and iconic Steam games available for preview draws.`,
+    artworkUrl: "/assets/vault/vault-stage-open.png",
+    accent: "Sign in to replace this pool with your own Steam library."
+  }];
+}
+
 function normaliseGenres(game: Game) {
   const canonical = splitGenres(game.genre);
   const steamTags = steamTagGenreLabels(game.steam_tags, 8);

@@ -20,9 +20,10 @@ type VaultPoolPreviewProps = {
   onPin?: (gameId: string) => void;
   onComplete?: (gameId: string) => void;
   onUserScroll?: () => void;
+  allowActions?: boolean;
 };
 
-export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, sleepingId = null, onSleep, pinnedIds = [], onPin, onComplete, onUserScroll }: VaultPoolPreviewProps) {
+export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, sleepingId = null, onSleep, pinnedIds = [], onPin, onComplete, onUserScroll, allowActions = true }: VaultPoolPreviewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -143,7 +144,7 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
                 </div>
               </div>
             </button>
-            <div ref={menuOpen ? menuRef : undefined} className={styles.menuShell} onClick={(event) => event.stopPropagation()}>
+            {allowActions ? <div ref={menuOpen ? menuRef : undefined} className={styles.menuShell} onClick={(event) => event.stopPropagation()}>
               <button
                 type="button"
                 className={styles.menuTrigger}
@@ -156,7 +157,7 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
                 <button type="button" role="menuitem" disabled={sleepingId === game.id} onClick={() => { setOpenMenuId(null); onSleep?.(game.id); }}><VaultIcon name="sleep" size={18} />Sleep game</button>
                 <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setOpenMenuId(null); onComplete?.(game.id); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button>
               </div> : null}
-            </div>
+            </div> : null}
           </article>
         );
       })}

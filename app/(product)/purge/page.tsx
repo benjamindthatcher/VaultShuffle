@@ -14,6 +14,7 @@ import {
 import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { captureProductEvent } from "@/lib/posthog-client";
+import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import styles from "./purge.module.css";
 
 const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
@@ -264,6 +265,16 @@ export default function PurgePage() {
     });
     setSelectedOffset(0);
     setError("");
+  }
+
+  if (!isLive) {
+    return <GuestFeatureGate
+      feature="Purge"
+      icon="sleep"
+      title="Purge works from your real play history"
+      description="Purge needs your Steam playtime and your saved VaultShuffle decisions before it can make honest recommendations about what to keep, sleep or complete."
+      benefits={["Find untouched and abandoned games", "Save every decision to your account", "Undo decisions without losing your library state"]}
+    />;
   }
 
   return <PurgePageFrame>

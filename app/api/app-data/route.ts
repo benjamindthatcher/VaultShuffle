@@ -3,12 +3,22 @@ import { listCollectionsWithMemberships } from "@/lib/collections";
 import { listGames } from "@/lib/games";
 import { getSessionPayload } from "@/lib/session-payload";
 import { getVaultState } from "@/lib/vault-state";
+import { listGuestCatalogueGames } from "@/lib/guest-catalogue";
 
 export async function GET() {
   const session = await getSessionPayload();
 
   if (!session.logged_in || !session.user_id) {
-    return NextResponse.json({ session });
+    try {
+      return NextResponse.json({
+        session,
+        games: await listGuestCatalogueGames(),
+        guest_pool_source: "live_catalogue"
+      });
+    } catch (error) {
+      console.error("Could not load the live guest catalogue.", error);
+      return NextResponse.json({ session, data_error: true, guest_pool_source: "fallback" });
+    }
   }
 
   try {

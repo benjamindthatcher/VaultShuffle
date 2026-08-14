@@ -9,6 +9,7 @@ import { StatCard } from "@/components/shared/StatCard";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
+import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import type { DemoGame } from "@/lib/demo-data";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import styles from "./library.module.css";
@@ -21,7 +22,7 @@ const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
 };
 
 export default function LibraryPage() {
-  const { games, collections, vaultState, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
+  const { games, collections, vaultState, isLive, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("hours");
   const [sortReversed, setSortReversed] = useState(false);
@@ -141,6 +142,16 @@ export default function LibraryPage() {
   async function toggleSelectedPin() {
     if (!selectedGame) return;
     await togglePin(selectedGame);
+  }
+
+  if (!isLive) {
+    return <GuestFeatureGate
+      feature="Library"
+      icon="all-games"
+      title="Bring your own Steam library to life"
+      description="The guest Vault can demonstrate the draw, but Library needs your real games, playtime and recent activity to become useful."
+      benefits={["Import owned games directly from Steam", "Keep progress, notes and statuses together", "Launch installed games from their library cards"]}
+    />;
   }
 
   return (
