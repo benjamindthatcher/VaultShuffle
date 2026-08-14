@@ -31,6 +31,7 @@ import { captureProductEvent } from "@/lib/posthog-client";
 import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
+type VaultSetupStep = "session" | "mood" | "goal";
 type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 const EMPTY_GAME_IDS: string[] = [];
 const GUEST_SIGN_IN_PROMPT_KEY = "vaultshuffle:guest-first-draw-prompt:v1";
@@ -40,6 +41,8 @@ export default function VaultPage() {
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
+  const [openSetupStep, setOpenSetupStep] = useState<VaultSetupStep | null>("session");
+  const [fineTuneOpen, setFineTuneOpen] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
@@ -106,8 +109,37 @@ export default function VaultPage() {
     !snoozedIds.has(game.id)
   ) ?? null;
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
-  const missingSetup = [!session ? "Session" : "", !mood ? "Mood" : "", !goal ? "Goal" : ""].filter(Boolean);
-  const canDraw = missingSetup.length === 0 && deck.length > 0;
+  const canDraw = Boolean(session && mood && goal && deck.length > 0);
+  const sessionLabel = vaultSessionOptions.find((option) => option.id === session)?.label ?? null;
+  const moodLabel = vaultMoodOptions.find((option) => option.id === mood)?.label ?? null;
+  const goalLabel = vaultGoalOptions.find((option) => option.id === goal)?.label ?? null;
+  const setupReadyCount = Number(Boolean(session)) + Number(Boolean(mood)) + Number(Boolean(goal));
+  const nextSetupStep: VaultSetupStep | null = !session ? "session" : !mood ? "mood" : !goal ? "goal" : null;
+  const setupSteps: Array<{ id: VaultSetupStep; label: string; value: string | null }> = [
+    { id: "session", label: "Session", value: sessionLabel },
+    { id: "mood", label: "Mood", value: moodLabel },
+    { id: "goal", label: "Goal", value: goalLabel }
+  ];
+  const drawButtonLabel = drawState === "focusing" || drawState === "revealing"
+    ? "Drawing from the Vault…"
+    : nextSetupStep === "session"
+      ? "Choose a session"
+      : nextSetupStep === "mood"
+        ? "Choose your mood"
+        : nextSetupStep === "goal"
+          ? "Choose your goal"
+          : !deck.length
+            ? "No matching games"
+            : "Draw from the Vault";
+  const setupStatusMessage = nextSetupStep === "session"
+    ? "Start by choosing how much time you have."
+    : nextSetupStep === "mood"
+      ? "Great. Now choose the kind of mood you are in."
+      : nextSetupStep === "goal"
+        ? "One final choice: what should tonight achieve?"
+        : !deck.length
+          ? "No games match this setup. Try loosening the optional filters."
+          : "All three choices are ready. Open the Vault when you are ready.";
   const closeGuestSignInPrompt = useCallback(() => setGuestSignInOpen(false), []);
 
   useEffect(() => {
@@ -240,6 +272,41 @@ export default function VaultPage() {
     });
   }
 
+  function revealSetupStep(step: VaultSetupStep) {
+    window.requestAnimationFrame(() => {
+      const element = document.getElementById(`vault-setup-${step}`);
+      if (!element) return;
+      const bounds = element.getBoundingClientRect();
+      if (bounds.top < 96 || bounds.bottom > window.innerHeight - 96) {
+        element.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+      }
+      element.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true });
+    });
+  }
+
+  function focusSetupStep(step: VaultSetupStep) {
+    setOpenSetupStep(step);
+    revealSetupStep(step);
+  }
+
+  function selectSetupOption(step: VaultSetupStep, id: string) {
+    let nextStep: VaultSetupStep | null = null;
+
+    if (step === "session") {
+      setSession(id as VaultSessionId);
+      nextStep = !mood ? "mood" : !goal ? "goal" : null;
+    } else if (step === "mood") {
+      setMood(id as VaultMoodId);
+      nextStep = !session ? "session" : !goal ? "goal" : null;
+    } else {
+      setGoal(id as VaultGoalId);
+      nextStep = !session ? "session" : !mood ? "mood" : null;
+    }
+
+    setOpenSetupStep(nextStep);
+    if (nextStep) revealSetupStep(nextStep);
+  }
+
   function clearGenres() {
     setSelectedGenres([]);
   }
@@ -317,31 +384,61 @@ export default function VaultPage() {
         <a href="/api/auth/steam" onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
       </aside> : null}
 
-      <section className={styles.setupLayout} aria-label="Vault preferences, collection and genres">
+      <section className={styles.setupLayout} aria-labelledby="vault-setup-title">
+        <header className={styles.setupGuide}>
+          <div className={styles.setupGuideCopy}>
+            <h2 id="vault-setup-title">Build your draw</h2>
+            <p>Make three quick choices, then we&apos;ll pick your game.</p>
+          </div>
+          <strong className={styles.setupCount}>{setupReadyCount} of 3 ready</strong>
+          <div className={styles.setupProgress} aria-label={`${setupReadyCount} of 3 required choices complete`}>
+            {setupSteps.map((step, index) => {
+              const complete = Boolean(step.value);
+              const active = step.id === openSetupStep;
+              return <button key={step.id} type="button" className={styles.progressStep} data-state={complete ? "complete" : active ? "active" : "pending"} onClick={() => focusSetupStep(step.id)}>
+                <span className={styles.progressNumber} aria-hidden="true">{complete ? <VaultIcon name="check" size={15} /> : index + 1}</span>
+                <span><strong>{step.label}</strong><small>{step.value ?? (active ? "Choose now" : "Required")}</small></span>
+              </button>;
+            })}
+          </div>
+        </header>
+
         <div className={styles.optionStack}>
-          <VaultOptionGroup title="Session" options={vaultSessionOptions} selectedId={session} onSelect={(id) => setSession(id as VaultSessionId)} />
-          <VaultOptionGroup title="Mood" options={vaultMoodOptions} selectedId={mood} onSelect={(id) => setMood(id as VaultMoodId)} />
-          <VaultOptionGroup title="Goal" options={vaultGoalOptions} selectedId={goal} onSelect={(id) => setGoal(id as VaultGoalId)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
+          <VaultOptionGroup title="Session" stepNumber={1} options={vaultSessionOptions} selectedId={session} selectedLabel={sessionLabel} expanded={openSetupStep === "session"} state={session ? "complete" : openSetupStep === "session" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "session" ? null : "session")} onSelect={(id) => selectSetupOption("session", id)} />
+          <VaultOptionGroup title="Mood" stepNumber={2} options={vaultMoodOptions} selectedId={mood} selectedLabel={moodLabel} expanded={openSetupStep === "mood"} state={mood ? "complete" : openSetupStep === "mood" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "mood" ? null : "mood")} onSelect={(id) => selectSetupOption("mood", id)} />
+          <VaultOptionGroup title="Goal" stepNumber={3} options={vaultGoalOptions} selectedId={goal} selectedLabel={goalLabel} expanded={openSetupStep === "goal"} state={goal ? "complete" : openSetupStep === "goal" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "goal" ? null : "goal")} onSelect={(id) => selectSetupOption("goal", id)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
         </div>
 
-        <div className={styles.setupStack}>
-          <div className={styles.genreSetup}>
-            <VaultGenrePanel
-              selectedGenres={selectedGenres}
-              onToggleGenre={toggleGenre}
-              onClear={clearGenres}
-            />
+        <aside className={styles.optionalSetup} aria-label="Optional draw filters">
+          <button type="button" className={styles.optionalToggle} aria-expanded={fineTuneOpen} aria-controls="vault-fine-tuning" onClick={() => setFineTuneOpen((value) => !value)}>
+            <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
+            <span className={styles.optionalCopy}><strong>Fine-tune your draw</strong><small>Optional · {(selectedCollection ?? entireVault)?.name ?? "Entire Vault"} · {selectedGenres.length ? `${selectedGenres.length} genre${selectedGenres.length === 1 ? "" : "s"}` : "no genre filters"}</small></span>
+            <span className={styles.optionalLabel}>Optional</span>
+            <VaultIcon name="chevron-down" size={18} className={fineTuneOpen ? `${styles.optionalChevron} ${styles.optionalChevronOpen}` : styles.optionalChevron} />
+          </button>
+          {fineTuneOpen ? <div className={styles.optionalContent} id="vault-fine-tuning">
+            <div className={styles.genreSetup}>
+              <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} />
+            </div>
+            <div className={styles.collectionSetup}>
+              <VaultCollectionCard selectedCollection={selectedCollection ?? entireVault} collections={collections} collectionCounts={collectionCounts} onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)} guestLocked={!isLive} onGuestLocked={() => setGuestSignInOpen(true)} />
+            </div>
+          </div> : null}
+        </aside>
+      </section>
+
+      <section className={styles.drawActionBar} aria-label="Vault draw status">
+        <div className={styles.drawActionSummary}>
+          <strong>{nextSetupStep ? `Step ${setupReadyCount + 1} of 3` : canDraw ? "Your draw is ready" : "Adjust your setup"}</strong>
+          <div className={styles.drawChoiceRow}>
+            {setupSteps.map((step) => <button key={step.id} type="button" className={styles.drawChoice} data-complete={Boolean(step.value) || undefined} onClick={() => focusSetupStep(step.id)}><VaultIcon name={step.value ? "check" : step.id === "session" ? "session" : step.id === "mood" ? "mood" : "goal"} size={14} />{step.value ?? step.label}</button>)}
           </div>
-          <div className={styles.collectionSetup}>
-            <VaultCollectionCard
-              selectedCollection={selectedCollection ?? entireVault}
-              collections={collections}
-              collectionCounts={collectionCounts}
-              onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)}
-              guestLocked={!isLive}
-              onGuestLocked={() => setGuestSignInOpen(true)}
-            />
-          </div>
+        </div>
+        <div className={styles.drawActionControl}>
+          <button type="button" className={styles.ctaButton} onClick={() => canDraw ? void handleOpenVault() : nextSetupStep ? focusSetupStep(nextSetupStep) : undefined} disabled={drawingRef.current || (!nextSetupStep && !deck.length)} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
+            <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
+          </button>
+          <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
         </div>
       </section>
 
@@ -423,12 +520,6 @@ export default function VaultPage() {
           </div>
         )}
 
-        <div className={styles.poolActionArea}>
-          <button type="button" className={styles.ctaButton} onClick={() => void handleOpenVault()} disabled={!canDraw || drawingRef.current} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
-            <VaultIcon name="draw-from-vault" size={24} />{drawState === "focusing" || drawState === "revealing" ? "Drawing from the Vault…" : "Draw from the Vault"}
-          </button>
-          <p className={styles.setupStatus} id="vault-setup-status">{missingSetup.length ? `Choose ${formatMissingSetup(missingSetup)}.` : !deck.length ? "No games match this setup." : "Your setup is ready."}</p>
-        </div>
       </section>
 
       <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
@@ -533,11 +624,6 @@ function revealResultIfNeeded(element: HTMLElement | null, reducedMotion: boolea
   const bounds = element.getBoundingClientRect();
   const isBelowViewport = bounds.top > window.innerHeight - 80;
   if (isBelowViewport) element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
-}
-
-function formatMissingSetup(items: string[]) {
-  if (items.length === 1) return items[0];
-  return `${items.slice(0, -1).join(", ")} and ${items.at(-1)}`;
 }
 
 function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal" | "genre"; label: string; value: string }) {

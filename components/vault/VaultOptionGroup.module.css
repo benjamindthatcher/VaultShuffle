@@ -1,35 +1,134 @@
 .group {
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  padding: 16px 18px;
+  overflow: hidden;
   border-radius: 12px;
   border: 1px solid rgba(144, 104, 255, 0.28);
   background: rgba(8, 13, 31, 0.58);
   box-shadow: var(--vault-shadow);
+  transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.group[data-state="active"] {
+  border-color: rgba(206, 116, 255, 0.82);
+  background: linear-gradient(135deg, rgba(40, 22, 84, 0.72), rgba(8, 13, 31, 0.84) 58%);
+  box-shadow: 0 0 0 1px rgba(191, 102, 255, 0.12), 0 14px 38px rgba(39, 14, 86, 0.26), 0 0 34px rgba(142, 62, 226, 0.14);
+}
+
+.group[data-state="complete"] {
+  border-color: rgba(133, 201, 174, 0.36);
+  background: rgba(8, 24, 31, 0.54);
 }
 
 .headingRow {
-  display: flex;
+  display: block;
+  margin: 0;
+}
+
+.headingButton {
+  width: 100%;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 34px 20px minmax(0, 1fr) auto 18px;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 8px;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: #f5f7ff;
+  text-align: left;
+}
+
+.headingButton:hover,
+.headingButton:focus-visible {
+  background: rgba(106, 63, 188, 0.12);
+}
+
+.headingButton:focus-visible {
+  outline: 2px solid rgba(222, 158, 255, 0.86);
+  outline-offset: -3px;
+}
+
+.stepNumber {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(174, 117, 255, 0.46);
+  border-radius: 50%;
+  background: rgba(69, 38, 132, 0.5);
+  color: #e4b8ff;
+  font-size: 0.8rem;
+  font-weight: 850;
+}
+
+.group[data-state="active"] .stepNumber {
+  border-color: rgba(222, 143, 255, 0.9);
+  background: linear-gradient(145deg, #8b3dff, #5f2de1);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(168, 71, 255, 0.34);
+}
+
+.group[data-state="complete"] .stepNumber {
+  border-color: rgba(111, 215, 169, 0.58);
+  background: rgba(36, 123, 92, 0.34);
+  color: #9ce2bf;
 }
 
 .groupIcon { width: 20px; height: 20px; color: #d47cff; }
 
-.stepLabel {
-  margin: 0;
-  color: #f5f7ff;
-  font-size: 1.02rem;
-  font-weight: 650;
-  line-height: 1.2;
+.headingCopy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
 }
+
+.headingCopy strong {
+  color: #f5f7ff;
+  font-size: 0.98rem;
+  font-weight: 720;
+  line-height: 1.15;
+}
+
+.headingCopy small {
+  overflow: hidden;
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stateLabel {
+  min-width: 70px;
+  color: #a9a4bd;
+  font-size: 0.66rem;
+  font-weight: 780;
+  letter-spacing: 0.08em;
+  text-align: right;
+  text-transform: uppercase;
+}
+
+.group[data-state="active"] .stateLabel { color: #dda0ff; }
+.group[data-state="complete"] .stateLabel { color: #8dd8b2; }
+
+.headingChevron {
+  color: #a47bcf;
+  transition: transform 180ms ease;
+}
+
+.group[data-expanded="true"] .headingChevron { transform: rotate(180deg); }
 
 .optionGrid {
   display: grid;
   gap: 8px;
   align-items: stretch;
+  padding: 0 14px 14px;
+  animation: optionGridReveal 160ms ease-out both;
+}
+
+@keyframes optionGridReveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .optionButton {
@@ -116,8 +215,10 @@
 @media (max-width: 719px) {
   .group {
     min-height: auto;
-    padding: 14px;
   }
+
+  .headingButton { min-height: 62px; padding: 9px 12px; }
+  .stateLabel { display: none; }
 
   .optionButton {
     min-height: 60px;
@@ -127,10 +228,18 @@
 
 @media (max-width: 430px) {
   .optionLabel { font-size: 0.86rem; }
+  .groupIcon { display: none; }
+  .headingButton { grid-template-columns: 34px minmax(0, 1fr) 18px; }
 }
 
 @media (min-width: 720px) {
   .optionGrid {
     grid-template-columns: repeat(var(--option-count), minmax(0, 1fr));
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group,
+  .headingChevron,
+  .optionGrid { transition: none; animation: none; }
 }

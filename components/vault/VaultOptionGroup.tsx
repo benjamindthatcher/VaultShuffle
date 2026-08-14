@@ -10,22 +10,52 @@ type VaultOption = {
 
 type VaultOptionGroupProps = {
   title: string;
+  stepNumber: number;
   options: readonly VaultOption[];
   selectedId: string | null;
+  selectedLabel: string | null;
+  expanded: boolean;
+  state: "active" | "complete" | "pending";
   onSelect: (id: string) => void;
+  onToggle: () => void;
   lockedOptionIds?: readonly string[];
   onLockedSelect?: (id: string) => void;
 };
 
-export function VaultOptionGroup({ title, options, selectedId, onSelect, lockedOptionIds = [], onLockedSelect }: VaultOptionGroupProps) {
-  return (
-    <section className={styles.group}>
-      <div className={styles.headingRow}>
-        <VaultIcon name={groupIconName(title)} className={styles.groupIcon} />
-        <p className={styles.stepLabel}>{title}</p>
-      </div>
+export function VaultOptionGroup({
+  title,
+  stepNumber,
+  options,
+  selectedId,
+  selectedLabel,
+  expanded,
+  state,
+  onSelect,
+  onToggle,
+  lockedOptionIds = [],
+  onLockedSelect
+}: VaultOptionGroupProps) {
+  const groupId = `vault-setup-${title.toLowerCase()}`;
+  const optionsId = `${groupId}-options`;
 
-      <div className={styles.optionGrid} style={{ "--option-count": options.length } as React.CSSProperties}>
+  return (
+    <section className={styles.group} id={groupId} data-state={state} data-expanded={expanded || undefined}>
+      <h2 className={styles.headingRow}>
+        <button type="button" className={styles.headingButton} aria-expanded={expanded} aria-controls={optionsId} onClick={onToggle}>
+          <span className={styles.stepNumber} aria-hidden="true">
+            {state === "complete" ? <VaultIcon name="check" size={17} /> : stepNumber}
+          </span>
+          <VaultIcon name={groupIconName(title)} className={styles.groupIcon} />
+          <span className={styles.headingCopy}>
+            <strong>{title}</strong>
+            <small>{selectedLabel ?? (state === "active" ? "Choose one to continue" : "Required choice")}</small>
+          </span>
+          <span className={styles.stateLabel}>{state === "complete" ? "Ready" : state === "active" ? "Choose one" : "Required"}</span>
+          <VaultIcon name="chevron-down" size={18} className={styles.headingChevron} />
+        </button>
+      </h2>
+
+      {expanded ? <div id={optionsId} className={styles.optionGrid} style={{ "--option-count": options.length } as React.CSSProperties}>
         {options.map((option) => {
           const isActive = option.id === selectedId;
           const isLocked = lockedOptionIds.includes(option.id);
@@ -45,7 +75,7 @@ export function VaultOptionGroup({ title, options, selectedId, onSelect, lockedO
             </button>
           );
         })}
-      </div>
+      </div> : null}
     </section>
   );
 }
