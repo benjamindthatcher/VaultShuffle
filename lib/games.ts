@@ -6,9 +6,10 @@ import {
   isCompletedGame,
   statusFromGameProgress
 } from "@/lib/game-classification";
-import { applyCachedSteamMetadata } from "@/lib/steam-metadata";
+import { applyCatalogueMetadata } from "@/lib/catalog-game-metadata";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import { ensureCatalogueGameStubs, quarantinedSteamImports } from "@/lib/catalogue";
+import { USER_GAMES_READ_MODEL, USER_GAMES_TABLE } from "@/lib/game-tables";
 import type { Game, GamePayload, StatsPayload } from "@/lib/types";
 
 type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
@@ -38,21 +39,20 @@ function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
 export async function listGames(userId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
-    .from("games")
+    .from(USER_GAMES_READ_MODEL)
     .select("*")
     .eq("user_id", userId)
     .eq("is_quarantined", false)
     .order("title", { ascending: true });
 
   if (error) throw error;
-  const games = ((data ?? []) as Game[]).map(cleanStoredGame);
-  return applyCachedSteamMetadata(games);
+  return ((data ?? []) as Game[]).map(cleanStoredGame);
 }
 
 export async function findGame(userId: string, gameId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
-    .from("games")
+    .from(USER_GAMES_READ_MODEL)
     .select("*")
     .eq("user_id", userId)
     .eq("id", gameId)
@@ -61,7 +61,7 @@ export async function findGame(userId: string, gameId: string) {
 
   if (error) throw error;
   if (!data) return null;
-  return (await applyCachedSteamMetadata([data as Game]))[0] ?? null;
+  return cleanStoredGame(data as Game);
 }
 
 export async function createGame(userId: string, payload: GamePayload) {
@@ -76,7 +76,7 @@ export async function createGame(userId: string, payload: GamePayload) {
 
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
-    .from("games")
+    .from(USER_GAMES_TABLE)
     .insert({ ...game, user_id: userId })
     .select("*")
     .single();
@@ -90,7 +90,7 @@ export async function updateGame(userId: string, gameId: string, payload: GamePa
   await ensureCatalogueGameStubs([game]);
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
-    .from("games")
+    .from(USER_GAMES_TABLE)
     .update(game)
     .eq("user_id", userId)
     .eq("id", gameId)
@@ -118,7 +118,7 @@ export async function patchGame(userId: string, gameId: string, payload: Partial
     if (Object.keys(update).length === 0) return statusGame as Game | null;
   }
   const { data, error } = await supabase
-    .from("games")
+    .from(USER_GAMES_TABLE)
     .update(update)
     .eq("user_id", userId)
     .eq("id", gameId)
@@ -144,7 +144,7 @@ export async function deleteGame(userId: string, gameId: string) {
   if (!game) return null;
 
   const supabase = getSupabaseAdmin();
-  const { error } = await supabase.from("games").delete().eq("user_id", userId).eq("id", gameId);
+  const { error } = await supabase.from(USER_GAMES_TABLE).delete().eq("user_id", userId).eq("id", gameId);
   if (error) throw error;
   return game;
 }
@@ -157,13 +157,13 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
 
   const importedGames = [...steamGames.values()];
   await ensureCatalogueGameStubs(importedGames);
-  const incomingGames = await applyCachedSteamMetadata(importedGames);
+  const incomingGames = await applyCatalogueMetadata(importedGames);
   if (!incomingGames.length) return [];
   const quarantineByAppId = await quarantinedSteamImports(incomingGames);
 
   const supabase = getSupabaseAdmin();
   const { data: existingData, error: existingError } = await supabase
-    .from("games")
+    .from(USER_GAMES_READ_MODEL)
     .select("*")
     .eq("user_id", userId)
     .in("steam_appid", incomingGames.map((game) => game.steam_appid as string));

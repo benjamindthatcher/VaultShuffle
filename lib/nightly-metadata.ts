@@ -2,10 +2,6 @@ import { processDurationQueue } from "@/lib/duration-worker";
 import { upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import {
-  processSteamMetadataQueue,
-  queueAllKnownSteamMetadata
-} from "@/lib/steam-metadata";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { formatMetadataWorkerError } from "@/lib/worker-runs";
 
@@ -59,23 +55,6 @@ export async function refreshNightlyMetadata() {
     }));
   }
 
-  let metadataQueued = 0;
-  const steamMetadata = [];
-  try {
-    metadataQueued = await queueAllKnownSteamMetadata();
-    const metadataDeadline = Math.min(deadlineAt - 35_000, Date.now() + 150_000);
-    while (Date.now() + 5_000 < metadataDeadline) {
-      const result = await processSteamMetadataQueue(60, false, metadataDeadline);
-      steamMetadata.push(result);
-      if (!result.claimed || !result.processed || !result.remaining || result.deferred || result.rateLimited) break;
-    }
-  } catch (error) {
-    failures.push({
-      stage: "steam-app-metadata",
-      error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
-    });
-  }
-
   const durations = [];
   try {
     while (Date.now() + 25_000 < deadlineAt) {
@@ -95,8 +74,6 @@ export async function refreshNightlyMetadata() {
     librariesRefreshed,
     librariesDeferred,
     gamesRefreshed,
-    metadataQueued,
-    steamMetadata,
     durations,
     failures
   };

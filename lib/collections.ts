@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { matchesSmartPreset } from "@/lib/smart-collections";
+import { USER_GAMES_READ_MODEL } from "@/lib/game-tables";
 import type { Collection, CollectionGame, Game, SmartCollectionPreset } from "@/lib/types";
 
 type CollectionInput = { name: string; description?: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
@@ -47,7 +48,7 @@ export async function listCollectionsWithMemberships(
 
   const smartCollections = collections.filter((collection) => collection.kind === "smart");
   if (options.includeSmartCounts !== false && smartCollections.length) {
-    const { data: games, error: gameError } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false);
+    const { data: games, error: gameError } = await supabase.from(USER_GAMES_READ_MODEL).select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false);
     if (gameError) throw gameError;
     for (const collection of smartCollections) {
       const preset = collection.rules?.preset;
@@ -123,29 +124,43 @@ export async function getCollectionWithGames(userId: string, collectionId: strin
   const supabase = getSupabaseAdmin();
   if (collection.kind === "smart") {
     const preset = collection.rules?.preset;
-    const { data, error } = await supabase.from("games").select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false).order("title");
+    const { data, error } = await supabase.from(USER_GAMES_READ_MODEL).select("*").eq("user_id", userId).eq("ownership", "Owned").eq("is_quarantined", false).order("title");
     if (error) throw error;
     const matched = preset ? (data as Game[]).filter((game) => matchesSmartPreset(game, preset)) : [];
     return { collection, games: matched.map((game, position) => ({ collection_id: collection.id, game_id: game.id, notes: null, position, created_at: collection.created_at, game })) };
   }
   const { data, error } = await supabase
     .from("collection_games")
-    .select("collection_id, game_id, notes, position, created_at, games(*)")
+    .select("collection_id, game_id, notes, position, created_at")
     .eq("collection_id", collectionId)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
 
   if (error) throw error;
 
-  const games = (data ?? []).map((row) => {
-    const item = row as unknown as CollectionGame & { games?: Game };
+  const links = (data ?? []) as CollectionGame[];
+  const gameIds = links.map((link) => link.game_id);
+  const { data: gameRows, error: gameError } = gameIds.length
+    ? await supabase
+        .from(USER_GAMES_READ_MODEL)
+        .select("*")
+        .eq("user_id", userId)
+        .eq("is_quarantined", false)
+        .in("id", gameIds)
+    : { data: [], error: null };
+  if (gameError) throw gameError;
+  const gamesById = new Map(((gameRows ?? []) as Game[]).map((game) => [game.id, game]));
+
+  const games = links.flatMap((item) => {
+    const game = gamesById.get(item.game_id);
+    if (!game) return [];
     return {
       collection_id: item.collection_id,
       game_id: item.game_id,
       notes: item.notes,
       position: item.position,
       created_at: item.created_at,
-      game: item.games
+      game
     };
   });
 
@@ -210,7 +225,7 @@ async function assertCollection(userId: string, collectionId: string) {
 async function assertGame(userId: string, gameId: string) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
-    .from("games")
+    .from(USER_GAMES_READ_MODEL)
     .select("id")
     .eq("id", gameId)
     .eq("user_id", userId)

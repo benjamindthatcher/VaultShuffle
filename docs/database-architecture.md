@@ -18,15 +18,19 @@ out an update across every user's copy of the same Steam game.
 
 ## Per-user game data
 
-- `games` retains the stable UUID used by collections, pins, purge reviews,
-  and other user state.
-- `games.catalog_steam_appid` references the shared `catalog_games` row.
+- `user_games` is the mutable per-account boundary used by application writes.
+  During the compatibility release it is an automatically updatable view over
+  the existing ownership table; it retains the stable UUID used by collections,
+  pins, purge reviews, and other user state.
+- `user_games_with_catalog` is a read-only, security-invoker view that joins
+  every ownership record to exactly one `catalog_games` row.
+- The ownership record's catalogue foreign key references the shared
+  `catalog_games` row.
 - Ownership, lifecycle status, playtime, progress, notes, and lifecycle
   timestamps stay on `games`.
-- Legacy title, genre, rating, quarantine, and duration columns are
-  compatibility snapshots. New reads overlay canonical catalogue metadata.
-  They can be dropped in a later database revision after all deployed clients
-  use the catalogue-backed read model.
+- Legacy title, genre, quarantine, and duration columns are compatibility
+  snapshots only. All current application reads use the catalogue-backed read
+  model; those columns are removed in the final cutover after live verification.
 
 ## Bounded user state and history
 
@@ -49,6 +53,7 @@ so a rollback does not lose state.
 1. Apply the reviewed database changes through the production Supabase project.
 2. Deploy the matching application revision.
 3. Run the Supabase security and performance advisors.
-4. After one stable release, remove the compatibility snapshot columns and
-   retire `steam_app_metadata` once its remaining refresh workflow has been
-   fully folded into `catalog_games`.
+4. Rename the physical ownership table to `user_games`, update dependent
+   functions, and remove the compatibility snapshots.
+5. Retire `steam_app_metadata`; its useful values have already been merged into
+   `catalog_games` and the application no longer reads its queue.
