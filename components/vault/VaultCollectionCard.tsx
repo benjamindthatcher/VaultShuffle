@@ -64,15 +64,18 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
 
   return (
     <section className={styles.wrap}>
-      <button ref={triggerRef} type="button" className={styles.heroCard} onClick={() => guestLocked ? onGuestLocked?.() : setOpen(true)} aria-haspopup={guestLocked ? undefined : "dialog"}>
-        <div className={styles.artwork}><Artwork src={selectedCollection.artworkUrl} sizes="(max-width: 720px) 100vw, 360px" /></div>
-        <div className={styles.content}>
-          <p className={styles.eyebrow}>Selected collection</p>
-          <h2 className={styles.title}>{selectedCollection.name}</h2>
-          <p className={styles.description}>{selectedCollection.description}</p>
-          <span className={styles.changeButton}><VaultIcon name={guestLocked ? "privacy" : "filter"} size={16} />{guestLocked ? "Sign in for your collections" : "Change Collection"}</span>
-        </div>
-        <VaultIcon name="chevron-right" size={22} />
+      <button
+        ref={triggerRef}
+        type="button"
+        className={styles.compactCard}
+        onClick={() => guestLocked ? onGuestLocked?.() : setOpen(true)}
+        aria-haspopup={guestLocked ? undefined : "dialog"}
+        aria-label={`Drawing from ${selectedCollection.name}. ${guestLocked ? "Sign in to change collection" : "Change collection"}.`}
+      >
+        <span className={styles.compactIcon}><VaultIcon name={guestLocked ? "privacy" : "collections"} size={19} /></span>
+        <span className={styles.compactCopy}><small>Drawing from</small><strong>{selectedCollection.name}</strong></span>
+        <span className={styles.compactMeta}>{guestLocked ? "Sign in to change" : `${collectionCounts[selectedCollection.id] ?? 0} games`}</span>
+        <VaultIcon className={styles.compactChevron} name="chevron-right" size={18} />
       </button>
 
       {open && !guestLocked ? createPortal(<div className={styles.modalLayer}>

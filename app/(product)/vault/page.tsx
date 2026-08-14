@@ -410,10 +410,6 @@ export default function VaultPage() {
         </div>
 
         <div className={styles.setupSidebar}>
-          <div className={styles.collectionSetup} aria-label="Selected game collection">
-            <VaultCollectionCard selectedCollection={selectedCollection ?? entireVault} collections={collections} collectionCounts={collectionCounts} onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)} guestLocked={!isLive} onGuestLocked={() => setGuestSignInOpen(true)} />
-          </div>
-
           <aside className={styles.optionalSetup} aria-label="Optional genre filters">
             <button type="button" className={styles.optionalToggle} aria-expanded={genreFiltersOpen} aria-controls="vault-genre-filters" onClick={() => setGenreFiltersOpen((value) => !value)}>
               <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
@@ -449,6 +445,9 @@ export default function VaultPage() {
         <div className={styles.poolControls}>
           <div className={styles.poolHeader}>
             <div className={styles.poolIdentity}><p className={styles.poolLabel}>Vault Deck</p><span className={styles.matchBadge}><VaultIcon name="new" size={15} />{deck.length}{fullPool.length > deck.length ? ` of ${fullPool.length}` : ""} matches</span></div>
+            <div className={styles.poolCollection} aria-label="Selected game collection">
+              <VaultCollectionCard selectedCollection={selectedCollection ?? entireVault} collections={collections} collectionCounts={collectionCounts} onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)} guestLocked={!isLive} onGuestLocked={() => setGuestSignInOpen(true)} />
+            </div>
             <div className={styles.deckTools}>
               <button
                 type="button"
