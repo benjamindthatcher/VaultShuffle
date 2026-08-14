@@ -41,8 +41,7 @@ export default function VaultPage() {
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
-  const [openSetupStep, setOpenSetupStep] = useState<VaultSetupStep | null>("session");
-  const [genreFiltersOpen, setGenreFiltersOpen] = useState(false);
+  const [openSetupStep, setOpenSetupStep] = useState<VaultSetupStep>("session");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
@@ -303,7 +302,7 @@ export default function VaultPage() {
       nextStep = !session ? "session" : !mood ? "mood" : null;
     }
 
-    setOpenSetupStep(nextStep);
+    setOpenSetupStep(nextStep ?? step);
     if (nextStep) revealSetupStep(nextStep);
   }
 
@@ -404,24 +403,23 @@ export default function VaultPage() {
         </header>
 
         <div className={styles.optionStack}>
-          <VaultOptionGroup title="Session" stepNumber={1} options={vaultSessionOptions} selectedId={session} selectedLabel={sessionLabel} expanded={openSetupStep === "session"} state={session ? "complete" : openSetupStep === "session" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "session" ? null : "session")} onSelect={(id) => selectSetupOption("session", id)} />
-          <VaultOptionGroup title="Mood" stepNumber={2} options={vaultMoodOptions} selectedId={mood} selectedLabel={moodLabel} expanded={openSetupStep === "mood"} state={mood ? "complete" : openSetupStep === "mood" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "mood" ? null : "mood")} onSelect={(id) => selectSetupOption("mood", id)} />
-          <VaultOptionGroup title="Goal" stepNumber={3} options={vaultGoalOptions} selectedId={goal} selectedLabel={goalLabel} expanded={openSetupStep === "goal"} state={goal ? "complete" : openSetupStep === "goal" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "goal" ? null : "goal")} onSelect={(id) => selectSetupOption("goal", id)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
+          <VaultOptionGroup title="Session" stepNumber={1} options={vaultSessionOptions} selectedId={session} selectedLabel={sessionLabel} expanded={openSetupStep === "session"} state={session ? "complete" : openSetupStep === "session" ? "active" : "pending"} onToggle={() => setOpenSetupStep("session")} onSelect={(id) => selectSetupOption("session", id)} />
+          <VaultOptionGroup title="Mood" stepNumber={2} options={vaultMoodOptions} selectedId={mood} selectedLabel={moodLabel} expanded={openSetupStep === "mood"} state={mood ? "complete" : openSetupStep === "mood" ? "active" : "pending"} onToggle={() => setOpenSetupStep("mood")} onSelect={(id) => selectSetupOption("mood", id)} />
+          <VaultOptionGroup title="Goal" stepNumber={3} options={vaultGoalOptions} selectedId={goal} selectedLabel={goalLabel} expanded={openSetupStep === "goal"} state={goal ? "complete" : openSetupStep === "goal" ? "active" : "pending"} onToggle={() => setOpenSetupStep("goal")} onSelect={(id) => selectSetupOption("goal", id)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
         </div>
 
         <div className={styles.setupSidebar}>
           <aside className={styles.optionalSetup} aria-label="Optional genre filters">
-            <button type="button" className={styles.optionalToggle} aria-expanded={genreFiltersOpen} aria-controls="vault-genre-filters" onClick={() => setGenreFiltersOpen((value) => !value)}>
+            <div className={styles.optionalHeader}>
               <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
               <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{selectedGenres.length ? `${selectedGenres.length} of 3 selected` : "Optional · no filters selected"}</small></span>
               <span className={styles.optionalLabel}>Optional</span>
-              <VaultIcon name="chevron-down" size={18} className={genreFiltersOpen ? `${styles.optionalChevron} ${styles.optionalChevronOpen}` : styles.optionalChevron} />
-            </button>
-            {genreFiltersOpen ? <div className={styles.optionalContent} id="vault-genre-filters">
+            </div>
+            <div className={styles.optionalContent}>
               <div className={styles.genreSetup}>
                 <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded />
               </div>
-            </div> : null}
+            </div>
           </aside>
         </div>
       </section>
