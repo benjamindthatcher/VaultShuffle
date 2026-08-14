@@ -27,8 +27,9 @@ out an update across every user's copy of the same Steam game.
   `catalog_games` row.
 - Ownership, lifecycle status, playtime, progress, notes, and lifecycle
   timestamps stay on `user_games`.
-- `games` is a temporary backwards-compatible view for the deployment cutover.
-  Current application code does not read or write through it.
+- Shared title, genre, artwork, reviews, pricing, quarantine, and duration data
+  never live on `user_games`; application reads receive them through
+  `user_games_with_catalog`.
 
 ## Bounded user state and history
 
@@ -46,12 +47,12 @@ out an update across every user's copy of the same Steam game.
 IDs or mutable domain state. Compatibility keys are retained for one release
 so a rollback does not lose state.
 
-## Deployment order
+## Current production invariant
 
-1. Apply the reviewed database changes through the production Supabase project.
-2. Deploy the matching application revision.
-3. Run the Supabase security and performance advisors.
-4. Remove the compatibility snapshots and the temporary `games` view after
-   the matching application revision has passed live verification.
-5. Retire `steam_app_metadata`; its useful values have already been merged into
-   `catalog_games` and the application no longer reads its queue.
+- There is no `games` compatibility object or `steam_app_metadata` table.
+- `(user_id, catalog_steam_appid)` is unique and every ownership row has a
+  valid catalogue foreign key.
+- Steam refreshes upsert only ownership and per-user state. Catalogue and
+  duration workers update shared AppID-keyed records once.
+- The application service role has the minimum required table/view grants;
+  browser roles have no direct access to private ownership data.
