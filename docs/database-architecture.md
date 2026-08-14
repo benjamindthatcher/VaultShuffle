@@ -19,18 +19,16 @@ out an update across every user's copy of the same Steam game.
 ## Per-user game data
 
 - `user_games` is the mutable per-account boundary used by application writes.
-  During the compatibility release it is an automatically updatable view over
-  the existing ownership table; it retains the stable UUID used by collections,
-  pins, purge reviews, and other user state.
+  It is the physical ownership table and retains the stable UUID used by
+  collections, pins, purge reviews, and other user state.
 - `user_games_with_catalog` is a read-only, security-invoker view that joins
   every ownership record to exactly one `catalog_games` row.
 - The ownership record's catalogue foreign key references the shared
   `catalog_games` row.
 - Ownership, lifecycle status, playtime, progress, notes, and lifecycle
-  timestamps stay on `games`.
-- Legacy title, genre, quarantine, and duration columns are compatibility
-  snapshots only. All current application reads use the catalogue-backed read
-  model; those columns are removed in the final cutover after live verification.
+  timestamps stay on `user_games`.
+- `games` is a temporary backwards-compatible view for the deployment cutover.
+  Current application code does not read or write through it.
 
 ## Bounded user state and history
 
@@ -53,7 +51,7 @@ so a rollback does not lose state.
 1. Apply the reviewed database changes through the production Supabase project.
 2. Deploy the matching application revision.
 3. Run the Supabase security and performance advisors.
-4. Rename the physical ownership table to `user_games`, update dependent
-   functions, and remove the compatibility snapshots.
+4. Remove the compatibility snapshots and the temporary `games` view after
+   the matching application revision has passed live verification.
 5. Retire `steam_app_metadata`; its useful values have already been merged into
    `catalog_games` and the application no longer reads its queue.

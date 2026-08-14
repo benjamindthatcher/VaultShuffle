@@ -8,11 +8,9 @@ import {
 } from "@/lib/game-classification";
 import { applyCatalogueMetadata } from "@/lib/catalog-game-metadata";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
-import { ensureCatalogueGameStubs, quarantinedSteamImports } from "@/lib/catalogue";
+import { ensureCatalogueGameStubs, recordAutomaticSteamQuarantine } from "@/lib/catalogue";
 import { USER_GAMES_READ_MODEL, USER_GAMES_TABLE } from "@/lib/game-tables";
 import type { Game, GamePayload, StatsPayload } from "@/lib/types";
-
-type GameDatabaseRow = ReturnType<typeof normalizeGamePayload> & { user_id: string };
 
 function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
   const title = String(payload.title ?? "").trim();
@@ -66,39 +64,29 @@ export async function findGame(userId: string, gameId: string) {
 
 export async function createGame(userId: string, payload: GamePayload) {
   const game = normalizeGamePayload(payload);
+  if (!game.steam_appid) throw new Error("A Steam App ID is required.");
   await ensureCatalogueGameStubs([game]);
-
-  if (game.steam_appid) {
-    const [saved] = await upsertSteamImportRows(userId, [game], game.ownership);
-    if (!saved) throw new Error("Could not save this Steam game.");
-    return saved;
-  }
-
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from(USER_GAMES_TABLE)
-    .insert({ ...game, user_id: userId })
-    .select("*")
-    .single();
-
-  if (error) throw error;
-  return data as Game;
+  await recordAutomaticSteamQuarantine([game]);
+  const [saved] = await upsertSteamImportRows(userId, [steamImportRow(game)], game.ownership);
+  if (!saved) throw new Error("Could not save this Steam game.");
+  return findGame(userId, saved.id);
 }
 
 export async function updateGame(userId: string, gameId: string, payload: GamePayload) {
-  const game = normalizeGamePayload(payload);
-  await ensureCatalogueGameStubs([game]);
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from(USER_GAMES_TABLE)
-    .update(game)
-    .eq("user_id", userId)
-    .eq("id", gameId)
-    .select("*")
-    .maybeSingle();
-
-  if (error) throw error;
-  return data as Game | null;
+  return patchGame(userId, gameId, {
+    ownership: payload.ownership,
+    status: payload.status,
+    hours_played: payload.hours_played,
+    completion_percentage: payload.completion_percentage,
+    priority: payload.priority,
+    date_added: payload.date_added,
+    last_played_at: payload.last_played_at,
+    notes: payload.notes,
+    completed_at: payload.completed_at,
+    slept_at: payload.slept_at,
+    completion_suggestion_dismissed_at: payload.completion_suggestion_dismissed_at,
+    completion_suggestion_dismissed_playtime: payload.completion_suggestion_dismissed_playtime
+  });
 }
 
 export async function patchGame(userId: string, gameId: string, payload: Partial<GamePayload>) {
@@ -115,7 +103,9 @@ export async function patchGame(userId: string, gameId: string, payload: Partial
     delete update.status;
     delete update.completed_at;
     delete update.slept_at;
-    if (Object.keys(update).length === 0) return statusGame as Game | null;
+    if (Object.keys(update).length === 0) {
+      return statusGame ? findGame(userId, gameId) : null;
+    }
   }
   const { data, error } = await supabase
     .from(USER_GAMES_TABLE)
@@ -126,7 +116,7 @@ export async function patchGame(userId: string, gameId: string, payload: Partial
     .maybeSingle();
 
   if (error) throw error;
-  return data as Game | null;
+  return data ? findGame(userId, gameId) : null;
 }
 
 export async function restoreGameToActive(userId: string, gameId: string) {
@@ -136,7 +126,7 @@ export async function restoreGameToActive(userId: string, gameId: string) {
     p_game_id: gameId
   });
   if (error) throw error;
-  return data as Game | null;
+  return data ? findGame(userId, gameId) : null;
 }
 
 export async function deleteGame(userId: string, gameId: string) {
@@ -159,65 +149,8 @@ export async function upsertSteamGames(userId: string, games: GamePayload[]) {
   await ensureCatalogueGameStubs(importedGames);
   const incomingGames = await applyCatalogueMetadata(importedGames);
   if (!incomingGames.length) return [];
-  const quarantineByAppId = await quarantinedSteamImports(incomingGames);
-
-  const supabase = getSupabaseAdmin();
-  const { data: existingData, error: existingError } = await supabase
-    .from(USER_GAMES_READ_MODEL)
-    .select("*")
-    .eq("user_id", userId)
-    .in("steam_appid", incomingGames.map((game) => game.steam_appid as string));
-
-  if (existingError) throw existingError;
-
-  const existingByAppId = new Map(
-    ((existingData ?? []) as Game[])
-      .filter((game) => game.steam_appid)
-      .map((game) => [game.steam_appid as string, game])
-  );
-
-  const rows = incomingGames.map((incoming) => {
-    const existing = existingByAppId.get(incoming.steam_appid as string);
-    const quarantineReason = quarantineByAppId.get(incoming.steam_appid as string);
-    const quarantineFields = {
-      is_quarantined: Boolean(quarantineReason),
-      quarantine_reason: quarantineReason ?? null
-    };
-    if (!existing) return { ...gameDatabaseRow(userId, incoming), ...quarantineFields };
-
-    const existingCompletion = clamp(Math.round(Number(existing.completion_percentage || 0)), 0, 100);
-    const incomingCompletion = inferredCompletionForPayload(
-      incoming.title,
-      incoming.genre,
-      Number(incoming.hours_played || 0),
-      incoming.status,
-      incoming.completion_percentage
-    );
-    const completion = existingCompletion > 0 ? existingCompletion : incomingCompletion;
-    const status = existing.status;
-
-    return {
-      user_id: userId,
-      title: incoming.title,
-      genre: existing.genre && existing.genre !== "Unknown" ? existing.genre : incoming.genre,
-      store: "Steam",
-      ownership: "Owned",
-      status,
-      rating: Number(existing.rating || 0) > 0 ? existing.rating : incoming.rating,
-      hours_played: incoming.hours_played,
-      completion_percentage: completion,
-      priority: existing.priority,
-      date_added: existing.date_added || incoming.date_added,
-      last_played_at: incoming.last_played_at || existing.last_played_at,
-      notes: cleanUserNotes(existing.notes) || incoming.notes,
-      steam_appid: incoming.steam_appid,
-      completed_at: existing.completed_at,
-      slept_at: existing.slept_at,
-      completion_suggestion_dismissed_at: existing.completion_suggestion_dismissed_at,
-      completion_suggestion_dismissed_playtime: existing.completion_suggestion_dismissed_playtime,
-      ...quarantineFields
-    };
-  });
+  await recordAutomaticSteamQuarantine(incomingGames);
+  const rows = incomingGames.map(steamImportRow);
 
   return upsertSteamImportRows(userId, rows, "Owned");
 }
@@ -243,10 +176,17 @@ async function upsertSteamImportRows<T extends object>(
   return saved;
 }
 
-function gameDatabaseRow(userId: string, game: GamePayload): GameDatabaseRow {
+function steamImportRow(game: GamePayload) {
+  const normalized = normalizeGamePayload(game);
   return {
-    ...normalizeGamePayload(game),
-    user_id: userId
+    steam_appid: normalized.steam_appid,
+    status: normalized.status,
+    hours_played: normalized.hours_played,
+    completion_percentage: normalized.completion_percentage,
+    priority: normalized.priority,
+    date_added: normalized.date_added,
+    last_played_at: normalized.last_played_at,
+    notes: normalized.notes
   };
 }
 

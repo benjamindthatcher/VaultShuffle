@@ -21,7 +21,7 @@ type ManualQuarantineDecision = {
   matched_rule: string | null;
 };
 
-export async function quarantinedSteamImports(games: GamePayload[]) {
+export async function recordAutomaticSteamQuarantine(games: GamePayload[]) {
   const supabase = getSupabaseAdmin();
   const detectedCandidates = games.flatMap((game) => {
     const appid = Number(game.steam_appid);
@@ -48,15 +48,7 @@ export async function quarantinedSteamImports(games: GamePayload[]) {
     if (error) throw error;
   }
 
-  const appids = uniqueNumericAppIds(games.flatMap((game) => game.steam_appid ? [game.steam_appid] : []));
-  if (!appids.length) return new Map<string, string>();
-  const { data, error } = await supabase
-    .from("catalog_game_quarantine")
-    .select("steam_appid, reason")
-    .in("steam_appid", appids)
-    .eq("review_status", "excluded");
-  if (error) throw error;
-  return new Map((data ?? []).map((row) => [String(row.steam_appid), String(row.reason)]));
+  return candidates.length;
 }
 
 export async function recordImportedSteamAppIds(userId: string, appIds: string[]) {
