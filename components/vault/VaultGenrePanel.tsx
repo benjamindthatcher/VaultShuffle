@@ -7,16 +7,17 @@ type VaultGenrePanelProps = {
   selectedGenres: string[];
   onToggleGenre: (genre: string) => void;
   onClear: () => void;
+  embedded?: boolean;
 };
 
-export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear }: VaultGenrePanelProps) {
+export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, embedded = false }: VaultGenrePanelProps) {
   return (
-    <section className={styles.panel}>
-      <div className={styles.heading}>
-        <VaultIcon name="filter" size={24} />
+    <section className={embedded ? `${styles.panel} ${styles.panelEmbedded}` : styles.panel}>
+      <div className={embedded ? `${styles.heading} ${styles.headingEmbedded}` : styles.heading}>
+        {embedded ? null : <VaultIcon name="filter" size={24} />}
         <div>
-          <h2>Genre Filters</h2>
-          <p>Optional. Refine your pool. <strong>{selectedGenres.length}/3</strong></p>
+          {embedded ? null : <h2>Genre Filters</h2>}
+          <p>{embedded ? "Choose up to three genres." : "Optional. Refine your pool."} <strong>{selectedGenres.length}/3</strong></p>
         </div>
         <button type="button" className={styles.clear} onClick={onClear} disabled={!selectedGenres.length}><VaultIcon name="clear-filters" size={16} />Clear filters</button>
       </div>

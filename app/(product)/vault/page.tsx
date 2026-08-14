@@ -42,7 +42,7 @@ export default function VaultPage() {
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
   const [openSetupStep, setOpenSetupStep] = useState<VaultSetupStep | null>("session");
-  const [fineTuneOpen, setFineTuneOpen] = useState(false);
+  const [genreFiltersOpen, setGenreFiltersOpen] = useState(false);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
@@ -409,22 +409,25 @@ export default function VaultPage() {
           <VaultOptionGroup title="Goal" stepNumber={3} options={vaultGoalOptions} selectedId={goal} selectedLabel={goalLabel} expanded={openSetupStep === "goal"} state={goal ? "complete" : openSetupStep === "goal" ? "active" : "pending"} onToggle={() => setOpenSetupStep((current) => current === "goal" ? null : "goal")} onSelect={(id) => selectSetupOption("goal", id)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
         </div>
 
-        <aside className={styles.optionalSetup} aria-label="Optional draw filters">
-          <button type="button" className={styles.optionalToggle} aria-expanded={fineTuneOpen} aria-controls="vault-fine-tuning" onClick={() => setFineTuneOpen((value) => !value)}>
-            <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
-            <span className={styles.optionalCopy}><strong>Fine-tune your draw</strong><small>Optional · {(selectedCollection ?? entireVault)?.name ?? "Entire Vault"} · {selectedGenres.length ? `${selectedGenres.length} genre${selectedGenres.length === 1 ? "" : "s"}` : "no genre filters"}</small></span>
-            <span className={styles.optionalLabel}>Optional</span>
-            <VaultIcon name="chevron-down" size={18} className={fineTuneOpen ? `${styles.optionalChevron} ${styles.optionalChevronOpen}` : styles.optionalChevron} />
-          </button>
-          {fineTuneOpen ? <div className={styles.optionalContent} id="vault-fine-tuning">
-            <div className={styles.genreSetup}>
-              <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} />
-            </div>
-            <div className={styles.collectionSetup}>
-              <VaultCollectionCard selectedCollection={selectedCollection ?? entireVault} collections={collections} collectionCounts={collectionCounts} onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)} guestLocked={!isLive} onGuestLocked={() => setGuestSignInOpen(true)} />
-            </div>
-          </div> : null}
-        </aside>
+        <div className={styles.setupSidebar}>
+          <div className={styles.collectionSetup} aria-label="Selected game collection">
+            <VaultCollectionCard selectedCollection={selectedCollection ?? entireVault} collections={collections} collectionCounts={collectionCounts} onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)} guestLocked={!isLive} onGuestLocked={() => setGuestSignInOpen(true)} />
+          </div>
+
+          <aside className={styles.optionalSetup} aria-label="Optional genre filters">
+            <button type="button" className={styles.optionalToggle} aria-expanded={genreFiltersOpen} aria-controls="vault-genre-filters" onClick={() => setGenreFiltersOpen((value) => !value)}>
+              <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
+              <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{selectedGenres.length ? `${selectedGenres.length} of 3 selected` : "Optional · no filters selected"}</small></span>
+              <span className={styles.optionalLabel}>Optional</span>
+              <VaultIcon name="chevron-down" size={18} className={genreFiltersOpen ? `${styles.optionalChevron} ${styles.optionalChevronOpen}` : styles.optionalChevron} />
+            </button>
+            {genreFiltersOpen ? <div className={styles.optionalContent} id="vault-genre-filters">
+              <div className={styles.genreSetup}>
+                <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded />
+              </div>
+            </div> : null}
+          </aside>
+        </div>
       </section>
 
       <section className={styles.drawActionBar} aria-label="Vault draw status">
