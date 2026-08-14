@@ -228,7 +228,8 @@
 
 @media (max-width: 430px) {
   .optionLabel { font-size: 0.86rem; }
-  .groupIcon { display: none; }
+  /* VaultIcon renders display inline; this compact header deliberately removes it. */
+  .groupIcon { display: none !important; }
   .headingButton { grid-template-columns: 34px minmax(0, 1fr) 18px; }
 }
 
