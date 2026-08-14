@@ -81,6 +81,41 @@ test("Finish Something excludes endless games", () => {
   assert.equal(pool.length, 0);
 });
 
+test("collection draws ignore session, mood, goal and genre filters", () => {
+  const collectionGames = [
+    makeGame({
+      id: "collection-action",
+      title: "Collection Action",
+      collectionIds: ["collection-1"]
+    }),
+    makeGame({
+      id: "collection-strategy",
+      title: "Collection Strategy",
+      collectionIds: ["collection-1"],
+      genres: ["Strategy"],
+      sessionFit: ["weekend"],
+      moodTags: ["chill"],
+      moodScores: { "brain-off": 0, chill: 7, intense: 0 },
+      hoursPlayed: 12,
+      status: "In Progress"
+    }),
+    makeGame({ id: "outside", title: "Outside", collectionIds: [] })
+  ];
+
+  const pool = buildVaultPool({
+    games: collectionGames,
+    session: "short",
+    mood: "intense",
+    goal: "new",
+    selectedCollectionId: "collection-1",
+    selectedGenres: ["Action"],
+    snoozedIds: new Set()
+  });
+
+  assert.deepEqual(pool.map((entry) => entry.game.id), ["collection-action", "collection-strategy"]);
+  assert.ok(pool.every((entry) => entry.score === 0));
+});
+
 test("keeps the deck at 32 and rotates a rerolled game behind replacements", () => {
   const pool = Array.from({ length: 40 }, (_, index) => ({
     game: makeGame({ id: `game-${index}`, title: `Game ${String(index).padStart(2, "0")}` }),

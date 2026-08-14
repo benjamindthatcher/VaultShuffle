@@ -30,6 +30,12 @@ export function VaultHistoryDrawer({ open, draws, games, onClose, onClear, onVie
     </div> : draws.length ? <><div className={styles.list}>{groupDraws(draws).map(([label, entries]) => <section key={label}><h3>{label}</h3>{entries.map((draw) => { const entryGame = games.find((item) => item.steamAppId === draw.steamAppId); return <button type="button" className={styles.entry} key={draw.id} onClick={() => setSelected(draw)}>{entryGame ? <span className={styles.thumb}><Artwork src={entryGame.bannerUrl} sizes="76px" /></span> : null}<span><strong>{entryGame?.title ?? `Steam App ${draw.steamAppId}`}</strong><small>{setupLabel(draw)}</small><em>{eventLabel(draw.events[0]?.eventType)}</em></span><time dateTime={draw.drawnAt}>{new Date(draw.drawnAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</time></button>; })}</section>)}</div><button type="button" className={styles.clear} onClick={() => void onClear()}>Clear draw history</button></> : <div className={styles.empty}><h3>No draws yet</h3><p>Games you draw from the Vault will appear here.</p><button type="button" onClick={onClose}>Draw from the Vault</button></div>}
   </aside></div>, document.body);
 }
-function setupLabel(draw: VaultDraw) { const labels = { short: "Short", evening: "Evening", weekend: "Weekend", "brain-off": "Brain-Off", chill: "Chill", intense: "Intense", new: "Something New", finish: "Finish Something", surprise: "Surprise Me" }; return `${labels[draw.session]} · ${labels[draw.mood]} · ${labels[draw.goal]}`; }
+function setupLabel(draw: VaultDraw) {
+  if (draw.collectionId) return "Collection draw";
+  const labels = { short: "Short", evening: "Evening", weekend: "Weekend", "brain-off": "Brain-Off", chill: "Chill", intense: "Intense", new: "Something New", finish: "Finish Something", surprise: "Surprise Me" };
+  return draw.session && draw.mood && draw.goal
+    ? `${labels[draw.session]} · ${labels[draw.mood]} · ${labels[draw.goal]}`
+    : "Vault draw";
+}
 function eventLabel(type?: string) { if (!type) return "Drawn"; return type.split("_").map((word) => word[0].toUpperCase() + word.slice(1)).join(" "); }
 function groupDraws(draws: VaultDraw[]) { const groups = new Map<string, VaultDraw[]>(); for (const draw of draws) { const date = new Date(draw.drawnAt); const now = new Date(); const label = date.toDateString() === now.toDateString() ? "Today" : date.toLocaleDateString([], { weekday: "long", day: "numeric", month: "short" }); groups.set(label, [...(groups.get(label) ?? []), draw]); } return [...groups.entries()]; }

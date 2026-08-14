@@ -20,6 +20,7 @@ import {
   buildVaultPool,
   drawVaultGame,
   getVaultEligibility,
+  isCollectionDraw,
   MAX_VAULT_GENRES,
   vaultGoalOptions,
   vaultMoodOptions,
@@ -32,6 +33,7 @@ import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
 type VaultSetupStep = "session" | "mood" | "goal";
+type VaultDrawMode = "vault" | "collection";
 type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 const EMPTY_GAME_IDS: string[] = [];
 const GUEST_SIGN_IN_PROMPT_KEY = "vaultshuffle:guest-first-draw-prompt:v1";
@@ -42,6 +44,7 @@ export default function VaultPage() {
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
   const [openSetupStep, setOpenSetupStep] = useState<VaultSetupStep>("session");
+  const [drawMode, setDrawMode] = useState<VaultDrawMode>("vault");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
@@ -70,36 +73,50 @@ export default function VaultPage() {
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
+  const drawableGames = useMemo(() => ownedGames.filter((game) => game.status !== "Completed" && game.status !== "Slept" && !snoozedIds.has(game.id)), [ownedGames, snoozedIds]);
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? null;
   const entireVault = collections.find((collection) => collection.id === "all") ?? collections[0];
-  const collectionCounts = useMemo(() => Object.fromEntries(collections.map((collection) => [collection.id, collection.id === "all" ? ownedGames.length : ownedGames.filter((game) => game.collectionIds.includes(collection.id)).length])), [collections, ownedGames]);
-  const setupKey = `${session ?? ""}|${mood ?? ""}|${goal ?? ""}|${selectedCollectionId ?? "all"}|${selectedGenres.toSorted().join(",")}`;
+  const collectionCounts = useMemo(() => Object.fromEntries(collections.map((collection) => [collection.id, collection.id === "all" ? drawableGames.length : drawableGames.filter((game) => game.collectionIds.includes(collection.id)).length])), [collections, drawableGames]);
+  const collectionMode = drawMode === "collection";
+  const collectionDraw = collectionMode && isCollectionDraw(selectedCollectionId);
+  const activeSession = collectionMode ? null : session;
+  const activeMood = collectionMode ? null : mood;
+  const activeGoal = collectionMode ? null : goal;
+  const activeCollectionId = collectionMode ? selectedCollectionId : null;
+  const activeGenres = collectionMode ? EMPTY_GAME_IDS : selectedGenres;
+  const setupKey = `${drawMode}|${activeSession ?? ""}|${activeMood ?? ""}|${activeGoal ?? ""}|${activeCollectionId ?? "all"}|${activeGenres.toSorted().join(",")}`;
 
   const fullPool = useMemo(
-    () =>
-      buildVaultPool({
+    () => {
+      if (drawMode === "collection" && !activeCollectionId) return [];
+      return buildVaultPool({
         games: ownedGames,
-        session,
-        mood,
-        goal,
-        selectedCollectionId,
-        selectedGenres,
+        session: activeSession,
+        mood: activeMood,
+        goal: activeGoal,
+        selectedCollectionId: activeCollectionId,
+        selectedGenres: activeGenres,
         snoozedIds
-      }),
-    [goal, mood, ownedGames, selectedCollectionId, selectedGenres, session, snoozedIds]
+      });
+    },
+    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, ownedGames, snoozedIds]
   );
   const activeDeferredGameIds = deferredQueue.setupKey === setupKey ? deferredQueue.gameIds : EMPTY_GAME_IDS;
   const deck = useMemo(() => buildVaultDeck(fullPool, activeDeferredGameIds), [activeDeferredGameIds, fullPool]);
-  const eligibility = useMemo(() => getVaultEligibility({
-    games: ownedGames,
-    session,
-    mood,
-    goal,
-    selectedCollectionId,
-    selectedCollectionName: selectedCollection?.name,
-    selectedGenres,
-    snoozedIds
-  }), [goal, mood, ownedGames, selectedCollection?.name, selectedCollectionId, selectedGenres, session, snoozedIds]);
+  const eligibility = useMemo(() => {
+    if (collectionMode && !activeCollectionId) return { stages: [], games: [] };
+
+    return getVaultEligibility({
+      games: ownedGames,
+      session: activeSession,
+      mood: activeMood,
+      goal: activeGoal,
+      selectedCollectionId: activeCollectionId,
+      selectedCollectionName: collectionDraw ? selectedCollection?.name : null,
+      selectedGenres: activeGenres,
+      snoozedIds
+    });
+  }, [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, collectionDraw, collectionMode, ownedGames, selectedCollection?.name, snoozedIds]);
 
   const currentPick = ownedGames.find((game) =>
     game.id === drawWinnerId &&
@@ -108,7 +125,9 @@ export default function VaultPage() {
     !snoozedIds.has(game.id)
   ) ?? null;
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
-  const canDraw = Boolean(session && mood && goal && deck.length > 0);
+  const canDraw = collectionMode
+    ? Boolean(collectionDraw && deck.length > 0)
+    : Boolean(session && mood && goal && deck.length > 0);
   const sessionLabel = vaultSessionOptions.find((option) => option.id === session)?.label ?? null;
   const moodLabel = vaultMoodOptions.find((option) => option.id === mood)?.label ?? null;
   const goalLabel = vaultGoalOptions.find((option) => option.id === goal)?.label ?? null;
@@ -121,6 +140,12 @@ export default function VaultPage() {
   ];
   const drawButtonLabel = drawState === "focusing" || drawState === "revealing"
     ? "Drawing from the Vault…"
+    : collectionMode && !selectedCollection
+      ? "Choose a collection"
+      : collectionMode && !deck.length
+        ? "Collection has no games"
+        : collectionMode
+          ? `Draw from ${selectedCollection?.name ?? "collection"}`
     : nextSetupStep === "session"
       ? "Choose a session"
       : nextSetupStep === "mood"
@@ -130,7 +155,13 @@ export default function VaultPage() {
           : !deck.length
             ? "No matching games"
             : "Draw from the Vault";
-  const setupStatusMessage = nextSetupStep === "session"
+  const setupStatusMessage = collectionMode && !selectedCollection
+    ? "Choose one of your collections to make it the complete draw pool."
+    : collectionMode && !deck.length
+      ? "This collection has no active games available to draw."
+      : collectionMode
+        ? `Only active games in ${selectedCollection?.name ?? "this collection"} are eligible.`
+    : nextSetupStep === "session"
     ? "Start by choosing how much time you have."
     : nextSetupStep === "mood"
       ? "Great. Now choose the kind of mood you are in."
@@ -232,8 +263,8 @@ export default function VaultPage() {
 
       const draw = await recordVaultDraw(nextPick.id, {
         steamAppId: nextPick.steamAppId,
-        session: session!, mood: mood!, goal: goal!, collectionId: selectedCollectionId,
-        selectedGenres, eligiblePoolCount: fullPool.length, rerollIndex: drawnCycleRef.current.size - 1
+        session: activeSession, mood: activeMood, goal: activeGoal, collectionId: activeCollectionId,
+        selectedGenres: activeGenres, eligiblePoolCount: fullPool.length, rerollIndex: drawnCycleRef.current.size - 1
       });
       if (activeDraw !== activeDrawRef.current) return;
       setCurrentDrawId(draw.id);
@@ -241,11 +272,12 @@ export default function VaultPage() {
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
       captureProductEvent("vault_draw", {
-        session,
-        mood,
-        goal,
-        collection_selected: Boolean(selectedCollectionId),
-        genre_count: selectedGenres.length,
+        draw_mode: collectionMode ? "collection" : "vault",
+        session: activeSession,
+        mood: activeMood,
+        goal: activeGoal,
+        collection_selected: Boolean(activeCollectionId),
+        genre_count: activeGenres.length,
         pool_size: fullPool.length,
         deck_size: activeDeck.length,
         reroll_index: drawnCycleRef.current.size - 1,
@@ -264,6 +296,7 @@ export default function VaultPage() {
   }
 
   function toggleGenre(genre: string) {
+    if (collectionMode) return;
     setSelectedGenres((current) => {
       if (current.includes(genre)) return current.filter((item) => item !== genre);
       if (current.length >= MAX_VAULT_GENRES) return current;
@@ -284,11 +317,13 @@ export default function VaultPage() {
   }
 
   function focusSetupStep(step: VaultSetupStep) {
+    setDrawMode("vault");
     setOpenSetupStep(step);
     revealSetupStep(step);
   }
 
   function selectSetupOption(step: VaultSetupStep, id: string) {
+    setDrawMode("vault");
     let nextStep: VaultSetupStep | null = null;
 
     if (step === "session") {
@@ -304,6 +339,36 @@ export default function VaultPage() {
 
     setOpenSetupStep(nextStep ?? step);
     if (nextStep) revealSetupStep(nextStep);
+  }
+
+  function activateCollectionDraw() {
+    if (!isLive) {
+      setGuestSignInOpen(true);
+      return;
+    }
+    setDrawMode("collection");
+  }
+
+  function selectDrawCollection(id: string) {
+    if (id === "all") {
+      setDrawMode("vault");
+      return;
+    }
+    setSelectedCollectionId(id);
+    setSelectedGenres([]);
+    setDrawMode("collection");
+  }
+
+  function handlePrimaryDrawAction() {
+    if (canDraw) {
+      void handleOpenVault();
+      return;
+    }
+    if (collectionMode) {
+      document.getElementById("vault-collection-picker-trigger")?.click();
+      return;
+    }
+    if (nextSetupStep) focusSetupStep(nextSetupStep);
   }
 
   function clearGenres() {
@@ -383,13 +448,13 @@ export default function VaultPage() {
         <a href="/api/auth/steam" onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
       </aside> : null}
 
-      <section className={styles.setupLayout} aria-labelledby="vault-setup-title">
+      <section className={styles.setupLayout} aria-labelledby="vault-setup-title" data-paused={collectionMode || undefined}>
         <header className={styles.setupGuide}>
           <div className={styles.setupGuideCopy}>
-            <h2 id="vault-setup-title">Build your draw</h2>
-            <p>Make three quick choices, then we&apos;ll pick your game.</p>
+            <h2 id="vault-setup-title">Build your Vault Draw</h2>
+            <p>{collectionMode ? "Collection Draw is active. Choose any step to switch back." : "Make three quick choices, then we’ll pick your game."}</p>
           </div>
-          <strong className={styles.setupCount}>{setupReadyCount} of 3 ready</strong>
+          <strong className={styles.setupCount}>{collectionMode ? "Paused" : `${setupReadyCount} of 3 ready`}</strong>
           <div className={styles.setupProgress} aria-label={`${setupReadyCount} of 3 required choices complete`}>
             {setupSteps.map((step, index) => {
               const complete = Boolean(step.value);
@@ -403,36 +468,58 @@ export default function VaultPage() {
         </header>
 
         <div className={styles.optionStack}>
-          <VaultOptionGroup title="Session" stepNumber={1} options={vaultSessionOptions} selectedId={session} selectedLabel={sessionLabel} expanded={openSetupStep === "session"} state={session ? "complete" : openSetupStep === "session" ? "active" : "pending"} onToggle={() => setOpenSetupStep("session")} onSelect={(id) => selectSetupOption("session", id)} />
-          <VaultOptionGroup title="Mood" stepNumber={2} options={vaultMoodOptions} selectedId={mood} selectedLabel={moodLabel} expanded={openSetupStep === "mood"} state={mood ? "complete" : openSetupStep === "mood" ? "active" : "pending"} onToggle={() => setOpenSetupStep("mood")} onSelect={(id) => selectSetupOption("mood", id)} />
-          <VaultOptionGroup title="Goal" stepNumber={3} options={vaultGoalOptions} selectedId={goal} selectedLabel={goalLabel} expanded={openSetupStep === "goal"} state={goal ? "complete" : openSetupStep === "goal" ? "active" : "pending"} onToggle={() => setOpenSetupStep("goal")} onSelect={(id) => selectSetupOption("goal", id)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
+          <VaultOptionGroup title="Session" stepNumber={1} options={vaultSessionOptions} selectedId={session} selectedLabel={sessionLabel} expanded={openSetupStep === "session"} state={session ? "complete" : openSetupStep === "session" ? "active" : "pending"} onToggle={() => focusSetupStep("session")} onSelect={(id) => selectSetupOption("session", id)} />
+          <VaultOptionGroup title="Mood" stepNumber={2} options={vaultMoodOptions} selectedId={mood} selectedLabel={moodLabel} expanded={openSetupStep === "mood"} state={mood ? "complete" : openSetupStep === "mood" ? "active" : "pending"} onToggle={() => focusSetupStep("mood")} onSelect={(id) => selectSetupOption("mood", id)} />
+          <VaultOptionGroup title="Goal" stepNumber={3} options={vaultGoalOptions} selectedId={goal} selectedLabel={goalLabel} expanded={openSetupStep === "goal"} state={goal ? "complete" : openSetupStep === "goal" ? "active" : "pending"} onToggle={() => focusSetupStep("goal")} onSelect={(id) => selectSetupOption("goal", id)} lockedOptionIds={isLive ? [] : ["finish"]} onLockedSelect={() => setGuestSignInOpen(true)} />
         </div>
 
         <div className={styles.setupSidebar}>
-          <aside className={styles.optionalSetup} aria-label="Optional genre filters">
+          <aside className={styles.optionalSetup} aria-label="Optional genre filters" data-disabled={collectionMode || undefined}>
             <div className={styles.optionalHeader}>
               <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
-              <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{selectedGenres.length ? `${selectedGenres.length} of 3 selected` : "Optional · no filters selected"}</small></span>
-              <span className={styles.optionalLabel}>Optional</span>
+              <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{collectionMode ? "Vault Draw only · collection mode ignores filters" : selectedGenres.length ? `${selectedGenres.length} of 3 selected` : "Optional · no filters selected"}</small></span>
+              <span className={styles.optionalLabel}>{collectionMode ? "Paused" : "Optional"}</span>
             </div>
             <div className={styles.optionalContent}>
               <div className={styles.genreSetup}>
-                <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded />
+                <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded disabled={collectionMode} />
               </div>
             </div>
           </aside>
         </div>
       </section>
 
-      <section className={styles.drawActionBar} aria-label="Vault draw status">
-        <div className={styles.drawActionSummary}>
-          <strong>{nextSetupStep ? `Step ${setupReadyCount + 1} of 3` : canDraw ? "Your draw is ready" : "Adjust your setup"}</strong>
-          <div className={styles.drawChoiceRow}>
-            {setupSteps.map((step) => <button key={step.id} type="button" className={styles.drawChoice} data-complete={Boolean(step.value) || undefined} onClick={() => focusSetupStep(step.id)}><VaultIcon name={step.value ? "check" : step.id === "session" ? "session" : step.id === "mood" ? "mood" : "goal"} size={14} />{step.value ?? step.label}</button>)}
+      <section className={styles.drawActionBar} aria-label="Vault draw status" data-mode={drawMode}>
+        <div className={styles.drawModePicker}>
+          <div className={styles.drawModeToggle} role="tablist" aria-label="Draw type">
+            <button type="button" role="tab" aria-selected={!collectionMode} className={styles.drawModeButton} data-active={!collectionMode || undefined} onClick={() => setDrawMode("vault")}><VaultIcon name="draw-from-vault" size={17} />Vault Draw</button>
+            <button type="button" role="tab" aria-selected={collectionMode} className={styles.drawModeButton} data-active={collectionMode || undefined} onClick={activateCollectionDraw}><VaultIcon name="collections" size={17} />Collection Draw</button>
+          </div>
+          <div className={styles.drawModeOptions}>
+            <div className={styles.drawActionSummary} data-paused={collectionMode || undefined}>
+              <span className={styles.drawSummaryHeading}><strong>{nextSetupStep ? `Step ${setupReadyCount + 1} of 3` : "Vault Draw ready"}</strong><small>{collectionMode ? "Saved while Collection Draw is active" : "Session, mood and goal"}</small></span>
+              <div className={styles.drawChoiceRow}>
+                {setupSteps.map((step) => <button key={step.id} type="button" className={styles.drawChoice} data-complete={Boolean(step.value) || undefined} onClick={() => focusSetupStep(step.id)}><VaultIcon name={step.value ? "check" : step.id === "session" ? "session" : step.id === "mood" ? "mood" : "goal"} size={14} />{step.value ?? step.label}</button>)}
+              </div>
+            </div>
+            <span className={styles.drawModeOr} aria-hidden="true">or</span>
+            <div className={styles.drawCollectionChoice} data-active={collectionMode || undefined}>
+              <VaultCollectionCard
+                triggerId="vault-collection-picker-trigger"
+                selectedCollection={selectedCollection ?? entireVault}
+                collections={collections}
+                collectionCounts={collectionCounts}
+                onSelect={selectDrawCollection}
+                guestLocked={!isLive}
+                onGuestLocked={() => setGuestSignInOpen(true)}
+                selectionActive={collectionDraw}
+                allowEntireVault={false}
+              />
+            </div>
           </div>
         </div>
         <div className={styles.drawActionControl}>
-          <button type="button" className={styles.ctaButton} onClick={() => canDraw ? void handleOpenVault() : nextSetupStep ? focusSetupStep(nextSetupStep) : undefined} disabled={drawingRef.current || (!nextSetupStep && !deck.length)} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
+          <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={drawingRef.current || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
           </button>
           <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
@@ -443,9 +530,6 @@ export default function VaultPage() {
         <div className={styles.poolControls}>
           <div className={styles.poolHeader}>
             <div className={styles.poolIdentity}><p className={styles.poolLabel}>Vault Deck</p><span className={styles.matchBadge}><VaultIcon name="new" size={15} />{deck.length}{fullPool.length > deck.length ? ` of ${fullPool.length}` : ""} matches</span></div>
-            <div className={styles.poolCollection} aria-label="Selected game collection">
-              <VaultCollectionCard selectedCollection={selectedCollection ?? entireVault} collections={collections} collectionCounts={collectionCounts} onSelect={(id) => setSelectedCollectionId(id === "all" ? null : id)} guestLocked={!isLive} onGuestLocked={() => setGuestSignInOpen(true)} />
-            </div>
             <div className={styles.deckTools}>
               <button
                 type="button"
@@ -480,15 +564,16 @@ export default function VaultPage() {
             </div>
           </div>
 
-          {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={Boolean(selectedCollectionId)} selectedGenres={Boolean(selectedGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setSelectedCollectionId(null)} onClearSnoozes={() => void clearSnoozes()} /> : null}
+          {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
 
           <div className={styles.pillRow}>
-            {selectedCollection ? <FilterPill label={selectedCollection.name} /> : null}
-            {session ? <FilterPill label={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Session"} /> : null}
-            {mood ? <FilterPill label={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Mood"} /> : null}
-            {goal ? <FilterPill label={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Goal"} /> : null}
-            {selectedGenres.map((genre) => <FilterPill key={genre} label={genre} removable onRemove={() => toggleGenre(genre)} />)}
-            {!selectedCollection && !session && !mood && !goal && !selectedGenres.length ? <span className={styles.noFilters}>No filters selected</span> : null}
+            {collectionDraw && selectedCollection ? <FilterPill label={`Collection · ${selectedCollection.name}`} /> : null}
+            {!collectionMode && session ? <FilterPill label={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Session"} /> : null}
+            {!collectionMode && mood ? <FilterPill label={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Mood"} /> : null}
+            {!collectionMode && goal ? <FilterPill label={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Goal"} /> : null}
+            {!collectionMode ? selectedGenres.map((genre) => <FilterPill key={genre} label={genre} removable onRemove={() => toggleGenre(genre)} />) : null}
+            {!collectionMode && !session && !mood && !goal && !selectedGenres.length ? <span className={styles.noFilters}>No filters selected</span> : null}
+            {collectionMode && !selectedCollection ? <span className={styles.noFilters}>Choose a collection to build this deck.</span> : null}
           </div>
         </div>
 
@@ -512,11 +597,9 @@ export default function VaultPage() {
           />
         ) : (
           <div className={styles.emptyState}>
-            <h3 className={styles.emptyTitle}>No games matched that combination.</h3>
-            <p className={styles.emptyCopy}>Try loosening the genre filters or switch to Surprise Me for a wider pool.</p>
-            <button type="button" className={styles.secondaryAction} onClick={clearGenres}>
-              Clear genre filters
-            </button>
+            <h3 className={styles.emptyTitle}>{collectionMode ? selectedCollection ? "No active games in this collection." : "Choose a collection to build this deck." : "No games matched that combination."}</h3>
+            <p className={styles.emptyCopy}>{collectionMode ? selectedCollection ? "Try another collection or switch back to Vault Draw." : "Collection Draw uses every active game in the collection, without extra filters." : "Try loosening the genre filters or switch to Surprise Me for a wider pool."}</p>
+            {collectionMode ? <button type="button" className={styles.secondaryAction} onClick={() => setDrawMode("vault")}>Use Vault Draw</button> : <button type="button" className={styles.secondaryAction} onClick={clearGenres}>Clear genre filters</button>}
           </div>
         )}
 
@@ -564,10 +647,15 @@ export default function VaultPage() {
             </div>
           </div>
           <aside className={styles.resultContext} aria-label="Selected setup">
-            <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Not selected"} />
-            <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
-            <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
-            <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : selectedCollection?.name ?? (isLive ? "Entire Vault" : "Guest Catalogue")} />
+            {collectionDraw ? <>
+              <ResultSummary icon="collections" label="Collection Draw" value={selectedCollection?.name ?? "Collection"} />
+              <ResultSummary icon="genre" label="Filters" value="Collection only" />
+            </> : <>
+              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Not selected"} />
+              <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
+              <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
+              <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
+            </>}
             {formatGameDuration(currentPick.duration) ? <ResultSummary icon="clock" label="Estimated playthrough" value={formatGameDuration(currentPick.duration)!} /> : null}
           </aside>
         </section>
@@ -626,7 +714,7 @@ function revealResultIfNeeded(element: HTMLElement | null, reducedMotion: boolea
   if (isBelowViewport) element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
 }
 
-function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal" | "genre"; label: string; value: string }) {
+function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal" | "genre" | "collections"; label: string; value: string }) {
   return <div className={styles.summaryItem}><VaultIcon name={icon} size={23} /><span><small>{label}</small><strong>{value}</strong></span></div>;
 }
 

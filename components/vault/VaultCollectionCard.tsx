@@ -15,19 +15,22 @@ type VaultCollectionCardProps = {
   onSelect: (id: string) => void;
   guestLocked?: boolean;
   onGuestLocked?: () => void;
+  selectionActive?: boolean;
+  allowEntireVault?: boolean;
+  triggerId?: string;
 };
 
-export function VaultCollectionCard({ selectedCollection, collections, collectionCounts, onSelect, guestLocked = false, onGuestLocked }: VaultCollectionCardProps) {
+export function VaultCollectionCard({ selectedCollection, collections, collectionCounts, onSelect, guestLocked = false, onGuestLocked, selectionActive = true, allowEntireVault = true, triggerId }: VaultCollectionCardProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const visibleCollections = useMemo(() => {
     const term = query.trim().toLowerCase();
-    const entireVault = collections.find((collection) => collection.id === "all");
+    const entireVault = allowEntireVault ? collections.find((collection) => collection.id === "all") : null;
     const others = collections.filter((collection) => collection.id !== "all" && (!term || collection.name.toLowerCase().includes(term)));
     return entireVault && (!term || entireVault.name.toLowerCase().includes(term)) ? [entireVault, ...others] : others;
-  }, [collections, query]);
+  }, [allowEntireVault, collections, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,15 +69,19 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
     <section className={styles.wrap}>
       <button
         ref={triggerRef}
+        id={triggerId}
         type="button"
         className={styles.compactCard}
+        data-active={selectionActive || undefined}
         onClick={() => guestLocked ? onGuestLocked?.() : setOpen(true)}
         aria-haspopup={guestLocked ? undefined : "dialog"}
-        aria-label={`Drawing from ${selectedCollection.name}. ${guestLocked ? "Sign in to change collection" : "Change collection"}.`}
+        aria-label={selectionActive
+          ? `Collection draw from ${selectedCollection.name}. ${guestLocked ? "Sign in to change collection" : "Change collection"}.`
+          : `${guestLocked ? "Sign in to use collections" : "Choose a collection draw instead"}.`}
       >
         <span className={styles.compactIcon}><VaultIcon name={guestLocked ? "privacy" : "collections"} size={19} /></span>
-        <span className={styles.compactCopy}><small>Drawing from</small><strong>{selectedCollection.name}</strong></span>
-        <span className={styles.compactMeta}>{guestLocked ? "Sign in to change" : `${collectionCounts[selectedCollection.id] ?? 0} games`}</span>
+        <span className={styles.compactCopy}><small>{selectionActive ? "Collection draw" : "Choose instead"}</small><strong>{selectionActive ? selectedCollection.name : "Browse collections"}</strong></span>
+        <span className={styles.compactMeta}>{guestLocked ? "Sign in to use" : selectionActive ? `${collectionCounts[selectedCollection.id] ?? 0} games` : "Overrides Vault Draw"}</span>
         <VaultIcon className={styles.compactChevron} name="chevron-right" size={18} />
       </button>
 

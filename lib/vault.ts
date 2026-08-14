@@ -48,6 +48,10 @@ export type VaultEligibility = {
   games: DemoGame[];
 };
 
+export function isCollectionDraw(selectedCollectionId: string | null) {
+  return Boolean(selectedCollectionId && selectedCollectionId !== "all");
+}
+
 export function getVaultEligibility({
   games,
   session,
@@ -71,33 +75,34 @@ export function getVaultEligibility({
     throw new RangeError(`Select no more than ${MAX_VAULT_GENRES} genres.`);
   }
 
+  const collectionDraw = isCollectionDraw(selectedCollectionId);
   const active = games
     .filter((game) => game.ownership === "Owned")
     .filter((game) => game.status !== "Completed" && game.status !== "Slept");
-  const inCollection = !selectedCollectionId || selectedCollectionId === "all"
+  const inCollection = !collectionDraw
     ? active
-    : active.filter((game) => game.collectionIds.includes(selectedCollectionId));
-  const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
+    : active.filter((game) => game.collectionIds.includes(selectedCollectionId!));
+  const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
   const genreMatches = inCollection.filter((game) => matchesAnyGenre(game, canonicalSelectedGenres));
-  const sessionMatches = session ? genreMatches.filter((game) => game.sessionFit.includes(session)) : genreMatches;
-  const moodMatches = mood ? sessionMatches.filter((game) => moodEligible(game, mood)) : sessionMatches;
-  const goalMatches = moodMatches.filter((game) => goalEligible(game, goal));
+  const sessionMatches = !collectionDraw && session ? genreMatches.filter((game) => game.sessionFit.includes(session)) : genreMatches;
+  const moodMatches = !collectionDraw && mood ? sessionMatches.filter((game) => moodEligible(game, mood)) : sessionMatches;
+  const goalMatches = collectionDraw ? moodMatches : moodMatches.filter((game) => goalEligible(game, goal));
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
   const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
 
-  if (selectedCollectionId && selectedCollectionId !== "all") {
+  if (collectionDraw) {
     stages.push({ id: "collection", label: `in ${selectedCollectionName || "Collection"}`, count: inCollection.length });
   }
-  if (selectedGenres.length) {
+  if (!collectionDraw && selectedGenres.length) {
     stages.push({ id: "genres", label: "Genre Matches", count: genreMatches.length });
   }
-  if (session) {
+  if (!collectionDraw && session) {
     stages.push({ id: "session", label: `${sessionLabel(session)} Fits`, count: sessionMatches.length });
   }
-  if (mood) {
+  if (!collectionDraw && mood) {
     stages.push({ id: "mood", label: `${labelForMood(mood)} Fits`, count: moodMatches.length });
   }
-  if (goal && goal !== "surprise") {
+  if (!collectionDraw && goal && goal !== "surprise") {
     stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
   }
   if (goalMatches.some((game) => snoozedIds.has(game.id))) {
@@ -128,7 +133,8 @@ export function buildVaultPool({
   selectedGenres: string[];
   snoozedIds: Set<string>;
 }) {
-  const canonicalSelectedGenres = selectedGenres.map(canonicalGenre);
+  const collectionDraw = isCollectionDraw(selectedCollectionId);
+  const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
   const eligibility = getVaultEligibility({
     games,
     session,
@@ -140,7 +146,13 @@ export function buildVaultPool({
   });
 
   return eligibility.games
-    .map((game) => scoreVaultGame(game, session, mood, goal, canonicalSelectedGenres))
+    .map((game) => scoreVaultGame(
+      game,
+      collectionDraw ? null : session,
+      collectionDraw ? null : mood,
+      collectionDraw ? null : goal,
+      canonicalSelectedGenres
+    ))
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
       return left.game.title.localeCompare(right.game.title);

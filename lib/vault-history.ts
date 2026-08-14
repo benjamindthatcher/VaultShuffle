@@ -7,9 +7,9 @@ export type VaultDraw = {
   id: string;
   steamAppId: number;
   drawnAt: string;
-  session: VaultSessionId;
-  mood: VaultMoodId;
-  goal: VaultGoalId;
+  session: VaultSessionId | null;
+  mood: VaultMoodId | null;
+  goal: VaultGoalId | null;
   collectionId: string | null;
   selectedGenres: string[];
   eligiblePoolCount: number;

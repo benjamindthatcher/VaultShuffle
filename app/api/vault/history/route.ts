@@ -6,8 +6,16 @@ import { jsonError, readJsonBody } from "@/lib/http";
 
 const drawSchema = z.object({
   game_id: z.string().uuid(), steam_app_id: z.number().int().positive(),
-  session: z.enum(["short", "evening", "weekend"]), mood: z.enum(["brain-off", "chill", "intense"]), goal: z.enum(["new", "finish", "surprise"]),
+  session: z.enum(["short", "evening", "weekend"]).nullable(), mood: z.enum(["brain-off", "chill", "intense"]).nullable(), goal: z.enum(["new", "finish", "surprise"]).nullable(),
   collection_id: z.string().nullable(), selected_genres: z.array(z.string()).max(3), eligible_pool_count: z.number().int().nonnegative(), reroll_index: z.number().int().nonnegative()
+}).superRefine((input, context) => {
+  const collectionDraw = Boolean(input.collection_id);
+  if (collectionDraw && (input.session || input.mood || input.goal || input.selected_genres.length)) {
+    context.addIssue({ code: "custom", message: "Collection draws cannot include Vault Draw filters." });
+  }
+  if (!collectionDraw && (!input.session || !input.mood || !input.goal)) {
+    context.addIssue({ code: "custom", message: "Vault Draws require session, mood and goal." });
+  }
 });
 
 export async function GET() {
