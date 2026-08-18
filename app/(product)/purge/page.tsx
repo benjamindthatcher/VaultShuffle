@@ -13,7 +13,7 @@ import {
 } from "@/lib/purge";
 import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
-import { captureProductEvent } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import styles from "./purge.module.css";
 
@@ -179,7 +179,7 @@ export default function PurgePage() {
         const review = await saveReviewWithRetry(candidate, action);
         setReviews((value) => [review, ...value.filter((item) => item.id !== optimisticReview.id && item.id !== review.id)]);
         setUndo({ candidate, review, previousStatus });
-        captureProductEvent("purge_decision", { action: review.action, category: candidate.category });
+        trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: review.action, category: candidate.category });
       } catch (caught) {
         setReviews((value) => value.filter((item) => item.id !== optimisticReview.id));
         if (action === "pin") {
@@ -219,7 +219,7 @@ export default function PurgePage() {
       } else if (committedAction === "complete") {
         await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
       }
-      captureProductEvent("purge_decision", { action: committedAction, category: candidate.category });
+      trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: committedAction, category: candidate.category });
       finishDecision(candidate, committedAction, previousStatus, review);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");

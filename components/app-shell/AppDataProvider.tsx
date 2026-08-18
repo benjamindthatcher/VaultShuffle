@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
-import { captureProductEvent } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, VAULT_ACTION_EVENT_NAMES, VAULT_DRAW_EVENT_NAMES, setAnalyticsAudience, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
@@ -129,6 +129,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     void load();
   }, []);
 
+  // Registered as a PostHog super property so every event this session sends can be
+  // split by guest vs signed-in without each call site passing it.
+  useEffect(() => {
+    if (isLoading) return;
+    setAnalyticsAudience(!isLive);
+  }, [isLive, isLoading]);
+
   async function syncSteamLibrary() {
     if (!isLive) throw new Error("Sign in with Steam before syncing your library.");
 
@@ -136,7 +143,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     try {
       const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST" });
       await load();
-      captureProductEvent("steam_library_synced", { imported_count: result.imported });
+      trackEvent(ANALYTICS_EVENTS.steamLibrarySynced, { imported_count: result.imported });
       return result.imported;
     } finally {
       setIsSyncing(false);
@@ -145,7 +152,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await api("/api/logout", { method: "POST" });
-    captureProductEvent("user_signed_out");
+    trackEvent(ANALYTICS_EVENTS.signedOut);
     window.location.assign("/login");
   }
 
@@ -156,7 +163,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify(payload)
       });
       await load();
-      captureProductEvent("collection_created", { kind: payload.kind ?? "custom" });
+      trackEvent(ANALYTICS_EVENTS.collectionCreated, { kind: payload.kind ?? "custom" });
       return collection.id;
     }
 
@@ -171,7 +178,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     setGuestCollections((current) => [nextCollection, ...current]);
-    captureProductEvent("collection_created", { kind: payload.kind ?? "custom" });
+    trackEvent(ANALYTICS_EVENTS.collectionCreated, { kind: payload.kind ?? "custom" });
     return nextCollection.id;
   }
 
@@ -179,7 +186,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) });
       await load();
-      captureProductEvent("collection_updated", { kind: payload.kind ?? "custom" });
+      trackEvent(ANALYTICS_EVENTS.collectionUpdated, { kind: payload.kind ?? "custom" });
       return;
     }
     setGuestCollections((current) => current.map((collection) => collection.id === collectionId ? {
@@ -189,14 +196,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       kind: payload.kind ?? collection.kind,
       smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
     } : collection));
-    captureProductEvent("collection_updated", { kind: payload.kind ?? "custom" });
+    trackEvent(ANALYTICS_EVENTS.collectionUpdated, { kind: payload.kind ?? "custom" });
   }
 
   async function removeCollection(collectionId: string) {
     if (isLive) {
       await api(`/api/collections/${collectionId}`, { method: "DELETE" });
       await load();
-      captureProductEvent("collection_deleted");
+      trackEvent(ANALYTICS_EVENTS.collectionDeleted);
       return;
     }
     setGuestCollections((current) => current.filter((collection) => collection.id !== collectionId));
@@ -204,7 +211,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...game,
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
-    captureProductEvent("collection_deleted");
+    trackEvent(ANALYTICS_EVENTS.collectionDeleted);
   }
 
   async function updateGame(
@@ -236,15 +243,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           currentPickId: current.currentPickId === gameId ? null : current.currentPickId
         }));
       }
-      if (patch.status === "Completed") captureProductEvent("game_marked_completed");
-      if (patch.status === "Slept") captureProductEvent("game_put_to_sleep");
+      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status });
       return;
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
     if (patch.status === "Completed" || patch.status === "Slept") {
-      if (patch.status === "Completed") captureProductEvent("game_marked_completed");
-      if (patch.status === "Slept") captureProductEvent("game_put_to_sleep");
+      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status });
       setGuestVaultState((current) => ({
         ...current,
         pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
@@ -260,12 +265,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ restore_active: true })
       });
       setLiveGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-      captureProductEvent("game_restored_to_active");
+      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true });
       return;
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-    captureProductEvent("game_restored_to_active");
+    trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true });
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
@@ -275,7 +280,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: assigned ? JSON.stringify({ game_id: gameId }) : undefined
       });
       await load();
-      captureProductEvent("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
+      trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: assigned ? "added" : "removed" });
       return;
     }
 
@@ -285,7 +290,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         ? Array.from(new Set([...game.collectionIds, collectionId]))
         : game.collectionIds.filter((id) => id !== collectionId)
     } : game));
-    captureProductEvent("collection_game_membership_changed", { action: assigned ? "added" : "removed" });
+    trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: assigned ? "added" : "removed" });
   }
 
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
@@ -295,18 +300,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ action, game_id: gameId, context })
       });
       setLiveVaultState(nextState);
-      captureProductEvent(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
-        action,
-        pin_scope: context.pin_scope ?? "library"
-      });
+      const liveEvent = VAULT_ACTION_EVENT_NAMES[action];
+      if (liveEvent) trackEvent(liveEvent, { action, pin_scope: context.pin_scope ?? "library" });
       return;
     }
 
     setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
-    captureProductEvent(action === "pinned" ? "game_pinned" : action === "unpinned" ? "game_unpinned" : "vault_state_changed", {
-      action,
-      pin_scope: context.pin_scope ?? "library"
-    });
+    const guestEvent = VAULT_ACTION_EVENT_NAMES[action];
+    if (guestEvent) trackEvent(guestEvent, { action, pin_scope: context.pin_scope ?? "library" });
   }
 
   async function loadVaultHistory() {
@@ -329,14 +330,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function recordDrawEvent(drawId: string, eventType: VaultDrawEventType) {
+    // Analytics fire before the API call, not after it. "opened_on_steam" is
+    // triggered by a link that navigates to a steam:// URL, so anything queued
+    // behind an await is cancelled with the page and never reaches PostHog.
+    const properties: Record<string, unknown> = { draw_id: drawId, draw_action: eventType };
+    if (eventType === "snoozed_7_days") properties.snooze_days = 7;
+    if (eventType === "snoozed_30_days") properties.snooze_days = 30;
+
+    if (eventType === "opened_on_steam") {
+      trackNavigationEvent(VAULT_DRAW_EVENT_NAMES[eventType], properties);
+    } else {
+      trackEvent(VAULT_DRAW_EVENT_NAMES[eventType], properties);
+    }
+
     if (isLive) {
       const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
       setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [event, ...draw.events] } : draw));
-      captureProductEvent("vault_draw_action", { action: eventType });
       return;
     }
     setGuestVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [{ id: crypto.randomUUID(), drawId, eventType, createdAt: new Date().toISOString() }, ...draw.events] } : draw));
-    captureProductEvent("vault_draw_action", { action: eventType });
   }
 
   async function clearVaultHistory() {

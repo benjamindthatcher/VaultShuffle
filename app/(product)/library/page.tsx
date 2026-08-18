@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
@@ -33,6 +34,14 @@ export default function LibraryPage() {
   const [undoGameId, setUndoGameId] = useState<string | null>(null);
   const [managePinsOpen, setManagePinsOpen] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
+
+  useEffect(() => {
+    if (!query) return;
+    const timer = setTimeout(() => {
+      trackEvent(ANALYTICS_EVENTS.librarySearched, { query_length: query.length });
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [query]);
   const undoTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -191,7 +200,7 @@ export default function LibraryPage() {
 
       <div className={styles.statusTabs} role="tablist" aria-label="Library status">
         {(["active", "slept", "completed"] as const).map((tab) => (
-          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => setStatusTab(tab)}>
+          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setStatusTab(tab); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "status", value: tab }); }}>
             <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{statusCounts[tab]}</strong>
           </button>
         ))}
@@ -211,12 +220,13 @@ export default function LibraryPage() {
             onSortChange={(value) => {
               setSort(value);
               setSortReversed(false);
+              trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "sort", value });
             }}
             sortReversed={sortReversed}
             onToggleSortDirection={() => setSortReversed((current) => !current)}
             showDurationSort={hasDurationSort}
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
+            onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value }); }}
           />
         </div>
         {statusTab === "active" && (visiblePinnedGames.length || !query) ? <div className={styles.pinnedShelf}>

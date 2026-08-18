@@ -158,12 +158,29 @@ export function clearProductUserIdentity() {
   if (client && configuredMode === "enabled") client.reset();
 }
 
-export function captureProductEvent(event: string, properties?: Record<string, unknown>) {
+export type CaptureOptions = { transport?: "XHR" | "sendBeacon" };
+
+export function captureProductEvent(
+  event: string,
+  properties?: Record<string, unknown>,
+  options?: CaptureOptions,
+) {
   const mode = productAnalyticsMode();
   if (mode === "disabled") return;
 
   const ready = configuredMode === mode && client
     ? Promise.resolve(client)
     : setProductAnalyticsMode(mode);
-  void ready.then((posthog) => posthog?.capture(event, properties));
+  void ready.then((posthog) => posthog?.capture(event, properties, options));
+}
+
+// Registered once per session so that every subsequent event can be segmented by
+// guest vs signed-in without each call site having to pass it.
+export function registerAnalyticsContext(properties: Record<string, unknown>) {
+  if (productAnalyticsMode() === "disabled") return;
+
+  const ready = configuredMode === "enabled" && client
+    ? Promise.resolve(client)
+    : setProductAnalyticsMode("enabled");
+  void ready.then((posthog) => posthog?.register(properties));
 }

@@ -3,7 +3,7 @@
 import { useRef, useState, type FormEvent } from "react";
 import { useFeedback } from "@/components/feedback/FeedbackProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { captureProductEvent } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import styles from "@/app/contact/contact.module.css";
 
 const enquiryTypes = [
@@ -40,7 +40,7 @@ export function ContactContent() {
       });
       const body = await response.json() as { error?: string };
       if (!response.ok) throw new Error(body.error || "We couldn't send your message. Please try again.");
-      captureProductEvent("contact_submitted", { enquiry_type: enquiryType });
+      trackEvent(ANALYTICS_EVENTS.contactSubmitted, { enquiry_type: enquiryType });
       setSuccess(true);
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "We couldn't send your message. Please try again.");

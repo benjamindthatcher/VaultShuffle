@@ -28,7 +28,7 @@ import {
 } from "@/lib/vault";
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
-import { captureProductEvent } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
@@ -271,7 +271,7 @@ export default function VaultPage() {
       setHighlightedGameId(nextPick.id);
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
-      captureProductEvent("vault_draw", {
+      trackEvent(ANALYTICS_EVENTS.vaultDrawRequested, {
         draw_mode: collectionMode ? "collection" : "vault",
         session: activeSession,
         mood: activeMood,
@@ -324,6 +324,9 @@ export default function VaultPage() {
 
   function selectSetupOption(step: VaultSetupStep, id: string) {
     setDrawMode("vault");
+    // The configure step of the funnel: which of the three inputs people actually
+    // fill in, and where they drop out before ever reaching a draw.
+    trackEvent(ANALYTICS_EVENTS.vaultSetupChanged, { step, value: id });
     let nextStep: VaultSetupStep | null = null;
 
     if (step === "session") {
@@ -445,7 +448,7 @@ export default function VaultPage() {
       {!isLive ? <aside className={styles.guestPreviewBanner} aria-label="Guest preview">
         <span className={styles.guestPreviewIcon}><VaultIcon name="current-pick" size={24} /></span>
         <span className={styles.guestPreviewCopy}><strong>Guest preview · {ownedGames.length} popular Steam games</strong><small>Try the Vault with live catalogue data, then connect Steam to shuffle your own library and save your picks.</small></span>
-        <a href="/api/auth/steam" onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
+        <a href="/api/auth/steam" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
       </aside> : null}
 
       <section className={styles.setupLayout} aria-labelledby="vault-setup-title" data-paused={collectionMode || undefined}>
@@ -641,7 +644,7 @@ export default function VaultPage() {
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed"); void completeGame(currentPick); }}>
                 <VaultResultActionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
-              </button></> : <a href="/api/auth/steam" className={styles.resultAction} onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "vault_result" })}>
+              </button></> : <a href="/api/auth/steam" className={styles.resultAction} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_result" })}>
                 <VaultResultActionIcon name="all-games" /><span className={styles.resultActionCopy}><strong>Shuffle My Library</strong><small>Connect Steam for personal draws</small></span>
               </a>}
             </div>

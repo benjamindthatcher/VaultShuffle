@@ -1,6 +1,6 @@
 "use client";
 
-import { captureProductEvent } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 import styles from "./GuestFeatureGate.module.css";
 
@@ -30,7 +30,7 @@ export function GuestFeatureGate({ feature, icon, title, description, benefits }
           <a
             href="/api/auth/steam"
             className={styles.primary}
-            onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: `${feature.toLowerCase()}_gate` })}
+            onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: `${feature.toLowerCase()}_gate` })}
           >
             <VaultIcon name="open-steam" size={21} />
             Continue with Steam

@@ -15,6 +15,7 @@ import {
   enableProductAnalytics,
   identifyProductUser,
 } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import styles from "./SiteExperience.module.css";
 
 type AnalyticsChoice = "enabled" | "disabled" | null;
@@ -104,6 +105,10 @@ function SiteFrame({ children }: { children: ReactNode }) {
     localStorage.setItem(CONSENT_STORAGE_KEY, value);
     setAnalyticsChoice(value);
     setSettingsOpen(false);
+    // Only an opt-in can be recorded; a decline leaves nothing able to send it.
+    if (value === "enabled") {
+      trackEvent(ANALYTICS_EVENTS.analyticsConsentChosen, { choice: value, surface: analyticsChoice === null ? "banner" : "settings" });
+    }
   };
 
   return <>

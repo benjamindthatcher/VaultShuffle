@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { captureProductEvent } from "@/lib/posthog-client";
+import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./GuestSignInPrompt.module.css";
 
 type GuestSignInPromptProps = {
@@ -84,7 +84,7 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize }: GuestSignInP
         </div>
 
         <div className={styles.actions}>
-          <a href="/api/auth/steam" className={styles.primary} onClick={() => captureProductEvent("guest_sign_in_cta_clicked", { location: "first_draw_prompt" })}><VaultIcon name="open-steam" size={20} />Continue with Steam<VaultIcon name="chevron-right" size={17} /></a>
+          <a href="/api/auth/steam" className={styles.primary} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "first_draw_prompt" })}><VaultIcon name="open-steam" size={20} />Continue with Steam<VaultIcon name="chevron-right" size={17} /></a>
           <button type="button" className={styles.secondary} onClick={onClose}>Keep exploring as guest</button>
         </div>
 
