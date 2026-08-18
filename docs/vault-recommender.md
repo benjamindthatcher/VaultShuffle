@@ -23,6 +23,9 @@ genres from) turns those events into `user_genre_preferences`, keyed on
 - Weights decay with a 60-day half-life inside a 180-day window.
 - At draw time each game gets `preferencePoints` in ±8, averaged across its
   top-level genres and weighted by inverse genre frequency.
+- Genres are compared to the baseline in **log-odds**, squashed through `tanh`.
+  Proportional comparison saturates when a baseline is near zero, which flattens
+  every genre onto the cap and destroys the differences the softmax acts on.
 
 The term is **not** part of the score used for ranking. The pool is sorted by fit
 and truncated twice (32-game deck, ~13-game finalist slice), so a term inside the
@@ -141,6 +144,8 @@ Two tiles on [Product Funnels](https://eu.posthog.com/project/223890/dashboard/9
 - **Experiment · rerolls before launch, by arm** — mean `reroll_index` on
   `vault_pick_launched`. This is the sensitive one: a continuous metric needs far
   fewer samples than a binary rate. Lower is better.
+- **Health · is the recommender actually loaded?** — mean `preference_rows` on
+  `vault_draw_requested`. Flat zero means the term is inert whatever the cause.
 
 Expect the binary rate to be uninformative for a long time. Per-draw
 randomisation removes between-user variance, which is the single biggest win
