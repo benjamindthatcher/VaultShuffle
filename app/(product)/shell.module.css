@@ -8,10 +8,15 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
+  /* Lifted off --vault-bg so the panels, which are darker than the ground, read
+     as raised rather than dissolving into it. The banner used to supply this
+     contrast at the top of each page; with it hidden the pages were flat.
+     Defined once here so all four app pages are identical by construction. */
   background:
-    radial-gradient(circle at 50% 0%, rgba(98, 52, 255, 0.16), transparent 34%),
-    radial-gradient(circle at 15% 18%, rgba(58, 110, 255, 0.12), transparent 20%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 14%);
+    radial-gradient(circle at 50% 0%, rgba(120, 78, 255, 0.2), transparent 38%),
+    radial-gradient(circle at 15% 18%, rgba(58, 110, 255, 0.12), transparent 22%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02) 30%, transparent 62%),
+    #0A1024;
   z-index: -2;
 }
 
