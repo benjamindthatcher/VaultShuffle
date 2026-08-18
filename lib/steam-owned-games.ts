@@ -61,6 +61,30 @@ export function steamPlayHistoryMissing(games: GamePayload[]) {
   return games.every((game) => !game.hours_played && !game.last_played_at);
 }
 
+export type SteamVisibility = {
+  libraryVisible: boolean;
+  playtimeVisible: boolean;
+  lastPlayedVisible: boolean;
+  gamesSeen: number;
+};
+
+/**
+ * What Steam was willing to share about this account.
+ *
+ * These are three separate permissions in practice, not one. A library can come
+ * back complete with playtime but no last-played timestamps at all, which is the
+ * state every account here is currently in, and knowing that is the difference
+ * between "this person has not played anything" and "Steam did not tell us".
+ */
+export function steamVisibilityFromGames(games: GamePayload[]): SteamVisibility {
+  return {
+    libraryVisible: games.length > 0,
+    playtimeVisible: games.some((game) => Number(game.hours_played) > 0),
+    lastPlayedVisible: games.some((game) => Boolean(game.last_played_at)),
+    gamesSeen: games.length
+  };
+}
+
 function steamLastPlayedDate(value: unknown) {
   const seconds = Number(value ?? 0);
   if (!Number.isFinite(seconds) || seconds <= 0) return null;

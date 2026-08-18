@@ -262,3 +262,22 @@ function round1(value: number) {
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
 }
+
+
+/** Records what Steam shared for this account on the most recent import. */
+export async function recordSteamVisibility(
+  userId: string,
+  visibility: { libraryVisible: boolean; playtimeVisible: boolean; lastPlayedVisible: boolean; gamesSeen: number }
+) {
+  const { error } = await getSupabaseAdmin()
+    .from("app_users")
+    .update({
+      steam_library_visible: visibility.libraryVisible,
+      steam_playtime_visible: visibility.playtimeVisible,
+      steam_last_played_visible: visibility.lastPlayedVisible,
+      steam_games_seen: visibility.gamesSeen,
+      steam_visibility_checked_at: new Date().toISOString()
+    })
+    .eq("id", userId);
+  if (error) throw error;
+}

@@ -1,9 +1,9 @@
 import { after, NextResponse } from "next/server";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
-import { upsertSteamGames } from "@/lib/games";
+import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { jsonError } from "@/lib/http";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import { SteamLibraryUnavailableError, steamPlayHistoryMissing } from "@/lib/steam-owned-games";
+import { SteamLibraryUnavailableError, steamPlayHistoryMissing, steamVisibilityFromGames } from "@/lib/steam-owned-games";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
 export const maxDuration = 60;
@@ -34,6 +34,7 @@ async function importLibrary() {
     const catalogue = await recordImportedSteamAppIds(user.id, importedAppIds)
       .catch(() => ({ queued: 0 }));
     const games = await upsertSteamGames(user.id, importedGames);
+    await recordSteamVisibility(user.id, steamVisibilityFromGames(importedGames)).catch(() => undefined);
 
     // Metadata and catalogue enrichment are useful, but they must not delay the
     // sign-in/import response. They continue after the updated library is saved.

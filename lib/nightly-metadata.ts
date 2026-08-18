@@ -1,7 +1,8 @@
 import { processDurationQueue } from "@/lib/duration-worker";
-import { upsertSteamGames } from "@/lib/games";
+import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames } from "@/lib/steam";
+import { steamVisibilityFromGames } from "@/lib/steam-owned-games";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { formatMetadataWorkerError } from "@/lib/worker-runs";
 
@@ -43,6 +44,9 @@ export async function refreshNightlyMetadata() {
           });
         }
         const savedGames = await upsertSteamGames(user.id, ownedGames);
+        // Recorded every night so a change in someone's Steam privacy settings
+        // shows up on its own rather than being discovered by reading rows.
+        await recordSteamVisibility(user.id, steamVisibilityFromGames(ownedGames)).catch(() => undefined);
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
       } catch (error) {
