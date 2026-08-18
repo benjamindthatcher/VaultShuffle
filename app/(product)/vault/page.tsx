@@ -308,6 +308,12 @@ export default function VaultPage() {
     } catch (error) {
       if (activeDraw !== activeDrawRef.current) return;
       console.error("Vault draw failed", error);
+      // A draw that never records is invisible in analytics unless it says so:
+      // Quick Draw shipped broken precisely because only successes reported.
+      trackEvent(ANALYTICS_EVENTS.vaultDrawFailed, {
+        draw_mode: quick ? "quick" : collectionMode ? "collection" : "vault",
+        reason: error instanceof Error ? error.message : "unknown"
+      });
       drawnCycleRef.current.delete(nextPick.id);
       setDrawState("error");
       setDrawMessage("The Vault could not complete the draw. Please try again.");

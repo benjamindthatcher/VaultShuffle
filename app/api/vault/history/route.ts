@@ -10,11 +10,21 @@ const drawSchema = z.object({
   collection_id: z.string().nullable(), selected_genres: z.array(z.string()).max(3), eligible_pool_count: z.number().int().nonnegative(), reroll_index: z.number().int().nonnegative()
 }).superRefine((input, context) => {
   const collectionDraw = Boolean(input.collection_id);
-  if (collectionDraw && (input.session || input.mood || input.goal || input.selected_genres.length)) {
-    context.addIssue({ code: "custom", message: "Collection draws cannot include Vault Draw filters." });
+  if (collectionDraw) {
+    if (input.session || input.mood || input.goal || input.selected_genres.length) {
+      context.addIssue({ code: "custom", message: "Collection draws cannot include Vault Draw filters." });
+    }
+    return;
   }
-  if (!collectionDraw && (!input.session || !input.mood || !input.goal)) {
-    context.addIssue({ code: "custom", message: "Vault Draws require session, mood and goal." });
+
+  // A Vault Draw carries all three inputs; a Quick Draw deliberately carries none.
+  // A partial set means the client let a draw through before setup finished.
+  const chosen = [input.session, input.mood, input.goal].filter(Boolean).length;
+  if (chosen !== 0 && chosen !== 3) {
+    context.addIssue({ code: "custom", message: "Vault Draws require session, mood and goal together." });
+  }
+  if (chosen === 0 && input.selected_genres.length) {
+    context.addIssue({ code: "custom", message: "Quick Draws cannot include genre filters." });
   }
 });
 

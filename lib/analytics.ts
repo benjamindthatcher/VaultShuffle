@@ -23,6 +23,7 @@ export const ANALYTICS_EVENTS = {
   // at which VaultShuffle has actually solved the user's decision problem.
   vaultSetupChanged: "vault_setup_changed",
   vaultDrawRequested: "vault_draw_requested",
+  vaultDrawFailed: "vault_draw_failed",
   vaultPickLaunched: "vault_pick_launched",
   vaultPickRerolled: "vault_pick_rerolled",
   vaultPickPinned: "vault_pick_pinned",
