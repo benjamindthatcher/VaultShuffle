@@ -1019,9 +1019,6 @@
 /* banner-hidden-spacing: this page hid an in-flow 290px panel, and .setupLayout
    carries a -26px margin that existed only to tuck it under the artwork.
    Both are neutralised so every app page starts at the same offset. */
-.vaultPage {
-  padding-top: 22px;
-}
 .setupLayout {
   margin-top: 0;
 }

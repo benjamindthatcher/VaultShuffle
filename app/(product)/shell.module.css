@@ -23,7 +23,10 @@
 .appContent {
   width: var(--vault-content-width);
   margin: 0 auto;
-  padding: 0 0 44px;
+  /* The one place the app pages get their top offset. Vault and Purge open with
+     setup panels, Library and Collections with stat cards, and giving each page
+     its own padding meant those two shapes never lined up. */
+  padding: 22px 0 44px;
 }
 
 .loadNotice {

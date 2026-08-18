@@ -210,9 +210,6 @@
 /* banner-hidden-spacing: the offset lives on the page root for all four app
    pages, so they line up. .header only loses the 290px it reserved for the
    artwork and its own top padding, which stacked on top of the root offset. */
-.libraryPage {
-  padding-top: 22px;
-}
 /* display:none, not min-height:0. A zero-height child still participates in the
    root's 12px grid gap, which is what made these two pages sit lower than the
    Vault, whose hidden hero is display:none and contributes nothing. */
