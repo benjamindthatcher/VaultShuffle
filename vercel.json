@@ -14,10 +14,6 @@
       "schedule": "0 5 * * *"
     },
     {
-      "path": "/api/cron/library-refresh",
-      "schedule": "0 6 * * *"
-    },
-    {
       "path": "/api/cron/durations",
       "schedule": "0 7 * * *"
     }
