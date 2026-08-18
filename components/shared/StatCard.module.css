@@ -18,9 +18,12 @@
   gap: 14px;
 }
 
+/* The variant Library and Collections actually render. It previously replaced
+   the base gradient with a flat fill, which is why those two pages still opened
+   flatter than Vault and Purge after the base card was aligned. It keeps its
+   stronger border and glow, but no longer overrides the panel surface. */
 .cardGlass {
   border-color: var(--vault-border-strong);
-  background: var(--vault-surface-soft);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.06),
     0 0 0 1px rgba(118, 73, 230, 0.12),
