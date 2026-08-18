@@ -158,20 +158,45 @@ every draw in control.
 
 ## Infrastructure risk worth addressing
 
-### Schema changes are not in version control
+### The schema ledger and the repo disagree
 
-There is no migrations directory and no migration tooling. Schema is applied
-directly to production through the Management API, so the repo does not describe
-the database it depends on. The table this feature added exists only as the
-statements below and whatever is live.
+Corrected 2026-08-19 — an earlier version of this file said there was no
+migration tooling. That is wrong, and the truth is more awkward.
 
-Two footguns this caused, both of which cost a failed production run:
+- Production **does** track migrations: `supabase_migrations.schema_migrations`
+  holds 83 applied entries, the most recent `20260814172252`.
+- The repo **deliberately** does not. The files were removed in `e287bba`
+  ("Remove Supabase migration history", 2026-08-12), with no stated reason. The
+  checkout is still linked (`supabase/.temp/project-ref`).
+- Everything this feature changed was applied straight through the Management
+  API, so it is in neither place — not in the repo, and not in the ledger.
+
+So the ledger no longer describes the live schema either. `supabase db diff`,
+`db push` and especially `db reset` will all reason from a picture that is
+missing today's objects, which is a sharper hazard than simply having no
+migrations at all.
+
+This needs a decision rather than a unilateral fix, because reinstating
+migrations would reverse a deliberate choice:
+
+1. **Bring the schema back under migrations.** Baseline the current live schema
+   as one migration, mark it applied, and require future changes to go through
+   it. Highest effort, removes the class of problem.
+2. **Keep applying directly and treat this file as the record.** Cheap and
+   honest, but every schema change depends on someone remembering to write it
+   down — which is exactly the failure that produced this note.
+3. **Drop the ledger too**, so nothing implies a workflow that is not followed.
+   Removes the trap without adding process.
+
+Two footguns worth keeping regardless of the choice, both of which cost a failed
+production run today:
 
 - A new table needs explicit grants. RLS-enabled with no policies is the
   convention here (everything goes through the service role), but the service
   role still needs table privileges — creating the table is not enough.
-- `alter table` for the fractional counts had to be applied by hand, so any
-  rebuild of this database from the repo would produce integer columns.
+- Changing an RPC's signature means drop-and-create, not `create or replace`.
+  Doing both in one statement batch keeps it atomic, so there is no window where
+  the function does not exist.
 
 Applied to production 2026-08-18, recorded here because nothing else records it:
 

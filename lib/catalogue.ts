@@ -161,6 +161,34 @@ export async function processCatalogueQueue(
       const details = await fetchSteamAppDetails(appid);
       if (!details?.title) throw new Error("Steam metadata did not include a title.");
 
+      // catalog_games carries a hard `steam_type = 'game'` check constraint, so a
+      // demo, DLC, mod or advertising AppID cannot be stored there at all. These
+      // arrive as user imports, get stubbed as 'game' (the only permitted value),
+      // and every refresh then tried to write the true type, hit a constraint
+      // violation, and recorded it as a transient failure — roughly eighty retries
+      // per entry, forever.
+      //
+      // Resolved here rather than quarantined, deliberately. Several of these are
+      // genuinely playable and already sit in users' libraries: standalone
+      // expansions and re-releases that Steam happens to label 'dlc'. Hiding them
+      // is a product decision and should be made as one, not fall out of a storage
+      // constraint. Visibility is therefore left exactly as it was.
+      const steamType = String(details.steam_type || "").trim().toLowerCase();
+      if (steamType && steamType !== "game") {
+        rejected += 1;
+        const resolvedAt = new Date().toISOString();
+        const { error: unstorableError } = await supabase.from("catalog_ingest_queue").update({
+          status: "rejected",
+          rejection_reason: `Steam classifies this AppID as ${steamType}; the shared catalogue only stores games.`,
+          processed_at: resolvedAt,
+          processing_started_at: null,
+          last_error: null,
+          updated_at: resolvedAt
+        }).eq("steam_appid", row.steam_appid);
+        if (unstorableError) throw unstorableError;
+        continue;
+      }
+
       // Preserve the complete shared Steam record before deciding whether it
       // belongs on user-facing game surfaces. Quarantine controls visibility;
       // it must not discard metadata that may be useful for review later.
@@ -221,7 +249,7 @@ export async function processCatalogueQueue(
         : Math.min(2 ** attempts * 60_000, 6 * 60 * 60_000);
       const { error: failureUpdateError } = await supabase.from("catalog_ingest_queue").update({ status: terminal ? "failed" : "pending", attempts,
         next_attempt_at: terminal ? null : new Date(Date.now() + retryDelay).toISOString(),
-        processing_started_at: null, last_error: error instanceof Error ? error.message.slice(0, 500) : "Unknown catalogue ingestion error",
+        processing_started_at: null, last_error: catalogueErrorMessage(error),
         updated_at: new Date().toISOString() }).eq("steam_appid", row.steam_appid);
       if (failureUpdateError) throw failureUpdateError;
     }
@@ -391,6 +419,26 @@ function classifySteamCatalogueEntry(details: Awaited<ReturnType<typeof fetchSte
     };
   }
   return { accepted: true, excluded: false, reason: null, matchedRule: null };
+}
+
+/**
+ * Supabase reports failures as plain objects, not Error instances, so the previous
+ * `instanceof Error` test threw away the only useful part of a database failure
+ * and stored "Unknown catalogue ingestion error" instead.
+ *
+ * That is why the check-constraint violation above went a month without a
+ * diagnosis: the queue faithfully recorded eighty failures and never once said
+ * what had actually gone wrong.
+ */
+function catalogueErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message.slice(0, 500);
+  if (error && typeof error === "object") {
+    const record = error as { message?: unknown; code?: unknown; details?: unknown; hint?: unknown };
+    const parts = [record.message, record.code, record.details, record.hint]
+      .filter((part): part is string => typeof part === "string" && part.trim().length > 0);
+    if (parts.length) return parts.join(" · ").slice(0, 500);
+  }
+  return "Unknown catalogue ingestion error";
 }
 
 function splitLabels(labels?: string | null) {
