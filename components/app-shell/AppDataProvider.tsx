@@ -9,6 +9,7 @@ import type { Collection, Game, SessionPayload, SmartCollectionPreset } from "@/
 import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
+import type { GenrePreference } from "@/lib/genre-preferences";
 
 type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
@@ -18,6 +19,7 @@ type AppBootstrapPayload = {
   collections?: Collection[];
   memberships?: CollectionMembership[];
   vaultState?: VaultState;
+  genrePreferences?: GenrePreference[];
   data_error?: boolean;
   guest_pool_source?: "live_catalogue" | "fallback";
 };
@@ -37,12 +39,14 @@ function matchesDeviceMode(game: DemoGame, mode: DeviceMode) {
 }
 
 const emptyVaultState: VaultState = { pinnedIds: [], snoozedIds: [], currentPickId: null };
+const EMPTY_GENRE_PREFERENCES: GenrePreference[] = [];
 
 type AppDataContextValue = {
   session: SessionPayload;
   games: DemoGame[];
   collections: DemoCollection[];
   vaultState: VaultState;
+  genrePreferences: GenrePreference[];
   vaultHistory: VaultDraw[];
   isLive: boolean;
   playHistoryMissing: boolean;
@@ -94,6 +98,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [liveVaultState, setLiveVaultState] = useState<VaultState>(emptyVaultState);
   const [guestVaultHistory, setGuestVaultHistory] = useState<VaultDraw[]>([]);
   const [liveVaultHistory, setLiveVaultHistory] = useState<VaultDraw[]>([]);
+  const [liveGenrePreferences, setLiveGenrePreferences] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -133,6 +138,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setLiveCollections(mapLiveCollections(details));
       setLiveGames(mapLiveGames(games, details));
       setLiveVaultState(vaultState);
+      // Absent for a user the nightly rebuild has not reached yet, which simply
+      // means the learned term contributes nothing to their scores.
+      setLiveGenrePreferences(bootstrap.genrePreferences ?? EMPTY_GENRE_PREFERENCES);
     } catch (error) {
       setSession(guestSession);
       setIsLive(false);
@@ -417,6 +425,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       games: (isLive ? liveGames : guestGames).filter((game) => matchesDeviceMode(game, deviceMode)),
       collections: isLive ? liveCollections : guestCollections,
       vaultState: isLive ? liveVaultState : guestVaultState,
+      // Guests have no history to learn from, so they always draw unweighted.
+      genrePreferences: isLive ? liveGenrePreferences : EMPTY_GENRE_PREFERENCES,
       vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
       isLive,
       isLoading,
@@ -437,7 +447,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveVaultHistory, guestVaultHistory]
+    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

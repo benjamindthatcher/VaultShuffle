@@ -14,6 +14,7 @@ import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
+import { useGenreLearning } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
 import {
@@ -41,7 +42,7 @@ const EMPTY_GAME_IDS: string[] = [];
 const GUEST_SIGN_IN_PROMPT_KEY = "vaultshuffle:guest-first-draw-prompt:v1";
 
 export default function VaultPage() {
-  const { games, collections, vaultState, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
@@ -78,6 +79,7 @@ export default function VaultPage() {
   const guestPromptTimerRef = useRef<number | null>(null);
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
+  const { genrePreferences } = useGenreLearning(learnedGenrePreferences);
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
   const drawableGames = useMemo(() => ownedGames.filter((game) => game.status !== "Completed" && game.status !== "Slept" && !snoozedIds.has(game.id)), [ownedGames, snoozedIds]);
@@ -103,10 +105,11 @@ export default function VaultPage() {
         goal: activeGoal,
         selectedCollectionId: activeCollectionId,
         selectedGenres: activeGenres,
-        snoozedIds
+        snoozedIds,
+        genrePreferences
       });
     },
-    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, ownedGames, snoozedIds]
+    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, genrePreferences, ownedGames, snoozedIds]
   );
   const quickPool = useMemo(
     () => buildVaultPool({

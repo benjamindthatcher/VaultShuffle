@@ -185,3 +185,32 @@ export function registerAnalyticsContext(properties: Record<string, unknown>) {
     : setProductAnalyticsMode("enabled");
   void ready.then((posthog) => posthog?.register(properties));
 }
+
+/**
+ * Subscribes to a boolean feature flag.
+ *
+ * Flags resolve asynchronously and only when analytics are switched on, so the
+ * callback may fire more than once and will never fire at all for a visitor who
+ * opted out. Every caller must therefore treat "off" as the safe default — which
+ * is also what makes an opted-out user a clean control rather than a broken test.
+ */
+export function observeFeatureFlag(flag: string, onChange: (enabled: boolean) => void) {
+  if (productAnalyticsMode() === "disabled") return () => {};
+
+  let unsubscribe: (() => void) | null = null;
+  let cancelled = false;
+
+  const ready = configuredMode === "enabled" && client
+    ? Promise.resolve(client)
+    : setProductAnalyticsMode("enabled");
+
+  void ready.then((posthog) => {
+    if (!posthog || cancelled) return;
+    unsubscribe = posthog.onFeatureFlags(() => onChange(posthog.isFeatureEnabled(flag) === true));
+  });
+
+  return () => {
+    cancelled = true;
+    unsubscribe?.();
+  };
+}

@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/durations",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/cron/genre-preferences",
+      "schedule": "0 6 * * *"
     }
   ]
 }

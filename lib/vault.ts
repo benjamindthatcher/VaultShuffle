@@ -1,5 +1,6 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
+import { genrePreferenceAdjustment, type GenrePreferenceIndex } from "./genre-preferences.ts";
 import type { VaultMoodScores } from "./vault-matching.ts";
 
 export const MAX_VAULT_GENRES = 3;
@@ -123,7 +124,8 @@ export function buildVaultPool({
   goal,
   selectedCollectionId,
   selectedGenres,
-  snoozedIds
+  snoozedIds,
+  genrePreferences = null
 }: {
   games: DemoGame[];
   session: VaultSessionId | null;
@@ -132,6 +134,7 @@ export function buildVaultPool({
   selectedCollectionId: string | null;
   selectedGenres: string[];
   snoozedIds: Set<string>;
+  genrePreferences?: GenrePreferenceIndex | null;
 }) {
   const collectionDraw = isCollectionDraw(selectedCollectionId);
   const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
@@ -151,7 +154,9 @@ export function buildVaultPool({
       collectionDraw ? null : session,
       collectionDraw ? null : mood,
       collectionDraw ? null : goal,
-      canonicalSelectedGenres
+      canonicalSelectedGenres,
+      Date.now(),
+      genrePreferences
     ))
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
@@ -224,7 +229,8 @@ export function scoreVaultGame(
   mood: VaultMoodId | null,
   goal: VaultGoalId | null,
   selectedGenres: string[],
-  now: number = Date.now()
+  now: number = Date.now(),
+  genrePreferences: GenrePreferenceIndex | null = null
 ): VaultPoolEntry {
   let earnedPoints = 0;
   let availablePoints = 0;
@@ -274,7 +280,16 @@ export function scoreVaultGame(
   if (dormancy) reasons.push(dormancy);
   if (genreReason) reasons.push(genreReason);
 
-  const score = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
+  const baseScore = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
+
+  // The learned term is additive rather than another weighted component, so it can
+  // only ever separate games that already fit the request. Folding it into
+  // availablePoints would let a preference dilute an exact session or mood match,
+  // which is the one thing the user explicitly asked for.
+  const preference = genrePreferenceAdjustment(genrePreferences, game.genres, game.title, mood);
+  if (preference.reason) reasons.push(preference.reason);
+
+  const score = Math.max(0, Math.min(100, Math.round(baseScore + preference.points)));
   return { game, score, reasons: reasons.slice(0, 4) };
 }
 
