@@ -22,7 +22,7 @@ export const VAULT_PREFERENCE_MAX_POINTS = 8;
  * above what a single event can produce, so the UI never claims a pattern from one
  * data point.
  */
-const PREFERENCE_REASON_THRESHOLD = 2;
+const PREFERENCE_REASON_THRESHOLD = 2.5;
 
 /**
  * Strength of the prior, in weighted event units. A genre needs roughly this much
@@ -209,29 +209,50 @@ function genreRate(
 
 /**
  * Transfers the population's opinion of a genre onto this user's own baseline,
- * additively so it survives users whose overall rate is nothing like average.
+ * as a log-odds offset so it survives users whose overall rate is nothing like
+ * average and can never push a prior outside (0, 1). Adding rates directly did:
+ * for a user with a low baseline the offset drove every prior negative, where
+ * clamping flattened them all onto the same floor and destroyed the very
+ * differences the term exists to express.
  *
  * A user with no evidence of their own lands exactly on the population rate,
  * which is the cold-start behaviour: day one they inherit shared taste, and it is
  * shrunk away as soon as they generate anything of their own.
  */
 function genrePriorFor(baseline: number, populationRate: number, populationGenre: number) {
-  return Math.min(0.999, Math.max(0.001, baseline + (populationGenre - populationRate)));
+  return sigmoid(logit(baseline) + (logit(populationGenre) - logit(populationRate)));
 }
 
 /**
- * Maps a rate onto points, normalised separately above and below the baseline.
+ * Log-odds difference between a genre and the baseline, squashed into the bound.
  *
- * The distance from the baseline to 1 and to 0 are not equal — for a user who
- * launches a fifth of their draws there is four times as much room above as
- * below — so a single linear factor would make positives dwarf negatives.
+ * Rates are compared in log-odds rather than directly. Proportional distance
+ * ((rate - baseline) / baseline) is ill-conditioned when the baseline is small:
+ * as it approaches zero every genre saturates at the cap and the differences
+ * between them — the only part that affects selection — are crushed out. Log-odds
+ * is well behaved near both boundaries and symmetric by construction, so the
+ * separate normalisation above and below the baseline is no longer needed.
  */
 function pointsForRate(rate: number, baseline: number) {
-  if (rate >= baseline) {
-    const headroom = 1 - baseline;
-    return headroom <= 0 ? 0 : VAULT_PREFERENCE_MAX_POINTS * ((rate - baseline) / headroom);
-  }
-  return baseline <= 0 ? 0 : VAULT_PREFERENCE_MAX_POINTS * ((rate - baseline) / baseline);
+  const difference = logit(rate) - logit(baseline);
+  return VAULT_PREFERENCE_MAX_POINTS * Math.tanh(difference / PREFERENCE_LOG_ODDS_SCALE);
+}
+
+/**
+ * A log-odds difference of this size maps to ~76% of the bound — roughly a 20x
+ * odds ratio against the user's own baseline before the term is nearly maxed.
+ */
+const PREFERENCE_LOG_ODDS_SCALE = 3;
+
+const RATE_EPSILON = 1e-6;
+
+function logit(rate: number) {
+  const bounded = Math.min(1 - RATE_EPSILON, Math.max(RATE_EPSILON, rate));
+  return Math.log(bounded / (1 - bounded));
+}
+
+function sigmoid(value: number) {
+  return 1 / (1 + Math.exp(-value));
 }
 
 export type GenrePreferenceAdjustment = { points: number; reason: string | null };
