@@ -254,8 +254,33 @@ Carried forward, not touched by this feature:
 - **872 games in `duration_status = 'review_required'`.** IGDB is exhausted.
   `npm run duration:hltb` needs the service-role key, which Vercel marks
   Sensitive, so it must be run locally.
-- **4–7 games fail every catalogue-metadata run.** Never diagnosed. Suspected
-  delisted apps; unconfirmed.
+- **4–7 games failing every catalogue-metadata run — DIAGNOSED AND FIXED
+  2026-08-19.** Not delisted, which was the standing guess: Steam returns success
+  for all seven. `catalog_games` has a `steam_type = 'game'` check constraint,
+  and the seven are `advertising`, `mod`, three `demo` and two `dlc`. They came in
+  as user imports, were stubbed as `'game'` (the only permitted value), and every
+  refresh tried to write the true type, violated the constraint, and was recorded
+  as a transient failure — 83 attempts on the oldest. `queue_stale_catalogue_metadata`
+  then flipped any rejection back to `pending`, so nothing could ever settle.
+
+  It stayed invisible for a month because of a second bug: Supabase reports
+  failures as plain objects, so `error instanceof Error` was false and the real
+  message was replaced with "Unknown catalogue ingestion error" every time. The
+  queue recorded eighty failures without once saying what went wrong.
+
+  **Still a decision to make.** The seven are resolved but deliberately *not*
+  quarantined, so nobody's library changed. Two of them — `X3: Albion Prelude`
+  (201310) and `The Vanishing of Ethan Carter Redux` (400430) — are standalone
+  and genuinely playable despite Steam labelling them `dlc`, and `tModLoader`
+  (1281930) is how people launch modded Terraria. The three demos and the
+  `advertising` entry are much weaker candidates for a Vault draw. Quarantining
+  any of them hides them from the users who own them, which is a product call:
+
+  ```sql
+  -- hide one of them, per AppID
+  insert into catalog_game_quarantine (steam_appid, name, steam_type, reason, matched_rule)
+  values (3559900, 'Voidling Bound Demo', 'demo', 'Demos are not Vault picks.', 'manual:excluded');
+  ```
 - **Platform/Deck backfill**, ~2,100 of 2,279 remaining at 80/run. Mac and Steam
   Deck modes stay near-useless until it finishes, since unknown Deck
   compatibility is excluded by design.
