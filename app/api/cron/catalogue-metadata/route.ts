@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { processCatalogueQueue, queueStaleCatalogueMetadata } from "@/lib/catalogue";
+import { countPendingCatalogueJobs, processCatalogueQueue, queueStaleCatalogueMetadata } from "@/lib/catalogue";
 import { withMetadataWorkerRun } from "@/lib/worker-runs";
 
 export const maxDuration = 300;
@@ -12,7 +12,13 @@ export async function GET(request: Request) {
   try {
     const result = await withMetadataWorkerRun("catalogue-metadata", async () => {
       const deadlineAt = Date.now() + 275_000;
-      const queued = await queueStaleCatalogueMetadata(250);
+
+      // Refreshing rows that already have metadata must not compete with games a
+      // real user is currently staring at an empty card for. A large library can
+      // queue well over a thousand first-time fetches, and topping the queue up
+      // with stale refreshes every run kept it permanently ahead of the drain.
+      const backlog = await countPendingCatalogueJobs();
+      const queued = backlog > 400 ? 0 : await queueStaleCatalogueMetadata(250);
       const totals = { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0, rateLimited: false };
       let batches = 0;
 
@@ -31,7 +37,7 @@ export async function GET(request: Request) {
         if (!batch.claimed || !batch.processed || batch.deferred || batch.rateLimited) break;
       }
 
-      return { queued, batches, ...totals };
+      return { backlog, queued, batches, ...totals };
     });
     return NextResponse.json(result);
   } catch (error) {

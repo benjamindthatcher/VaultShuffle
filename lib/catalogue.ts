@@ -86,6 +86,17 @@ export async function ensureCatalogueGameStubs(games: GamePayload[]) {
   return rows.length;
 }
 
+/** How many games are still waiting for their first metadata fetch. */
+export async function countPendingCatalogueJobs() {
+  const supabase = getSupabaseAdmin();
+  const { count, error } = await supabase
+    .from("catalog_ingest_queue")
+    .select("steam_appid", { count: "exact", head: true })
+    .in("status", ["pending", "ready"]);
+  if (error) throw error;
+  return Number(count || 0);
+}
+
 export async function queueStaleCatalogueMetadata(limit = 100) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.rpc("queue_stale_catalogue_metadata", {
