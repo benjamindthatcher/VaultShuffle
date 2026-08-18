@@ -73,9 +73,9 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize }: GuestSignInP
         </button>
 
         <span className={styles.icon}><VaultIcon name="current-pick" size={30} /></span>
-        <p className={styles.eyebrow}>Nice pick</p>
-        <h2 id="guest-sign-in-title">Ready to shuffle your own games?</h2>
-        <p className={styles.copy}>This preview draws from {catalogueSize} popular games. Sign in with Steam to replace it with the games you actually own and make every recommendation personal.</p>
+        <p className={styles.eyebrow}>Optional</p>
+        <h2 id="guest-sign-in-title">Want it to use your own games?</h2>
+        <p className={styles.copy}>You are drawing from {catalogueSize} popular games. Connecting Steam swaps that for the games you actually own. The preview keeps working either way.</p>
 
         <div className={styles.benefits} aria-label="Benefits of signing in">
           <span><VaultIcon name="all-games" size={18} />Your Steam library</span>
@@ -85,7 +85,7 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize }: GuestSignInP
 
         <div className={styles.actions}>
           <a href="/api/auth/steam" className={styles.primary} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "first_draw_prompt" })}><VaultIcon name="open-steam" size={20} />Continue with Steam<VaultIcon name="chevron-right" size={17} /></a>
-          <button type="button" className={styles.secondary} onClick={onClose}>Keep exploring as guest</button>
+          <button type="button" className={styles.secondary} onClick={onClose}>No thanks, keep previewing</button>
         </div>
 
         <p className={styles.trust}><VaultIcon name="privacy" size={16} />Steam handles sign-in securely. VaultShuffle never sees your password.</p>

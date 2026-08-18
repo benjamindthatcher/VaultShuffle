@@ -63,6 +63,7 @@ export default function VaultPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
+  const guestDrawCountRef = useRef(0);
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
@@ -207,8 +208,17 @@ export default function VaultPage() {
     if (guestPromptTimerRef.current !== null) window.clearTimeout(guestPromptTimerRef.current);
   }, []);
 
-  function queueFirstGuestSignInPrompt() {
+  // The prompt used to open 650ms after a guest's very first draw, which covered
+  // the result they had just asked for. A guest who has drawn three times is
+  // clearly getting something out of it and has earned the interruption; one who
+  // has drawn once has not decided anything yet.
+  const GUEST_PROMPT_AFTER_DRAWS = 3;
+
+  function queueGuestSignInPrompt() {
     if (isLive || guestPromptQueuedRef.current) return;
+
+    guestDrawCountRef.current += 1;
+    if (guestDrawCountRef.current < GUEST_PROMPT_AFTER_DRAWS) return;
 
     try {
       if (window.sessionStorage.getItem(GUEST_SIGN_IN_PROMPT_KEY)) {
@@ -228,7 +238,7 @@ export default function VaultPage() {
       }
       setGuestSignInOpen(true);
       guestPromptTimerRef.current = null;
-    }, 650);
+    }, 1400);
   }
 
   async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
@@ -304,7 +314,7 @@ export default function VaultPage() {
         reroll_index: drawnCycleRef.current.size - 1,
       });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
-      queueFirstGuestSignInPrompt();
+      queueGuestSignInPrompt();
     } catch (error) {
       if (activeDraw !== activeDrawRef.current) return;
       console.error("Vault draw failed", error);
