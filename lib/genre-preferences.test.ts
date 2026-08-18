@@ -67,7 +67,8 @@ test("a genre below the user's base rate is penalised", () => {
   );
 
   assert.ok(adjustment.points < 0);
-  assert.match(String(adjustment.reason), /rerolled/);
+  // A negative shapes the draw but is never printed as a justification for it.
+  assert.equal(adjustment.reason, null);
 });
 
 test("the term stays inside its bound in both directions", () => {

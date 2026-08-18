@@ -237,14 +237,23 @@ export function genrePreferenceAdjustment(
   return { points, reason: preferenceReason(points, strongest, mood) };
 }
 
+/**
+ * Only positive preferences are explained.
+ *
+ * reasons[] justifies the game that was drawn, so a negative line is
+ * anti-justification: "Casual usually gets rerolled" printed under a Casual game
+ * the Vault just chose tells the user their pick is bad without giving them
+ * anything to do about it. The negative still shapes the draw, it just does not
+ * argue against the result it produced.
+ */
 function preferenceReason(
   points: number,
   strongest: { points: number; genre: string; moodScoped: boolean },
   mood: VaultMoodId | null
 ) {
-  if (Math.abs(points) < PREFERENCE_REASON_THRESHOLD) return null;
+  if (points < PREFERENCE_REASON_THRESHOLD) return null;
 
   const genre = displayPreferenceGenre(strongest.genre);
   const context = strongest.moodScoped && mood ? ` when ${moodLabel(mood)}` : "";
-  return points > 0 ? `${genre} lands well for you${context}` : `${genre} usually gets rerolled${context}`;
+  return `${genre} lands well for you${context}`;
 }
