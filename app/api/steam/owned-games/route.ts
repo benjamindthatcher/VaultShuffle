@@ -3,7 +3,7 @@ import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { upsertSteamGames } from "@/lib/games";
 import { jsonError } from "@/lib/http";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
+import { SteamLibraryUnavailableError, steamPlayHistoryMissing } from "@/lib/steam-owned-games";
 import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
 
 export const maxDuration = 60;
@@ -49,7 +49,11 @@ async function importLibrary() {
       imported: games.length,
       duration_ms: Date.now() - startedAt
     }));
-    return NextResponse.json({ imported: games.length, catalogue });
+    return NextResponse.json({
+      imported: games.length,
+      catalogue,
+      play_history_missing: steamPlayHistoryMissing(importedGames)
+    });
   } catch (error) {
     if (error instanceof Error && error.message.includes("sign-in")) {
       return unauthorizedResponse();

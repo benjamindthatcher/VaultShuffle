@@ -31,6 +31,7 @@ type AppDataContextValue = {
   vaultState: VaultState;
   vaultHistory: VaultDraw[];
   isLive: boolean;
+  playHistoryMissing: boolean;
   isLoading: boolean;
   isSyncing: boolean;
   loadError: string | null;
@@ -80,6 +81,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [playHistoryMissing, setPlayHistoryMissing] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   async function load() {
@@ -141,9 +143,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     setIsSyncing(true);
     try {
-      const result = await api<{ imported: number }>("/api/steam/owned-games", { method: "POST" });
+      const result = await api<{ imported: number; play_history_missing?: boolean }>("/api/steam/owned-games", { method: "POST" });
       await load();
-      trackEvent(ANALYTICS_EVENTS.steamLibrarySynced, { imported_count: result.imported });
+      trackEvent(ANALYTICS_EVENTS.steamLibrarySynced, {
+        imported_count: result.imported,
+        play_history_missing: Boolean(result.play_history_missing)
+      });
+      setPlayHistoryMissing(Boolean(result.play_history_missing));
       return result.imported;
     } catch (error) {
       // A failed first import is the highest-intent moment in the funnel failing.
@@ -368,6 +374,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const value = useMemo<AppDataContextValue>(
     () => ({
       session,
+      playHistoryMissing,
       games: isLive ? liveGames : guestGames,
       collections: isLive ? liveCollections : guestCollections,
       vaultState: isLive ? liveVaultState : guestVaultState,
@@ -391,7 +398,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, loadError, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveVaultHistory, guestVaultHistory]
+    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

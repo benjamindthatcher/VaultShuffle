@@ -43,6 +43,24 @@ export function steamOwnedGamesFromPayload(
   return importedGames;
 }
 
+/**
+ * True when Steam returned a library but no play history whatsoever.
+ *
+ * The existing error only fires when Steam returns nothing at all. An account
+ * with Game details restricted can still return the full games list with every
+ * playtime and last-played value stripped, which imports cleanly and leaves the
+ * product with nothing to work with: no progress, no dormancy, no session fit.
+ * One real account arrived this way with 1,744 games and drew nothing.
+ *
+ * A brand new account genuinely has no playtime, so this is surfaced as a notice
+ * rather than an error, and only for libraries large enough that having played
+ * none of them is implausible.
+ */
+export function steamPlayHistoryMissing(games: GamePayload[]) {
+  if (games.length < 25) return false;
+  return games.every((game) => !game.hours_played && !game.last_played_at);
+}
+
 function steamLastPlayedDate(value: unknown) {
   const seconds = Number(value ?? 0);
   if (!Number.isFinite(seconds) || seconds <= 0) return null;

@@ -43,6 +43,7 @@ function AppShellContent({
     isLive,
     isLoading,
     isSyncing,
+    playHistoryMissing,
     refresh,
     syncSteamLibrary
   } = useAppData();
@@ -155,6 +156,19 @@ function AppShellContent({
         </div>
       ) : null}
 
+      {!importError && playHistoryMissing ? (
+        <div className={styles.importNotice} role="status">
+          <span>
+            Your games imported, but Steam did not share any playtime. VaultShuffle uses playtime to
+            judge progress and what you have not touched lately, so picks will be rough until it can see it.
+            In Steam, open <strong>Profile &gt; Edit Profile &gt; Privacy Settings</strong> and set
+            <strong> Game details</strong> to Public, then sync again.
+          </span>
+          <button type="button" disabled={isSyncing} onClick={retrySteamImport}>
+            {isSyncing ? "Syncing…" : "Sync again"}
+          </button>
+        </div>
+      ) : null}
       {importError ? (
         <div className={styles.loadNotice} role="alert">
           <span>{importError}</span>

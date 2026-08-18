@@ -36,6 +36,38 @@
   box-shadow: 0 12px 30px rgba(20, 4, 18, 0.22);
 }
 
+/* Amber rather than the red of .loadNotice: the import worked, the data is just
+   incomplete, and a hard error would overstate it. */
+.importNotice {
+  width: var(--vault-content-width);
+  margin: 14px auto 0;
+  padding: 11px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(224, 163, 74, 0.45);
+  border-radius: 12px;
+  background: rgba(48, 33, 10, 0.82);
+  color: #ffe6bd;
+  font-size: 0.92rem;
+  line-height: 1.45;
+  box-shadow: 0 12px 30px rgba(24, 15, 2, 0.22);
+}
+
+.importNotice strong { color: #fff3df; }
+
+.importNotice button {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 214, 158, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .loadNotice button {
   flex: 0 0 auto;
   padding: 7px 12px;
