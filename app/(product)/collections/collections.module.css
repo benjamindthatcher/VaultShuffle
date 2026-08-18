@@ -372,8 +372,5 @@
   display: none;
 }
 
-/* banner-hidden-spacing: the hero panels carried the space that kept content
-   clear of the fixed header. Remove with the block above to restore. */
-.collectionsPage {
-  padding-top: 22px;
-}
+/* banner-hidden-spacing: nothing needed here. This page's banner was an
+   absolutely positioned ::before, so hiding it removed no layout space. */

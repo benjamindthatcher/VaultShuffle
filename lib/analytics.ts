@@ -34,6 +34,9 @@ export const ANALYTICS_EVENTS = {
   vaultPickSlept: "vault_pick_slept",
   vaultPickCompleted: "vault_pick_completed",
   vaultPickRestored: "vault_pick_restored",
+  vaultPickLiked: "vault_pick_liked",
+  vaultPickDisliked: "vault_pick_disliked",
+  vaultRerollReason: "vault_reroll_reason",
   vaultHistoryOpened: "vault_history_opened",
   vaultHistoryCleared: "vault_history_cleared",
 
@@ -75,6 +78,13 @@ export const VAULT_DRAW_EVENT_NAMES = {
   slept: ANALYTICS_EVENTS.vaultPickSlept,
   marked_completed: ANALYTICS_EVENTS.vaultPickCompleted,
   restored: ANALYTICS_EVENTS.vaultPickRestored,
+  liked: ANALYTICS_EVENTS.vaultPickLiked,
+  disliked: ANALYTICS_EVENTS.vaultPickDisliked,
+  reroll_too_long: ANALYTICS_EVENTS.vaultRerollReason,
+  reroll_wrong_mood: ANALYTICS_EVENTS.vaultRerollReason,
+  reroll_played_enough: ANALYTICS_EVENTS.vaultRerollReason,
+  reroll_not_interested: ANALYTICS_EVENTS.vaultRerollReason,
+  reroll_not_tonight: ANALYTICS_EVENTS.vaultRerollReason,
 } as const;
 
 /**

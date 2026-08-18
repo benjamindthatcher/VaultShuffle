@@ -660,8 +660,11 @@
   display: none;
 }
 
-/* banner-hidden-spacing: the hero panels carried the space that kept content
-   clear of the fixed header. Remove with the block above to restore. */
+/* banner-hidden-spacing: same as the Vault — an in-flow 290px hero plus a
+   -14px tuck on .content, both only meaningful while the artwork was there. */
 .page {
   padding-top: 22px;
+}
+.content {
+  margin-top: 0;
 }

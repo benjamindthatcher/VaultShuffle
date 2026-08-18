@@ -8,6 +8,13 @@ const eventSchema = z.object({
   draw_id: z.string().uuid(),
   event_type: z.enum([
     "opened_on_steam",
+    "liked",
+    "disliked",
+    "reroll_too_long",
+    "reroll_wrong_mood",
+    "reroll_played_enough",
+    "reroll_not_interested",
+    "reroll_not_tonight",
     "pinned",
     "unpinned",
     "drew_again",

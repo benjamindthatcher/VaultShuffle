@@ -1016,8 +1016,38 @@
   display: none;
 }
 
-/* banner-hidden-spacing: the hero panels carried the space that kept content
-   clear of the fixed header. Remove with the block above to restore. */
+/* banner-hidden-spacing: this page hid an in-flow 290px panel, and .setupLayout
+   carries a -26px margin that existed only to tuck it under the artwork.
+   Both are neutralised so every app page starts at the same offset. */
 .vaultPage {
   padding-top: 22px;
 }
+.setupLayout {
+  margin-top: 0;
+}
+
+/* Pick feedback. Deliberately quiet: it is a question, not a call to action. */
+.feedbackRow,
+.rerollAsk {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+}
+.rerollAsk { flex-direction: column; align-items: flex-start; }
+.rerollReasons { display: flex; flex-wrap: wrap; gap: 6px; }
+.feedbackLabel { color: var(--vault-text-soft); font-size: 0.78rem; font-weight: 600; }
+.feedbackButton,
+.feedbackOn {
+  padding: 6px 13px;
+  border: 1px solid rgba(134, 91, 255, 0.28);
+  border-radius: 999px;
+  background: rgba(18, 25, 53, 0.72);
+  color: var(--vault-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+.feedbackOn { border-color: transparent; background: var(--vault-success); color: #06231e; }
+.feedbackButton:disabled { opacity: 0.4; }
+.feedbackThanks { color: var(--vault-success); font-size: 0.76rem; font-weight: 700; }

@@ -1,5 +1,6 @@
 "use client";
 
+import { VAULT_REROLL_REASONS } from "@/lib/vault-history";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
@@ -65,6 +66,9 @@ export default function VaultPage() {
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
   const guestDrawCountRef = useRef(0);
   const [lastDrawWasQuick, setLastDrawWasQuick] = useState(false);
+  const [rerollCount, setRerollCount] = useState(0);
+  const [feedbackGiven, setFeedbackGiven] = useState<"liked" | "disliked" | null>(null);
+  const [rerollReasonGiven, setRerollReasonGiven] = useState(false);
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
@@ -248,6 +252,9 @@ export default function VaultPage() {
     if (drawingRef.current || (!quick && !canDraw)) return;
     if (quick && !quickPool.length) return;
     setLastDrawWasQuick(quick);
+    setFeedbackGiven(null);
+    if (deferCurrentPick) setRerollCount((count) => count + 1);
+    else { setRerollCount(0); setRerollReasonGiven(false); }
     const activeDraw = activeDrawRef.current + 1;
     activeDrawRef.current = activeDraw;
 
@@ -665,6 +672,39 @@ export default function VaultPage() {
             <div className={styles.resultReasonRow}>
               {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
             </div>
+            {isLive && currentDrawId ? <div className={styles.feedbackRow}>
+              <span className={styles.feedbackLabel}>Good pick?</span>
+              <button
+                type="button"
+                className={feedbackGiven === "liked" ? styles.feedbackOn : styles.feedbackButton}
+                aria-pressed={feedbackGiven === "liked"}
+                disabled={Boolean(feedbackGiven)}
+                onClick={() => { setFeedbackGiven("liked"); void recordDrawEvent(currentDrawId, "liked"); }}
+              >Yes</button>
+              <button
+                type="button"
+                className={feedbackGiven === "disliked" ? styles.feedbackOn : styles.feedbackButton}
+                aria-pressed={feedbackGiven === "disliked"}
+                disabled={Boolean(feedbackGiven)}
+                onClick={() => { setFeedbackGiven("disliked"); void recordDrawEvent(currentDrawId, "disliked"); }}
+              >Not really</button>
+              {feedbackGiven ? <span className={styles.feedbackThanks}>Noted.</span> : null}
+            </div> : null}
+
+            {isLive && currentDrawId && rerollCount >= 3 && !rerollReasonGiven ? <div className={styles.rerollAsk}>
+              <span className={styles.feedbackLabel}>Nothing landing. What&apos;s off?</span>
+              <div className={styles.rerollReasons}>
+                {VAULT_REROLL_REASONS.map((reason) => (
+                  <button
+                    key={reason.id}
+                    type="button"
+                    className={styles.feedbackButton}
+                    onClick={() => { setRerollReasonGiven(true); void recordDrawEvent(currentDrawId, reason.id); }}
+                  >{reason.label}</button>
+                ))}
+              </div>
+            </div> : null}
+
             <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
             <div className={`${styles.resultActions}${!isLive ? ` ${styles.guestResultActions}` : ""}`}>
               <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
