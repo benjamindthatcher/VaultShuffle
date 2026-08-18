@@ -372,11 +372,14 @@
   display: none;
 }
 
-/* banner-hidden-spacing: the ::before was absolute and held no space, but
-   .header still reserves 290px for the artwork behind it. That reserved band
-   is the gap, so collapse it and pad to match the other app pages. */
+/* banner-hidden-spacing: the offset lives on the page root for all four app
+   pages, so they line up. .header only loses the 290px it reserved for the
+   artwork and its own top padding, which stacked on top of the root offset. */
+.collectionsPage {
+  padding-top: 22px;
+}
 .header {
   min-height: 0;
-  padding-top: 22px;
-  padding-bottom: 4px;
+  padding-top: 0;
+  padding-bottom: 0;
 }
