@@ -60,7 +60,7 @@ function glyph(name: string): ReactNode {
     case "custom-collections": return <><rect x="4" y="5" width="16" height="14" rx="2"/><path d="m9 15 6-6 2 2-6 6H9v-2Z"/></>;
     case "edit": return <><path d="M5 19h4l10-10-4-4L5 15v4Z"/><path d="m13 7 4 4M4 21h16"/></>;
     case "note": return <><path d="M5 4h14v16H5V4Z"/><path d="M8 8h8m-8 4h8m-8 4h5"/></>;
-    case "wishlist": case "heart": return P("M12 20S4 15.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5C20 15.5 12 20 12 20Z");
+    case "heart": return P("M12 20S4 15.5 4 9.5A4.5 4.5 0 0 1 12 6a4.5 4.5 0 0 1 8 3.5C20 15.5 12 20 12 20Z");
     case "on-sale": case "price": return <><path d="M4 5h9l7 7-8 8-8-8V5Z"/><circle cx="8" cy="9" r="1.2"/><path d="m10 15 5-5m-4 1h.01m4 4h.01"/></>;
     case "following": return <><path d="M7 4h10v16l-5-3-5 3V4Z"/><path d="M10 9h4"/></>;
     case "pin": return <><path d="m9 4 6 2-1 5 3 3-4 1-2 5-1-5-4-2 3-3V4Z"/><path d="m12 3 1 2"/></>;

@@ -22,7 +22,7 @@ type AppBootstrapPayload = {
   guest_pool_source?: "live_catalogue" | "fallback";
 };
 
-const emptyVaultState: VaultState = { pinnedIds: [], wishlistPinnedIds: [], snoozedIds: [], currentPickId: null };
+const emptyVaultState: VaultState = { pinnedIds: [], snoozedIds: [], currentPickId: null };
 
 type AppDataContextValue = {
   session: SessionPayload;
@@ -310,13 +310,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       });
       setLiveVaultState(nextState);
       const liveEvent = VAULT_ACTION_EVENT_NAMES[action];
-      if (liveEvent) trackEvent(liveEvent, { action, pin_scope: context.pin_scope ?? "library" });
+      if (liveEvent) trackEvent(liveEvent, { action });
       return;
     }
 
     setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
     const guestEvent = VAULT_ACTION_EVENT_NAMES[action];
-    if (guestEvent) trackEvent(guestEvent, { action, pin_scope: context.pin_scope ?? "library" });
+    if (guestEvent) trackEvent(guestEvent, { action });
   }
 
   async function loadVaultHistory() {
@@ -457,31 +457,23 @@ function restoreActiveGame(game: DemoGame): DemoGame {
 
 function reduceGuestVaultState(state: VaultState, action: VaultAction, gameId: string, context: Record<string, unknown>): VaultState {
   let pinnedIds = [...state.pinnedIds];
-  let wishlistPinnedIds = [...state.wishlistPinnedIds];
   const snoozedIds = new Set(state.snoozedIds);
   let currentPickId = state.currentPickId;
-  const pinScope = context.pin_scope === "wishlist" ? "wishlist" : "library";
 
   if (action === "drawn") currentPickId = gameId;
-  if (action === "pinned" && pinScope === "wishlist" && !wishlistPinnedIds.includes(gameId)) {
-    const replaceId = String(context.replace_game_id ?? "");
-    if (wishlistPinnedIds.length < 3) wishlistPinnedIds.push(gameId);
-    else if (wishlistPinnedIds.includes(replaceId)) wishlistPinnedIds[wishlistPinnedIds.indexOf(replaceId)] = gameId;
-  }
-  if (action === "unpinned" && pinScope === "wishlist") wishlistPinnedIds = wishlistPinnedIds.filter((id) => id !== gameId);
-  if (action === "pinned" && pinScope === "library" && !pinnedIds.includes(gameId)) {
+  if (action === "pinned" && !pinnedIds.includes(gameId)) {
     const replaceId = String(context.replace_game_id ?? "");
     if (pinnedIds.length < 3) pinnedIds.push(gameId);
     else if (pinnedIds.includes(replaceId)) pinnedIds[pinnedIds.indexOf(replaceId)] = gameId;
   }
-  if (action === "unpinned" && pinScope === "library") pinnedIds = pinnedIds.filter((id) => id !== gameId);
+  if (action === "unpinned") pinnedIds = pinnedIds.filter((id) => id !== gameId);
   if (action === "snoozed") {
     snoozedIds.add(gameId);
     if (currentPickId === gameId) currentPickId = null;
   }
   if (action === "unsnoozed") snoozedIds.delete(gameId);
 
-  return { pinnedIds, wishlistPinnedIds, snoozedIds: [...snoozedIds], currentPickId };
+  return { pinnedIds, snoozedIds: [...snoozedIds], currentPickId };
 }
 
 export function useAppData() {

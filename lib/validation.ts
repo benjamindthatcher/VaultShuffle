@@ -20,7 +20,7 @@ export const gamePayloadSchema = z.object({
   title: z.string().trim().min(1).max(220),
   genre: z.string().trim().max(80).default("Unknown"),
   store: z.string().trim().max(80).default("Steam"),
-  ownership: z.enum(["Owned", "Wishlist"]).default("Owned"),
+  ownership: z.literal("Owned").default("Owned"),
   status: z.enum(["Not Started", "Sampled", "In Progress", "Slept", "Completed"]).default("Not Started"),
   rating: z.coerce.number().int().min(0).max(10).default(0),
   hours_played: z.coerce.number().min(0).default(0),
@@ -33,7 +33,7 @@ export const gamePayloadSchema = z.object({
 }).strict();
 
 export const patchGameSchema = z.object({
-  ownership: z.enum(["Owned", "Wishlist"]).optional(),
+  ownership: z.literal("Owned").optional(),
   status: z.enum(["Not Started", "Sampled", "In Progress", "Slept", "Completed"]).optional(),
   hours_played: z.coerce.number().min(0).optional(),
   completion_percentage: z.coerce.number().int().min(0).max(100).optional(),

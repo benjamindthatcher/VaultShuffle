@@ -1,4 +1,4 @@
-export type Ownership = "Owned" | "Wishlist";
+export type Ownership = "Owned";
 export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Slept" | "Completed";
 export type Priority = "Low" | "Medium" | "High" | "Must Play";
 

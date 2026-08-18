@@ -4,7 +4,6 @@ export type VaultAction = "drawn" | "pinned" | "unpinned" | "snoozed" | "unsnooz
 
 export type VaultState = {
   pinnedIds: string[];
-  wishlistPinnedIds: string[];
   snoozedIds: string[];
   currentPickId: string | null;
 };
@@ -39,7 +38,6 @@ export async function getVaultState(userId: string): Promise<VaultState> {
 
   return {
     pinnedIds: (pins ?? []).filter((pin) => pin.scope === "library").map((pin) => String(pin.game_id)),
-    wishlistPinnedIds: (pins ?? []).filter((pin) => pin.scope === "wishlist").map((pin) => String(pin.game_id)),
     snoozedIds: (snoozes ?? []).map((snooze) => String(snooze.game_id)),
     currentPickId: cleanId(String(vaultState?.current_game_id ?? ""))
   };
@@ -62,7 +60,6 @@ export async function recordVaultAction(
   const state = (data ?? {}) as Partial<VaultState>;
   return {
     pinnedIds: Array.isArray(state.pinnedIds) ? state.pinnedIds.map(String) : [],
-    wishlistPinnedIds: Array.isArray(state.wishlistPinnedIds) ? state.wishlistPinnedIds.map(String) : [],
     snoozedIds: Array.isArray(state.snoozedIds) ? state.snoozedIds.map(String) : [],
     currentPickId: cleanId(state.currentPickId ?? null)
   };

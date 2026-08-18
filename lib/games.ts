@@ -41,6 +41,9 @@ export async function listGames(userId: string) {
     .select("*")
     .eq("user_id", userId)
     .eq("is_quarantined", false)
+    // Wishlist was removed. Any legacy row is skipped rather than promoted to
+    // Owned, which would silently add games the user does not own.
+    .eq("ownership", "Owned")
     .order("title", { ascending: true });
 
   if (error) throw error;
@@ -55,6 +58,7 @@ export async function findGame(userId: string, gameId: string) {
     .eq("user_id", userId)
     .eq("id", gameId)
     .eq("is_quarantined", false)
+    .eq("ownership", "Owned")
     .maybeSingle();
 
   if (error) throw error;
@@ -248,7 +252,7 @@ function isGeneratedSteamNote(notes: string) {
 }
 
 function normalizeOwnership(value: unknown): GamePayload["ownership"] {
-  return value === "Wishlist" ? "Wishlist" : "Owned";
+  return "Owned";
 }
 
 function round1(value: number) {

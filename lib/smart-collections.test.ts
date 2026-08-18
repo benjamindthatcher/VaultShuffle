@@ -81,12 +81,11 @@ test("long haul and endless rotation remain mutually exclusive", () => {
   assert.equal(matchesSmartPreset(endless, "endless-rotation"), true);
 });
 
-test("untouched excludes archived and wishlist games", () => {
+test("untouched excludes archived games", () => {
   const untouched = makeGame({ status: "Not Started", hours_played: 0 });
 
   assert.equal(matchesSmartPreset(untouched, "untouched"), true);
   assert.equal(matchesSmartPreset({ ...untouched, status: "Slept" }, "untouched"), false);
-  assert.equal(matchesSmartPreset({ ...untouched, ownership: "Wishlist" }, "untouched"), false);
 });
 
 test("legacy saved rules map to current editable presets", () => {

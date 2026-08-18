@@ -3,7 +3,7 @@ import { SiteGlyph } from "@/components/shared/SiteGlyph";
 export type VaultIconName =
   | "all-games" | "played" | "backlog" | "completed" | "paused" | "in-progress"
   | "collections" | "smart-collections" | "custom-collections" | "games-in-collections"
-  | "wishlist" | "on-sale" | "in-library" | "following" | "filter" | "sort"
+  | "on-sale" | "in-library" | "following" | "filter" | "sort"
   | "grid" | "list" | "session" | "mood" | "goal" | "genre" | "new"
   | "finish" | "surprise" | "chill" | "intense" | "brain-off"
   | "short-session" | "evening-session" | "weekend-session"
