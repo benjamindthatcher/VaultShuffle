@@ -19,6 +19,7 @@ import {
   buildVaultDeck,
   buildVaultPool,
   drawVaultGame,
+  drawQuickVaultGame,
   getVaultEligibility,
   isCollectionDraw,
   MAX_VAULT_GENRES,
@@ -100,6 +101,18 @@ export default function VaultPage() {
       });
     },
     [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, ownedGames, snoozedIds]
+  );
+  const quickPool = useMemo(
+    () => buildVaultPool({
+      games: ownedGames,
+      session: null,
+      mood: null,
+      goal: null,
+      selectedCollectionId: null,
+      selectedGenres: EMPTY_GAME_IDS,
+      snoozedIds
+    }),
+    [ownedGames, snoozedIds]
   );
   const activeDeferredGameIds = deferredQueue.setupKey === setupKey ? deferredQueue.gameIds : EMPTY_GAME_IDS;
   const deck = useMemo(() => buildVaultDeck(fullPool, activeDeferredGameIds), [activeDeferredGameIds, fullPool]);
@@ -218,13 +231,16 @@ export default function VaultPage() {
     }, 650);
   }
 
-  async function handleOpenVault({ deferCurrentPick = false }: { deferCurrentPick?: boolean } = {}) {
-    if (drawingRef.current || !canDraw) return;
+  async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
+    // Quick Draw bypasses the setup gate on purpose: it exists for the visitor who
+    // has not filled anything in and wants a game anyway.
+    if (drawingRef.current || (!quick && !canDraw)) return;
+    if (quick && !quickPool.length) return;
     const activeDraw = activeDrawRef.current + 1;
     activeDrawRef.current = activeDraw;
 
-    let activeDeck = deck;
-    if (deferCurrentPick && currentPick && fullPool.some((entry) => entry.game.id === currentPick.id)) {
+    let activeDeck = quick ? quickPool : deck;
+    if (!quick && deferCurrentPick && currentPick && fullPool.some((entry) => entry.game.id === currentPick.id)) {
       const currentDeferredIds = deferredQueueRef.current.setupKey === setupKey
         ? deferredQueueRef.current.gameIds
         : [];
@@ -243,7 +259,9 @@ export default function VaultPage() {
       drawnCycleRef.current.clear();
       availablePool = activeDeck;
     }
-    const nextPick = drawVaultGame(availablePool, currentPick?.id);
+    const nextPick = quick
+      ? drawQuickVaultGame(availablePool, currentPick?.id)
+      : drawVaultGame(availablePool, currentPick?.id);
     if (!nextPick) return;
     drawnCycleRef.current.add(nextPick.id);
 
@@ -263,8 +281,11 @@ export default function VaultPage() {
 
       const draw = await recordVaultDraw(nextPick.id, {
         steamAppId: nextPick.steamAppId,
-        session: activeSession, mood: activeMood, goal: activeGoal, collectionId: activeCollectionId,
-        selectedGenres: activeGenres, eligiblePoolCount: fullPool.length, rerollIndex: drawnCycleRef.current.size - 1
+        session: quick ? null : activeSession, mood: quick ? null : activeMood, goal: quick ? null : activeGoal,
+        collectionId: quick ? null : activeCollectionId,
+        selectedGenres: quick ? EMPTY_GAME_IDS : activeGenres,
+        eligiblePoolCount: quick ? quickPool.length : fullPool.length,
+        rerollIndex: drawnCycleRef.current.size - 1
       });
       if (activeDraw !== activeDrawRef.current) return;
       setCurrentDrawId(draw.id);
@@ -272,13 +293,13 @@ export default function VaultPage() {
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
       trackEvent(ANALYTICS_EVENTS.vaultDrawRequested, {
-        draw_mode: collectionMode ? "collection" : "vault",
-        session: activeSession,
-        mood: activeMood,
-        goal: activeGoal,
-        collection_selected: Boolean(activeCollectionId),
-        genre_count: activeGenres.length,
-        pool_size: fullPool.length,
+        draw_mode: quick ? "quick" : collectionMode ? "collection" : "vault",
+        session: quick ? null : activeSession,
+        mood: quick ? null : activeMood,
+        goal: quick ? null : activeGoal,
+        collection_selected: quick ? false : Boolean(activeCollectionId),
+        genre_count: quick ? 0 : activeGenres.length,
+        pool_size: quick ? quickPool.length : fullPool.length,
         deck_size: activeDeck.length,
         reroll_index: drawnCycleRef.current.size - 1,
       });
@@ -524,6 +545,9 @@ export default function VaultPage() {
         <div className={styles.drawActionControl}>
           <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={drawingRef.current || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
+          </button>
+          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
+            <VaultIcon name="draw-again" size={17} />Just pick something
           </button>
           <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
         </div>

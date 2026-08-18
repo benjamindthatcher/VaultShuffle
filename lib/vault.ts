@@ -172,6 +172,25 @@ export function buildVaultDeck(pool: VaultPoolEntry[], deferredGameIds: string[]
   return [...availableNow, ...deferred].slice(0, MAX_VAULT_DECK_SIZE);
 }
 
+/**
+ * Quick Draw deliberately ignores session, mood and goal. It is for the visitor who
+ * wants a game now rather than a form, so every eligible game is equally likely:
+ * with no inputs every score ties at zero, and drawVaultGame's top-slice would
+ * otherwise bias the pick toward whichever titles sort first alphabetically.
+ */
+export function drawQuickVaultGame(
+  pool: VaultPoolEntry[],
+  previousWinnerId?: string | null,
+  rng = Math.random
+) {
+  if (!pool.length) return null;
+  const eligible = pool.length > 1 && previousWinnerId
+    ? pool.filter((entry) => entry.game.id !== previousWinnerId)
+    : pool;
+  if (!eligible.length) return null;
+  return eligible[Math.min(eligible.length - 1, Math.floor(rng() * eligible.length))].game;
+}
+
 export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string | null, rng = Math.random) {
   if (!pool.length) return null;
   const eligible = pool.length > 1 && previousWinnerId

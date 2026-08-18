@@ -5,6 +5,7 @@ import {
   MAX_VAULT_DECK_SIZE,
   buildVaultDeck,
   buildVaultPool,
+  drawQuickVaultGame,
   scoreVaultGame,
   vaultMatchLabel
 } from "./vault.ts";
@@ -131,4 +132,30 @@ test("keeps the deck at 32 and rotates a rerolled game behind replacements", () 
   assert.equal(initial[0].game.id, "game-0");
   assert.ok(!rotated.some((entry) => entry.game.id === "game-0"));
   assert.ok(rotated.some((entry) => entry.game.id === "game-32"));
+});
+
+test("quick draw can reach every game in the pool, not just the top slice", () => {
+  const pool = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map((id) => ({
+    game: { ...makeGame(), id, title: id },
+    score: 0,
+    reasons: []
+  })) as unknown as Parameters<typeof drawQuickVaultGame>[0];
+
+  const reached = new Set<string>();
+  for (let index = 0; index < pool.length; index += 1) {
+    const picked = drawQuickVaultGame(pool, null, () => index / pool.length);
+    if (picked) reached.add(picked.id);
+  }
+
+  assert.equal(reached.size, pool.length);
+});
+
+test("quick draw does not repeat the previous winner", () => {
+  const pool = ["a", "b"].map((id) => ({
+    game: { ...makeGame(), id, title: id },
+    score: 0,
+    reasons: []
+  })) as unknown as Parameters<typeof drawQuickVaultGame>[0];
+
+  assert.equal(drawQuickVaultGame(pool, "a", () => 0)?.id, "b");
 });

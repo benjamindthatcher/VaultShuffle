@@ -992,3 +992,8 @@
     height: 44px;
   }
 }
+
+/* Quick Draw sits beside the guided draw: no setup, one click, a game. */
+.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; min-height: 40px; margin-top: 6px; padding: 7px 15px; border: 1px solid rgba(151,105,255,.34); border-radius: 999px; background: rgba(22,25,56,.72); color: var(--vault-text-soft); font-size: .8rem; font-weight: 700; line-height: 1.2; }
+.quickDrawButton:hover:not(:disabled) { border-color: rgba(187,112,255,.6); background: rgba(30,34,72,.9); color: #fff; }
+.quickDrawButton:disabled { opacity: .45; }
