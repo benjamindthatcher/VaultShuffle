@@ -5,9 +5,17 @@ const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 type PostHogClient = typeof import("posthog-js").default;
 type ProductAnalyticsMode = "enabled" | "disabled";
 
+export type ProductUserIdentity = {
+  userId: string;
+  steamId: string;
+  displayName?: string | null;
+  avatarUrl?: string | null;
+};
+
 let client: PostHogClient | null = null;
 let clientPromise: Promise<PostHogClient | null> | null = null;
 let configuredMode: ProductAnalyticsMode | null = null;
+let pendingIdentity: ProductUserIdentity | null = null;
 
 function productAnalyticsMode(): ProductAnalyticsMode {
   if (typeof window === "undefined") return "disabled";
@@ -17,6 +25,22 @@ function productAnalyticsMode(): ProductAnalyticsMode {
   } catch {
     return "disabled";
   }
+}
+
+function applyProductUserIdentity(posthog: PostHogClient, identity: ProductUserIdentity) {
+  const properties: Record<string, string> = {
+    vaultshuffle_user_id: identity.userId,
+    steam_id: identity.steamId,
+    steam_profile_url: `https://steamcommunity.com/profiles/${identity.steamId}`,
+  };
+
+  if (identity.displayName) {
+    properties.name = identity.displayName;
+    properties.steam_display_name = identity.displayName;
+  }
+  if (identity.avatarUrl) properties.steam_avatar_url = identity.avatarUrl;
+
+  posthog.identify(identity.userId, properties);
 }
 
 async function loadClient() {
@@ -37,15 +61,23 @@ async function loadClient() {
       defaults: "2026-01-30",
       persistence: "localStorage+cookie",
       opt_out_capturing_by_default: false,
-      person_profiles: "never",
+      person_profiles: "identified_only",
       autocapture: true,
-      capture_exceptions: false,
+      capture_exceptions: true,
+      capture_performance: {
+        network_timing: true,
+        web_vitals: true,
+      },
       capture_pageview: false,
       capture_pageleave: true,
-      capture_heatmaps: false,
-      disable_session_recording: true,
-      disable_surveys: true,
-      advanced_disable_flags: true,
+      capture_heatmaps: true,
+      disable_session_recording: false,
+      session_recording: {
+        maskAllInputs: true,
+      },
+      enable_recording_console_log: true,
+      disable_surveys: false,
+      advanced_disable_flags: false,
       respect_dnt: true,
       tracing_headers: [window.location.hostname],
       debug: process.env.NODE_ENV === "development",
@@ -63,17 +95,20 @@ async function loadClient() {
 
 function applyProductAnalyticsMode(posthog: PostHogClient, mode: ProductAnalyticsMode) {
   const consentStatus = posthog.get_explicit_consent_status();
-  posthog.stopSessionRecording();
 
   if (mode === "disabled") {
-    if (consentStatus !== "denied") {
-      posthog.reset();
-      posthog.opt_out_capturing();
-    }
+    posthog.stopSessionRecording();
+    posthog.reset();
+    if (posthog.get_explicit_consent_status() !== "denied") posthog.opt_out_capturing();
     return;
   }
 
   if (consentStatus === "denied") posthog.opt_in_capturing();
+  if (pendingIdentity) applyProductUserIdentity(posthog, pendingIdentity);
+
+  // Explicitly override PostHog replay sampling / trigger gates: if analytics
+  // are enabled, VaultShuffle records the session by default.
+  posthog.startSessionRecording(true);
 }
 
 async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
@@ -101,6 +136,25 @@ export function disableProductAnalytics() {
       if (posthog && configuredMode === "disabled") applyProductAnalyticsMode(posthog, "disabled");
     });
   }
+}
+
+export function identifyProductUser(identity: ProductUserIdentity) {
+  pendingIdentity = identity;
+  if (productAnalyticsMode() === "disabled") return;
+
+  const mode: ProductAnalyticsMode = "enabled";
+  const ready = configuredMode === mode && client
+    ? Promise.resolve(client)
+    : setProductAnalyticsMode(mode);
+
+  void ready.then((posthog) => {
+    if (posthog && pendingIdentity) applyProductUserIdentity(posthog, pendingIdentity);
+  });
+}
+
+export function clearProductUserIdentity() {
+  pendingIdentity = null;
+  if (client && configuredMode === "enabled") client.reset();
 }
 
 export function captureProductEvent(event: string, properties?: Record<string, unknown>) {

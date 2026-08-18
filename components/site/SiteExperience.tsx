@@ -9,17 +9,52 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import {
   captureProductEvent,
+  clearProductUserIdentity,
   disableProductAnalytics,
   enableProductAnalytics,
+  identifyProductUser,
 } from "@/lib/posthog-client";
 import styles from "./SiteExperience.module.css";
 
 type AnalyticsChoice = "enabled" | "disabled" | null;
+type AnalyticsSession = {
+  logged_in: boolean;
+  user_id: string;
+  steam_id: string;
+  display_name: string;
+  avatar_url: string;
+};
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 const CONSENT_COOKIE = "vault_analytics_consent";
 
 export function SiteExperience({ children }: { children: ReactNode }) {
   return <FeedbackProvider><SiteFrame>{children}</SiteFrame></FeedbackProvider>;
+}
+
+async function syncProductAnalyticsIdentity() {
+  try {
+    const response = await fetch("/api/session", { cache: "no-store" });
+    if (!response.ok) {
+      clearProductUserIdentity();
+      return;
+    }
+
+    const session = await response.json() as AnalyticsSession;
+    if (session.logged_in && session.user_id && session.steam_id) {
+      identifyProductUser({
+        userId: session.user_id,
+        steamId: session.steam_id,
+        displayName: session.display_name,
+        avatarUrl: session.avatar_url,
+      });
+      return;
+    }
+
+    clearProductUserIdentity();
+  } catch {
+    // Avoid retaining a stale signed-in identity if the session check fails.
+    clearProductUserIdentity();
+  }
 }
 
 function SiteFrame({ children }: { children: ReactNode }) {
@@ -46,12 +81,17 @@ function SiteFrame({ children }: { children: ReactNode }) {
     document.cookie = `${CONSENT_COOKIE}=${analyticsChoice}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
 
     if (analyticsChoice === "enabled") {
-      void enableProductAnalytics().then(() => {
-        captureProductEvent("$pageview", { $current_url: window.location.href });
-      });
+      void enableProductAnalytics().then(() => syncProductAnalyticsIdentity());
     } else {
       disableProductAnalytics();
     }
+  }, [analyticsChoice, loaded]);
+
+  useEffect(() => {
+    if (!loaded || analyticsChoice !== "enabled") return;
+    void enableProductAnalytics().then(() => {
+      captureProductEvent("$pageview", { $current_url: window.location.href });
+    });
   }, [analyticsChoice, loaded, pathname]);
 
   const chooseAnalytics = (value: Exclude<AnalyticsChoice, null>) => {
@@ -63,7 +103,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
   return <>
     {children}
     {!hideFooter ? <SiteFooter variant={isAppPage ? "app" : "site"} onFeedback={() => openFeedback({ source: "footer" })} onCookieSettings={() => setSettingsOpen(true)} /> : null}
-    {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics by default to understand aggregate usage. You can turn analytics cookies and storage off at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog analytics cookies</strong><small>First-party browser storage for anonymous product usage; no account identification, heatmaps or session replay</small></span><b>{analyticsChoice === "enabled" ? "On" : "Off"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}
+    {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics by default to understand how the product is used and improve it. You can turn PostHog analytics off at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog product analytics</strong><small>Usage events, heatmaps, error/performance data and session replay. Signed-in analytics are linked to your VaultShuffle/Steam profile; form and input values are masked in replay.</small></span><b>{analyticsChoice === "enabled" ? "On" : "Off"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}
     <Analytics />
     <SpeedInsights />
   </>;
