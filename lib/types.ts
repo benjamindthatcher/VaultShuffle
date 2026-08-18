@@ -83,6 +83,8 @@ export type SessionPayload = {
   display_name: string;
   avatar_url: string;
   has_steam_key: boolean;
+  steam_playtime_visible?: boolean | null;
+  steam_last_played_visible?: boolean | null;
 };
 
 export type SteamPlayerSummary = {

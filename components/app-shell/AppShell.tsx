@@ -44,9 +44,14 @@ function AppShellContent({
     isLoading,
     isSyncing,
     playHistoryMissing,
+    session,
     refresh,
     syncSteamLibrary
   } = useAppData();
+
+  // Explicitly false means Steam answered and withheld it. Null means we have not
+  // checked yet, which must not trigger a warning.
+  const steamLastPlayedHidden = isLive && session?.steam_last_played_visible === false;
 
   const [bootComplete, setBootComplete] = useState(false);
   const [initialMarkerChecked, setInitialMarkerChecked] = useState(false);
@@ -156,6 +161,20 @@ function AppShellContent({
         </div>
       ) : null}
 
+      {!importError && !playHistoryMissing && steamLastPlayedHidden ? (
+        <div className={styles.importNotice} role="status">
+          <span>
+            Steam is sharing your playtime but not when you last played. Anything based on
+            recency — dormant picks, &ldquo;not played in a while&rdquo;, and part of the Purge
+            review — will be less accurate until it can. In Steam, open
+            <strong> Profile &gt; Edit Profile &gt; Privacy Settings</strong> and set
+            <strong> Game details</strong> to Public.
+          </span>
+          <button type="button" disabled={isSyncing} onClick={retrySteamImport}>
+            {isSyncing ? "Syncing…" : "Sync again"}
+          </button>
+        </div>
+      ) : null}
       {!importError && playHistoryMissing ? (
         <div className={styles.importNotice} role="status">
           <span>
