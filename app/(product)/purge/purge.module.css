@@ -217,7 +217,8 @@
 }
 .snapshotMetrics {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  /* Flows to however many outcomes are shown rather than a fixed three. */
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
   gap: 8px;
   margin: 0;
 }
@@ -575,4 +576,68 @@
     align-items: flex-start;
     flex-direction: column-reverse;
   }
+}
+
+/* Reviewed / no-review-needed lists. Deliberately lighter than the review queue
+   cards: these are for reading back decisions, not for making them. */
+.outcomeList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.outcomeRow {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 9px 12px;
+  border: 1px solid #2a2550;
+  border-radius: 12px;
+  background: rgba(9, 13, 37, 0.7);
+}
+.outcomeArt {
+  position: relative;
+  width: 88px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 7px;
+  background: rgba(4, 7, 20, 0.9);
+}
+.outcomeName {
+  min-width: 0;
+  overflow: hidden;
+  color: #fff;
+  font-weight: 650;
+  font-size: 0.94rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outcomeBadge {
+  padding: 5px 11px;
+  border: 1px solid #372f63;
+  border-radius: 999px;
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.outcomeBadge[data-action="keep"],
+.outcomeBadge[data-action="pin"] {
+  border-color: rgba(98, 211, 175, 0.5);
+  color: #62d3af;
+}
+.outcomeBadge[data-action="sleep"] {
+  border-color: rgba(157, 111, 255, 0.5);
+  color: #c79bff;
+}
+.outcomeBadge[data-action="complete"] {
+  border-color: rgba(224, 163, 74, 0.5);
+  color: #e0a34a;
+}
+.emptyNote {
+  margin: 0;
+  color: var(--vault-text-soft);
+  font-size: 0.92rem;
 }

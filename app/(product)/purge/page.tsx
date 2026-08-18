@@ -23,6 +23,13 @@ const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
   { id: "dormant", label: "The Rest", copy: "Unplayed or long-inactive games still worth reviewing." }
 ];
 
+const OUTCOME_LABELS: Record<PurgeReview["action"], string> = {
+  keep: "Kept active",
+  pin: "Kept and pinned",
+  sleep: "Put to sleep",
+  complete: "Marked done"
+};
+
 const CATEGORY_LABELS = Object.fromEntries(
   CATEGORIES.map(({ id, label }) => [id, label])
 ) as Record<PurgeCategory, string>;
@@ -44,6 +51,7 @@ export default function PurgePage() {
   const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>(["untouched"]);
+  const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
   const savingRef = useRef(false);
@@ -82,12 +90,49 @@ export default function PurgePage() {
     const reviewableGames = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed" && game.status !== "Slept");
     const noReviewNeeded = reviewableGames.filter((game) => !readyIds.has(game.id) && !actionedIds.has(game.id)).length;
 
+    // A game can be reviewed more than once, so only its most recent decision
+    // counts. A single "Actioned" total implied everything reviewed had been
+    // dealt with, when a Keep leaves the game exactly where it was.
+    const latestByGame = new Map<string, PurgeReview["action"]>();
+    for (const review of [...reviews].sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt))) {
+      if (!latestByGame.has(review.gameId)) latestByGame.set(review.gameId, review.action);
+    }
+    const outcomes = [...latestByGame.values()];
+
     return {
       ready: candidates.length,
-      actioned: actionedIds.size,
+      reviewed: latestByGame.size,
+      kept: outcomes.filter((action) => action === "keep" || action === "pin").length,
+      slept: outcomes.filter((action) => action === "sleep").length,
+      completed: outcomes.filter((action) => action === "complete").length,
       noReviewNeeded
     };
   }, [candidates, games, reviews]);
+
+  const gameById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
+
+  // Only the most recent decision per game counts, so a game reviewed twice
+  // appears once with its current outcome rather than once per decision.
+  const reviewedList = useMemo(() => {
+    const latest = new Map<string, PurgeReview>();
+    for (const review of [...reviews].sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt))) {
+      if (!latest.has(review.gameId)) latest.set(review.gameId, review);
+    }
+    return [...latest.values()]
+      .map((review) => ({ review, game: gameById.get(review.gameId) }))
+      .filter((entry): entry is { review: PurgeReview; game: DemoGame } => Boolean(entry.game));
+  }, [reviews, gameById]);
+
+  const settledList = useMemo(() => {
+    const readyIds = new Set(candidates.map(({ game }) => game.id));
+    const actionedIds = new Set(reviews.map(({ gameId }) => gameId));
+    return games.filter((game) =>
+      game.ownership === "Owned" &&
+      game.status !== "Completed" &&
+      game.status !== "Slept" &&
+      !readyIds.has(game.id) &&
+      !actionedIds.has(game.id));
+  }, [games, candidates, reviews]);
 
   useEffect(() => {
     let cancelled = false;
@@ -290,37 +335,72 @@ export default function PurgePage() {
           })}
         </div>
       </div>
-      <aside className={styles.snapshot} aria-label="Purge stats">
-        <div className={styles.snapshotMetrics}>
-          <PurgeStat icon="ready-to-review" label="Ready to Review" count={purgeStats.ready} />
-          <PurgeStat icon="actioned" label="Actioned" count={purgeStats.actioned} />
-          <PurgeStat icon="no-review-needed" label="No Review Needed" count={purgeStats.noReviewNeeded} />
+      <aside className={styles.snapshot} aria-label="Review status">
+        <div className={styles.categoryGrid}>
+          {([
+            { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: "Flagged and waiting on a decision.", count: purgeStats.ready },
+            { id: "reviewed", icon: "actioned", label: "Reviewed", copy: `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done.`, count: purgeStats.reviewed },
+            { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: "Active games nothing has flagged.", count: purgeStats.noReviewNeeded }
+          ] as const).map((view) => {
+            const selected = reviewView === view.id;
+            return <button key={view.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => setReviewView(view.id)}>
+              <span className={styles.categoryIcon} aria-hidden="true"><VaultIcon name={view.icon} size={26} /></span>
+              <span><strong>{view.label}</strong><small>{view.copy}</small></span>
+              <b>{view.count}</b>
+            </button>;
+          })}
         </div>
       </aside>
     </section>
-      <section className={styles.queuePanel}>
-        <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div></div>
-        {queue.length ? <div className={styles.queue}>
-          {queue.map((candidate, offset) => {
-            const selected = current?.game.id === candidate.game.id;
-            return <button key={candidate.game.id} type="button" className={selected ? styles.queueCardSelected : styles.queueCard} onClick={() => setSelectedOffset(offset)}>
-              <span className={styles.queueArtwork}><Artwork src={candidate.game.bannerUrl} sizes="(max-width: 760px) 72vw, 18vw" /></span>
-              <span className={styles.queueCopy}><small>{CATEGORY_LABELS[candidate.category]}</small><strong>{candidate.game.title}</strong><em>{candidate.game.hoursPlayed ? `${candidate.game.hoursPlayed}h played` : "Never Played"}</em></span>
-            </button>;
-          })}
-        </div> : <div className={styles.empty}><h3>No games currently match this Purge setup.</h3><p>Adjust the categories or revisit after your Library has had more time to settle.</p></div>}
-      </section>
+      {reviewView === "needs" ? <>
+        <section className={styles.queuePanel}>
+          <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div></div>
+          {queue.length ? <div className={styles.queue}>
+            {queue.map((candidate, offset) => {
+              const selected = current?.game.id === candidate.game.id;
+              return <button key={candidate.game.id} type="button" className={selected ? styles.queueCardSelected : styles.queueCard} onClick={() => setSelectedOffset(offset)}>
+                <span className={styles.queueArtwork}><Artwork src={candidate.game.bannerUrl} sizes="(max-width: 760px) 72vw, 18vw" /></span>
+                <span className={styles.queueCopy}><small>{CATEGORY_LABELS[candidate.category]}</small><strong>{candidate.game.title}</strong><em>{candidate.game.hoursPlayed ? `${candidate.game.hoursPlayed}h played` : "Never Played"}</em></span>
+              </button>;
+            })}
+          </div> : <div className={styles.empty}><h3>No games currently match this Purge setup.</h3><p>Adjust the categories or revisit after your Library has had more time to settle.</p></div>}
+        </section>
 
-      {current ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
-        <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
-        <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p><div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
-        <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
-          <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
-          <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
-          <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
-          <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
-        </div>
-      </section> : null}
+        {current ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
+          <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
+          <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p><div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
+          <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
+            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
+            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
+            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
+            <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
+          </div>
+        </section> : null}
+      </> : <section className={styles.queuePanel}>
+        <div className={styles.sectionHeading}><div>
+          <p className={styles.eyebrow}>{reviewView === "reviewed" ? "Already decided" : "Nothing flagged"}</p>
+          <h2>{reviewView === "reviewed" ? `${reviewedList.length} games reviewed` : `${settledList.length} games need no review`}</h2>
+        </div></div>
+        {reviewView === "reviewed"
+          ? (reviewedList.length
+            ? <ul className={styles.outcomeList}>
+                {reviewedList.map(({ review, game }) => <li key={game.id} className={styles.outcomeRow}>
+                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="88px" /></span>
+                  <span className={styles.outcomeName}>{game.title}</span>
+                  <span className={styles.outcomeBadge} data-action={review.action}>{OUTCOME_LABELS[review.action]}</span>
+                </li>)}
+              </ul>
+            : <p className={styles.emptyNote}>You have not reviewed anything yet. Start with Needs Review.</p>)
+          : (settledList.length
+            ? <ul className={styles.outcomeList}>
+                {settledList.slice(0, 24).map((game) => <li key={game.id} className={styles.outcomeRow}>
+                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="88px" /></span>
+                  <span className={styles.outcomeName}>{game.title}</span>
+                  <span className={styles.outcomeBadge} data-action="none">Active</span>
+                </li>)}
+              </ul>
+            : <p className={styles.emptyNote}>Every active game has either been flagged or reviewed.</p>)}
+      </section>}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : "Every decision saves and advances automatically."}</span></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
@@ -347,7 +427,7 @@ function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
   return <span className={styles.decisionIcon} aria-hidden="true"><VaultIcon name={name} size={34} /></span>;
 }
 
-function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "actioned" | "no-review-needed"; label: string; count: number }) {
+function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "keep-active" | "sleep" | "mark-completed" | "no-review-needed"; label: string; count: number }) {
   return <span>
     <span className={styles.purgeStatIcon} aria-hidden="true"><VaultIcon name={icon} size={38} /></span>
     <em>{label}</em>
