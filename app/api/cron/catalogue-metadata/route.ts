@@ -26,7 +26,10 @@ export async function GET(request: Request) {
       // minutes. Running to that number means the last batch of every run is
       // spent collecting failures and deferrals, so stop short of it: work that
       // is deferred has to be claimed and retried later anyway.
-      const STEAM_LOOKUPS_PER_RUN = 150;
+      // Each game now costs two Steam calls, not one: appdetails plus the deck
+      // compatibility endpoint. Halved so the run still lands under the same
+      // request budget it was tuned against.
+      const STEAM_LOOKUPS_PER_RUN = 80;
 
       while (Date.now() + 20_000 < deadlineAt && totals.processed < STEAM_LOOKUPS_PER_RUN) {
         const remaining = STEAM_LOOKUPS_PER_RUN - totals.processed;
