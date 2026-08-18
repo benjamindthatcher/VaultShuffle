@@ -6,7 +6,7 @@ export default function PrivacyPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 13 August 2026"
+        eyebrow="Legal · Updated 18 August 2026"
         title="Privacy Policy"
         intro="This notice explains what personal data VaultShuffle uses, where it comes from, why it is needed, and the choices available to you."
         sections={[
@@ -24,11 +24,11 @@ export default function PrivacyPage() {
           },
           {
             title: "Analytics and device storage",
-            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. We use PostHog in cookieless mode by default solely to produce product-usage statistics that help us improve VaultShuffle. This mode does not use persistent browser storage for tracking, identify your account, enrich events with GeoIP, create heatmaps or record session replays. PostHog uses a privacy-preserving server-generated hash for anonymous event grouping. You can object and turn PostHog off at any time through Analytics Settings."
+            body: "Essential cookies and local storage keep you signed in, remember interface preferences and record your analytics choice. Vercel service telemetry is used for hosting reliability. PostHog product analytics are enabled by default and use first-party cookie and local-storage persistence to distinguish anonymous visits and produce product-usage statistics that help us improve VaultShuffle. We do not identify your VaultShuffle account in PostHog, create heatmaps or record session replays. You can turn PostHog analytics off at any time through Analytics Settings."
           },
           {
             title: "Suppliers and international processing",
-            body: "We use Steam for sign-in and game data, Supabase for database and authentication infrastructure, Vercel for application hosting and operational telemetry, IGDB for game metadata, and PostHog only for optional product analytics. These providers process limited data on our behalf or under their own terms and may operate infrastructure outside the UK."
+            body: "We use Steam for sign-in and game data, Supabase for database and authentication infrastructure, Vercel for application hosting and operational telemetry, IGDB for game metadata, and PostHog for product analytics when analytics are enabled. These providers process limited data on our behalf or under their own terms and may operate infrastructure outside the UK."
           },
           {
             title: "Messages, retention and security",
@@ -36,7 +36,7 @@ export default function PrivacyPage() {
           },
           {
             title: "Your rights",
-            body: "Depending on your location, you may ask for a copy of your personal data, correction, deletion, restriction, portability or an objection to certain processing. You may object to cookieless analytics at any time through Analytics Settings. UK users may also complain to the Information Commissioner's Office. Contact us first if you would like help exercising a right."
+            body: "Depending on your location, you may ask for a copy of your personal data, correction, deletion, restriction, portability or an objection to certain processing. You may turn PostHog analytics off at any time through Analytics Settings. UK users may also complain to the Information Commissioner's Office. Contact us first if you would like help exercising a right."
           },
           {
             title: "Changes and age limits",

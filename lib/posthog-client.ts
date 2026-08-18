@@ -3,7 +3,7 @@
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 
 type PostHogClient = typeof import("posthog-js").default;
-type ProductAnalyticsMode = "cookieless" | "disabled";
+type ProductAnalyticsMode = "enabled" | "disabled";
 
 let client: PostHogClient | null = null;
 let clientPromise: Promise<PostHogClient | null> | null = null;
@@ -13,7 +13,7 @@ function productAnalyticsMode(): ProductAnalyticsMode {
   if (typeof window === "undefined") return "disabled";
   try {
     const choice = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    return choice === "disabled" || choice === "essential" ? "disabled" : "cookieless";
+    return choice === "disabled" || choice === "essential" ? "disabled" : "enabled";
   } catch {
     return "disabled";
   }
@@ -35,8 +35,8 @@ async function loadClient() {
       api_host: "/ingest",
       ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST?.replace(".i.posthog.com", ".posthog.com"),
       defaults: "2026-01-30",
-      cookieless_mode: "on_reject",
-      opt_out_capturing_by_default: true,
+      persistence: "localStorage+cookie",
+      opt_out_capturing_by_default: false,
       person_profiles: "never",
       autocapture: true,
       capture_exceptions: false,
@@ -63,22 +63,17 @@ async function loadClient() {
 
 function applyProductAnalyticsMode(posthog: PostHogClient, mode: ProductAnalyticsMode) {
   const consentStatus = posthog.get_explicit_consent_status();
+  posthog.stopSessionRecording();
 
   if (mode === "disabled") {
-    const wasCookieless = posthog.config.cookieless_mode === "on_reject";
-    posthog.config.cookieless_mode = undefined;
-    posthog.stopSessionRecording();
-    if (consentStatus !== "denied" || wasCookieless) {
+    if (consentStatus !== "denied") {
       posthog.reset();
       posthog.opt_out_capturing();
     }
     return;
   }
 
-  const alreadyCookieless = posthog.config.cookieless_mode === "on_reject" && consentStatus === "denied";
-  posthog.set_config({ cookieless_mode: "on_reject" });
-  posthog.stopSessionRecording();
-  if (!alreadyCookieless) posthog.opt_out_capturing();
+  if (consentStatus === "denied") posthog.opt_in_capturing();
 }
 
 async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
@@ -93,8 +88,8 @@ async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
   return configuredMode === "disabled" ? null : posthog;
 }
 
-export async function enableCookielessProductAnalytics() {
-  await setProductAnalyticsMode("cookieless");
+export async function enableProductAnalytics() {
+  await setProductAnalyticsMode("enabled");
 }
 
 export function disableProductAnalytics() {
