@@ -27,7 +27,6 @@ type AnalyticsSession = {
   avatar_url: string;
 };
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
-const CONSENT_COOKIE = "vault_analytics_consent";
 const NOTICE_STORAGE_KEY = "vault-analytics-notice-seen";
 
 export function SiteExperience({ children }: { children: ReactNode }) {
@@ -84,8 +83,6 @@ function SiteFrame({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!loaded || analyticsChoice === null) return;
-    document.cookie = `${CONSENT_COOKIE}=${analyticsChoice}; Path=/; Max-Age=31536000; SameSite=Lax${location.protocol === "https:" ? "; Secure" : ""}`;
-
     if (analyticsChoice === "enabled") {
       void enableProductAnalytics().then(() => syncProductAnalyticsIdentity());
     } else {
