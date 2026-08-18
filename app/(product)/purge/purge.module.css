@@ -659,3 +659,9 @@
 .hero {
   display: none;
 }
+
+/* banner-hidden-spacing: the hero panels carried the space that kept content
+   clear of the fixed header. Remove with the block above to restore. */
+.page {
+  padding-top: 22px;
+}

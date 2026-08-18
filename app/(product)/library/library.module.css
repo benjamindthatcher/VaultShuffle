@@ -206,3 +206,9 @@
 .libraryPage::before {
   display: none;
 }
+
+/* banner-hidden-spacing: the hero panels carried the space that kept content
+   clear of the fixed header. Remove with the block above to restore. */
+.libraryPage {
+  padding-top: 22px;
+}
