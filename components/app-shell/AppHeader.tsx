@@ -21,7 +21,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
-  const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut } = useAppData();
+  const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut, deviceMode, setDeviceMode } = useAppData();
   const [accountMessage, setAccountMessage] = useState("");
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
@@ -130,6 +130,27 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                 <button type="button" className={styles.menuAction} onClick={() => void handleRefresh()} disabled={isLoading}>
                   Refresh app data
                 </button>
+                <div className={styles.menuGroup} role="group" aria-label="Device mode">
+                  <p className={styles.menuGroupLabel}>Device mode</p>
+                  <p className={styles.menuGroupHint}>Hide games that will not run on the machine you are playing on.</p>
+                  <div className={styles.deviceModes}>
+                    {([
+                      { id: "all", label: "All games" },
+                      { id: "mac", label: "Mac only" },
+                      { id: "deck", label: "Steam Deck" }
+                    ] as const).map((mode) => (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        className={deviceMode === mode.id ? styles.deviceModeOn : styles.deviceMode}
+                        aria-pressed={deviceMode === mode.id}
+                        onClick={() => setDeviceMode(mode.id)}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <button type="button" className={`${styles.menuAction} ${styles.dangerAction}`} onClick={() => void signOut()}>
                   Sign out
                 </button>

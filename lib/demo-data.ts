@@ -45,6 +45,8 @@ export type DemoGame = {
   completionSuggestionDismissedAt?: string | null;
   completionSuggestionDismissedPlaytime?: number | null;
   duration?: import("@/lib/types").GameDurationEstimate;
+  platforms?: { windows: boolean; mac: boolean; linux: boolean };
+  deckCompatibility?: number | null;
 };
 
 export const demoCollections: DemoCollection[] = [

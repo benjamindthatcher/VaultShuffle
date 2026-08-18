@@ -29,6 +29,9 @@ export type SteamAppDetails = Partial<GamePayload> & {
   price_final?: number;
   discount_percent?: number;
   is_free?: boolean;
+  platform_windows?: boolean;
+  platform_mac?: boolean;
+  platform_linux?: boolean;
 };
 const appDetailCache = new Map<string, CacheEntry<SteamAppDetails | null>>();
 let nextSteamStoreRequestAt = 0;
@@ -307,6 +310,10 @@ function steamDetailPayload(appid: string, data: Record<string, unknown>): Steam
     price_final: cleanMinorUnits(price?.final),
     discount_percent: clamp(Math.round(Number(price?.discount_percent || 0)), 0, 100),
     is_free: Boolean(data.is_free),
+    // Steam already tells us this on the call we are making; it costs nothing.
+    platform_windows: Boolean((data.platforms as Record<string, unknown> | undefined)?.windows),
+    platform_mac: Boolean((data.platforms as Record<string, unknown> | undefined)?.mac),
+    platform_linux: Boolean((data.platforms as Record<string, unknown> | undefined)?.linux),
     developers: stringList(data.developers),
     publishers: stringList(data.publishers),
     genres: descriptionList(data.genres),
@@ -361,4 +368,29 @@ function steamGenreLabel(item: Record<string, unknown>, title = "") {
 
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
+}
+
+
+/**
+ * Steam Deck compatibility for one app.
+ *
+ * Not part of appdetails — it lives on its own store endpoint and returns a
+ * resolved category: 0 unknown, 1 unsupported, 2 playable, 3 verified. Fetched
+ * only for games that have no value yet, so it costs one extra request per game
+ * once rather than on every refresh.
+ */
+export async function fetchSteamDeckCompatibility(appid: string): Promise<number | null> {
+  try {
+    const response = await fetch(
+      `https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID=${encodeURIComponent(appid)}&l=english`,
+      { headers: { "User-Agent": "VaultShuffle/0.1" }, cache: "no-store" }
+    );
+    if (!response.ok) return null;
+    const payload = await response.json() as { success?: number; results?: { resolved_category?: number } };
+    if (!payload?.success || !payload.results) return null;
+    const category = Number(payload.results.resolved_category);
+    return Number.isFinite(category) ? category : null;
+  } catch {
+    return null;
+  }
 }

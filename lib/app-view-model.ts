@@ -160,6 +160,12 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       sleptAt: game.slept_at,
       completionSuggestionDismissedAt: game.completion_suggestion_dismissed_at,
       completionSuggestionDismissedPlaytime: game.completion_suggestion_dismissed_playtime,
+      platforms: {
+        windows: game.platform_windows !== false,
+        mac: Boolean(game.platform_mac),
+        linux: Boolean(game.platform_linux)
+      },
+      deckCompatibility: game.deck_compatibility ?? null,
       duration: {
         mainStoryMinutes: game.main_story_minutes,
         mainExtrasMinutes: game.main_extras_minutes,

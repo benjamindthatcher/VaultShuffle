@@ -39,6 +39,10 @@ export type Game = {
   duration_kind?: "finite" | "endless" | "not-applicable" | "unknown" | null;
   /** Full weighted SteamSpy tag map from the shared catalogue. */
   steam_tags?: Record<string, number> | null;
+  platform_windows?: boolean | null;
+  platform_mac?: boolean | null;
+  platform_linux?: boolean | null;
+  deck_compatibility?: number | null;
   is_quarantined?: boolean;
   quarantine_reason?: string | null;
   created_at?: string;

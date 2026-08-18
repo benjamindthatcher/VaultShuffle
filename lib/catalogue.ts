@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fetchSteamAppDetails, SteamAppRequestError, SteamAppUnavailableError } from "@/lib/steam";
+import { fetchSteamAppDetails, SteamAppRequestError, SteamAppUnavailableError, fetchSteamDeckCompatibility } from "@/lib/steam";
 import type { GamePayload } from "@/lib/types";
 import { catalogueGameStubRows } from "@/lib/catalogue-stubs";
 
@@ -298,6 +298,16 @@ async function persistSteamCatalogueDetails(
   if (!title) throw new Error("Steam metadata did not include a title.");
   const reviewTotal = Math.max(0, Number(details.review_total || 0));
   const reviewPositive = Math.max(0, Number(details.review_positive || 0));
+
+  // Only fetched when we do not already have it, so the extra request happens
+  // once per game rather than on every metadata refresh.
+  const { data: existingDeck } = await supabase
+    .from("catalog_games")
+    .select("deck_compatibility")
+    .eq("steam_appid", steamAppId)
+    .maybeSingle();
+  const knownDeck = (existingDeck as { deck_compatibility?: number | null } | null)?.deck_compatibility ?? null;
+  const deckCompatibility = knownDeck ?? await fetchSteamDeckCompatibility(String(steamAppId));
   const isUsd = details.price_currency === "USD";
   const { error } = await supabase.from("catalog_games").upsert({
     steam_appid: steamAppId,
@@ -311,6 +321,11 @@ async function persistSteamCatalogueDetails(
     short_description: details.short_description || null,
     release_date: details.release_date || null,
     is_free: Boolean(details.is_free),
+    deck_compatibility: deckCompatibility,
+    deck_checked_at: deckCompatibility === null ? null : now,
+    platform_windows: details.platform_windows ?? null,
+    platform_mac: details.platform_mac ?? null,
+    platform_linux: details.platform_linux ?? null,
     capsule_url: details.capsule_url || null,
     header_url: details.header_url || null,
     review_positive: reviewPositive,

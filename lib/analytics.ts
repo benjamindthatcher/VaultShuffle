@@ -38,6 +38,7 @@ export const ANALYTICS_EVENTS = {
   vaultHistoryCleared: "vault_history_cleared",
 
   // Library
+  deviceModeChanged: "device_mode_changed",
   librarySearched: "library_searched",
   libraryFiltered: "library_filtered",
   libraryGameOpened: "library_game_opened",

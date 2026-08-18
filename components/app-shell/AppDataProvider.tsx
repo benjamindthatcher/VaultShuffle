@@ -22,6 +22,20 @@ type AppBootstrapPayload = {
   guest_pool_source?: "live_catalogue" | "fallback";
 };
 
+export type DeviceMode = "all" | "mac" | "deck";
+const DEVICE_MODE_KEY = "vault-device-mode";
+
+/**
+ * Steam Deck compatibility, as Steam resolves it: 3 verified, 2 playable,
+ * 1 unsupported, 0 unknown. Unknown is excluded rather than assumed playable —
+ * the point of the mode is confidence that a pick will actually run.
+ */
+function matchesDeviceMode(game: DemoGame, mode: DeviceMode) {
+  if (mode === "all") return true;
+  if (mode === "mac") return Boolean(game.platforms?.mac);
+  return (game.deckCompatibility ?? 0) >= 2;
+}
+
 const emptyVaultState: VaultState = { pinnedIds: [], snoozedIds: [], currentPickId: null };
 
 type AppDataContextValue = {
@@ -32,6 +46,8 @@ type AppDataContextValue = {
   vaultHistory: VaultDraw[];
   isLive: boolean;
   playHistoryMissing: boolean;
+  deviceMode: DeviceMode;
+  setDeviceMode: (mode: DeviceMode) => void;
   isLoading: boolean;
   isSyncing: boolean;
   loadError: string | null;
@@ -82,6 +98,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [playHistoryMissing, setPlayHistoryMissing] = useState(false);
+  const [deviceMode, setDeviceModeState] = useState<DeviceMode>("all");
   const [loadError, setLoadError] = useState<string | null>(null);
 
   async function load() {
@@ -131,12 +148,32 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     void load();
   }, []);
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DEVICE_MODE_KEY);
+      if (saved === "mac" || saved === "deck") setDeviceModeState(saved);
+    } catch {
+      // Private browsing can disable storage; the mode just will not persist.
+    }
+  }, []);
+
   // Registered as a PostHog super property so every event this session sends can be
   // split by guest vs signed-in without each call site passing it.
   useEffect(() => {
     if (isLoading) return;
     setAnalyticsAudience(!isLive);
   }, [isLive, isLoading]);
+
+  function setDeviceMode(mode: DeviceMode) {
+    setDeviceModeState(mode);
+    try {
+      if (mode === "all") localStorage.removeItem(DEVICE_MODE_KEY);
+      else localStorage.setItem(DEVICE_MODE_KEY, mode);
+    } catch {
+      // Storage being unavailable must not stop the filter working this session.
+    }
+    trackEvent(ANALYTICS_EVENTS.deviceModeChanged, { mode });
+  }
 
   async function syncSteamLibrary() {
     if (!isLive) throw new Error("Sign in with Steam before syncing your library.");
@@ -375,7 +412,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     () => ({
       session,
       playHistoryMissing,
-      games: isLive ? liveGames : guestGames,
+      deviceMode,
+      setDeviceMode,
+      games: (isLive ? liveGames : guestGames).filter((game) => matchesDeviceMode(game, deviceMode)),
       collections: isLive ? liveCollections : guestCollections,
       vaultState: isLive ? liveVaultState : guestVaultState,
       vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
@@ -398,7 +437,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveVaultHistory, guestVaultHistory]
+    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
