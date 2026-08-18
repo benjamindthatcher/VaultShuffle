@@ -43,13 +43,13 @@ test("awards a perfect match for exact session, mood, goal and genre alignment",
   const result = scoreVaultGame(makeGame(), "short", "intense", "new", ["action"]);
   assert.equal(result.score, 100);
   assert.equal(vaultMatchLabel(result.score), "Perfect match");
-  assert.deepEqual(result.reasons, ["Short fit", "High energy", "Action", "Unplayed"]);
+  assert.deepEqual(result.reasons, ["Ideal short session length", "Perfect Intense match", "Unplayed", "Action"]);
 });
 
 test("Surprise Me widens the pool without diluting the selected fit score", () => {
   const result = scoreVaultGame(makeGame(), "short", "intense", "surprise", []);
   assert.equal(result.score, 100);
-  assert.deepEqual(result.reasons, ["Short fit", "High energy", "Wildcard"]);
+  assert.deepEqual(result.reasons, ["Ideal short session length", "Perfect Intense match", "Wildcard"]);
 });
 
 test("uses stable match brackets including Perfect", () => {
@@ -158,4 +158,31 @@ test("quick draw does not repeat the previous winner", () => {
   })) as unknown as Parameters<typeof drawQuickVaultGame>[0];
 
   assert.equal(drawQuickVaultGame(pool, "a", () => 0)?.id, "b");
+});
+
+test("reasons describe the game, not just the options the player picked", () => {
+  const weakMoodMatch = { ...makeGame(), moodScores: { "brain-off": 0, chill: 0, intense: 3 } };
+  const strong = scoreVaultGame(makeGame(), "short", "intense", "surprise", []);
+  const weak = scoreVaultGame(weakMoodMatch, "short", "intense", "surprise", []);
+
+  assert.notDeepEqual(strong.reasons, weak.reasons);
+  assert.ok(strong.reasons.includes("Perfect Intense match"));
+  assert.ok(weak.reasons.includes("Intense match"));
+});
+
+test("a dormant game says so, and a recently played one does not", () => {
+  const now = Date.UTC(2026, 7, 18);
+  const day = 86_400_000;
+
+  const dormant = scoreVaultGame(
+    { ...makeGame(), lastPlayedAt: new Date(now - 200 * day).toISOString() },
+    "short", "intense", "surprise", [], now
+  );
+  const recent = scoreVaultGame(
+    { ...makeGame(), lastPlayedAt: new Date(now - 3 * day).toISOString() },
+    "short", "intense", "surprise", [], now
+  );
+
+  assert.ok(dormant.reasons.includes("Not played in 7 months"));
+  assert.ok(!recent.reasons.some((reason) => reason.startsWith("Not played")));
 });

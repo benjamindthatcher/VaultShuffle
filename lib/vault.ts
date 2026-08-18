@@ -223,7 +223,8 @@ export function scoreVaultGame(
   session: VaultSessionId | null,
   mood: VaultMoodId | null,
   goal: VaultGoalId | null,
-  selectedGenres: string[]
+  selectedGenres: string[],
+  now: number = Date.now()
 ): VaultPoolEntry {
   let earnedPoints = 0;
   let availablePoints = 0;
@@ -232,22 +233,23 @@ export function scoreVaultGame(
   if (session) {
     availablePoints += VAULT_SCORE_WEIGHTS.session;
     earnedPoints += sessionPoints(game, session);
-    reasons.push(sessionReason(session));
+    reasons.push(sessionReason(game, session));
   }
 
   if (mood) {
     const moodStrength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
     availablePoints += VAULT_SCORE_WEIGHTS.mood;
     earnedPoints += moodPoints(moodStrength);
-    reasons.push(moodReason(mood));
+    reasons.push(moodReason(game, mood));
   }
 
+  let genreReason: string | null = null;
   if (selectedGenres.length) {
     const gameGenres = game.genres.map(canonicalGenre);
     const matches = selectedGenres.filter((genre) => gameGenres.includes(genre));
     availablePoints += VAULT_SCORE_WEIGHTS.genres;
     earnedPoints += VAULT_SCORE_WEIGHTS.genres * (matches.length / selectedGenres.length);
-    if (matches.length) reasons.push(matches.map(displayGenre).join(" · "));
+    if (matches.length) genreReason = matches.map(displayGenre).join(" · ");
   }
 
   if (goal === "new") {
@@ -267,6 +269,10 @@ export function scoreVaultGame(
     // dilute a precise session, mood or genre match by consuming score.
     reasons.push("Wildcard");
   }
+
+  const dormancy = lastPlayedReason(game, now);
+  if (dormancy) reasons.push(dormancy);
+  if (genreReason) reasons.push(genreReason);
 
   const score = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
   return { game, score, reasons: reasons.slice(0, 4) };
@@ -378,16 +384,41 @@ function sessionLabel(session: VaultSessionId) {
   return vaultSessionOptions.find((option) => option.id === session)?.label ?? "session";
 }
 
-function moodReason(mood: VaultMoodId) {
-  if (mood === "brain-off") return "Low focus";
-  if (mood === "chill") return "Chill pace";
-  return "High energy";
+function sessionReason(game: DemoGame, session: VaultSessionId) {
+  if (game.duration?.endless) return "Endless \u00b7 play any length";
+
+  const label = sessionLabel(session).toLowerCase();
+  const earned = sessionPoints(game, session);
+  const ratio = earned / VAULT_SCORE_WEIGHTS.session;
+  if (ratio >= 0.93) return `Ideal ${label} length`;
+  if (ratio >= 0.8) return `Good ${label} length`;
+  return `${sessionLabel(session)} fit`;
 }
 
-function sessionReason(session: VaultSessionId) {
-  if (session === "short") return "Short fit";
-  if (session === "evening") return "Evening fit";
-  return "Weekend fit";
+function moodReason(game: DemoGame, mood: VaultMoodId) {
+  const label = labelForMood(mood);
+  const strength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
+  if (strength >= 6) return `Perfect ${label} match`;
+  if (strength === 5) return `Strong ${label} match`;
+  if (strength === 4) return `Solid ${label} match`;
+  return `${label} match`;
+}
+
+/**
+ * Dormancy is the one reason a player cannot work out for themselves at a glance,
+ * so it earns a place ahead of the genre echo. Anything played recently is not
+ * worth mentioning, hence the three-week floor.
+ */
+function lastPlayedReason(game: DemoGame, now: number) {
+  if (!game.lastPlayedAt) return null;
+  const playedAt = new Date(game.lastPlayedAt).getTime();
+  if (!Number.isFinite(playedAt)) return null;
+
+  const days = Math.floor((now - playedAt) / 86_400_000);
+  if (days < 21) return null;
+  if (days >= 365) return "Untouched for over a year";
+  if (days >= 60) return `Not played in ${Math.round(days / 30)} months`;
+  return `Not played in ${days} days`;
 }
 
 function labelForMood(mood: VaultMoodId) {
