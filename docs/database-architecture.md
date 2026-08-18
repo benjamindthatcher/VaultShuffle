@@ -39,6 +39,11 @@ out an update across every user's copy of the same Steam game.
 - `user_vault_state` stores one current-pick row per user.
 - `vault_draws` retains the latest 50 draws per user. `vault_draw_events`
   cascade when their parent draw is trimmed.
+- `user_genre_preferences` is derived, not authored. The nightly
+  `genre-preferences` worker rebuilds it wholesale from `vault_draw_events`; the
+  application only ever reads it. Because it is downstream of `vault_draws`, the
+  50-draw trim above is also the ceiling on what the recommender can learn from
+  — see `docs/vault-recommender.md`.
 - `vault_events` and `purge_reviews` remain append-only audit sources. Retention
   must be introduced as an explicit product/data-retention decision rather
   than silently deleting existing history.

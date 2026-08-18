@@ -1,0 +1,227 @@
+# Vault recommender
+
+How the learned genre term works, and what is still worth doing to it.
+
+Written 2026-08-18, after the term shipped across 488ba9a, 7e50940 and 0525ec2.
+
+## How it works today
+
+`vault_draw_events` records what the user did with a pick. A nightly worker
+(`/api/cron/genre-preferences`, 06:00, after the catalogue refresh it reads
+genres from) turns those events into `user_genre_preferences`, keyed on
+`(user_id, genre, context_mood)`.
+
+- Signals are weighted: opening on Steam and liking count double, pinning once;
+  disliking, sleeping and "not interested" count against. Reroll reasons that
+  describe something other than genre (`too_long`, `not_tonight`,
+  `played_enough`) contribute nothing, and a reason supersedes the bare
+  `drew_again` for its draw.
+- Every signal also updates a `__baseline__` row holding the user's own overall
+  rate in that context. Genres are shrunk toward that baseline, not toward 0.5.
+- Weights decay with a 60-day half-life inside a 180-day window.
+- At draw time each game gets `preferencePoints` in ±8, averaged across its
+  top-level genres and weighted by inverse genre frequency.
+
+The term is **not** part of the score used for ranking. The pool is sorted by fit
+and truncated twice (32-game deck, ~13-game finalist slice), so a term inside the
+ranking would decide which games can be drawn at all. `preferencePoints` is
+applied only in `drawVaultGame`'s softmax, where it can reweight but never gate.
+
+Because that softmax normalises by `maxScore` before exponentiating, it is
+shift-invariant: a constant offset across all candidates cancels out. Only the
+*spread* of `preferencePoints` affects selection. This is why the current
+all-negative values (see P1.2) are not in themselves a problem.
+
+The experiment arm is drawn **per draw**, not per user, and rides on each event
+as a property. Quick Draw is uniform by design and takes no part in it.
+
+---
+
+## P1 — currently prevents the system from working
+
+### 1. Draw retention is deleting the training data
+
+`trim_vault_draw_history_after_insert` on `vault_draws` keeps only the latest 50
+draws per user:
+
+```sql
+delete from public.vault_draws
+where user_id = new.user_id
+  and id in (select id from public.vault_draws
+             where user_id = new.user_id order by drawn_at desc offset 50);
+```
+
+`vault_draw_events` cascades when its parent draw is trimmed. **The most active
+user is already at exactly 50 draws**, so every draw they make now permanently
+destroys the oldest one and its events.
+
+This undercuts the whole feature for precisely the users who use it most. The
+180-day lookback and 60-day half-life are theoretical for anyone at the cap, and
+the positive signals the model most needs will be destroyed as fast as they
+accumulate.
+
+Options, cheapest first:
+
+- Raise the trim threshold. The retention exists to bound a history UI that only
+  reads 50; the learner wants far more. Note `docs/database-architecture.md`
+  treats retention as an explicit product decision, so this is a call to make
+  deliberately rather than quietly.
+- Or decouple learning from `vault_draws` entirely: append signals to a durable
+  summary table at event time, so retention on the history table stops being the
+  learner's memory. Costs idempotency — the current full rebuild cannot
+  double-count, an append-only ledger can.
+
+Recommendation: raise the cap first, since it is one statement and buys time.
+
+### 2. No positive signal exists yet, and several paths are untested in production
+
+At time of writing: 20 events total, of which 18 are bare `drew_again`, and
+**zero** are `liked`, `opened_on_steam` or any `reroll_*` reason.
+
+Consequences:
+
+- Every genre currently scores negative. Harmless today (softmax is
+  shift-invariant, above) but it means the term is doing almost nothing.
+- The reroll-reason logic and the positive-signal paths have unit tests but have
+  never run against real input.
+- Both experiment tiles will read empty until real launches land.
+
+Nothing to build here — it needs usage. But do not read the experiment tiles as
+evidence of anything until positives exist.
+
+---
+
+## P2 — correctness and robustness
+
+### 3. The baseline is anchored at 0.5 when a user has no positives
+
+`baselineRate` shrinks the `__baseline__` row toward a fixed 0.5. For a user with
+zero positive events the baseline sits artificially high, so every genre reads as
+below-baseline, and genres are then separated mostly by how much evidence they
+have rather than by rate.
+
+Currently harmless because only the spread matters. It would stop being harmless
+if `preferencePoints` were ever displayed as a number, used outside a softmax, or
+compared across users. Better anchor: the population rate across all users.
+
+### 4. The nightly rebuild skips its stale sweep on an empty read
+
+`rebuildGenrePreferences` returns early when there are no draws or no events
+(`lib/genre-preference-worker.ts:107,112`), before the sweep that deletes stale
+rows. Deliberate — it fails safe, keeping old preferences rather than wiping them
+on a transient empty read — but it does mean preferences never clear if all
+activity genuinely disappears. Revisit if that case ever becomes real.
+
+### 5. Cold start: new users learn nothing
+
+A new user has no rows, so the term is inert until they generate signal, which at
+current volumes is a long time. Population-level genre priors would give them
+something on day one, shrunk out as their own evidence arrives. Depends on 3.
+
+### 6. Preference load fails silently
+
+`listGenrePreferences` catches and returns `[]` so a failure degrades to the
+unweighted recommender rather than breaking the draw. Right behaviour, but there
+is no alerting, so a persistent failure would look exactly like "the feature does
+nothing". Worth a counter on the worker-run record or a PostHog event.
+
+---
+
+## P3 — genuine improvements, not yet worth the cost
+
+### 7. Learn contrastively from deck composition
+
+The real signal in a draw is "picked C from a deck that also contained A and B" —
+a ranking observation worth far more than three independent binary labels, which
+matters enormously at these volumes. The right model is a conditional logit over
+the deck.
+
+Blocked on data: deck composition is not recorded at draw time. Doing this means
+storing the deck (or a hash of it) per draw, which interacts with P1.1.
+
+### 8. Genre keys are coarse
+
+Top-level genres were the right call at this data volume — the full eight-tag list
+spreads signal too thin to accumulate. Revisit once there is materially more data;
+sub-genres are where the interesting preferences actually live.
+
+---
+
+## Reading the experiment
+
+Two tiles on [Product Funnels](https://eu.posthog.com/project/223890/dashboard/902642):
+
+- **Experiment · genre learning vs control (draw → launch)** — the headline rate.
+- **Experiment · rerolls before launch, by arm** — mean `reroll_index` on
+  `vault_pick_launched`. This is the sensitive one: a continuous metric needs far
+  fewer samples than a binary rate. Lower is better.
+
+Expect the binary rate to be uninformative for a long time. Per-draw
+randomisation removes between-user variance, which is the single biggest win
+available at this user count, but it cannot manufacture events that do not exist.
+
+Kill switch: PostHog flag `vault-genre-learning` (id 253726). Turning it off puts
+every draw in control.
+
+---
+
+## Infrastructure risk worth addressing
+
+### Schema changes are not in version control
+
+There is no migrations directory and no migration tooling. Schema is applied
+directly to production through the Management API, so the repo does not describe
+the database it depends on. The table this feature added exists only as the
+statements below and whatever is live.
+
+Two footguns this caused, both of which cost a failed production run:
+
+- A new table needs explicit grants. RLS-enabled with no policies is the
+  convention here (everything goes through the service role), but the service
+  role still needs table privileges — creating the table is not enough.
+- `alter table` for the fractional counts had to be applied by hand, so any
+  rebuild of this database from the repo would produce integer columns.
+
+Applied to production 2026-08-18, recorded here because nothing else records it:
+
+```sql
+create table public.user_genre_preferences (
+  user_id uuid not null references public.app_users(id) on delete cascade,
+  genre text not null,
+  context_mood text not null default 'any',
+  positive double precision not null default 0 check (positive >= 0),
+  total double precision not null default 0 check (total >= 0),
+  updated_at timestamptz not null default now(),
+  constraint user_genre_preferences_pkey primary key (user_id, genre, context_mood),
+  constraint user_genre_preferences_context_mood_check
+    check (context_mood = any (array['any','brain-off','chill','intense'])),
+  constraint user_genre_preferences_positive_lte_total check (positive <= total)
+);
+
+alter table public.user_genre_preferences enable row level security;
+create index user_genre_preferences_user_idx on public.user_genre_preferences (user_id);
+grant select, insert, update, delete on public.user_genre_preferences to service_role;
+```
+
+Adopting Supabase migrations properly is the real fix. Until then, every schema
+change should be appended to a file like this one.
+
+---
+
+## Unrelated work still outstanding
+
+Carried forward, not touched by this feature:
+
+- **872 games in `duration_status = 'review_required'`.** IGDB is exhausted.
+  `npm run duration:hltb` needs the service-role key, which Vercel marks
+  Sensitive, so it must be run locally.
+- **4–7 games fail every catalogue-metadata run.** Never diagnosed. Suspected
+  delisted apps; unconfirmed.
+- **Platform/Deck backfill**, ~2,100 of 2,279 remaining at 80/run. Mac and Steam
+  Deck modes stay near-useless until it finishes, since unknown Deck
+  compatibility is excluded by design.
+- **`refreshNightlyMetadata` gives library refresh a hard 90s budget** and defers
+  the rest. `librariesDeferred` was 0 at 8 users; it will climb.
+- **Visual standardisation**, parked at the user's call. Spacing now lives once
+  on `.appContent` and colours map to `globals.css` tokens, but panels still read
+  as inconsistent. Verify against the rendered page, never by reading CSS.
