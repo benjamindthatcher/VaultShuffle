@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { ANY_MOOD_CONTEXT, canonicalPreferenceGenre, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
+import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
 import type { VaultDrawEventType } from "@/lib/vault-history";
 import type { VaultMoodId } from "@/lib/demo-data";
 
@@ -12,24 +12,51 @@ import type { VaultMoodId } from "@/lib/demo-data";
  */
 const LOOKBACK_DAYS = 180;
 
+/** Taste drifts, so evidence loses half its weight every this many days. */
+const RECENCY_HALF_LIFE_DAYS = 60;
+
+type Signal = {
+  positive: number;
+  total: number;
+  /** Mood-scoped only: says nothing about the genre in general. */
+  moodOnly?: boolean;
+};
+
 /**
- * How loudly each event speaks. Strong signals count double so that "opened it on
- * Steam" outweighs "rerolled past it" without needing fractional counts: positive
- * and total stay integers, which keeps the smoothing in the score easy to reason
- * about.
+ * How loudly each event speaks, and about what.
  *
- * A reroll is only a weak negative on purpose. Users reroll for reasons that have
- * nothing to do with genre — wrong length, played it last week — so treating it as
- * a strong signal would teach the recommender noise.
+ * The reroll reasons matter more than the reroll itself. A game rerolled for
+ * being too long says nothing about its genre — it says the session estimate was
+ * wrong — so counting it as a genre negative actively teaches the model the wrong
+ * lesson. Only "not interested" is a real statement about taste; "wrong mood" is a
+ * statement about this context and is recorded against the mood row alone.
+ *
+ * Weights are relative, and get scaled by recency before they are accumulated.
  */
-const EVENT_WEIGHTS: Partial<Record<VaultDrawEventType, { positive: number; total: number }>> = {
+const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
   opened_on_steam: { positive: 2, total: 2 },
   liked: { positive: 2, total: 2 },
   pinned: { positive: 1, total: 1 },
-  drew_again: { positive: 0, total: 1 },
+
   disliked: { positive: 0, total: 2 },
-  slept: { positive: 0, total: 2 }
+  slept: { positive: 0, total: 2 },
+  reroll_not_interested: { positive: 0, total: 2 },
+  reroll_wrong_mood: { positive: 0, total: 1, moodOnly: true },
+
+  // The bare reroll is the weakest signal there is: it is also just how the
+  // product is used. It applies only when the user gave no more specific reason.
+  drew_again: { positive: 0, total: 1 }
 };
+
+/**
+ * Reasons that describe something other than genre. Present so they are visibly
+ * considered and deliberately unused, rather than looking like an oversight.
+ */
+const NON_GENRE_REASONS: VaultDrawEventType[] = [
+  "reroll_too_long",
+  "reroll_not_tonight",
+  "reroll_played_enough"
+];
 
 type DrawRow = {
   id: string;
@@ -38,7 +65,7 @@ type DrawRow = {
   mood: VaultMoodId | null;
 };
 
-type EventRow = { draw_id: string; event_type: string };
+type EventRow = { draw_id: string; event_type: string; created_at: string };
 type CatalogRow = { steam_appid: number | string; name: string | null; genres: string[] | null };
 type Tally = { positive: number; total: number };
 
@@ -88,24 +115,45 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
   // user -> "context::genre" -> tally
   const tallies = new Map<string, Map<string, Tally>>();
-
+  const eventsByDraw = new Map<string, EventRow[]>();
   for (const event of events) {
-    const weight = EVENT_WEIGHTS[event.event_type as VaultDrawEventType];
-    if (!weight) continue;
-    const draw = drawsById.get(event.draw_id);
+    const bucket = eventsByDraw.get(event.draw_id);
+    if (bucket) bucket.push(event); else eventsByDraw.set(event.draw_id, [event]);
+  }
+
+  for (const [drawId, drawEvents] of eventsByDraw) {
+    const draw = drawsById.get(drawId);
     if (!draw) continue;
     const genres = genresByAppId.get(Number(draw.steam_appid));
     if (!genres?.length) continue;
 
-    summary.scoredEvents += 1;
-    const userTallies = tallies.get(draw.user_id) ?? new Map<string, Tally>();
-    tallies.set(draw.user_id, userTallies);
+    // A reroll reason supersedes the bare reroll it belongs to. Both are written
+    // for the same draw, and counting them together would let one rejection be
+    // recorded twice while a rejection with no reason counted once.
+    const hasReason = drawEvents.some((event) => isRerollReason(event.event_type));
 
-    for (const genre of genres) {
-      // Every event writes the mood-agnostic row as well as the mood-scoped one,
-      // so the fallback in scoring always has something to fall back to.
-      addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, weight);
-      if (draw.mood) addTally(userTallies, `${draw.mood}::${genre}`, weight);
+    for (const event of drawEvents) {
+      const eventType = event.event_type as VaultDrawEventType;
+      if (eventType === "drew_again" && hasReason) continue;
+      const signal = EVENT_SIGNALS[eventType];
+      if (!signal) continue;
+
+      const decay = recencyWeight(event.created_at);
+      if (decay <= 0) continue;
+      summary.scoredEvents += 1;
+
+      const userTallies = tallies.get(draw.user_id) ?? new Map<string, Tally>();
+      tallies.set(draw.user_id, userTallies);
+
+      const positive = signal.positive * decay;
+      const total = signal.total * decay;
+
+      // Every signal also updates the user's own baseline, which is what each
+      // genre is later measured against.
+      for (const genre of [...genres, BASELINE_GENRE]) {
+        if (!signal.moodOnly) addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, positive, total);
+        if (draw.mood) addTally(userTallies, `${draw.mood}::${genre}`, positive, total);
+      }
     }
   }
 
@@ -117,8 +165,8 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
         user_id: userId,
         context_mood: key.slice(0, separator),
         genre: key.slice(separator + 2),
-        positive: tally.positive,
-        total: tally.total,
+        positive: Number(tally.positive.toFixed(4)),
+        total: Number(tally.total.toFixed(4)),
         updated_at: new Date().toISOString()
       };
     })
@@ -129,11 +177,27 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   return summary;
 }
 
-function addTally(userTallies: Map<string, Tally>, key: string, weight: { positive: number; total: number }) {
+function addTally(userTallies: Map<string, Tally>, key: string, positive: number, total: number) {
   const tally = userTallies.get(key) ?? { positive: 0, total: 0 };
-  tally.positive += weight.positive;
-  tally.total += weight.total;
+  tally.positive += positive;
+  tally.total += total;
   userTallies.set(key, tally);
+}
+
+function isRerollReason(eventType: string) {
+  return eventType.startsWith("reroll_");
+}
+
+/**
+ * Exponential decay rather than the flat window it replaces: a 179-day-old signal
+ * counting for exactly as much as yesterday's, and then nothing at all the next
+ * day, is not a description of how taste changes.
+ */
+function recencyWeight(createdAt: string) {
+  const age = Date.now() - new Date(createdAt).getTime();
+  if (!Number.isFinite(age)) return 0;
+  const ageDays = Math.max(0, age / 86_400_000);
+  return Math.pow(0.5, ageDays / RECENCY_HALF_LIFE_DAYS);
 }
 
 type AdminClient = ReturnType<typeof getSupabaseAdmin>;
@@ -144,7 +208,7 @@ async function fetchEvents(supabase: AdminClient, drawIds: string[]) {
   for (let index = 0; index < drawIds.length; index += 200) {
     const { data, error } = await supabase
       .from("vault_draw_events")
-      .select("draw_id, event_type")
+      .select("draw_id, event_type, created_at")
       .in("draw_id", drawIds.slice(index, index + 200));
     if (error) throw error;
     events.push(...((data ?? []) as EventRow[]));

@@ -6,6 +6,7 @@ import {
   buildVaultDeck,
   buildVaultPool,
   drawQuickVaultGame,
+  drawVaultGame,
   scoreVaultGame,
   vaultMatchLabel
 } from "./vault.ts";
@@ -121,6 +122,7 @@ test("keeps the deck at 32 and rotates a rerolled game behind replacements", () 
   const pool = Array.from({ length: 40 }, (_, index) => ({
     game: makeGame({ id: `game-${index}`, title: `Game ${String(index).padStart(2, "0")}` }),
     score: 100 - index,
+    preferencePoints: 0,
     reasons: []
   }));
 
@@ -185,4 +187,40 @@ test("a dormant game says so, and a recently played one does not", () => {
 
   assert.ok(dormant.reasons.includes("Not played in 7 months"));
   assert.ok(!recent.reasons.some((reason) => reason.startsWith("Not played")));
+});
+
+test("a learned preference changes the odds but never the candidate set", () => {
+  // The regression this guards: the pool is sorted then truncated twice, so a
+  // preference folded into `score` would make disfavoured games undrawable
+  // instead of merely less likely.
+  const pool = Array.from({ length: 40 }, (_, index) => ({
+    game: makeGame({ id: `game-${index}`, title: `Game ${String(index).padStart(2, "0")}` }),
+    score: 100 - index,
+    // The last game in the deck is heavily disfavoured.
+    preferencePoints: index === 31 ? -8 : 0,
+    reasons: []
+  }));
+
+  const deck = buildVaultDeck(pool);
+  assert.ok(deck.some((entry) => entry.game.id === "game-31"), "ranking must ignore preference");
+
+  const always = () => 0.999999;
+  const withPreference = drawVaultGame(deck, null, always, true);
+  const without = drawVaultGame(deck, null, always, false);
+
+  // Both arms draw from the same finalists; only the weighting differs.
+  assert.ok(withPreference && without);
+});
+
+test("the preference term shifts selection odds in the arm that uses it", () => {
+  const pool = [
+    { game: makeGame({ id: "liked", title: "Liked" }), score: 80, preferencePoints: 8, reasons: [] },
+    { game: makeGame({ id: "disliked", title: "Disliked" }), score: 80, preferencePoints: -8, reasons: [] }
+  ];
+
+  // Chosen to sit between the two arms' cutoffs: with equal weights the draw
+  // falls past the favoured game, and the tilt is what pulls it back.
+  const rng = () => 0.6;
+  assert.equal(drawVaultGame(pool, null, rng, false)?.id, "disliked");
+  assert.equal(drawVaultGame(pool, null, rng, true)?.id, "liked");
 });

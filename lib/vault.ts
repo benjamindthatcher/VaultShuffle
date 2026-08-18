@@ -1,6 +1,6 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
-import { genrePreferenceAdjustment, type GenrePreferenceIndex } from "./genre-preferences.ts";
+import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
 import type { VaultMoodScores } from "./vault-matching.ts";
 
 export const MAX_VAULT_GENRES = 3;
@@ -27,7 +27,15 @@ export const vaultGoalOptions = [
 
 export type VaultPoolEntry = {
   game: DemoGame;
+  /** Fit against what the user asked for, 0-100. Learned preference is NOT in here. */
   score: number;
+  /**
+   * The learned tilt, kept separate from `score` on purpose. The pool is sorted
+   * and then truncated twice (deck, then finalists), so anything folded into the
+   * ranking decides which games can be drawn at all rather than how likely they
+   * are. This is applied at selection time instead, where it can only reweight.
+   */
+  preferencePoints: number;
   reasons: string[];
 };
 
@@ -138,6 +146,11 @@ export function buildVaultPool({
 }) {
   const collectionDraw = isCollectionDraw(selectedCollectionId);
   const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
+  // Genre rarity is measured against this user's own library, which is the corpus
+  // the draw actually chooses from.
+  const preferenceContext: GenrePreferenceContextData | null = genrePreferences
+    ? { index: genrePreferences, genreWeights: buildGenreWeightIndex(games) }
+    : null;
   const eligibility = getVaultEligibility({
     games,
     session,
@@ -156,8 +169,9 @@ export function buildVaultPool({
       collectionDraw ? null : goal,
       canonicalSelectedGenres,
       Date.now(),
-      genrePreferences
+      preferenceContext
     ))
+    // Ordering is fit only. See VaultPoolEntry.preferencePoints.
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
       return left.game.title.localeCompare(right.game.title);
@@ -196,7 +210,17 @@ export function drawQuickVaultGame(
   return eligible[Math.min(eligible.length - 1, Math.floor(rng() * eligible.length))].game;
 }
 
-export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string | null, rng = Math.random) {
+/**
+ * `applyPreferences` is the experiment arm. It is decided per draw rather than per
+ * user: with single-digit users a between-user split has nowhere near the power to
+ * resolve a difference, whereas letting every user act as their own control does.
+ */
+export function drawVaultGame(
+  pool: VaultPoolEntry[],
+  previousWinnerId?: string | null,
+  rng = Math.random,
+  applyPreferences = false
+) {
   if (!pool.length) return null;
   const eligible = pool.length > 1 && previousWinnerId
     ? pool.filter((entry) => entry.game.id !== previousWinnerId)
@@ -204,9 +228,13 @@ export function drawVaultGame(pool: VaultPoolEntry[], previousWinnerId?: string 
   const finalistCount = eligible.length <= 5
     ? eligible.length
     : Math.min(20, Math.max(3, Math.ceil(eligible.length * 0.4)));
+  // Sliced on fit alone, so both arms consider exactly the same candidates and the
+  // preference term can only change the odds within that set, never the set.
   const finalists = eligible.slice(0, finalistCount);
-  const maxScore = Math.max(...finalists.map((entry) => entry.score));
-  const weights = finalists.map((entry) => Math.exp((entry.score - maxScore) / VAULT_SELECTION_TEMPERATURE));
+  const selectionScore = (entry: VaultPoolEntry) =>
+    entry.score + (applyPreferences ? entry.preferencePoints : 0);
+  const maxScore = Math.max(...finalists.map(selectionScore));
+  const weights = finalists.map((entry) => Math.exp((selectionScore(entry) - maxScore) / VAULT_SELECTION_TEMPERATURE));
   const weightTotal = weights.reduce((total, weight) => total + (Number.isFinite(weight) ? weight : 0), 0);
 
   if (!Number.isFinite(weightTotal) || weightTotal <= 0) {
@@ -230,7 +258,7 @@ export function scoreVaultGame(
   goal: VaultGoalId | null,
   selectedGenres: string[],
   now: number = Date.now(),
-  genrePreferences: GenrePreferenceIndex | null = null
+  preferenceContext: GenrePreferenceContextData | null = null
 ): VaultPoolEntry {
   let earnedPoints = 0;
   let availablePoints = 0;
@@ -280,17 +308,15 @@ export function scoreVaultGame(
   if (dormancy) reasons.push(dormancy);
   if (genreReason) reasons.push(genreReason);
 
-  const baseScore = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
+  const score = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
 
-  // The learned term is additive rather than another weighted component, so it can
-  // only ever separate games that already fit the request. Folding it into
-  // availablePoints would let a preference dilute an exact session or mood match,
-  // which is the one thing the user explicitly asked for.
-  const preference = genrePreferenceAdjustment(genrePreferences, game.genres, game.title, mood);
+  // Reported alongside the score rather than inside it. The explanation still
+  // reaches the UI, so the user sees why a game was favoured even though the match
+  // percentage continues to mean "how well this fits what you asked for".
+  const preference = genrePreferenceAdjustment(preferenceContext, game.genres, game.title, mood);
   if (preference.reason) reasons.push(preference.reason);
 
-  const score = Math.max(0, Math.min(100, Math.round(baseScore + preference.points)));
-  return { game, score, reasons: reasons.slice(0, 4) };
+  return { game, score, preferencePoints: preference.points, reasons: reasons.slice(0, 4) };
 }
 
 export function vaultMatchLabel(score: number) {

@@ -2,17 +2,43 @@ import type { VaultMoodId } from "./demo-data.ts";
 import { topLevelGenresFor } from "./genres.ts";
 
 /**
- * How far a learned genre preference may move a score that is otherwise 0-100.
- * Deliberately small: the session/mood/goal match is what the user actually asked
- * for, and a preference is only ever a tiebreaker between games that already fit.
+ * How far a learned preference may tilt the draw.
+ *
+ * Calibrated against VAULT_SELECTION_TEMPERATURE (15) rather than the 0-100 score
+ * range, because the temperature is what actually decides how much a point is
+ * worth: at ±8 the widest possible spread between two finalists is 16 points,
+ * which is an odds ratio of e^(16/15) ≈ 2.9. That is a real tilt without letting
+ * a learned guess dominate a game the user explicitly asked for.
+ *
+ * The term is deliberately kept out of the ranking used to build the deck and the
+ * finalist slice — see buildVaultPool. Ranking is truncated twice (32 then ~13),
+ * so a term that moved the ordering would silently make disfavoured games
+ * undrawable rather than merely less likely.
  */
-export const VAULT_PREFERENCE_MAX_POINTS = 15;
+export const VAULT_PREFERENCE_MAX_POINTS = 8;
 
-/** Below this the preference is too weak to be worth a line of explanation. */
-const PREFERENCE_REASON_THRESHOLD = 3;
+/**
+ * Below this the preference is too weak to be worth a line of explanation. Set
+ * above what a single event can produce, so the UI never claims a pattern from one
+ * data point.
+ */
+const PREFERENCE_REASON_THRESHOLD = 2;
 
-/** The mood-agnostic bucket, used when the mood-specific one has nothing to say. */
+/**
+ * Strength of the prior, in weighted event units. A genre needs roughly this much
+ * evidence before it moves halfway from its prior to its own observed rate.
+ *
+ * Eight is four strong events, deliberately more than the two units a single
+ * like is worth: one enthusiastic evening should be visible in the numbers and
+ * still not be enough to reorder anything.
+ */
+const PRIOR_STRENGTH = 8;
+
+/** The mood-agnostic bucket, used as the prior for each mood-specific one. */
 export const ANY_MOOD_CONTEXT = "any";
+
+/** Sentinel row holding the user's own overall rate rather than a genre's. */
+export const BASELINE_GENRE = "__baseline__";
 
 export type GenrePreferenceContext = VaultMoodId | typeof ANY_MOOD_CONTEXT;
 
@@ -25,13 +51,21 @@ export type GenrePreference = {
 
 export type GenrePreferenceIndex = Map<string, GenrePreference>;
 
+/** Inverse-frequency weight per genre, so common genres carry less credit. */
+export type GenreWeightIndex = Map<string, number>;
+
+export type GenrePreferenceContextData = {
+  index: GenrePreferenceIndex;
+  genreWeights: GenreWeightIndex | null;
+};
+
 /**
- * Laplace-style smoothing towards 0.5 (neutral). The +2/+4 is what stops a single
- * event creating a preference: one "liked" lands at 4/6, not 1/1, so it nudges
- * rather than declares.
+ * Shrinks an observed rate toward a prior. With no evidence the result *is* the
+ * prior, which is what makes an unseen genre score exactly neutral instead of
+ * accidentally looking better than a genre the user has actually rejected.
  */
-export function smoothedPreference(positive: number, total: number) {
-  return (positive + 2) / (total + 4);
+export function shrunkRate(positive: number, total: number, prior: number, strength = PRIOR_STRENGTH) {
+  return (positive + strength * prior) / (total + strength);
 }
 
 export function preferenceKey(genre: string, contextMood: GenrePreferenceContext) {
@@ -60,6 +94,36 @@ export function canonicalPreferenceGenre(value: string) {
   return value.trim().toLowerCase().replace(/[_\s]+/g, "-");
 }
 
+/**
+ * Inverse document frequency over whatever corpus is to hand, normalised so the
+ * average weight is 1 and the overall strength of the term is unchanged.
+ *
+ * Without this, Action (on 54% of the catalogue) earns as much credit as a genre
+ * that actually distinguishes one game from another, so liking a single action
+ * game teaches the model far more than it should.
+ */
+export function buildGenreWeightIndex(gamesGenres: Array<{ genres: string[]; title: string }>): GenreWeightIndex {
+  const documentCount = gamesGenres.length;
+  const weights: GenreWeightIndex = new Map();
+  if (!documentCount) return weights;
+
+  const frequency = new Map<string, number>();
+  for (const game of gamesGenres) {
+    for (const genre of new Set(preferenceGenresFor(game.genres, game.title))) {
+      frequency.set(genre, (frequency.get(genre) ?? 0) + 1);
+    }
+  }
+  if (!frequency.size) return weights;
+
+  for (const [genre, count] of frequency) {
+    weights.set(genre, Math.log(1 + documentCount / Math.max(1, count)));
+  }
+
+  const mean = [...weights.values()].reduce((total, weight) => total + weight, 0) / weights.size;
+  if (mean > 0) for (const [genre, weight] of weights) weights.set(genre, weight / mean);
+  return weights;
+}
+
 function displayPreferenceGenre(value: string) {
   if (value === "rpg") return "RPG";
   return value.replace(/(^|-)([a-z])/g, (_match, separator: string, letter: string) =>
@@ -71,23 +135,59 @@ function moodLabel(mood: VaultMoodId) {
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }
 
+function rowFor(index: GenrePreferenceIndex, genre: string, context: GenrePreferenceContext) {
+  const row = index.get(preferenceKey(genre, context));
+  return row && row.total > 0 ? row : null;
+}
+
 /**
- * Resolves the context-scoped row first and only falls back to the mood-agnostic
- * one when the specific context has no evidence, because "likes RPGs when Intense"
- * is a sharper statement than "likes RPGs" and should win where it exists.
+ * The user's own rate of responding well, which is what a genre is judged against.
+ *
+ * Anchoring on a fixed 0.5 was wrong: rerolling is the ordinary way to use the
+ * Vault and most draws produce no positive event at all, so a genre drawing a
+ * perfectly typical response still scored negative, and every genre with evidence
+ * ranked below every genre without any.
  */
-function lookupPreference(
-  index: GenrePreferenceIndex,
-  genre: string,
-  mood: VaultMoodId | null
-): { preference: GenrePreference; moodScoped: boolean } | null {
-  if (mood) {
-    const scoped = index.get(preferenceKey(genre, mood));
-    if (scoped && scoped.total > 0) return { preference: scoped, moodScoped: true };
+function baselineRate(index: GenrePreferenceIndex, mood: VaultMoodId | null) {
+  const general = rowFor(index, BASELINE_GENRE, ANY_MOOD_CONTEXT);
+  const generalRate = general ? shrunkRate(general.positive, general.total, 0.5) : 0.5;
+  if (!mood) return generalRate;
+
+  const scoped = rowFor(index, BASELINE_GENRE, mood);
+  return scoped ? shrunkRate(scoped.positive, scoped.total, generalRate) : generalRate;
+}
+
+/**
+ * Two-level shrinkage: the mood-agnostic row is the prior for the mood-specific
+ * one, which is itself shrunk toward the user's baseline.
+ *
+ * The previous hard switch on `total > 0` let a single event in one mood override
+ * twenty in the general row. Blending means the mood context only takes over as
+ * fast as it earns the right to.
+ */
+function genreRate(index: GenrePreferenceIndex, genre: string, mood: VaultMoodId | null, baseline: number) {
+  const general = rowFor(index, genre, ANY_MOOD_CONTEXT);
+  const generalRate = general ? shrunkRate(general.positive, general.total, baseline) : baseline;
+  if (!mood) return { rate: generalRate, moodScoped: false };
+
+  const scoped = rowFor(index, genre, mood);
+  if (!scoped) return { rate: generalRate, moodScoped: false };
+  return { rate: shrunkRate(scoped.positive, scoped.total, generalRate), moodScoped: true };
+}
+
+/**
+ * Maps a rate onto points, normalised separately above and below the baseline.
+ *
+ * The distance from the baseline to 1 and to 0 are not equal — for a user who
+ * launches a fifth of their draws there is four times as much room above as
+ * below — so a single linear factor would make positives dwarf negatives.
+ */
+function pointsForRate(rate: number, baseline: number) {
+  if (rate >= baseline) {
+    const headroom = 1 - baseline;
+    return headroom <= 0 ? 0 : VAULT_PREFERENCE_MAX_POINTS * ((rate - baseline) / headroom);
   }
-  const general = index.get(preferenceKey(genre, ANY_MOOD_CONTEXT));
-  if (general && general.total > 0) return { preference: general, moodScoped: false };
-  return null;
+  return baseline <= 0 ? 0 : VAULT_PREFERENCE_MAX_POINTS * ((rate - baseline) / baseline);
 }
 
 export type GenrePreferenceAdjustment = { points: number; reason: string | null };
@@ -96,40 +196,44 @@ const NO_ADJUSTMENT: GenrePreferenceAdjustment = { points: 0, reason: null };
 
 /**
  * The single additive term the recommender learns. Averaged across the game's
- * top-level genres so a three-genre game cannot collect three times the bonus of
- * a one-genre game.
+ * top-level genres, weighted by how discriminative each genre is, so a game
+ * cannot collect a bonus simply for carrying more labels.
  */
 export function genrePreferenceAdjustment(
-  index: GenrePreferenceIndex | null,
+  context: GenrePreferenceContextData | null,
   gameGenres: string[],
   title: string,
   mood: VaultMoodId | null
 ): GenrePreferenceAdjustment {
+  const index = context?.index;
   if (!index || index.size === 0) return NO_ADJUSTMENT;
 
   const genres = preferenceGenresFor(gameGenres, title);
   if (!genres.length) return NO_ADJUSTMENT;
 
-  let pointsTotal = 0;
-  let matched = 0;
+  const baseline = baselineRate(index, mood);
+  let weightedPoints = 0;
+  let weightTotal = 0;
   let strongest: { points: number; genre: string; moodScoped: boolean } | null = null;
 
   for (const genre of genres) {
-    const hit = lookupPreference(index, genre, mood);
-    if (!hit) continue;
+    const hasEvidence = rowFor(index, genre, ANY_MOOD_CONTEXT) || (mood && rowFor(index, genre, mood));
+    if (!hasEvidence) continue;
 
-    const smoothed = smoothedPreference(hit.preference.positive, hit.preference.total);
-    const points = (smoothed - 0.5) * 2 * VAULT_PREFERENCE_MAX_POINTS;
-    pointsTotal += points;
-    matched += 1;
+    const { rate, moodScoped } = genreRate(index, genre, mood, baseline);
+    const points = pointsForRate(rate, baseline);
+    const weight = context.genreWeights?.get(genre) ?? 1;
+
+    weightedPoints += points * weight;
+    weightTotal += weight;
     if (!strongest || Math.abs(points) > Math.abs(strongest.points)) {
-      strongest = { points, genre, moodScoped: hit.moodScoped };
+      strongest = { points, genre, moodScoped };
     }
   }
 
-  if (!matched || !strongest) return NO_ADJUSTMENT;
+  if (!weightTotal || !strongest) return NO_ADJUSTMENT;
 
-  const points = pointsTotal / matched;
+  const points = weightedPoints / weightTotal;
   return { points, reason: preferenceReason(points, strongest, mood) };
 }
 

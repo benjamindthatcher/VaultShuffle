@@ -14,7 +14,7 @@ import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
-import { useGenreLearning } from "@/components/vault/useGenreLearning";
+import { useGenreLearning, type GenreLearningArm } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
 import {
@@ -68,6 +68,8 @@ export default function VaultPage() {
   const guestDrawCountRef = useRef(0);
   const [lastDrawWasQuick, setLastDrawWasQuick] = useState(false);
   const [rerollCount, setRerollCount] = useState(0);
+  const [drawArm, setDrawArm] = useState<GenreLearningArm>("control");
+  const drawRerollIndexRef = useRef(0);
   const [feedbackGiven, setFeedbackGiven] = useState<"liked" | "disliked" | null>(null);
   const [rerollReasonGiven, setRerollReasonGiven] = useState(false);
   const drawingRef = useRef(false);
@@ -79,7 +81,14 @@ export default function VaultPage() {
   const guestPromptTimerRef = useRef<number | null>(null);
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
-  const { genrePreferences } = useGenreLearning(learnedGenrePreferences);
+  const { genrePreferences, nextArm } = useGenreLearning(learnedGenrePreferences);
+  // Attached to every follow-up event so the outcome can be attributed to the arm
+  // that produced the draw, and so rerolls-to-launch is readable straight off
+  // vault_pick_launched.
+  const drawEventAnalytics = useCallback(
+    () => ({ vault_genre_learning: drawArm, reroll_index: drawRerollIndexRef.current }),
+    [drawArm]
+  );
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
   const drawableGames = useMemo(() => ownedGames.filter((game) => game.status !== "Completed" && game.status !== "Slept" && !snoozedIds.has(game.id)), [ownedGames, snoozedIds]);
@@ -281,10 +290,13 @@ export default function VaultPage() {
       drawnCycleRef.current.clear();
       availablePool = activeDeck;
     }
+    // Quick Draw is uniform by design and takes no part in the experiment.
+    const arm = quick ? "control" : nextArm();
     const nextPick = quick
       ? drawQuickVaultGame(availablePool, currentPick?.id)
-      : drawVaultGame(availablePool, currentPick?.id);
+      : drawVaultGame(availablePool, currentPick?.id, Math.random, arm === "test");
     if (!nextPick) return;
+    setDrawArm(arm);
     drawnCycleRef.current.add(nextPick.id);
 
     drawingRef.current = true;
@@ -309,6 +321,7 @@ export default function VaultPage() {
         eligiblePoolCount: quick ? quickPool.length : fullPool.length,
         rerollIndex: drawnCycleRef.current.size - 1
       });
+      drawRerollIndexRef.current = drawnCycleRef.current.size - 1;
       if (activeDraw !== activeDrawRef.current) return;
       setCurrentDrawId(draw.id);
       setHighlightedGameId(nextPick.id);
@@ -324,6 +337,7 @@ export default function VaultPage() {
         pool_size: quick ? quickPool.length : fullPool.length,
         deck_size: activeDeck.length,
         reroll_index: drawnCycleRef.current.size - 1,
+        vault_genre_learning: arm,
       });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
       queueGuestSignInPrompt();
@@ -682,14 +696,14 @@ export default function VaultPage() {
                 className={feedbackGiven === "liked" ? styles.feedbackOn : styles.feedbackButton}
                 aria-pressed={feedbackGiven === "liked"}
                 disabled={Boolean(feedbackGiven)}
-                onClick={() => { setFeedbackGiven("liked"); void recordDrawEvent(currentDrawId, "liked"); }}
+                onClick={() => { setFeedbackGiven("liked"); void recordDrawEvent(currentDrawId, "liked", drawEventAnalytics()); }}
               >Yes</button>
               <button
                 type="button"
                 className={feedbackGiven === "disliked" ? styles.feedbackOn : styles.feedbackButton}
                 aria-pressed={feedbackGiven === "disliked"}
                 disabled={Boolean(feedbackGiven)}
-                onClick={() => { setFeedbackGiven("disliked"); void recordDrawEvent(currentDrawId, "disliked"); }}
+                onClick={() => { setFeedbackGiven("disliked"); void recordDrawEvent(currentDrawId, "disliked", drawEventAnalytics()); }}
               >Not really</button>
               {feedbackGiven ? <span className={styles.feedbackThanks}>Noted.</span> : null}
             </div> : null}
@@ -702,7 +716,7 @@ export default function VaultPage() {
                     key={reason.id}
                     type="button"
                     className={styles.feedbackButton}
-                    onClick={() => { setRerollReasonGiven(true); void recordDrawEvent(currentDrawId, reason.id); }}
+                    onClick={() => { setRerollReasonGiven(true); void recordDrawEvent(currentDrawId, reason.id, drawEventAnalytics()); }}
                   >{reason.label}</button>
                 ))}
               </div>
@@ -710,24 +724,24 @@ export default function VaultPage() {
 
             <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
             <div className={`${styles.resultActions}${!isLive ? ` ${styles.guestResultActions}` : ""}`}>
-              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam") : undefined}>
+              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong><small>{isLive ? "Launch the game" : "Open the store page"}</small></span>
               </a>
               {isLive ? <>
-              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned"); }}>
+              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
                 <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
               </button>
               </> : null}
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault({ deferCurrentPick: true, quick: lastDrawWasQuick }); }}>
+              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again", drawEventAnalytics()); void handleOpenVault({ deferCurrentPick: true, quick: lastDrawWasQuick }); }}>
                 <VaultResultActionIcon name="draw-again" /><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
               </button>
-              {isLive ? <><button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
+              {isLive ? <><button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
                 <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
                 <VaultResultActionIcon name="view-details" /><span className={styles.resultActionCopy}><strong>View Details</strong><small>See progress, notes and collections</small></span>
               </button>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed"); void completeGame(currentPick); }}>
+              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed", drawEventAnalytics()); void completeGame(currentPick); }}>
                 <VaultResultActionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
               </button></> : <a href="/api/auth/steam" className={styles.resultAction} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_result" })}>
                 <VaultResultActionIcon name="all-games" /><span className={styles.resultActionCopy}><strong>Shuffle My Library</strong><small>Connect Steam for personal draws</small></span>

@@ -1,37 +1,45 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { observeFeatureFlag, registerAnalyticsContext } from "@/lib/posthog-client";
+import { observeFeatureFlag } from "@/lib/posthog-client";
 import { buildGenrePreferenceIndex, type GenrePreference, type GenrePreferenceIndex } from "@/lib/genre-preferences";
 
-/** PostHog boolean flag, rolled out to a percentage of identified users. */
+/** PostHog boolean flag. Acts as the kill switch for the whole experiment. */
 export const VAULT_GENRE_LEARNING_FLAG = "vault-genre-learning";
 
+export type GenreLearningArm = "test" | "control";
+
 /**
- * Splits users between the learned recommender and the unweighted one.
+ * Makes the learned recommender measurable.
  *
- * With single-digit user numbers nobody can eyeball whether the learned term
- * helps, so it ships as a measurable experiment rather than a change: the assigned
- * variant is registered as a super-property, which puts it on every later event
- * and makes vault_pick_launched — the north-star metric — breakable down by arm
- * without any bespoke instrumentation.
+ * The arm is chosen per draw, not per user. A between-user split needs on the
+ * order of a thousand draws an arm to resolve a few points of launch rate, which
+ * at this user count would take years; randomising each draw makes every user
+ * their own control and removes between-user variance entirely.
  *
- * Returns null preferences for the control arm, which is exactly what
- * buildVaultPool treats as "score the old way".
+ * The flag stays a user-level kill switch so the experiment can be stopped
+ * outright, and `enabled` is false whenever flags cannot be resolved — an
+ * opted-out visitor is a clean control rather than a broken test.
  */
 export function useGenreLearning(preferences: GenrePreference[]) {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => observeFeatureFlag(VAULT_GENRE_LEARNING_FLAG, setEnabled), []);
 
-  useEffect(() => {
-    registerAnalyticsContext({ vault_genre_learning: enabled ? "test" : "control" });
-  }, [enabled]);
-
-  const index = useMemo<GenrePreferenceIndex | null>(
-    () => (enabled && preferences.length ? buildGenrePreferenceIndex(preferences) : null),
-    [enabled, preferences]
+  const genrePreferences = useMemo<GenrePreferenceIndex | null>(
+    () => (preferences.length ? buildGenrePreferenceIndex(preferences) : null),
+    [preferences]
   );
 
-  return { enabled, genrePreferences: index };
+  /**
+   * Rolled once per draw. Returns "control" when there is nothing learned yet, so
+   * the arms differ only where the term could actually change the outcome and the
+   * comparison is not diluted by draws that were identical in both.
+   */
+  function nextArm(): GenreLearningArm {
+    if (!enabled || !genrePreferences) return "control";
+    return Math.random() < 0.5 ? "test" : "control";
+  }
+
+  return { enabled, genrePreferences, nextArm };
 }

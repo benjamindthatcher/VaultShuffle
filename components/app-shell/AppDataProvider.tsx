@@ -67,7 +67,7 @@ type AppDataContextValue = {
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
   recordVaultDraw: (gameId: string, input: VaultDrawInput) => Promise<VaultDraw>;
   loadVaultHistory: () => Promise<void>;
-  recordDrawEvent: (drawId: string, eventType: VaultDrawEventType) => Promise<void>;
+  recordDrawEvent: (drawId: string, eventType: VaultDrawEventType, analytics?: Record<string, unknown>) => Promise<void>;
   clearVaultHistory: () => Promise<void>;
 };
 
@@ -389,11 +389,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return draw;
   }
 
-  async function recordDrawEvent(drawId: string, eventType: VaultDrawEventType) {
+  async function recordDrawEvent(drawId: string, eventType: VaultDrawEventType, analytics: Record<string, unknown> = {}) {
     // Analytics fire before the API call, not after it. "opened_on_steam" is
     // triggered by a link that navigates to a steam:// URL, so anything queued
     // behind an await is cancelled with the page and never reaches PostHog.
-    const properties: Record<string, unknown> = { draw_id: drawId, draw_action: eventType };
+    // The experiment arm and reroll depth ride along on every follow-up event:
+    // the arm is per draw, so it cannot be a super-property, and the outcome
+    // metric is measured on this event rather than on the draw that preceded it.
+    const properties: Record<string, unknown> = { draw_id: drawId, draw_action: eventType, ...analytics };
     if (eventType === "snoozed_7_days") properties.snooze_days = 7;
     if (eventType === "snoozed_30_days") properties.snooze_days = 30;
 
