@@ -18,6 +18,7 @@ export const ANALYTICS_EVENTS = {
   signInStarted: "sign_in_started",
   signedOut: "user_signed_out",
   steamLibrarySynced: "steam_library_synced",
+  steamImportFailed: "steam_import_failed",
 
   // The Vault loop. vault_pick_launched is the north-star metric: it is the point
   // at which VaultShuffle has actually solved the user's decision problem.

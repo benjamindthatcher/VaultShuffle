@@ -145,6 +145,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       await load();
       trackEvent(ANALYTICS_EVENTS.steamLibrarySynced, { imported_count: result.imported });
       return result.imported;
+    } catch (error) {
+      // A failed first import is the highest-intent moment in the funnel failing.
+      // Reporting only successes would leave it invisible, which is exactly how
+      // the Steam launch event stayed at zero for a month.
+      trackEvent(ANALYTICS_EVENTS.steamImportFailed, {
+        reason: error instanceof Error ? error.message : "unknown",
+        first_import: liveGames.length === 0
+      });
+      throw error;
     } finally {
       setIsSyncing(false);
     }
