@@ -213,8 +213,9 @@
 .libraryPage {
   padding-top: 22px;
 }
+/* display:none, not min-height:0. A zero-height child still participates in the
+   root's 12px grid gap, which is what made these two pages sit lower than the
+   Vault, whose hidden hero is display:none and contributes nothing. */
 .header {
-  min-height: 0;
-  padding-top: 0;
-  padding-bottom: 0;
+  display: none;
 }
