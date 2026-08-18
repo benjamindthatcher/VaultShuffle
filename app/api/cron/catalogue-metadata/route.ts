@@ -22,10 +22,15 @@ export async function GET(request: Request) {
       const totals = { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0, rateLimited: false };
       let batches = 0;
 
-      // Steam's store endpoint remains sequential, but the cron now claims
-      // another batch whenever time remains instead of stopping after 60.
-      while (Date.now() + 20_000 < deadlineAt) {
-        const batch = await processCatalogueQueue(50, undefined, deadlineAt);
+      // Steam throttles the store endpoint at roughly 200 lookups per five
+      // minutes. Running to that number means the last batch of every run is
+      // spent collecting failures and deferrals, so stop short of it: work that
+      // is deferred has to be claimed and retried later anyway.
+      const STEAM_LOOKUPS_PER_RUN = 150;
+
+      while (Date.now() + 20_000 < deadlineAt && totals.processed < STEAM_LOOKUPS_PER_RUN) {
+        const remaining = STEAM_LOOKUPS_PER_RUN - totals.processed;
+        const batch = await processCatalogueQueue(Math.min(50, remaining), undefined, deadlineAt);
         batches += 1;
         totals.claimed += batch.claimed;
         totals.processed += batch.processed;
