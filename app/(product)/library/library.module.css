@@ -198,3 +198,11 @@
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 }
+
+/* --- Vault banner hidden while we evaluate the pages without it. -------------
+   Nothing removed: delete this block to bring the artwork straight back. Kept
+   as one block per page rather than edits inside the rules above, so the
+   original values stay intact and reviewable. */
+.libraryPage::before {
+  display: none;
+}

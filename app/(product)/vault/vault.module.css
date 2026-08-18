@@ -1004,3 +1004,14 @@
   .setupGuide { grid-template-columns: minmax(0, 1fr) auto; }
   .setupGuide .quickDrawButton { grid-column: 1 / -1; width: 100%; }
 }
+
+/* --- Vault banner hidden while we evaluate the pages without it. -------------
+   Nothing removed: delete this block to bring the artwork straight back. Kept
+   as one block per page rather than edits inside the rules above, so the
+   original values stay intact and reviewable. */
+.vaultPage::before {
+  display: none;
+}
+.heroPanel {
+  display: none;
+}
