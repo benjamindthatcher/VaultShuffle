@@ -207,5 +207,11 @@
   display: none;
 }
 
-/* banner-hidden-spacing: nothing needed here. This page's banner was an
-   absolutely positioned ::before, so hiding it removed no layout space. */
+/* banner-hidden-spacing: the ::before was absolute and held no space, but
+   .header still reserves 290px for the artwork behind it. That reserved band
+   is the gap, so collapse it and pad to match the other app pages. */
+.header {
+  min-height: 0;
+  padding-top: 22px;
+  padding-bottom: 4px;
+}
