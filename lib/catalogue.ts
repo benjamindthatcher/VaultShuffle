@@ -86,13 +86,19 @@ export async function ensureCatalogueGameStubs(games: GamePayload[]) {
   return rows.length;
 }
 
-/** How many games are still waiting for their first metadata fetch. */
+/**
+ * How many games are still waiting for their first metadata fetch.
+ *
+ * Only "pending" counts. A "ready" row has already been fetched and is retained
+ * as a record, not as outstanding work - counting those as backlog would keep
+ * the guard below permanently tripped and stop stale refreshes running at all.
+ */
 export async function countPendingCatalogueJobs() {
   const supabase = getSupabaseAdmin();
   const { count, error } = await supabase
     .from("catalog_ingest_queue")
     .select("steam_appid", { count: "exact", head: true })
-    .in("status", ["pending", "ready"]);
+    .eq("status", "pending");
   if (error) throw error;
   return Number(count || 0);
 }
