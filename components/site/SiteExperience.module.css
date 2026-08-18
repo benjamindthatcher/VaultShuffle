@@ -120,3 +120,18 @@
   .consentActions { grid-template-columns: 1fr; }
   .consentActions button { width: 100%; }
 }
+
+.consentBanner { position: fixed; z-index: 1140; inset: auto 0 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; padding: 15px 20px; border-top: 1px solid rgba(187,112,255,.42); background: linear-gradient(150deg,rgba(16,20,49,.985),rgba(6,9,26,.985)); box-shadow: 0 -18px 60px rgba(0,0,0,.55); }
+.consentBannerCopy { flex: 1 1 420px; display: grid; gap: 4px; }
+.consentBannerCopy strong { font-size: .95rem; }
+.consentBannerCopy p { margin: 0; color: var(--vault-text-muted); font-size: .82rem; line-height: 1.5; }
+.consentBannerCopy a { color: #d58cff; text-decoration: underline; }
+.consentBannerActions { display: flex; flex: 0 0 auto; gap: 9px; }
+.consentBannerActions button { min-height: 40px; padding: 7px 17px; border: 1px solid rgba(151,105,255,.3); border-radius: 999px; background: rgba(22,25,56,.9); font-weight: 700; line-height: 1.2; }
+.consentBannerActions button.primaryConsent { border-color: transparent; background: linear-gradient(90deg,#7438ff,#a64cff); }
+
+@media (max-width: 560px) {
+  .consentBanner { gap: 12px; padding: 14px 16px; }
+  .consentBannerActions { width: 100%; }
+  .consentBannerActions button { flex: 1 1 0; padding: 7px 10px; }
+}

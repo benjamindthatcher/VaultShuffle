@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
+import { getCurrentSession } from "@/lib/auth";
 import styles from "./login.module.css";
 
 const features = [
@@ -9,7 +11,10 @@ const features = [
   ["shield", "Private, secure, transparent", "Your data stays under your control."]
 ] as const;
 
-export default function LoginPage() {
+export default async function LoginPage() {
+  const session = await getCurrentSession();
+  if (session) redirect("/vault");
+
   return (
     <main className={styles.page}>
       <section className={styles.card} aria-labelledby="login-title">

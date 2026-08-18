@@ -20,8 +20,9 @@ let pendingIdentity: ProductUserIdentity | null = null;
 function productAnalyticsMode(): ProductAnalyticsMode {
   if (typeof window === "undefined") return "disabled";
   try {
-    const choice = window.localStorage.getItem(CONSENT_STORAGE_KEY);
-    return choice === "disabled" || choice === "essential" ? "disabled" : "enabled";
+    // Analytics stay off until the visitor explicitly opts in. Anything other than
+    // an "enabled" choice - including no choice at all - means disabled.
+    return window.localStorage.getItem(CONSENT_STORAGE_KEY) === "enabled" ? "enabled" : "disabled";
   } catch {
     return "disabled";
   }

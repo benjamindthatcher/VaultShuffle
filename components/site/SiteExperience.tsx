@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Analytics } from "@vercel/analytics/next";
@@ -70,8 +71,13 @@ function SiteFrame({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const saved = localStorage.getItem(CONSENT_STORAGE_KEY);
-    const choice = saved === "disabled" || saved === "essential" ? "disabled" : "enabled";
-    if (saved !== choice) localStorage.setItem(CONSENT_STORAGE_KEY, choice);
+    // "essential" is the legacy name for a decline. Any other unrecognised value
+    // means the visitor has not chosen yet, and nothing loads until they do.
+    if (saved === "essential") localStorage.setItem(CONSENT_STORAGE_KEY, "disabled");
+    const choice: AnalyticsChoice =
+      saved === "enabled" ? "enabled"
+      : saved === "disabled" || saved === "essential" ? "disabled"
+      : null;
     setAnalyticsChoice(choice);
     setLoaded(true);
   }, []);
@@ -103,7 +109,8 @@ function SiteFrame({ children }: { children: ReactNode }) {
   return <>
     {children}
     {!hideFooter ? <SiteFooter variant={isAppPage ? "app" : "site"} onFeedback={() => openFeedback({ source: "footer" })} onCookieSettings={() => setSettingsOpen(true)} /> : null}
-    {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics by default to understand how the product is used and improve it. You can turn PostHog analytics off at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog product analytics</strong><small>Usage events, heatmaps, error/performance data and session replay. Signed-in analytics are linked to your VaultShuffle/Steam profile; form and input values are masked in replay.</small></span><b>{analyticsChoice === "enabled" ? "On" : "Off"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}
+    {loaded && analyticsChoice === null && !settingsOpen ? <div className={styles.consentBanner} role="region" aria-label="Analytics consent"><div className={styles.consentBannerCopy}><strong>Can we measure how VaultShuffle gets used?</strong><p>Optional PostHog analytics: usage events, heatmaps and session replay, linked to your Steam profile once you sign in. Essential cookies keep you signed in either way. <Link href="/privacy">Privacy Policy</Link></p></div><div className={styles.consentBannerActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Decline</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Accept analytics</button></div></div> : null}
+    {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics only if you turn them on, to understand how the product is used and improve it. You can change this at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog product analytics</strong><small>Usage events, heatmaps, error/performance data and session replay. Signed-in analytics are linked to your VaultShuffle/Steam profile; form and input values are masked in replay.</small></span><b>{analyticsChoice === "enabled" ? "On" : analyticsChoice === "disabled" ? "Off" : "Not set"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}
     <Analytics />
     <SpeedInsights />
   </>;
