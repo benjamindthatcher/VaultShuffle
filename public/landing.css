@@ -691,6 +691,17 @@ img {
   letter-spacing: -0.04em;
 }
 
+/* The setup line that produced the pick. Sits above the title, so it has to
+   opt out of the shared paragraph margin further down this block. */
+.vs-featured-game-body .vs-featured-setup {
+  margin: 0 0 9px;
+  color: #d58cff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .vs-featured-tags {
   display: flex;
   flex-wrap: wrap;

@@ -76,24 +76,24 @@ const structuredData = {
 
 const valueProps = [
   {
-    title: "Curated surprises",
-    text: "Smart picks from your library, made just for you.",
-    icon: "target"
-  },
-  {
-    title: "Save time",
-    text: "Find the right game without endless searching.",
+    title: "1. How long have you got?",
+    text: "A quick go, an evening, or a proper weekend session.",
     icon: "clock"
   },
   {
-    title: "Built for players",
-    text: "Designed by gamers who value your time.",
+    title: "2. What headspace?",
+    text: "Brain-off, chilled, or something that demands attention.",
     icon: "players"
   },
   {
-    title: "100% in your control",
-    text: "Your data stays under your control.",
-    icon: "shield"
+    title: "3. What do you want from it?",
+    text: "Start something new, finish something, or be surprised.",
+    icon: "target"
+  },
+  {
+    title: "Or skip all that",
+    text: "Hit Just pick something and get a game immediately.",
+    icon: "shuffle"
   }
 ];
 
@@ -191,8 +191,8 @@ export default function HomePage() {
             </h1>
 
             <p className="vs-hero-text">
-              Vault Shuffle cuts through the noise and helps you find the one game that fits your mood, time, and
-              energy.
+              Tell Vault Shuffle how long you have, what headspace you&apos;re in, and what you want from tonight.
+              It picks one game from the library you already own, and tells you why it chose it.
             </p>
 
             <div className="vs-cta-row" role="group" aria-label="Get started">
@@ -249,15 +249,17 @@ export default function HomePage() {
     />
 
     <div className="vs-featured-game-body">
+      <p className="vs-featured-setup">Evening &middot; Intense &middot; Finish something</p>
+
       <h2>Elden Ring</h2>
 
       <div className="vs-featured-tags">
-        <span>RPG</span>
-        <span>Open World</span>
-        <span>Soulslike</span>
+        <span>Ideal evening length</span>
+        <span>Perfect Intense match</span>
+        <span>61% complete</span>
       </div>
 
-      <p>Recommended based on your library &amp; playtime</p>
+      <p>Picked from 184 games you already own</p>
     </div>
   </article>
 </div>
