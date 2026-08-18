@@ -360,6 +360,17 @@ img {
   margin-top: 20px;
 }
 
+/* The Vault is the product; Library and Purge support it. It takes the full
+   width of the two-column grid so the hierarchy is visible rather than implied.
+   Below 1180px the grid collapses to one column and this becomes a no-op. */
+.vs-product-grid > .vs-product-card:first-child {
+  grid-column: 1 / -1;
+}
+
+.vs-product-grid > .vs-product-card:first-child .vs-product-copy {
+  max-width: 46ch;
+}
+
 .vs-product-card {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(190px, 1.1fr);

@@ -99,6 +99,38 @@ const valueProps = [
 
 const productCards = [
   {
+    title: "Vault",
+    text: "Tell it how long you have, what headspace you're in and what you want from the session. It picks one game and shows its reasoning.",
+    bullets: ["Matched to your session", "Told why it picked", "Reroll, or just pick something"],
+    action: "Open the Vault",
+    href: "/vault",
+    icon: "open-vault",
+    preview: "vault",
+    panelTitle: "Tonight's Deck",
+    rows: [
+      { name: "Elden Ring", meta: "94% match", appid: 1245620 },
+      { name: "Hades", meta: "88% match", appid: 1145360 },
+      { name: "Hollow Knight", meta: "81% match", appid: 367520 },
+      { name: "Stardew Valley", meta: "76% match", appid: 413150 }
+    ]
+  },
+  {
+    title: "Purge",
+    text: "Work out what you have actually finished, what you quietly abandoned, and what deserves another look.",
+    bullets: ["Likely completed", "Abandoned", "Still worth reviewing"],
+    action: "Review your backlog",
+    href: "/purge",
+    icon: "ready-to-review",
+    preview: "purge",
+    panelTitle: "Ready to Review",
+    rows: [
+      { name: "Cyberpunk 2077", meta: "Likely Completed", appid: 1091500 },
+      { name: "Far Cry 5", meta: "Abandoned", appid: 552520 },
+      { name: "Prey", meta: "Abandoned", appid: 480490 },
+      { name: "Dishonored 2", meta: "The Rest", appid: 403640 }
+    ]
+  },
+  {
     title: "Library",
     text: "All your games in one clean, powerful view.",
     bullets: ["Filter and sort", "Track playtime", "See what's next"],
@@ -106,58 +138,12 @@ const productCards = [
     href: "/library",
     icon: "books",
     preview: "library",
+    panelTitle: "All Games",
     rows: [
-      {
-        name: "Elden Ring",
-        meta: "292h",
-        appid: 1245620
-      },
-      {
-        name: "Baldur's Gate 3",
-        meta: "215h",
-        appid: 1086940
-      },
-      {
-        name: "Cyberpunk 2077",
-        meta: "80h",
-        appid: 1091500
-      },
-      {
-        name: "Red Dead Redemption 2",
-        meta: "43h",
-        appid: 1174180
-      }
-    ]
-  },
-  {
-    title: "Collections",
-    text: "Create custom collections for any mood.",
-    bullets: ["Build your themes", "Tag what matters", "Shuffle your way"],
-    action: "Explore Collections",
-    href: "/collections",
-    icon: "layers",
-    preview: "collections",
-    rows: [
-      {
-        name: "Backlog Essentials",
-        meta: "8 games",
-        appids: [1245620, 1086940, 632470]
-      },
-      {
-        name: "Co-op Nights",
-        meta: "12 games",
-        appids: [1172470, 239140, 548430]
-      },
-      {
-        name: "Strategy Sessions",
-        meta: "9 games",
-        appids: [1142710, 289070, 1158310]
-      },
-      {
-        name: "Cozy & Chill",
-        meta: "7 games",
-        appids: [413150, 1158160, 1472660]
-      }
+      { name: "Elden Ring", meta: "292h", appid: 1245620 },
+      { name: "Baldur's Gate 3", meta: "215h", appid: 1086940 },
+      { name: "Cyberpunk 2077", meta: "80h", appid: 1091500 },
+      { name: "Red Dead Redemption 2", meta: "43h", appid: 1174180 }
     ]
   }
 ];
@@ -303,40 +289,20 @@ export default function HomePage() {
               </div>
 
               <div className={`vs-mini-panel vs-mini-${card.preview}`} aria-hidden="true">
-                <h3>
-                  {card.preview === "library"
-                    ? "All Games"
-                    : "Your Collections"}
-                </h3>
+                <h3>{card.panelTitle}</h3>
 
                 {card.preview === "library" && <div className="vs-mini-search">Filter library...</div>}
 
                 {card.rows.map((row) => (
                   <div className="vs-mini-row" key={row.name}>
-                    {"appids" in row ? (
-                      <span className="vs-collection-stack">
-                        {row.appids.map((appid) => (
-                          <Image
-                            key={appid}
-                            src={steamCapsule(appid)}
-                            alt=""
-                            width={231}
-                            height={87}
-                            sizes="18px"
-                            quality={60}
-                          />
-                        ))}
-                      </span>
-                    ) : (
-                      <Image
-                        src={steamCapsule(row.appid)}
-                        alt=""
-                        width={231}
-                        height={87}
-                        sizes="46px"
-                        quality={60}
-                      />
-                    )}
+                    <Image
+                      src={steamCapsule(row.appid)}
+                      alt=""
+                      width={231}
+                      height={87}
+                      sizes="46px"
+                      quality={60}
+                    />
 
                     <strong>{row.name}</strong>
 
