@@ -8,10 +8,13 @@ export default function manifest(): MetadataRoute.Manifest {
     description: siteConfig.description,
     start_url: "/",
     scope: "/",
-    display: "standalone",
+    // "browser" deliberately fails Chrome's installability criteria, which require
+    // standalone, fullscreen or minimal-ui. VaultShuffle is a site, not an app to
+    // install, and the install prompt reads as suspicious to first-time visitors.
+    // The manifest is kept for its icons and theme colour.
+    display: "browser",
     background_color: "#050713",
     theme_color: "#07091a",
-    orientation: "any",
     categories: ["games", "entertainment", "utilities"],
     icons: [
       {
