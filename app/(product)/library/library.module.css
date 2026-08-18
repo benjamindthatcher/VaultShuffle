@@ -75,8 +75,8 @@
   gap: 16px;
   padding: 14px;
   border-radius: 12px;
-  border: 1px solid rgba(145, 105, 255, 0.18);
-  background: rgba(8, 13, 31, 0.82);
+  border: 1px solid var(--vault-border);
+  background: var(--vault-surface);
   box-shadow: var(--vault-shadow);
 }
 
@@ -109,15 +109,15 @@
 .gamesScroller { max-height: min(640px, 68vh); overflow-y: auto; overscroll-behavior-y: contain; padding-right: 5px; scrollbar-color: rgba(166, 87, 255, 0.72) rgba(26, 31, 61, 0.72); scrollbar-width: thin; }
 .gamesScroller:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
 
-.statusTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px; border: 1px solid rgba(145, 105, 255, 0.2); border-radius: 14px; background: rgba(8, 13, 31, 0.84); }
+.statusTabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; padding: 8px; border: 1px solid var(--vault-border); border-radius: 14px; background: var(--vault-surface); }
 .statusTab, .statusTabActive { min-height: 52px; display: flex; align-items: center; justify-content: center; gap: 10px; border: 1px solid transparent; border-radius: 10px; color: var(--vault-text-muted); background: transparent; font-weight: 700; }
 .statusTab strong, .statusTabActive strong { min-width: 27px; padding: 4px 7px; border-radius: 999px; background: rgba(144, 96, 255, 0.14); color: #d59eff; }
 .statusTabActive { border-color: rgba(190, 105, 255, 0.44); color: var(--vault-text); background: linear-gradient(135deg, rgba(126, 53, 220, 0.22), rgba(63, 34, 116, 0.24)); }
 .statusTab:focus-visible, .statusTabActive:focus-visible { outline: 2px solid #c08bff; outline-offset: 2px; }
 .emptyState { display: grid; justify-items: center; gap: 8px; padding: 52px 20px; color: var(--vault-text-muted); text-align: center; }
 .emptyState h3, .emptyState p { margin: 0; }
-.emptyState button { min-height: 42px; margin-top: 8px; padding: 0 16px; border: 1px solid rgba(172, 113, 255, 0.42); border-radius: 999px; background: rgba(91, 42, 167, 0.24); color: var(--vault-text); }
-.undoToast { position: fixed; z-index: 30; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 18px; padding: 14px 18px; border: 1px solid rgba(190, 105, 255, 0.44); border-radius: 12px; background: rgba(10, 13, 32, 0.98); box-shadow: var(--vault-shadow); animation: undoToastExit 300ms ease 5s forwards; }
+.emptyState button { min-height: 42px; margin-top: 8px; padding: 0 16px; border: 1px solid var(--vault-border-strong); border-radius: 999px; background: rgba(91, 42, 167, 0.24); color: var(--vault-text); }
+.undoToast { position: fixed; z-index: 30; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 18px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: 12px; background: var(--vault-surface-strong); box-shadow: var(--vault-shadow); animation: undoToastExit 300ms ease 5s forwards; }
 .undoToast button { border: 0; background: transparent; color: #d98cff; font-weight: 800; }
 
 @keyframes undoToastExit {
@@ -138,7 +138,7 @@
 .pinnedGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
 .pinnedGrid:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
 .pinnedCard { position: relative; min-width: 0; }
-.pinBadge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 5px 8px; border: 1px solid rgba(205,105,255,.54); border-radius: 999px; background: rgba(45,22,78,.9); color: #e29cff; font-size: .72rem; }
+.pinBadge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 5px 8px; border: 1px solid var(--vault-border-strong); border-radius: 999px; background: rgba(45,22,78,.9); color: #e29cff; font-size: .72rem; }
 .emptyPin { min-height: 96px; display: grid; place-items: center; border: 1px dashed rgba(145,105,255,.24); border-radius: 10px; color: var(--vault-text-soft); }
 @media (max-width: 720px) { .pinnedGrid { display: flex; overflow-x: auto; } .pinnedGrid > * { flex: 0 0 78%; } }
 
@@ -154,8 +154,8 @@
 .recentCard {
   overflow: hidden;
   border-radius: 10px;
-  border: 1px solid rgba(145, 105, 255, 0.18);
-  background: rgba(12, 17, 40, 0.78);
+  border: 1px solid var(--vault-border);
+  background: var(--vault-surface);
   text-align: left;
 }
 
