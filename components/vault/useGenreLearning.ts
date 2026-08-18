@@ -21,14 +21,19 @@ export type GenreLearningArm = "test" | "control";
  * outright, and `enabled` is false whenever flags cannot be resolved — an
  * opted-out visitor is a clean control rather than a broken test.
  */
-export function useGenreLearning(preferences: GenrePreference[]) {
+export function useGenreLearning(preferences: GenrePreference[], globals: GenrePreference[]) {
   const [enabled, setEnabled] = useState(false);
 
   useEffect(() => observeFeatureFlag(VAULT_GENRE_LEARNING_FLAG, setEnabled), []);
 
   const genrePreferences = useMemo<GenrePreferenceIndex | null>(
-    () => (preferences.length ? buildGenrePreferenceIndex(preferences) : null),
-    [preferences]
+    () => (preferences.length || globals.length ? buildGenrePreferenceIndex(preferences) : null),
+    [preferences, globals]
+  );
+
+  const genrePreferenceGlobals = useMemo<GenrePreferenceIndex | null>(
+    () => (globals.length ? buildGenrePreferenceIndex(globals) : null),
+    [globals]
   );
 
   /**
@@ -41,5 +46,12 @@ export function useGenreLearning(preferences: GenrePreference[]) {
     return Math.random() < 0.5 ? "test" : "control";
   }
 
-  return { enabled, genrePreferences, nextArm };
+  /**
+   * Reported on each draw so an inert recommender is visible in analytics. A
+   * feature that quietly does nothing and a feature that is working look
+   * identical from the outside otherwise.
+   */
+  const preferenceRowCount = preferences.length;
+
+  return { enabled, genrePreferences, genrePreferenceGlobals, preferenceRowCount, nextArm };
 }

@@ -20,6 +20,7 @@ type AppBootstrapPayload = {
   memberships?: CollectionMembership[];
   vaultState?: VaultState;
   genrePreferences?: GenrePreference[];
+  genrePreferenceGlobals?: GenrePreference[];
   data_error?: boolean;
   guest_pool_source?: "live_catalogue" | "fallback";
 };
@@ -47,6 +48,7 @@ type AppDataContextValue = {
   collections: DemoCollection[];
   vaultState: VaultState;
   genrePreferences: GenrePreference[];
+  genrePreferenceGlobals: GenrePreference[];
   vaultHistory: VaultDraw[];
   isLive: boolean;
   playHistoryMissing: boolean;
@@ -99,6 +101,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [guestVaultHistory, setGuestVaultHistory] = useState<VaultDraw[]>([]);
   const [liveVaultHistory, setLiveVaultHistory] = useState<VaultDraw[]>([]);
   const [liveGenrePreferences, setLiveGenrePreferences] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
+  const [liveGenrePreferenceGlobals, setLiveGenrePreferenceGlobals] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -141,6 +144,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // Absent for a user the nightly rebuild has not reached yet, which simply
       // means the learned term contributes nothing to their scores.
       setLiveGenrePreferences(bootstrap.genrePreferences ?? EMPTY_GENRE_PREFERENCES);
+      setLiveGenrePreferenceGlobals(bootstrap.genrePreferenceGlobals ?? EMPTY_GENRE_PREFERENCES);
     } catch (error) {
       setSession(guestSession);
       setIsLive(false);
@@ -378,7 +382,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function recordVaultDraw(gameId: string, input: VaultDrawInput) {
     if (isLive) {
-      const { state, draw } = await api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex }) });
+      const { state, draw } = await api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex, finalist_appids: input.finalistAppIds }) });
       setLiveVaultState(state);
       setLiveVaultHistory((current) => [draw, ...current].slice(0, 50));
       return draw;
@@ -430,6 +434,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       vaultState: isLive ? liveVaultState : guestVaultState,
       // Guests have no history to learn from, so they always draw unweighted.
       genrePreferences: isLive ? liveGenrePreferences : EMPTY_GENRE_PREFERENCES,
+      genrePreferenceGlobals: isLive ? liveGenrePreferenceGlobals : EMPTY_GENRE_PREFERENCES,
       vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
       isLive,
       isLoading,
@@ -450,7 +455,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveVaultHistory, guestVaultHistory]
+    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

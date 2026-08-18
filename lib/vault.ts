@@ -133,7 +133,8 @@ export function buildVaultPool({
   selectedCollectionId,
   selectedGenres,
   snoozedIds,
-  genrePreferences = null
+  genrePreferences = null,
+  genrePreferenceGlobals = null
 }: {
   games: DemoGame[];
   session: VaultSessionId | null;
@@ -143,13 +144,14 @@ export function buildVaultPool({
   selectedGenres: string[];
   snoozedIds: Set<string>;
   genrePreferences?: GenrePreferenceIndex | null;
+  genrePreferenceGlobals?: GenrePreferenceIndex | null;
 }) {
   const collectionDraw = isCollectionDraw(selectedCollectionId);
   const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
   // Genre rarity is measured against this user's own library, which is the corpus
   // the draw actually chooses from.
   const preferenceContext: GenrePreferenceContextData | null = genrePreferences
-    ? { index: genrePreferences, genreWeights: buildGenreWeightIndex(games) }
+    ? { index: genrePreferences, globals: genrePreferenceGlobals, genreWeights: buildGenreWeightIndex(games) }
     : null;
   const eligibility = getVaultEligibility({
     games,
@@ -211,6 +213,25 @@ export function drawQuickVaultGame(
 }
 
 /**
+ * The candidate set a guided draw actually chooses between.
+ *
+ * Exported so the choice set can be recorded against the draw: "picked C from a
+ * set that also held A and B" is a far stronger training signal than three
+ * independent labels, and it can only be reconstructed later if it is captured
+ * at draw time.
+ */
+export function vaultFinalists(pool: VaultPoolEntry[], previousWinnerId?: string | null) {
+  if (!pool.length) return [];
+  const eligible = pool.length > 1 && previousWinnerId
+    ? pool.filter((entry) => entry.game.id !== previousWinnerId)
+    : pool;
+  const finalistCount = eligible.length <= 5
+    ? eligible.length
+    : Math.min(20, Math.max(3, Math.ceil(eligible.length * 0.4)));
+  return eligible.slice(0, finalistCount);
+}
+
+/**
  * `applyPreferences` is the experiment arm. It is decided per draw rather than per
  * user: with single-digit users a between-user split has nowhere near the power to
  * resolve a difference, whereas letting every user act as their own control does.
@@ -221,16 +242,10 @@ export function drawVaultGame(
   rng = Math.random,
   applyPreferences = false
 ) {
-  if (!pool.length) return null;
-  const eligible = pool.length > 1 && previousWinnerId
-    ? pool.filter((entry) => entry.game.id !== previousWinnerId)
-    : pool;
-  const finalistCount = eligible.length <= 5
-    ? eligible.length
-    : Math.min(20, Math.max(3, Math.ceil(eligible.length * 0.4)));
   // Sliced on fit alone, so both arms consider exactly the same candidates and the
   // preference term can only change the odds within that set, never the set.
-  const finalists = eligible.slice(0, finalistCount);
+  const finalists = vaultFinalists(pool, previousWinnerId);
+  if (!finalists.length) return null;
   const selectionScore = (entry: VaultPoolEntry) =>
     entry.score + (applyPreferences ? entry.preferencePoints : 0);
   const maxScore = Math.max(...finalists.map(selectionScore));

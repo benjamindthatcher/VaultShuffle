@@ -7,7 +7,8 @@ import { jsonError, readJsonBody } from "@/lib/http";
 const drawSchema = z.object({
   game_id: z.string().uuid(), steam_app_id: z.number().int().positive(),
   session: z.enum(["short", "evening", "weekend"]).nullable(), mood: z.enum(["brain-off", "chill", "intense"]).nullable(), goal: z.enum(["new", "finish", "surprise"]).nullable(),
-  collection_id: z.string().nullable(), selected_genres: z.array(z.string()).max(3), eligible_pool_count: z.number().int().nonnegative(), reroll_index: z.number().int().nonnegative()
+  collection_id: z.string().nullable(), selected_genres: z.array(z.string()).max(3), eligible_pool_count: z.number().int().nonnegative(), reroll_index: z.number().int().nonnegative(),
+  finalist_appids: z.array(z.number().int().positive()).max(32).optional()
 }).superRefine((input, context) => {
   const collectionDraw = Boolean(input.collection_id);
   if (collectionDraw) {
@@ -62,7 +63,8 @@ export async function POST(request: Request) {
       p_collection_id: input.collection_id,
       p_selected_genres: input.selected_genres,
       p_eligible_pool_count: input.eligible_pool_count,
-      p_reroll_index: input.reroll_index
+      p_reroll_index: input.reroll_index,
+      p_finalist_appids: input.finalist_appids ?? null
     });
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });

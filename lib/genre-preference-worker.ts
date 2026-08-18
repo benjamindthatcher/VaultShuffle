@@ -75,6 +75,7 @@ export type GenrePreferenceRebuildSummary = {
   scoredEvents: number;
   users: number;
   rows: number;
+  globalRows: number;
   deletedRows: number;
 };
 
@@ -102,6 +103,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     scoredEvents: 0,
     users: 0,
     rows: 0,
+    globalRows: 0,
     deletedRows: 0
   };
   if (!draws.length) return summary;
@@ -174,6 +176,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   summary.rows = rows.length;
 
   summary.deletedRows = await replacePreferences(supabase, rows);
+  summary.globalRows = await replaceGlobals(supabase, rows);
   return summary;
 }
 
@@ -292,6 +295,74 @@ export async function listGenrePreferences(userId: string): Promise<GenrePrefere
     }));
   } catch (error) {
     console.error("Could not load genre preferences.", error);
+    return [];
+  }
+}
+
+/**
+ * Aggregates every user's rows into population rates.
+ *
+ * These are what individual baselines are now measured against, and what a user
+ * with no history of their own is served until they have some. Rates only — no
+ * row here can be traced back to a person.
+ */
+async function replaceGlobals(
+  supabase: AdminClient,
+  rows: Array<{ genre: string; context_mood: string; positive: number; total: number }>
+) {
+  const totals = new Map<string, { positive: number; total: number }>();
+  for (const row of rows) {
+    const key = `${row.context_mood}::${row.genre}`;
+    const tally = totals.get(key) ?? { positive: 0, total: 0 };
+    tally.positive += row.positive;
+    tally.total += row.total;
+    totals.set(key, tally);
+  }
+
+  const rebuiltAt = new Date().toISOString();
+  const globalRows = [...totals.entries()].map(([key, tally]) => {
+    const separator = key.indexOf("::");
+    return {
+      context_mood: key.slice(0, separator),
+      genre: key.slice(separator + 2),
+      positive: Number(tally.positive.toFixed(4)),
+      total: Number(tally.total.toFixed(4)),
+      updated_at: rebuiltAt
+    };
+  });
+
+  if (globalRows.length) {
+    const { error } = await supabase
+      .from("genre_preference_globals")
+      .upsert(globalRows, { onConflict: "genre,context_mood" });
+    if (error) throw error;
+  }
+
+  const { error: deleteError } = await supabase
+    .from("genre_preference_globals")
+    .delete()
+    .lt("updated_at", rebuiltAt);
+  if (deleteError) throw deleteError;
+
+  return globalRows.length;
+}
+
+/** Population rates for the bootstrap payload. Empty on failure, like the rest. */
+export async function listGenrePreferenceGlobals(): Promise<GenrePreference[]> {
+  try {
+    const { data, error } = await getSupabaseAdmin()
+      .from("genre_preference_globals")
+      .select("genre, context_mood, positive, total");
+    if (error) throw error;
+
+    return (data ?? []).map((row) => ({
+      genre: String(row.genre),
+      contextMood: String(row.context_mood) as GenrePreference["contextMood"],
+      positive: Number(row.positive) || 0,
+      total: Number(row.total) || 0
+    }));
+  } catch (error) {
+    console.error("Could not load global genre preferences.", error);
     return [];
   }
 }

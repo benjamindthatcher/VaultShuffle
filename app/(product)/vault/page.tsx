@@ -20,6 +20,7 @@ import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId 
 import {
   buildVaultDeck,
   buildVaultPool,
+  vaultFinalists,
   drawVaultGame,
   drawQuickVaultGame,
   getVaultEligibility,
@@ -42,7 +43,7 @@ const EMPTY_GAME_IDS: string[] = [];
 const GUEST_SIGN_IN_PROMPT_KEY = "vaultshuffle:guest-first-draw-prompt:v1";
 
 export default function VaultPage() {
-  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
@@ -81,7 +82,7 @@ export default function VaultPage() {
   const guestPromptTimerRef = useRef<number | null>(null);
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
-  const { genrePreferences, nextArm } = useGenreLearning(learnedGenrePreferences);
+  const { genrePreferences, genrePreferenceGlobals, preferenceRowCount, nextArm } = useGenreLearning(learnedGenrePreferences, learnedGenreGlobals);
   // Attached to every follow-up event so the outcome can be attributed to the arm
   // that produced the draw, and so rerolls-to-launch is readable straight off
   // vault_pick_launched.
@@ -115,10 +116,11 @@ export default function VaultPage() {
         selectedCollectionId: activeCollectionId,
         selectedGenres: activeGenres,
         snoozedIds,
-        genrePreferences
+        genrePreferences,
+        genrePreferenceGlobals
       });
     },
-    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, genrePreferences, ownedGames, snoozedIds]
+    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, genrePreferences, genrePreferenceGlobals, ownedGames, snoozedIds]
   );
   const quickPool = useMemo(
     () => buildVaultPool({
@@ -319,7 +321,10 @@ export default function VaultPage() {
         collectionId: quick ? null : activeCollectionId,
         selectedGenres: quick ? EMPTY_GAME_IDS : activeGenres,
         eligiblePoolCount: quick ? quickPool.length : fullPool.length,
-        rerollIndex: drawnCycleRef.current.size - 1
+        rerollIndex: drawnCycleRef.current.size - 1,
+        // Recorded even in the control arm: the choice set is training data for a
+        // future model, not part of this experiment.
+        finalistAppIds: quick ? undefined : vaultFinalists(availablePool, currentPick?.id).map((entry) => entry.game.steamAppId).filter((appId): appId is number => typeof appId === "number" && appId > 0)
       });
       drawRerollIndexRef.current = drawnCycleRef.current.size - 1;
       if (activeDraw !== activeDrawRef.current) return;
@@ -338,6 +343,7 @@ export default function VaultPage() {
         deck_size: activeDeck.length,
         reroll_index: drawnCycleRef.current.size - 1,
         vault_genre_learning: arm,
+        preference_rows: preferenceRowCount,
       });
       requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
       queueGuestSignInPrompt();

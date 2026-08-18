@@ -56,8 +56,17 @@ export type GenreWeightIndex = Map<string, number>;
 
 export type GenrePreferenceContextData = {
   index: GenrePreferenceIndex;
+  /** Population rates, same shape, aggregated across all users. */
+  globals: GenrePreferenceIndex | null;
   genreWeights: GenreWeightIndex | null;
 };
+
+/**
+ * Weight given to the population when standing in for a user who has no evidence
+ * of their own. Deliberately light: shared taste is a starting point, not a
+ * claim about this person.
+ */
+const POPULATION_PRIOR_STRENGTH = 4;
 
 /**
  * Shrinks an observed rate toward a prior. With no evidence the result *is* the
@@ -135,9 +144,26 @@ function moodLabel(mood: VaultMoodId) {
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }
 
-function rowFor(index: GenrePreferenceIndex, genre: string, context: GenrePreferenceContext) {
-  const row = index.get(preferenceKey(genre, context));
+function rowFor(index: GenrePreferenceIndex | null, genre: string, context: GenrePreferenceContext) {
+  const row = index?.get(preferenceKey(genre, context));
   return row && row.total > 0 ? row : null;
+}
+
+/** The population's overall response rate, the root of the whole hierarchy. */
+function populationBaseline(globals: GenrePreferenceIndex | null) {
+  const row = rowFor(globals, BASELINE_GENRE, ANY_MOOD_CONTEXT);
+  // 0.5 remains the root prior, but now only the population is measured against
+  // it. No individual is judged by it any more.
+  return row ? shrunkRate(row.positive, row.total, 0.5) : 0.5;
+}
+
+/**
+ * What the population thinks of this genre, expressed as a rate. Used to give a
+ * user with no evidence of their own a starting point other than "no opinion".
+ */
+function populationGenreRate(globals: GenrePreferenceIndex | null, genre: string, populationRate: number) {
+  const row = rowFor(globals, genre, ANY_MOOD_CONTEXT);
+  return row ? shrunkRate(row.positive, row.total, populationRate, POPULATION_PRIOR_STRENGTH) : populationRate;
 }
 
 /**
@@ -148,9 +174,9 @@ function rowFor(index: GenrePreferenceIndex, genre: string, context: GenrePrefer
  * perfectly typical response still scored negative, and every genre with evidence
  * ranked below every genre without any.
  */
-function baselineRate(index: GenrePreferenceIndex, mood: VaultMoodId | null) {
+function baselineRate(index: GenrePreferenceIndex, mood: VaultMoodId | null, populationRate: number) {
   const general = rowFor(index, BASELINE_GENRE, ANY_MOOD_CONTEXT);
-  const generalRate = general ? shrunkRate(general.positive, general.total, 0.5) : 0.5;
+  const generalRate = general ? shrunkRate(general.positive, general.total, populationRate) : populationRate;
   if (!mood) return generalRate;
 
   const scoped = rowFor(index, BASELINE_GENRE, mood);
@@ -165,14 +191,32 @@ function baselineRate(index: GenrePreferenceIndex, mood: VaultMoodId | null) {
  * twenty in the general row. Blending means the mood context only takes over as
  * fast as it earns the right to.
  */
-function genreRate(index: GenrePreferenceIndex, genre: string, mood: VaultMoodId | null, baseline: number) {
+function genreRate(
+  index: GenrePreferenceIndex,
+  genre: string,
+  mood: VaultMoodId | null,
+  baseline: number,
+  genrePrior: number
+) {
   const general = rowFor(index, genre, ANY_MOOD_CONTEXT);
-  const generalRate = general ? shrunkRate(general.positive, general.total, baseline) : baseline;
+  const generalRate = general ? shrunkRate(general.positive, general.total, genrePrior) : genrePrior;
   if (!mood) return { rate: generalRate, moodScoped: false };
 
   const scoped = rowFor(index, genre, mood);
   if (!scoped) return { rate: generalRate, moodScoped: false };
   return { rate: shrunkRate(scoped.positive, scoped.total, generalRate), moodScoped: true };
+}
+
+/**
+ * Transfers the population's opinion of a genre onto this user's own baseline,
+ * additively so it survives users whose overall rate is nothing like average.
+ *
+ * A user with no evidence of their own lands exactly on the population rate,
+ * which is the cold-start behaviour: day one they inherit shared taste, and it is
+ * shrunk away as soon as they generate anything of their own.
+ */
+function genrePriorFor(baseline: number, populationRate: number, populationGenre: number) {
+  return Math.min(0.999, Math.max(0.001, baseline + (populationGenre - populationRate)));
 }
 
 /**
@@ -206,21 +250,28 @@ export function genrePreferenceAdjustment(
   mood: VaultMoodId | null
 ): GenrePreferenceAdjustment {
   const index = context?.index;
-  if (!index || index.size === 0) return NO_ADJUSTMENT;
+  const globals = context?.globals ?? null;
+  // Either source alone is enough to say something: a user with no history of
+  // their own can still be served the population's view.
+  if (!index || (index.size === 0 && !globals?.size)) return NO_ADJUSTMENT;
 
   const genres = preferenceGenresFor(gameGenres, title);
   if (!genres.length) return NO_ADJUSTMENT;
 
-  const baseline = baselineRate(index, mood);
+  const populationRate = populationBaseline(globals);
+  const baseline = baselineRate(index, mood, populationRate);
   let weightedPoints = 0;
   let weightTotal = 0;
   let strongest: { points: number; genre: string; moodScoped: boolean } | null = null;
 
   for (const genre of genres) {
-    const hasEvidence = rowFor(index, genre, ANY_MOOD_CONTEXT) || (mood && rowFor(index, genre, mood));
+    const hasEvidence = rowFor(index, genre, ANY_MOOD_CONTEXT)
+      || (mood && rowFor(index, genre, mood))
+      || rowFor(globals, genre, ANY_MOOD_CONTEXT);
     if (!hasEvidence) continue;
 
-    const { rate, moodScoped } = genreRate(index, genre, mood, baseline);
+    const genrePrior = genrePriorFor(baseline, populationRate, populationGenreRate(globals, genre, populationRate));
+    const { rate, moodScoped } = genreRate(index, genre, mood, baseline, genrePrior);
     const points = pointsForRate(rate, baseline);
     const weight = context.genreWeights?.get(genre) ?? 1;
 

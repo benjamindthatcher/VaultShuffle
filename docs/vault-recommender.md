@@ -2,7 +2,7 @@
 
 How the learned genre term works, and what is still worth doing to it.
 
-Written 2026-08-18, after the term shipped across 488ba9a, 7e50940 and 0525ec2.
+Written 2026-08-18. P1 and P2 are now done; what remains is recorded below.
 
 ## How it works today
 
@@ -17,7 +17,9 @@ genres from) turns those events into `user_genre_preferences`, keyed on
   `played_enough`) contribute nothing, and a reason supersedes the bare
   `drew_again` for its draw.
 - Every signal also updates a `__baseline__` row holding the user's own overall
-  rate in that context. Genres are shrunk toward that baseline, not toward 0.5.
+  rate in that context. Genres are shrunk toward that baseline, and the baseline
+  is itself shrunk toward a population rate in `genre_preference_globals`, so a
+  user with no history starts on shared taste rather than on nothing.
 - Weights decay with a 60-day half-life inside a 180-day window.
 - At draw time each game gets `preferencePoints` in ±8, averaged across its
   top-level genres and weighted by inverse genre frequency.
@@ -39,39 +41,21 @@ as a property. Quick Draw is uniform by design and takes no part in it.
 
 ## P1 — currently prevents the system from working
 
-### 1. Draw retention is deleting the training data
+### 1. Draw retention — RESOLVED
 
-`trim_vault_draw_history_after_insert` on `vault_draws` keeps only the latest 50
-draws per user:
+`trim_vault_draw_history` capped `vault_draws` at 50 per user and
+`vault_draw_events` cascades with it, so the most active user — already at
+exactly 50 — destroyed an old draw and its events on every new one.
 
-```sql
-delete from public.vault_draws
-where user_id = new.user_id
-  and id in (select id from public.vault_draws
-             where user_id = new.user_id order by drawn_at desc offset 50);
-```
+The cap is now 500. The history UI limits itself to 50 independently, so nothing
+user-facing changed. Raising retention only ever keeps more, which is the safe
+direction for a change to a deletion rule.
 
-`vault_draw_events` cascades when its parent draw is trimmed. **The most active
-user is already at exactly 50 draws**, so every draw they make now permanently
-destroys the oldest one and its events.
-
-This undercuts the whole feature for precisely the users who use it most. The
-180-day lookback and 60-day half-life are theoretical for anyone at the cap, and
-the positive signals the model most needs will be destroyed as fast as they
-accumulate.
-
-Options, cheapest first:
-
-- Raise the trim threshold. The retention exists to bound a history UI that only
-  reads 50; the learner wants far more. Note `docs/database-architecture.md`
-  treats retention as an explicit product decision, so this is a call to make
-  deliberately rather than quietly.
-- Or decouple learning from `vault_draws` entirely: append signals to a durable
-  summary table at event time, so retention on the history table stops being the
-  learner's memory. Costs idempotency — the current full rebuild cannot
-  double-count, an append-only ledger can.
-
-Recommendation: raise the cap first, since it is one statement and buys time.
+Still open: the learner remains downstream of a table whose retention exists for
+a different purpose. Decoupling it — appending signals to a durable ledger at
+event time — would remove the coupling entirely, at the cost of the idempotent
+full rebuild that currently makes double-counting impossible. Not worth it while
+500 is comfortably above real usage.
 
 ### 2. No positive signal exists yet, and several paths are untested in production
 
@@ -93,16 +77,12 @@ evidence of anything until positives exist.
 
 ## P2 — correctness and robustness
 
-### 3. The baseline is anchored at 0.5 when a user has no positives
+### 3. Baseline anchoring — RESOLVED
 
-`baselineRate` shrinks the `__baseline__` row toward a fixed 0.5. For a user with
-zero positive events the baseline sits artificially high, so every genre reads as
-below-baseline, and genres are then separated mostly by how much evidence they
-have rather than by rate.
-
-Currently harmless because only the spread matters. It would stop being harmless
-if `preferencePoints` were ever displayed as a number, used outside a softmax, or
-compared across users. Better anchor: the population rate across all users.
+User baselines are now shrunk toward a population rate held in
+`genre_preference_globals`, aggregated across all users by the same nightly
+rebuild. 0.5 survives only as the root prior that the *population* is measured
+against; no individual is judged by it any more.
 
 ### 4. The nightly rebuild skips its stale sweep on an empty read
 
@@ -112,20 +92,21 @@ rows. Deliberate — it fails safe, keeping old preferences rather than wiping t
 on a transient empty read — but it does mean preferences never clear if all
 activity genuinely disappears. Revisit if that case ever becomes real.
 
-### 5. Cold start: new users learn nothing
+### 5. Cold start — RESOLVED
 
-A new user has no rows, so the term is inert until they generate signal, which at
-current volumes is a long time. Population-level genre priors would give them
-something on day one, shrunk out as their own evidence arrives. Depends on 3.
+The population's genre rates are transferred onto a user's own baseline
+additively, so a user with no history lands exactly on the population rate and is
+shrunk away from it as soon as they generate anything themselves. A new account
+now gets a useful ordering on day one.
 
-### 6. Preference load fails silently
+### 6. Silent inertness — RESOLVED
 
-`listGenrePreferences` catches and returns `[]` so a failure degrades to the
-unweighted recommender rather than breaking the draw. Right behaviour, but there
-is no alerting, so a persistent failure would look exactly like "the feature does
-nothing". Worth a counter on the worker-run record or a PostHog event.
+`vault_draw_requested` now carries `preference_rows`. A recommender that loaded
+nothing and one that is working are no longer indistinguishable from the outside:
+if that number is flat zero, the feature is inert regardless of why.
 
----
+`listGenrePreferences` still swallows its errors on purpose — a draw must not
+fail because a preference could not be read — but the failure is now visible.
 
 ## P3 — genuine improvements, not yet worth the cost
 
@@ -136,8 +117,13 @@ a ranking observation worth far more than three independent binary labels, which
 matters enormously at these volumes. The right model is a conditional logit over
 the deck.
 
-Blocked on data: deck composition is not recorded at draw time. Doing this means
-storing the deck (or a hash of it) per draw, which interacts with P1.1.
+The data collection half is now done: `vault_draws.finalist_appids` records the
+exact candidate set each pick was chosen from, in both arms, because a model
+built later cannot reconstruct a choice set that was never captured.
+
+The model itself is still not worth building at these volumes. Revisit once there
+is a meaningful number of draws carrying `finalist_appids` *and* a positive class
+to rank against.
 
 ### 8. Genre keys are coarse
 
@@ -201,6 +187,29 @@ create table public.user_genre_preferences (
 alter table public.user_genre_preferences enable row level security;
 create index user_genre_preferences_user_idx on public.user_genre_preferences (user_id);
 grant select, insert, update, delete on public.user_genre_preferences to service_role;
+
+
+-- Population rates, and the two changes that keep the learner fed.
+create table public.genre_preference_globals (
+  genre text not null,
+  context_mood text not null default 'any',
+  positive double precision not null default 0 check (positive >= 0),
+  total double precision not null default 0 check (total >= 0),
+  updated_at timestamptz not null default now(),
+  constraint genre_preference_globals_pkey primary key (genre, context_mood),
+  constraint genre_preference_globals_context_mood_check
+    check (context_mood = any (array['any','brain-off','chill','intense'])),
+  constraint genre_preference_globals_positive_lte_total check (positive <= total)
+);
+alter table public.genre_preference_globals enable row level security;
+grant select, insert, update, delete on public.genre_preference_globals to service_role;
+
+-- The choice set each pick was made from.
+alter table public.vault_draws add column finalist_appids bigint[];
+
+-- trim_vault_draw_history: offset raised 50 -> 500.
+-- record_user_vault_draw: gained p_finalist_appids bigint[] default null,
+--   applied as a single drop+create batch so there was no window without it.
 ```
 
 Adopting Supabase migrations properly is the real fix. Until then, every schema

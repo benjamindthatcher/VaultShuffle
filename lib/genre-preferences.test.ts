@@ -12,17 +12,21 @@ import {
   type GenrePreference
 } from "./genre-preferences.ts";
 
-function context(
-  preferences: Array<Partial<GenrePreference> & { genre: string }>,
-  genreWeights: Map<string, number> | null = null
-) {
-  const index = buildGenrePreferenceIndex(preferences.map((preference) => ({
+function toIndex(rows: Array<Partial<GenrePreference> & { genre: string }>) {
+  return buildGenrePreferenceIndex(rows.map((row) => ({
     contextMood: ANY_MOOD_CONTEXT,
     positive: 0,
     total: 0,
-    ...preference
+    ...row
   })) as GenrePreference[]);
-  return { index, genreWeights };
+}
+
+function context(
+  preferences: Array<Partial<GenrePreference> & { genre: string }>,
+  genreWeights: Map<string, number> | null = null,
+  globals: Array<Partial<GenrePreference> & { genre: string }> = []
+) {
+  return { index: toIndex(preferences), globals: globals.length ? toIndex(globals) : null, genreWeights };
 }
 
 /** A user who responds well to a fifth of draws — roughly what the data shows. */
@@ -175,4 +179,40 @@ test("an empty index is inert", () => {
 
 test("preference keys collapse onto top-level genres", () => {
   assert.deepEqual(preferenceGenresFor(["Roguelike", "Fantasy", "Action"], "Hades"), ["action", "rpg"]);
+});
+
+test("a brand-new user inherits the population's view before earning their own", () => {
+  // Cold start: no rows of their own at all.
+  const population = [
+    { genre: BASELINE_GENRE, positive: 20, total: 100 },
+    { genre: "rpg", positive: 30, total: 60 },
+    { genre: "sports", positive: 1, total: 40 }
+  ];
+
+  const loved = genrePreferenceAdjustment(context([], null, population), ["RPG"], "x", null);
+  const ignored = genrePreferenceAdjustment(context([], null, population), ["Sports"], "x", null);
+
+  assert.ok(loved.points > 0, `population favourite should start positive: ${loved.points}`);
+  assert.ok(ignored.points < 0, `population reject should start negative: ${ignored.points}`);
+});
+
+test("a user's own evidence overrides what the population thinks", () => {
+  const population = [
+    { genre: BASELINE_GENRE, positive: 20, total: 100 },
+    { genre: "rpg", positive: 60, total: 60 }
+  ];
+  // This user rejects RPGs regardless of what everyone else does.
+  const own = [
+    { genre: BASELINE_GENRE, positive: 20, total: 100 },
+    { genre: "rpg", positive: 0, total: 60 }
+  ];
+
+  const adjustment = genrePreferenceAdjustment(context(own, null, population), ["RPG"], "x", null);
+  assert.ok(adjustment.points < 0, `personal evidence must win: ${adjustment.points}`);
+});
+
+test("no population data leaves behaviour unchanged", () => {
+  const own = [baseline, { genre: "rpg", positive: 16, total: 20 }];
+  const withNone = genrePreferenceAdjustment(context(own), ["RPG"], "x", null);
+  assert.ok(withNone.points > 0);
 });

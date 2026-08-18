@@ -30,6 +30,8 @@ export type VaultDraw = {
   selectedGenres: string[];
   eligiblePoolCount: number;
   rerollIndex: number;
+  /** The candidate set this pick was chosen from, for later contrastive learning. */
+  finalistAppIds?: number[];
   events: VaultDrawEvent[];
 };
 
