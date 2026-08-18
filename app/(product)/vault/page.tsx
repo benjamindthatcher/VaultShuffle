@@ -64,6 +64,7 @@ export default function VaultPage() {
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
   const guestDrawCountRef = useRef(0);
+  const [lastDrawWasQuick, setLastDrawWasQuick] = useState(false);
   const drawingRef = useRef(false);
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
@@ -246,6 +247,7 @@ export default function VaultPage() {
     // has not filled anything in and wants a game anyway.
     if (drawingRef.current || (!quick && !canDraw)) return;
     if (quick && !quickPool.length) return;
+    setLastDrawWasQuick(quick);
     const activeDraw = activeDrawRef.current + 1;
     activeDrawRef.current = activeDraw;
 
@@ -494,6 +496,9 @@ export default function VaultPage() {
             <h2 id="vault-setup-title">Build your Vault Draw</h2>
             <p>{collectionMode ? "Collection Draw is active. Choose any step to switch back." : "Make three quick choices, then we’ll pick your game."}</p>
           </div>
+          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
+            <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
+          </button>
           <strong className={styles.setupCount}>{collectionMode ? "Paused" : `${setupReadyCount} of 3 ready`}</strong>
           <div className={styles.setupProgress} aria-label={`${setupReadyCount} of 3 required choices complete`}>
             {setupSteps.map((step, index) => {
@@ -561,9 +566,6 @@ export default function VaultPage() {
         <div className={styles.drawActionControl}>
           <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={drawingRef.current || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
-          </button>
-          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
-            <VaultIcon name="draw-again" size={17} />Just pick something
           </button>
           <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
         </div>
@@ -673,7 +675,7 @@ export default function VaultPage() {
                 <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
               </button>
               </> : null}
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault({ deferCurrentPick: true }); }}>
+              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again"); void handleOpenVault({ deferCurrentPick: true, quick: lastDrawWasQuick }); }}>
                 <VaultResultActionIcon name="draw-again" /><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
               </button>
               {isLive ? <><button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session"); void snoozeCurrentPick(); }}>
