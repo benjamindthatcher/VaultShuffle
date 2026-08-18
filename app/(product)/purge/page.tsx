@@ -90,21 +90,20 @@ export default function PurgePage() {
     const reviewableGames = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed" && game.status !== "Slept");
     const noReviewNeeded = reviewableGames.filter((game) => !readyIds.has(game.id) && !actionedIds.has(game.id)).length;
 
-    // A game can be reviewed more than once, so only its most recent decision
-    // counts. A single "Actioned" total implied everything reviewed had been
-    // dealt with, when a Keep leaves the game exactly where it was.
-    const latestByGame = new Map<string, PurgeReview["action"]>();
-    for (const review of [...reviews].sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt))) {
-      if (!latestByGame.has(review.gameId)) latestByGame.set(review.gameId, review.action);
-    }
-    const outcomes = [...latestByGame.values()];
+    // Reported from each game's CURRENT state, not the decision that was made.
+    // A game slept in Purge and later restored elsewhere is active now, and
+    // saying "slept" would drift from the Library the same way "Actioned" did.
+    const statusById = new Map(games.map((game) => [game.id, game.status]));
+    const reviewedStatuses = [...actionedIds]
+      .map((gameId) => statusById.get(gameId))
+      .filter((status): status is DemoGame["status"] => Boolean(status));
 
     return {
       ready: candidates.length,
-      reviewed: latestByGame.size,
-      kept: outcomes.filter((action) => action === "keep" || action === "pin").length,
-      slept: outcomes.filter((action) => action === "sleep").length,
-      completed: outcomes.filter((action) => action === "complete").length,
+      reviewed: reviewedStatuses.length,
+      kept: reviewedStatuses.filter((status) => status !== "Slept" && status !== "Completed").length,
+      slept: reviewedStatuses.filter((status) => status === "Slept").length,
+      completed: reviewedStatuses.filter((status) => status === "Completed").length,
       noReviewNeeded
     };
   }, [candidates, games, reviews]);
@@ -387,7 +386,8 @@ export default function PurgePage() {
                 {reviewedList.map(({ review, game }) => <li key={game.id} className={styles.outcomeRow}>
                   <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="88px" /></span>
                   <span className={styles.outcomeName}>{game.title}</span>
-                  <span className={styles.outcomeBadge} data-action={review.action}>{OUTCOME_LABELS[review.action]}</span>
+                  <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : game.status === "Completed" ? "Completed" : "Active"}</span>
+                  <span className={styles.outcomeDecision}>decided: {OUTCOME_LABELS[review.action]}</span>
                 </li>)}
               </ul>
             : <p className={styles.emptyNote}>You have not reviewed anything yet. Start with Needs Review.</p>)

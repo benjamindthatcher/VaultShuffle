@@ -589,7 +589,7 @@
 }
 .outcomeRow {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto;
+  grid-template-columns: 88px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 14px;
   padding: 9px 12px;
@@ -623,18 +623,25 @@
   font-weight: 700;
   white-space: nowrap;
 }
-.outcomeBadge[data-action="keep"],
-.outcomeBadge[data-action="pin"] {
+.outcomeBadge[data-status="Not Started"],
+.outcomeBadge[data-status="In Progress"],
+.outcomeBadge[data-action="none"] {
   border-color: rgba(98, 211, 175, 0.5);
   color: #62d3af;
 }
-.outcomeBadge[data-action="sleep"] {
+.outcomeBadge[data-status="Slept"] {
   border-color: rgba(157, 111, 255, 0.5);
   color: #c79bff;
 }
-.outcomeBadge[data-action="complete"] {
+.outcomeBadge[data-status="Completed"] {
   border-color: rgba(224, 163, 74, 0.5);
   color: #e0a34a;
+}
+/* What you decided, kept subordinate to what is actually true now. */
+.outcomeDecision {
+  color: var(--vault-text-soft);
+  font-size: 0.72rem;
+  white-space: nowrap;
 }
 .emptyNote {
   margin: 0;
