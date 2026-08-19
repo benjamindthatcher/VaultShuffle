@@ -4,7 +4,21 @@ import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceC
 import type { VaultMoodScores } from "./vault-matching.ts";
 
 export const MAX_VAULT_GENRES = 3;
-export const MAX_VAULT_DECK_SIZE = 32;
+/**
+ * How much of the pool the deck shows and rerolls can reach.
+ *
+ * Not a performance limit, which is what 32 looked like. Scoring already runs
+ * over the whole pool whatever this is set to — 5,000 games score in about 3ms,
+ * and slicing the deck and drawing from it is around 0.003ms — while the preview
+ * lazy-loads its artwork, so the cost here is DOM nodes rather than bandwidth.
+ *
+ * The genuine ceiling is that finalists are capped at 20 (see vaultFinalists), so
+ * beyond roughly 50 a larger deck cannot change which game wins. What it does buy
+ * is reroll depth: a draw never repeats until the deck is exhausted. 32 was set
+ * when a typical pool was a couple of dozen games; now that only the goal filters,
+ * pools run to the hundreds and 32 had quietly become the real filter.
+ */
+export const MAX_VAULT_DECK_SIZE = 64;
 const VAULT_SELECTION_TEMPERATURE = 15;
 
 export const vaultSessionOptions = [
@@ -47,7 +61,7 @@ const VAULT_SCORE_WEIGHTS = {
 } as const;
 
 export type VaultEligibilityStage = {
-  id: "active" | "collection" | "genres" | "session" | "mood" | "goal" | "snoozes" | "available" | "shortlist";
+  id: "active" | "collection" | "genres" | "goal" | "snoozes" | "available" | "shortlist";
   label: string;
   count: number;
 };
@@ -93,9 +107,17 @@ export function getVaultEligibility({
     : active.filter((game) => game.collectionIds.includes(selectedCollectionId!));
   const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
   const genreMatches = inCollection.filter((game) => matchesAnyGenre(game, canonicalSelectedGenres));
-  const sessionMatches = !collectionDraw && session ? genreMatches.filter((game) => game.sessionFit.includes(session)) : genreMatches;
-  const moodMatches = !collectionDraw && mood ? sessionMatches.filter((game) => moodEligible(game, mood)) : sessionMatches;
-  const goalMatches = collectionDraw ? moodMatches : moodMatches.filter((game) => goalEligible(game, goal));
+
+  // Goal is the only part of the setup that removes games, because it is the only
+  // one that states a category rather than a preference: "Something New" means
+  // unplayed, and a game with forty hours on it is not that whatever else it has
+  // going for it.
+  //
+  // Session and mood are preferences. They decide the order, not the guest list —
+  // see sessionPoints and moodPoints, which between them are worth 60 of the 100
+  // points on offer, so a poor fit sinks far out of contention without ever being
+  // declared ineligible.
+  const goalMatches = collectionDraw ? genreMatches : genreMatches.filter((game) => goalEligible(game, goal));
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
   const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
 
@@ -104,12 +126,6 @@ export function getVaultEligibility({
   }
   if (!collectionDraw && selectedGenres.length) {
     stages.push({ id: "genres", label: "Genre Matches", count: genreMatches.length });
-  }
-  if (!collectionDraw && session) {
-    stages.push({ id: "session", label: `${sessionLabel(session)} Fits`, count: sessionMatches.length });
-  }
-  if (!collectionDraw && mood) {
-    stages.push({ id: "mood", label: `${labelForMood(mood)} Fits`, count: moodMatches.length });
   }
   if (!collectionDraw && goal && goal !== "surprise") {
     stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
@@ -349,25 +365,6 @@ function moodScoreFor(scores: VaultMoodScores | undefined, mood: VaultMoodId, ta
 }
 
 /**
- * Mood excludes a clash, it does not demand a match.
- *
- * Requiring a positive score meant a mood cut the library to between a third and
- * a half, and left 33 games in a real 234-game library eligible for no mood at
- * all — permanently invisible whenever any mood was chosen, since a mood is
- * always chosen. Mood is the softest of the three inputs: "I fancy something
- * chilled" should steer the pick, not decide which games exist.
- *
- * Only an active contradiction is filtered — a survival horror when the player
- * asked for Chill. Everything else stays eligible and is ranked by moodPoints,
- * which now carries the discrimination this filter used to.
- */
-const MOOD_CLASH_THRESHOLD = -3;
-
-function moodEligible(game: DemoGame, mood: VaultMoodId) {
-  return moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood)) > MOOD_CLASH_THRESHOLD;
-}
-
-/**
  * Spans most of the available weight rather than the top third of it.
  *
  * The old range was 21-30, so the difference between a game built for the mood
@@ -381,7 +378,10 @@ function moodPoints(strength: number) {
   if (strength >= 3) return 23;
   if (strength >= 1) return 18;
   if (strength >= -1) return 13;
-  return 9;
+  if (strength >= -3) return 8;
+  // An outright contradiction. Still drawable in principle, and in practice ranked
+  // so far down that it only surfaces when there is genuinely nothing better.
+  return 3;
 }
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {

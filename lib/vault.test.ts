@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import type { DemoGame } from "./demo-data.ts";
+import type { DemoGame, VaultSessionId } from "./demo-data.ts";
 import {
   MAX_VAULT_DECK_SIZE,
   buildVaultDeck,
@@ -118,8 +118,8 @@ test("collection draws ignore session, mood, goal and genre filters", () => {
   assert.ok(pool.every((entry) => entry.score === 0));
 });
 
-test("keeps the deck at 32 and rotates a rerolled game behind replacements", () => {
-  const pool = Array.from({ length: 40 }, (_, index) => ({
+test("caps the deck and rotates a rerolled game behind replacements", () => {
+  const pool = Array.from({ length: MAX_VAULT_DECK_SIZE + 8 }, (_, index) => ({
     game: makeGame({ id: `game-${index}`, title: `Game ${String(index).padStart(2, "0")}` }),
     score: 100 - index,
     preferencePoints: 0,
@@ -133,7 +133,7 @@ test("keeps the deck at 32 and rotates a rerolled game behind replacements", () 
   assert.equal(rotated.length, MAX_VAULT_DECK_SIZE);
   assert.equal(initial[0].game.id, "game-0");
   assert.ok(!rotated.some((entry) => entry.game.id === "game-0"));
-  assert.ok(rotated.some((entry) => entry.game.id === "game-32"));
+  assert.ok(rotated.some((entry) => entry.game.id === `game-${MAX_VAULT_DECK_SIZE}`));
 });
 
 test("quick draw can reach every game in the pool, not just the top slice", () => {
@@ -225,16 +225,43 @@ test("the preference term shifts selection odds in the arm that uses it", () => 
   assert.equal(drawVaultGame(pool, null, rng, true)?.id, "liked");
 });
 
-test("mood filters a clash, not the absence of a match", () => {
+test("mood ranks a clash last instead of removing it", () => {
+  // Only the goal removes games. Mood is a preference, so a survival horror asked
+  // for on a Chill night sinks to the bottom rather than ceasing to exist.
   const neutral = { ...makeGame(), moodScores: { "brain-off": 0, chill: 0, intense: 0 } };
-  const clash = { ...makeGame(), moodScores: { "brain-off": 0, chill: -6, intense: 6 } };
+  const clash = { ...makeGame(), id: "clash", title: "Clash", moodScores: { "brain-off": 0, chill: -6, intense: 6 } };
   const pool = buildVaultPool({
-    games: [neutral, { ...clash, id: "clash", title: "Clash" }],
+    games: [neutral, clash],
     session: null, mood: "chill", goal: null,
     selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
   });
 
-  // The neutral game survives; only the active contradiction is removed.
+  assert.equal(pool.length, 2, "mood must not remove anything");
+  assert.deepEqual(pool.map((entry) => entry.game.id), ["game-1", "clash"]);
+});
+
+test("a session mismatch is ranked down, not filtered out", () => {
+  const long = { ...makeGame(), id: "long", title: "Long", duration: { mainStoryMinutes: 6_000 }, sessionFit: ["weekend"] as VaultSessionId[] };
+  const brief = { ...makeGame(), duration: { mainStoryMinutes: 120 }, sessionFit: ["short", "evening", "weekend"] as VaultSessionId[] };
+  const pool = buildVaultPool({
+    games: [long, brief],
+    session: "short", mood: null, goal: null,
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+
+  assert.equal(pool.length, 2, "session must not remove anything");
+  assert.equal(pool[0].game.id, "game-1", "the game that actually fits should lead");
+});
+
+test("only the goal removes games from the pool", () => {
+  const played = { ...makeGame(), id: "played", title: "Played", status: "In Progress" as const, hoursPlayed: 40 };
+  const fresh = { ...makeGame(), status: "Not Started" as const, hoursPlayed: 0 };
+  const pool = buildVaultPool({
+    games: [played, fresh],
+    session: "short", mood: "chill", goal: "new",
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+
   assert.deepEqual(pool.map((entry) => entry.game.id), ["game-1"]);
 });
 

@@ -298,6 +298,7 @@ export default function HomePage() {
                     <Image
                       src={steamCapsule(row.appid)}
                       alt=""
+                      unoptimized
                       width={231}
                       height={87}
                       sizes="46px"
