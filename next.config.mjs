@@ -51,9 +51,11 @@ const nextConfig = {
       { protocol: "https", hostname: "shared.akamai.steamstatic.com" },
       { protocol: "https", hostname: "avatars.steamstatic.com" }
     ],
-    formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 86400,
-    qualities: [60, 75, 78]
+    formats: ["image/webp"],
+    // 31 days: a longer cache means a given transformation is billed once and
+    // then reused, rather than being recomputed after a day.
+    minimumCacheTTL: 2678400,
+    qualities: [75]
   }
 };
 

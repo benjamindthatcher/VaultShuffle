@@ -221,7 +221,6 @@ export default function HomePage() {
     height={941}
     priority
     sizes="(max-width: 1120px) 100vw, 53vw"
-    quality={78}
   />
 
   <article className="vs-featured-game-card">
@@ -302,7 +301,6 @@ export default function HomePage() {
                       width={231}
                       height={87}
                       sizes="46px"
-                      quality={60}
                     />
 
                     <strong>{row.name}</strong>
