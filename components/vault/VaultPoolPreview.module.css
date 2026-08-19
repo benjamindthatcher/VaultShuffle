@@ -26,8 +26,36 @@
   background: linear-gradient(100deg, transparent 25%, rgba(185, 92, 255, 0.04) 40%, rgba(209, 108, 255, 0.22) 50%, rgba(88, 108, 255, 0.08) 60%, transparent 75%);
 }
 
-.railWrap[data-draw-state="focusing"] .lightSweep {
-  animation: vaultPoolSweep 420ms ease-out forwards;
+/* One pass across the whole draw, not a 420ms pass inside a 480ms phase followed
+   by 370ms of nothing. Both states declare the same animation, so the phase
+   change from focusing to revealing does not restart it. */
+.railWrap[data-draw-state="focusing"] .lightSweep,
+.railWrap[data-draw-state="revealing"] .lightSweep {
+  animation: vaultPoolSweep 850ms cubic-bezier(0.36, 0, 0.28, 1) forwards;
+}
+
+/* Only seen when the draw is still waiting on the write after the sweep has
+   finished, which is the one case left where the rail would otherwise sit
+   still. Opacity on a pseudo-element, so it costs the compositor and not the
+   main thread, and it can be cut at any point without a jump. */
+.railWrap::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0 0 22px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow: inset 0 0 42px rgba(163, 62, 255, 0.28);
+}
+
+.railWrap[data-draw-state="revealing"]::before {
+  animation: vaultPoolHold 1500ms ease-in-out 850ms infinite;
+}
+
+@keyframes vaultPoolHold {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
 .grid {
@@ -336,6 +364,10 @@
 @media (prefers-reduced-motion: reduce) {
   .lightSweep {
     display: none;
+  }
+
+  .railWrap[data-draw-state="revealing"]::before {
+    animation: none;
   }
 
   .cardHighlighted::after {

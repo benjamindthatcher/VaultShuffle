@@ -169,7 +169,7 @@ test("reasons describe the game, not just the options the player picked", () => 
 
   assert.notDeepEqual(strong.reasons, weak.reasons);
   assert.ok(strong.reasons.includes("Perfect Intense match"));
-  assert.ok(weak.reasons.includes("Intense match"));
+  assert.ok(weak.reasons.includes("Solid Intense match"));
 });
 
 test("a dormant game says so, and a recently played one does not", () => {
@@ -223,4 +223,51 @@ test("the preference term shifts selection odds in the arm that uses it", () => 
   const rng = () => 0.6;
   assert.equal(drawVaultGame(pool, null, rng, false)?.id, "disliked");
   assert.equal(drawVaultGame(pool, null, rng, true)?.id, "liked");
+});
+
+test("mood filters a clash, not the absence of a match", () => {
+  const neutral = { ...makeGame(), moodScores: { "brain-off": 0, chill: 0, intense: 0 } };
+  const clash = { ...makeGame(), moodScores: { "brain-off": 0, chill: -6, intense: 6 } };
+  const pool = buildVaultPool({
+    games: [neutral, { ...clash, id: "clash", title: "Clash" }],
+    session: null, mood: "chill", goal: null,
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+
+  // The neutral game survives; only the active contradiction is removed.
+  assert.deepEqual(pool.map((entry) => entry.game.id), ["game-1"]);
+});
+
+test("a game with no mood signal is never stranded", () => {
+  // 33 games in a real library matched no mood at all and so could never be
+  // drawn, because a mood is always chosen.
+  const blank = { ...makeGame(), moodScores: { "brain-off": 0, chill: 0, intense: 0 } };
+  for (const mood of ["brain-off", "chill", "intense"] as const) {
+    const pool = buildVaultPool({
+      games: [blank], session: null, mood, goal: null,
+      selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+    });
+    assert.equal(pool.length, 1, `${mood} stranded a game with no signal`);
+  }
+});
+
+test("mood separates games far more than it used to", () => {
+  const built = { ...makeGame(), moodScores: { "brain-off": 0, chill: 0, intense: 8 } };
+  const tolerable = { ...makeGame(), moodScores: { "brain-off": 0, chill: 0, intense: -2 } };
+  const strong = scoreVaultGame(built, null, "intense", null, []);
+  const weak = scoreVaultGame(tolerable, null, "intense", null, []);
+
+  // Previously the whole range was 21-30 of 30, so mood barely moved a score.
+  assert.ok(strong.score - weak.score >= 50, `mood spread was only ${strong.score - weak.score}`);
+});
+
+test("a weekend prefers a long game over a short one", () => {
+  // Short games are eligible for a weekend now, so scoring has to be what keeps
+  // the session meaningful.
+  const short = { ...makeGame(), duration: { mainStoryMinutes: 120 }, sessionFit: ["short", "evening", "weekend"] as const };
+  const long = { ...makeGame(), duration: { mainStoryMinutes: 3_600 }, sessionFit: ["weekend"] as const };
+  const shortScore = scoreVaultGame({ ...short, sessionFit: [...short.sessionFit] }, "weekend", null, null, []);
+  const longScore = scoreVaultGame({ ...long, sessionFit: [...long.sessionFit] }, "weekend", null, null, []);
+
+  assert.ok(longScore.score > shortScore.score, "a weekend draw should still favour something meaty");
 });

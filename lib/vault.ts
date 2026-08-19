@@ -289,7 +289,8 @@ export function scoreVaultGame(
     const moodStrength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
     availablePoints += VAULT_SCORE_WEIGHTS.mood;
     earnedPoints += moodPoints(moodStrength);
-    reasons.push(moodReason(game, mood));
+    const moodMatch = moodReason(game, mood);
+    if (moodMatch) reasons.push(moodMatch);
   }
 
   let genreReason: string | null = null;
@@ -347,15 +348,40 @@ function moodScoreFor(scores: VaultMoodScores | undefined, mood: VaultMoodId, ta
   return tagged ? 4 : 0;
 }
 
+/**
+ * Mood excludes a clash, it does not demand a match.
+ *
+ * Requiring a positive score meant a mood cut the library to between a third and
+ * a half, and left 33 games in a real 234-game library eligible for no mood at
+ * all — permanently invisible whenever any mood was chosen, since a mood is
+ * always chosen. Mood is the softest of the three inputs: "I fancy something
+ * chilled" should steer the pick, not decide which games exist.
+ *
+ * Only an active contradiction is filtered — a survival horror when the player
+ * asked for Chill. Everything else stays eligible and is ranked by moodPoints,
+ * which now carries the discrimination this filter used to.
+ */
+const MOOD_CLASH_THRESHOLD = -3;
+
 function moodEligible(game: DemoGame, mood: VaultMoodId) {
-  return moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood)) >= 3;
+  return moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood)) > MOOD_CLASH_THRESHOLD;
 }
 
+/**
+ * Spans most of the available weight rather than the top third of it.
+ *
+ * The old range was 21-30, so the difference between a game built for the mood
+ * and one merely tolerable was worth three points out of a hundred — mood was
+ * doing nearly all its work as a filter and almost none as a preference. Now that
+ * it barely filters, this is where it earns its place.
+ */
 function moodPoints(strength: number) {
-  if (strength <= 3) return 21;
-  if (strength === 4) return 24;
-  if (strength === 5) return 27;
-  return VAULT_SCORE_WEIGHTS.mood;
+  if (strength >= 7) return VAULT_SCORE_WEIGHTS.mood;
+  if (strength >= 5) return 27;
+  if (strength >= 3) return 23;
+  if (strength >= 1) return 18;
+  if (strength >= -1) return 13;
+  return 9;
 }
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {
@@ -371,28 +397,36 @@ function matchesAnyGenre(game: DemoGame, selectedGenres: string[]) {
   return selectedGenres.some((genre) => gameGenres.includes(genre));
 }
 
+/**
+ * Now that shorter games are eligible for longer sessions, this is what keeps a
+ * session meaningful: each one rewards the length that actually suits it.
+ *
+ * Without this a two-hour game would have scored a perfect Weekend match, because
+ * the old thresholds only ever asked whether a game was short *enough*.
+ */
 function sessionPoints(game: DemoGame, session: VaultSessionId) {
   if (!game.sessionFit.includes(session)) return 0;
   if (game.duration?.endless) return session === "weekend" ? 27 : 24;
 
+  // Eligible everywhere, preferred nowhere: an unknown length should neither be
+  // rewarded nor punished against games whose length is actually known.
   const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
   if (!totalMinutes) return 20;
   const remainingHours = totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60;
 
   if (session === "short") {
-    if (remainingHours <= 3) return 30;
+    if (remainingHours <= 3) return VAULT_SCORE_WEIGHTS.session;
     if (remainingHours <= 6) return 28;
-    if (remainingHours <= 8) return 26;
-    return 24;
+    return 26;
   }
   if (session === "evening") {
-    if (remainingHours <= 18) return 30;
-    if (remainingHours <= 24) return 28;
-    return 25;
+    if (remainingHours >= 10 && remainingHours <= 30) return VAULT_SCORE_WEIGHTS.session;
+    if (remainingHours >= 6) return 26;
+    return 22;
   }
-  if (remainingHours <= 60) return 30;
-  if (remainingHours <= 100) return 28;
-  return 26;
+  if (remainingHours > 30) return VAULT_SCORE_WEIGHTS.session;
+  if (remainingHours >= 15) return 26;
+  return 21;
 }
 
 function newGamePoints(game: DemoGame) {
@@ -451,13 +485,19 @@ function sessionReason(game: DemoGame, session: VaultSessionId) {
   return `${sessionLabel(session)} fit`;
 }
 
+/**
+ * Null when the game merely does not clash with the mood. Now that a weak or
+ * mildly negative score is eligible, claiming "Intense match" for a game that is
+ * nothing of the sort would be the reason list telling the player something
+ * untrue.
+ */
 function moodReason(game: DemoGame, mood: VaultMoodId) {
   const label = labelForMood(mood);
   const strength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
-  if (strength >= 6) return `Perfect ${label} match`;
-  if (strength === 5) return `Strong ${label} match`;
-  if (strength === 4) return `Solid ${label} match`;
-  return `${label} match`;
+  if (strength >= 7) return `Perfect ${label} match`;
+  if (strength >= 5) return `Strong ${label} match`;
+  if (strength >= 3) return `Solid ${label} match`;
+  return null;
 }
 
 /**

@@ -136,6 +136,13 @@ export default function VaultPage() {
   );
   const activeDeferredGameIds = deferredQueue.setupKey === setupKey ? deferredQueue.gameIds : EMPTY_GAME_IDS;
   const deck = useMemo(() => buildVaultDeck(fullPool, activeDeferredGameIds), [activeDeferredGameIds, fullPool]);
+  // Memoised because VaultPoolPreview scrolls the rail to the winner in an effect
+  // keyed on it. Found fresh each render, the effect re-ran on every state change
+  // during the draw and restarted the smooth scroll each time.
+  const drawWinner = useMemo(
+    () => ownedGames.find((game) => game.id === drawWinnerId) ?? null,
+    [ownedGames, drawWinnerId]
+  );
   const eligibility = useMemo(() => {
     if (collectionMode && !activeCollectionId) return { stages: [], games: [] };
 
@@ -308,6 +315,25 @@ export default function VaultPage() {
     setDrawMessage("Opening the Vault.");
     setDrawState("focusing");
 
+    // The pick is already decided, so the write does not have to finish before we
+    // can show it. Started here, its latency runs underneath the animation rather
+    // than after it — the draw used to sit frozen on the last frame for as long as
+    // the round trip took. Settled either way so a rejection is never unhandled.
+    const record = recordVaultDraw(nextPick.id, {
+      steamAppId: nextPick.steamAppId,
+      session: quick ? null : activeSession, mood: quick ? null : activeMood, goal: quick ? null : activeGoal,
+      collectionId: quick ? null : activeCollectionId,
+      selectedGenres: quick ? EMPTY_GAME_IDS : activeGenres,
+      eligiblePoolCount: quick ? quickPool.length : fullPool.length,
+      rerollIndex: drawnCycleRef.current.size - 1,
+      // Recorded even in the control arm: the choice set is training data for a
+      // future model, not part of this experiment.
+      finalistAppIds: quick ? undefined : vaultFinalists(availablePool, currentPick?.id).map((entry) => entry.game.steamAppId).filter((appId): appId is number => typeof appId === "number" && appId > 0)
+    }).then(
+      (value) => ({ ok: true as const, value }),
+      (error) => ({ ok: false as const, error })
+    );
+
     try {
       await wait(reducedMotion ? 80 : 480);
       if (activeDraw !== activeDrawRef.current) return;
@@ -315,19 +341,11 @@ export default function VaultPage() {
       await wait(reducedMotion ? 100 : 370);
       if (activeDraw !== activeDrawRef.current) return;
 
-      const draw = await recordVaultDraw(nextPick.id, {
-        steamAppId: nextPick.steamAppId,
-        session: quick ? null : activeSession, mood: quick ? null : activeMood, goal: quick ? null : activeGoal,
-        collectionId: quick ? null : activeCollectionId,
-        selectedGenres: quick ? EMPTY_GAME_IDS : activeGenres,
-        eligiblePoolCount: quick ? quickPool.length : fullPool.length,
-        rerollIndex: drawnCycleRef.current.size - 1,
-        // Recorded even in the control arm: the choice set is training data for a
-        // future model, not part of this experiment.
-        finalistAppIds: quick ? undefined : vaultFinalists(availablePool, currentPick?.id).map((entry) => entry.game.steamAppId).filter((appId): appId is number => typeof appId === "number" && appId > 0)
-      });
-      drawRerollIndexRef.current = drawnCycleRef.current.size - 1;
+      const outcome = await record;
       if (activeDraw !== activeDrawRef.current) return;
+      if (!outcome.ok) throw outcome.error;
+      const draw = outcome.value;
+      drawRerollIndexRef.current = drawnCycleRef.current.size - 1;
       setCurrentDrawId(draw.id);
       setHighlightedGameId(nextPick.id);
       setDrawState("revealed");
@@ -654,7 +672,7 @@ export default function VaultPage() {
           <VaultPoolPreview
             entries={deck}
             drawState={drawState}
-            winner={ownedGames.find((game) => game.id === drawWinnerId) ?? null}
+            winner={drawWinner}
             highlightedId={highlightedGameId}
             onSelect={isLive ? setDetailsGameId : () => setGuestSignInOpen(true)}
             sleepingId={sleepingGameId}
@@ -817,7 +835,14 @@ function revealResultIfNeeded(element: HTMLElement | null, reducedMotion: boolea
   if (!element) return;
   const bounds = element.getBoundingClientRect();
   const isBelowViewport = bounds.top > window.innerHeight - 80;
-  if (isBelowViewport) element.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+  if (!isBelowViewport) return;
+  // window.scrollTo rather than scrollIntoView: scrollIntoView walks every
+  // scrollable ancestor, so it also nudged the deck rail sideways while the rail
+  // was still running its own smooth scroll to the winner, and the two fought.
+  window.scrollTo({
+    top: window.scrollY + bounds.top - 24,
+    behavior: reducedMotion ? "auto" : "smooth"
+  });
 }
 
 function ResultSummary({ icon, label, value }: { icon: "clock" | "mood" | "goal" | "genre" | "collections"; label: string; value: string }) {

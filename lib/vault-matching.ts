@@ -108,6 +108,18 @@ export function moodTagsFromScores(scores: VaultMoodScores): VaultMoodId[] {
   return (["brain-off", "chill", "intense"] as const).filter((mood) => scores[mood] >= MOOD_THRESHOLD);
 }
 
+/**
+ * Which sessions a game can reasonably be played in.
+ *
+ * Fits run upward, not into a single bucket. Time available is a ceiling, not a
+ * target: a three-hour game is a perfectly good pick for a free weekend, while a
+ * hundred-hour game is a bad pick for a short evening. Assigning each game to
+ * exactly one band meant choosing "Evening" discarded roughly seven games in ten
+ * before scoring ever ran, which is most of why draws felt so narrow.
+ *
+ * Preference between eligible games is scoring's job — see sessionPoints, which
+ * still rewards the length that actually matches the session.
+ */
 export function deriveSessionFits({
   duration,
   completionPercent,
@@ -119,14 +131,16 @@ export function deriveSessionFits({
 }): VaultSessionId[] {
   if (endless) return ["short", "evening", "weekend"];
 
+  // An unknown length is not evidence of a long game. Confining these to
+  // "weekend" hid a third of a real library from every other session.
   const totalMinutes = estimatedTimeToBeatMinutes(duration);
-  if (!totalMinutes) return ["weekend"];
+  if (!totalMinutes) return ["short", "evening", "weekend"];
 
   const remainingRatio = Math.max(0.05, 1 - clamp(completionPercent, 0, 99) / 100);
   const remainingHours = (totalMinutes * remainingRatio) / 60;
 
-  if (remainingHours <= 10) return ["short"];
-  if (remainingHours <= 30) return ["evening"];
+  if (remainingHours <= 10) return ["short", "evening", "weekend"];
+  if (remainingHours <= 30) return ["evening", "weekend"];
   return ["weekend"];
 }
 
