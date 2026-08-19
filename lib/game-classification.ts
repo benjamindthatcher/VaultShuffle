@@ -58,6 +58,25 @@ function dominantSignals(tags: ReplayabilityMetadata["tags"]) {
  */
 const ENDLESS_COMPLETION_RATIO = 12;
 
+/**
+ * A story-driven game is never endless on duration or tags alone.
+ *
+ * Completionist figures are unreliable at the top end — IGDB reports 6,141 hours
+ * for Baldur's Gate 3 and 187 for the nine-hour Quantum Break — and the ratio
+ * rule turns that bad data into "you cannot finish this". A Story Rich tag is a
+ * reliable veto, with an exception for persistent-online worlds, since Final
+ * Fantasy XI is both story rich and genuinely endless.
+ */
+const PERSISTENT_WORLD_SIGNALS = new Set([
+  "battle royale", "massively multiplayer", "mmo", "mmorpg", "moba"
+]);
+
+export function isStoryDriven(tags: ReplayabilityMetadata["tags"]) {
+  const signals = new Set(normaliseSignals(tags));
+  if ([...PERSISTENT_WORLD_SIGNALS].some((signal) => signals.has(signal))) return false;
+  return signals.has("story rich");
+}
+
 export function hasEndlessDurationShape(duration: {
   mainStoryMinutes?: number | null;
   completionistMinutes?: number | null;
@@ -210,6 +229,7 @@ export function hasStrongReplayabilitySignals(metadata: ReplayabilityMetadata) {
     ...normaliseSignals(metadata.categories),
   ]);
 
+  if (isStoryDriven(metadata.tags)) return false;
   const dominant = dominantSignals(metadata.tags);
   if ([...DECISIVE_ENDLESS_SIGNALS].some((signal) => dominant.has(signal))) return true;
   const persistent = [...PERSISTENT_ONLINE_SIGNALS].some((signal) => signals.has(signal));

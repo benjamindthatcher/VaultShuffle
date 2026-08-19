@@ -4,6 +4,7 @@ import {
   gameProgress,
   hasEndlessDurationShape,
   hasStrongReplayabilitySignals,
+  isStoryDriven,
   isEndlessGame
 } from "./game-classification.ts";
 
@@ -77,4 +78,21 @@ test("a completion time far beyond the story length reads as endless", () => {
   // A normal long RPG stays finite.
   assert.equal(hasEndlessDurationShape({ mainStoryMinutes: 2400, completionistMinutes: 6000 }), false);
   assert.equal(hasEndlessDurationShape({ mainStoryMinutes: null, completionistMinutes: null }), false);
+});
+
+test("a story-driven game is not endless, even with survival-craft tags", () => {
+  // Subnautica: Below Zero carries "Open World Survival Craft" at 100% share but
+  // has an ending; Valheim carries the same tag and does not.
+  assert.equal(hasStrongReplayabilitySignals({
+    tags: { "Open World Survival Craft": 2000, "Story Rich": 1900 }, genres: [], categories: []
+  }), false);
+  assert.equal(hasStrongReplayabilitySignals({
+    tags: { "Open World Survival Craft": 2379, "Survival": 2100 }, genres: [], categories: []
+  }), true);
+});
+
+test("a persistent online world stays endless despite a story", () => {
+  // Final Fantasy XI is story rich and an MMO.
+  assert.equal(isStoryDriven({ "Story Rich": 500, "MMORPG": 900 }), false);
+  assert.equal(isStoryDriven({ "Story Rich": 500, "Singleplayer": 900 }), true);
 });
