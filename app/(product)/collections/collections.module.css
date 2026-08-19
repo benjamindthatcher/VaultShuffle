@@ -1,45 +1,6 @@
 .collectionsPage {
-  position: relative;
-  isolation: isolate;
   display: grid;
   gap: 12px;
-}
-
-/* No backdrop of its own. This page used to paint a flat 100vw block of
-   --vault-bg behind itself, from back when the banner needed masking. The shell
-   now paints the ground for all four pages, and the block sat on top of it as a
-   visible rectangle the width of the viewport and the height of the content. */
-
-.collectionsPage::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  top: 0;
-  left: 50%;
-  width: 100vw;
-  height: 350px;
-  transform: translateX(-50%);
-  pointer-events: none;
-  background:
-    linear-gradient(
-      90deg,
-      var(--vault-bg) 0%,
-      rgba(4, 7, 20, 0.82) 4%,
-      rgba(4, 7, 20, 0.34) 11%,
-      transparent 21%,
-      transparent 79%,
-      rgba(4, 7, 20, 0.34) 89%,
-      rgba(4, 7, 20, 0.82) 96%,
-      var(--vault-bg) 100%
-    ),
-    radial-gradient(circle at 50% 18%, rgba(66, 91, 210, 0.18), transparent 48%),
-    linear-gradient(180deg, rgba(3, 5, 16, 0.24), rgba(4, 7, 20, 0.22) 58%, var(--vault-bg) 100%),
-    url("/assets/vault/vault-header.webp") center 54% / cover no-repeat;
-}
-
-.collectionsPage > * {
-  position: relative;
-  z-index: 1;
 }
 
 
@@ -272,9 +233,6 @@
 
 @media (max-width: 760px) {
   .collectionsPage::after,
-  .collectionsPage::before {
-    display: none;
-  }
 
   .composerHeader {
     align-items: stretch;
@@ -323,15 +281,3 @@
   }
 }
 
-/* --- Vault banner hidden while we evaluate the pages without it. -------------
-   Nothing removed: delete this block to bring the artwork straight back. Kept
-   as one block per page rather than edits inside the rules above, so the
-   original values stay intact and reviewable. */
-.collectionsPage::before {
-  display: none;
-}
-
-/* banner-hidden-spacing: the band the artwork occupied is gone from the markup
-   as well as the styles, so the page starts at the single top offset the shell
-   gives all four app pages. The visually-hidden <h1> is absolutely positioned
-   and so contributes no grid track of its own. */
