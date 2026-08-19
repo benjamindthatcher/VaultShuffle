@@ -329,7 +329,8 @@ export default function PurgePage() {
           {CATEGORIES.map((category) => {
             const selected = selectedCategories.includes(category.id);
             return <button key={category.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => toggleCategory(category.id)}>
-              <PurgeCategoryIcon category={category.id} /><span><strong>{category.label}</strong><small>{category.copy}</small></span><b>{categoryCounts[category.id]}</b>
+              <PurgeCategoryIcon category={category.id} />
+              <span className={styles.categoryCopy}><strong>{category.label}</strong><b>{categoryCounts[category.id]}</b><small>{category.copy}</small></span>
             </button>;
           })}
         </div>
@@ -343,9 +344,8 @@ export default function PurgePage() {
           ] as const).map((view) => {
             const selected = reviewView === view.id;
             return <button key={view.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => setReviewView(view.id)}>
-              <span className={styles.categoryIcon} aria-hidden="true"><VaultIcon name={view.icon} size={26} /></span>
-              <span><strong>{view.label}</strong><small>{view.copy}</small></span>
-              <b>{view.count}</b>
+              <span className={styles.categoryIcon} aria-hidden="true"><VaultIcon name={view.icon} size={36} /></span>
+              <span className={styles.categoryCopy}><strong>{view.label}</strong><b>{view.count}</b><small>{view.copy}</small></span>
             </button>;
           })}
         </div>
@@ -418,7 +418,7 @@ function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
     dormant: "the-rest",
   };
 
-  return <VaultIcon className={styles.categoryIcon} name={categoryIcons[category]} size={48} />;
+  return <VaultIcon className={styles.categoryIcon} name={categoryIcons[category]} size={36} />;
 }
 
 type PurgeDecisionIconName = "keep-active" | "pin" | "sleep" | "mark-completed";
@@ -427,10 +427,3 @@ function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
   return <span className={styles.decisionIcon} aria-hidden="true"><VaultIcon name={name} size={34} /></span>;
 }
 
-function PurgeStat({ icon, label, count }: { icon: "ready-to-review" | "keep-active" | "sleep" | "mark-completed" | "no-review-needed"; label: string; count: number }) {
-  return <span>
-    <span className={styles.purgeStatIcon} aria-hidden="true"><VaultIcon name={icon} size={38} /></span>
-    <em>{label}</em>
-    <strong>{count}</strong>
-  </span>;
-}
