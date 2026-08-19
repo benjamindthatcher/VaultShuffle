@@ -16,6 +16,25 @@ export type PurgeCandidate = {
   reason: string;
 };
 
+/**
+ * Whether a recorded decision has since been reversed somewhere else.
+ *
+ * `purge_reviews` is an append-only audit log and the only thing that deletes a
+ * row is the in-session "Undo last decision" button. Waking a slept game from the
+ * Library, or restoring one after a draw, changes the game and leaves the review
+ * untouched — so the page went on advertising "Put to sleep" beside a game that
+ * was plainly active again.
+ *
+ * Judged on status alone, because status is what a decision changes. Pin is
+ * treated as Keep: unpinning is a change of mind about placement, not about
+ * whether the game stays in the library.
+ */
+export function isReviewSuperseded(action: PurgeAction, status: DemoGame["status"]) {
+  if (action === "sleep") return status !== "Slept";
+  if (action === "complete") return status !== "Completed";
+  return status === "Slept" || status === "Completed";
+}
+
 export function buildPurgeCandidates({
   games,
   pinnedIds,

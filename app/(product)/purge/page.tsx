@@ -6,6 +6,7 @@ import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 import {
   buildPurgeCandidates,
+  isReviewSuperseded,
   type PurgeAction,
   type PurgeCandidate,
   type PurgeCategory,
@@ -89,10 +90,42 @@ export default function PurgePage() {
   const effectivePinnedIds = new Set([...vaultState.pinnedIds, ...optimisticPinnedIds]);
   const pinsFull = effectivePinnedIds.size >= 3 && current ? !effectivePinnedIds.has(current.game.id) : false;
 
+  const gameById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
+
+  // Only the most recent decision per game counts, so a game reviewed twice
+  // appears once with its current outcome rather than once per decision.
+  const latestReviews = useMemo(() => {
+    const latest = new Map<string, PurgeReview>();
+    for (const review of [...reviews].sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt))) {
+      if (!latest.has(review.gameId)) latest.set(review.gameId, review);
+    }
+    return latest;
+  }, [reviews]);
+
+  // A decision the player has since reversed elsewhere is history, not a standing
+  // outcome. The tab summary already reported from current status for exactly this
+  // reason; the rows did not, so a game woken from the Library kept its "Put to
+  // sleep" label and was counted as reviewed while also queueing for review again.
+  const standingReviews = useMemo(() => {
+    const standing = new Map<string, PurgeReview>();
+    for (const [gameId, review] of latestReviews) {
+      const game = gameById.get(gameId);
+      if (game && !isReviewSuperseded(review.action, game.status)) standing.set(gameId, review);
+    }
+    return standing;
+  }, [latestReviews, gameById]);
+
+  const reviewedList = useMemo(
+    () => [...standingReviews.entries()]
+      .map(([gameId, review]) => ({ review, game: gameById.get(gameId) }))
+      .filter((entry): entry is { review: PurgeReview; game: DemoGame } => Boolean(entry.game)),
+    [standingReviews, gameById]
+  );
+
   const categoryCounts = useMemo(() => Object.fromEntries(CATEGORIES.map(({ id }) => [id, candidates.filter((item) => item.category === id).length])) as Record<PurgeCategory, number>, [candidates]);
   const purgeStats = useMemo(() => {
     const readyIds = new Set(candidates.map(({ game }) => game.id));
-    const actionedIds = new Set(reviews.map(({ gameId }) => gameId));
+    const actionedIds = new Set(standingReviews.keys());
     const reviewableGames = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed" && game.status !== "Slept");
     const noReviewNeeded = reviewableGames.filter((game) => !readyIds.has(game.id) && !actionedIds.has(game.id)).length;
 
@@ -112,32 +145,19 @@ export default function PurgePage() {
       completed: reviewedStatuses.filter((status) => status === "Completed").length,
       noReviewNeeded
     };
-  }, [candidates, games, reviews]);
+  }, [candidates, games, standingReviews]);
 
-  const gameById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
-
-  // Only the most recent decision per game counts, so a game reviewed twice
-  // appears once with its current outcome rather than once per decision.
-  const reviewedList = useMemo(() => {
-    const latest = new Map<string, PurgeReview>();
-    for (const review of [...reviews].sort((a, b) => b.reviewedAt.localeCompare(a.reviewedAt))) {
-      if (!latest.has(review.gameId)) latest.set(review.gameId, review);
-    }
-    return [...latest.values()]
-      .map((review) => ({ review, game: gameById.get(review.gameId) }))
-      .filter((entry): entry is { review: PurgeReview; game: DemoGame } => Boolean(entry.game));
-  }, [reviews, gameById]);
 
   const settledList = useMemo(() => {
     const readyIds = new Set(candidates.map(({ game }) => game.id));
-    const actionedIds = new Set(reviews.map(({ gameId }) => gameId));
+    const actionedIds = new Set(standingReviews.keys());
     return games.filter((game) =>
       game.ownership === "Owned" &&
       game.status !== "Completed" &&
       game.status !== "Slept" &&
       !readyIds.has(game.id) &&
       !actionedIds.has(game.id));
-  }, [games, candidates, reviews]);
+  }, [games, candidates, standingReviews]);
 
   useEffect(() => {
     let cancelled = false;
