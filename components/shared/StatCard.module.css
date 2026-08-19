@@ -68,8 +68,13 @@
   color: #f7f8ff;
 }
 
+/* Two lines' worth of room whether the note needs one or two, so the Library
+   panel (five tiles, notes that wrap) and the Collections panel (four tiles,
+   notes that mostly do not) come out the same height as each other and as the
+   Purge setup row. */
 .note {
   margin: 5px 0 0;
+  min-height: 2.7em;
   font-size: 0.75rem;
   color: var(--vault-text-soft);
   line-height: 1.35;

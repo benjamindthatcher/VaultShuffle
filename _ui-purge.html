@@ -1,0 +1,25 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/app/globals.css">
+<link rel="stylesheet" href="/app/(product)/shell.module.css">
+<link rel="stylesheet" href="/components/shared/StatCard.module.css">
+<link rel="stylesheet" href="/app/(product)/purge/purge.module.css">
+<style>body{margin:0;background:#050816;color:#f4f7ff;font-family:system-ui}</style>
+</head><body><div class="appShell"><div class="frame" id="f-purge"><div class="appContent">
+  <section class="page"><div class="content">
+    <h1 class="visually-hidden">Purge</h1>
+    <section class="setupGrid" id="p-purge">
+      <div class="setupPanel"><div class="categoryGrid">
+        <button class="categorySelected"><span class="categoryIcon">◧</span><span><strong>Likely Completed</strong><small>Inactive games at 85% progress or more.</small></span><b>48</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>Abandoned</strong><small>Inactive played games at 50% or less.</small></span><b>65</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>The Rest</strong><small>Unplayed or long-inactive games.</small></span><b>110</b></button>
+      </div></div>
+      <aside class="snapshot"><div class="categoryGrid">
+        <button class="categorySelected"><span class="categoryIcon">◧</span><span><strong>Needs Review</strong><small>Flagged and waiting.</small></span><b>223</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>Reviewed</strong><small>5 kept · 4 slept.</small></span><b>10</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>No Review Needed</strong><small>Nothing flagged.</small></span><b>3</b></button>
+      </div></aside>
+    </section>
+  </div></section>
+</div></div>
+<script>window.measure=()=>{const f=document.getElementById("f-purge").getBoundingClientRect(),p=document.getElementById("p-purge").getBoundingClientRect();return {page:"purge",topOffset:+(p.top-f.top).toFixed(1),height:+p.height.toFixed(1),left:+p.left.toFixed(1),width:+p.width.toFixed(1)};};</script>
+</body></html>

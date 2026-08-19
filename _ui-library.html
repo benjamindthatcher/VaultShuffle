@@ -1,0 +1,21 @@
+<!doctype html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/app/globals.css">
+<link rel="stylesheet" href="/app/(product)/shell.module.css">
+<link rel="stylesheet" href="/components/shared/StatCard.module.css">
+<link rel="stylesheet" href="/app/(product)/library/library.module.css">
+<style>body{margin:0;background:#050816;color:#f4f7ff;font-family:system-ui}</style>
+</head><body><div class="appShell"><div class="frame" id="f-library"><div class="appContent">
+  <section class="libraryPage">
+    <h1 class="visually-hidden">Library</h1>
+    <section class="panel" id="p-library"><div class="grid">
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">All Games</p><strong class="value">235</strong><p class="note">Everything currently in your library.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Sampled</p><strong class="value">28</strong><p class="note">Started, but still at 20% progress or less.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Backlog</p><strong class="value">96</strong><p class="note">Untouched games waiting for their moment.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Completed</p><strong class="value">2</strong><p class="note">Wrapped up and archived with pride.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">In Progress</p><strong class="value">133</strong><p class="note">Mid-journey picks ready to continue.</p></div></article>
+    </div></section>
+    <section class="sectionCard"><h2 class="sectionTitle">Recent Activity</h2></section>
+  </section>
+</div></div>
+<script>window.measure=()=>{const f=document.getElementById("f-library").getBoundingClientRect(),p=document.getElementById("p-library").getBoundingClientRect();return {page:"library",topOffset:+(p.top-f.top).toFixed(1),height:+p.height.toFixed(1),left:+p.left.toFixed(1),width:+p.width.toFixed(1)};};</script>
+</body></html>

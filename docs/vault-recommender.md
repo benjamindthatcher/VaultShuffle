@@ -268,19 +268,31 @@ Carried forward, not touched by this feature:
   message was replaced with "Unknown catalogue ingestion error" every time. The
   queue recorded eighty failures without once saying what went wrong.
 
-  **Still a decision to make.** The seven are resolved but deliberately *not*
-  quarantined, so nobody's library changed. Two of them — `X3: Albion Prelude`
-  (201310) and `The Vanishing of Ethan Carter Redux` (400430) — are standalone
-  and genuinely playable despite Steam labelling them `dlc`, and `tModLoader`
-  (1281930) is how people launch modded Terraria. The three demos and the
-  `advertising` entry are much weaker candidates for a Vault draw. Quarantining
-  any of them hides them from the users who own them, which is a product call:
+  **Resolved 2026-08-19: all seven are quarantined.** `steam_type` is now a
+  classifier rule, so a non-game takes the same path as every other exclusion and
+  any future one is caught on import rather than retried. Nine ownership rows are
+  hidden across the affected users:
+
+  | AppID | Title | Type | Owners |
+  |---|---|---|---|
+  | 16700 | Stronghold Crusader Extreme HD | advertising | 2 |
+  | 1281930 | tModLoader | mod | 2 |
+  | 201310 | X3: Albion Prelude | dlc | 1 |
+  | 400430 | The Vanishing of Ethan Carter Redux | dlc | 1 |
+  | 3559900 | Voidling Bound Demo | demo | 1 |
+  | 3763830 | Dead as Disco Demo | demo | 1 |
+  | 4261860 | REPLACED Demo | demo | 1 |
+
+  To bring one back, mark it allowed. It then classifies as accepted, skips the
+  shared write it could never satisfy, and stays visible without re-entering the
+  retry loop:
 
   ```sql
-  -- hide one of them, per AppID
-  insert into catalog_game_quarantine (steam_appid, name, steam_type, reason, matched_rule)
-  values (3559900, 'Voidling Bound Demo', 'demo', 'Demos are not Vault picks.', 'manual:excluded');
+  update catalog_game_quarantine
+  set review_status = 'allowed', reviewed_at = now(), updated_at = now()
+  where steam_appid = 201310;
   ```
+
 - **Platform/Deck backfill**, ~2,100 of 2,279 remaining at 80/run. Mac and Steam
   Deck modes stay near-useless until it finishes, since unknown Deck
   compatibility is excluded by design.
