@@ -8,6 +8,7 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { Artwork } from "@/components/shared/Artwork";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
+import { PageHeading } from "@/components/shared/PageHeading";
 import styles from "./stats.module.css";
 
 export default function StatsPage() {
@@ -49,14 +50,10 @@ export default function StatsPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <p className={styles.eyebrow}>Your backlog</p>
-        <h1>The damage so far</h1>
-        <p className={styles.sub}>
-          Values are Steam&apos;s current store prices for the {stats.pricedGames} of {stats.totalGames} games we have
-          pricing for — what they sell for now, not what you paid for them.
-        </p>
-      </header>
+      <PageHeading eyebrow="Your backlog" title="The damage so far">
+        Values are Steam&apos;s current store prices for the {stats.pricedGames} of {stats.totalGames} games we have
+        pricing for — what they sell for now, not what you paid for them.
+      </PageHeading>
 
       <CompletionClaimBanner />
 

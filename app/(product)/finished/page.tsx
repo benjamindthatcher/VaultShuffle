@@ -10,6 +10,7 @@ import { findCompletionCandidates } from "@/lib/completion-check";
 import { formatMoney } from "@/lib/backlog-stats";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionDismissed } from "@/lib/completion-tracking";
+import { PageHeading } from "@/components/shared/PageHeading";
 import styles from "./finished.module.css";
 
 /**
@@ -140,15 +141,11 @@ export default function FinishedPage() {
 
   return (
     <div className={styles.page}>
-      <header className={styles.header}>
-        <p className={styles.eyebrow}>Completion check</p>
-        <h1>{pending.length ? "Did you finish these?" : "Nothing left to claim"}</h1>
-        <p className={styles.sub}>
+      <PageHeading eyebrow="Completion check" title={pending.length ? "Did you finish these?" : "Nothing left to claim"}>
           {pending.length
             ? `Your Steam playtime says you reached the credits on these. Claiming them keeps them out of Vault draws and moves your completed value — ${formatMoney(remainingValue)} still waiting.`
             : "Every game your playtime flagged has been dealt with. New ones appear here as you play."}
-        </p>
-      </header>
+      </PageHeading>
 
       {claimedCount ? (
         <p className={styles.claimBar} role="status">

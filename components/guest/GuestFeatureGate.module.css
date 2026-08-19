@@ -1,47 +1,38 @@
 .page {
   position: relative;
-  min-height: min(760px, calc(100dvh - var(--vault-header-height)));
   display: grid;
-  place-items: center;
-  overflow: hidden;
-  padding: clamp(32px, 7vw, 90px) 20px;
+  place-items: start center;
+  padding: 8px 0 40px;
 }
 
+/* The shell already paints the wash at the top of every page; the gate does not
+   need a second one of its own. */
 .glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(circle at 50% 18%, rgba(137, 61, 255, 0.28), transparent 38%),
-    linear-gradient(180deg, rgba(12, 15, 42, 0.62), transparent 72%);
+  display: none;
 }
 
 .card {
   position: relative;
-  width: min(680px, 100%);
+  width: min(620px, 100%);
   display: grid;
   justify-items: center;
-  gap: 16px;
-  padding: clamp(28px, 5vw, 52px);
-  border: 1px solid rgba(185, 103, 255, 0.48);
-  border-radius: 24px;
-  background:
-    radial-gradient(circle at 50% -20%, rgba(130, 58, 255, 0.26), transparent 45%),
-    linear-gradient(155deg, rgba(14, 18, 45, 0.98), rgba(6, 9, 25, 0.98));
-  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.42), 0 0 42px rgba(119, 50, 223, 0.12);
+  gap: 14px;
+  padding: clamp(24px, 4vw, 34px);
+  border: 1px solid var(--vault-feature-border);
+  border-radius: var(--vault-feature-radius);
+  background: var(--vault-feature-surface);
   text-align: center;
 }
 
 .lockIcon {
-  width: 68px;
-  height: 68px;
+  width: 52px;
+  height: 52px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(213, 130, 255, 0.55);
-  border-radius: 20px;
-  background: linear-gradient(145deg, rgba(126, 54, 255, 0.55), rgba(194, 66, 255, 0.18));
+  border: 1px solid var(--vault-card-border);
+  border-radius: 14px;
+  background: rgba(142, 77, 255, 0.16);
   color: #efc4ff;
-  box-shadow: 0 0 30px rgba(166, 65, 255, 0.22);
 }
 
 .eyebrow,
@@ -55,25 +46,25 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  color: #d889ff;
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.14em;
+  color: #d392ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .card h1 {
-  max-width: 580px;
-  font-size: clamp(2rem, 6vw, 3.2rem);
-  line-height: 1.02;
-  letter-spacing: -0.045em;
+  max-width: 20ch;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .copy {
-  max-width: 570px;
+  max-width: 60ch;
   color: var(--vault-text-muted);
-  font-size: 1rem;
-  line-height: 1.65;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .benefits {
@@ -87,16 +78,16 @@
 }
 
 .benefits li {
-  min-height: 42px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 9px 12px;
-  border: 1px solid rgba(158, 102, 255, 0.2);
+  border: 1px solid var(--vault-card-border);
   border-radius: 11px;
-  background: rgba(9, 13, 34, 0.7);
-  color: var(--vault-text-soft);
-  font-size: 0.88rem;
+  background: var(--vault-well-surface);
+  color: var(--vault-text-muted);
+  font-size: 0.86rem;
 }
 
 .benefits svg {
@@ -112,9 +103,10 @@
 
 .primary,
 .secondary {
-  min-height: 50px;
-  border-radius: 12px;
-  font-weight: 800;
+  min-height: 44px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
   text-decoration: none;
 }
 
@@ -124,18 +116,17 @@
   align-items: center;
   gap: 10px;
   padding: 0 16px;
-  background: linear-gradient(90deg, #7435ff, #a441ff);
+  background: var(--vault-accent);
   color: white;
-  box-shadow: 0 12px 32px rgba(115, 48, 255, 0.3);
 }
 
 .secondary {
   display: grid;
   place-items: center;
   padding: 0 16px;
-  border: 1px solid rgba(163, 111, 255, 0.3);
-  background: rgba(16, 20, 47, 0.76);
-  color: var(--vault-text-soft);
+  border: 1px solid var(--vault-card-border);
+  background: transparent;
+  color: var(--vault-text-muted);
 }
 
 .trust {
@@ -155,7 +146,7 @@
 
 @media (max-width: 620px) {
   .page { align-items: start; min-height: 0; padding: 24px 12px 48px; }
-  .card { padding: 28px 18px; border-radius: 18px; }
+  .card { padding: 22px 16px; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
