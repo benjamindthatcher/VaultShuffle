@@ -13,6 +13,7 @@ import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
 import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
+import { PageHeading } from "@/components/shared/PageHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
@@ -202,13 +203,7 @@ export default function VaultPage() {
   const sessionLabel = vaultSessionOptions.find((option) => option.id === session)?.label ?? null;
   const moodLabel = vaultMoodOptions.find((option) => option.id === mood)?.label ?? null;
   const goalLabel = vaultGoalOptions.find((option) => option.id === goal)?.label ?? null;
-  const setupReadyCount = Number(Boolean(session)) + Number(Boolean(mood)) + Number(Boolean(goal));
   const nextSetupStep: VaultSetupStep | null = !session ? "session" : !mood ? "mood" : !goal ? "goal" : null;
-  const setupSteps: Array<{ id: VaultSetupStep; label: string; value: string | null }> = [
-    { id: "session", label: "Session", value: sessionLabel },
-    { id: "mood", label: "Mood", value: moodLabel },
-    { id: "goal", label: "Goal", value: goalLabel }
-  ];
   const drawButtonLabel = drawState === "focusing" || drawState === "revealing"
     ? "Drawing from the Vault…"
     : collectionMode && !selectedCollection
@@ -572,7 +567,15 @@ export default function VaultPage() {
 
   return (
     <section className={styles.vaultPage}>
-      <h1 className="visually-hidden">Vault</h1>
+      <PageHeading
+        eyebrow="Vault"
+        title="What are you playing tonight?"
+        action={<button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
+          <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
+        </button>}
+      >
+        Three quick choices and the Vault picks a game you already own.
+      </PageHeading>
 
       {isLive ? (
         <PinnedCommitments
@@ -590,28 +593,7 @@ export default function VaultPage() {
         <a href="/api/auth/steam" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
       </aside> : null}
 
-      <section className={styles.setupLayout} aria-labelledby="vault-setup-title" data-paused={collectionMode || undefined}>
-        <header className={styles.setupGuide}>
-          <div className={styles.setupGuideCopy}>
-            <h2 id="vault-setup-title">Build your Vault Draw</h2>
-            <p>{collectionMode ? "Collection Draw is active. Choose any step to switch back." : "Make three quick choices, then we’ll pick your game."}</p>
-          </div>
-          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
-            <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
-          </button>
-          <strong className={styles.setupCount}>{collectionMode ? "Paused" : `${setupReadyCount} of 3 ready`}</strong>
-          <div className={styles.setupProgress} aria-label={`${setupReadyCount} of 3 required choices complete`}>
-            {setupSteps.map((step, index) => {
-              const complete = Boolean(step.value);
-              const active = step.id === openSetupStep;
-              return <button key={step.id} type="button" className={styles.progressStep} data-state={complete ? "complete" : active ? "active" : "pending"} onClick={() => focusSetupStep(step.id)}>
-                <span className={styles.progressNumber} aria-hidden="true">{complete ? <VaultIcon name="check" size={15} /> : index + 1}</span>
-                <span><strong>{step.label}</strong><small>{step.value ?? (active ? "Choose now" : "Required")}</small></span>
-              </button>;
-            })}
-          </div>
-        </header>
-
+      <section className={styles.setupLayout} aria-label="Vault draw setup" data-paused={collectionMode || undefined}>
         <div className={styles.optionStack}>
           <VaultOptionGroup title="Session" stepNumber={1} options={vaultSessionOptions} selectedId={session} selectedLabel={sessionLabel} expanded={openSetupStep === "session"} state={session ? "complete" : openSetupStep === "session" ? "active" : "pending"} onToggle={() => focusSetupStep("session")} onSelect={(id) => selectSetupOption("session", id)} />
           <VaultOptionGroup title="Mood" stepNumber={2} options={vaultMoodOptions} selectedId={mood} selectedLabel={moodLabel} expanded={openSetupStep === "mood"} state={mood ? "complete" : openSetupStep === "mood" ? "active" : "pending"} onToggle={() => focusSetupStep("mood")} onSelect={(id) => selectSetupOption("mood", id)} />
@@ -641,12 +623,6 @@ export default function VaultPage() {
             <button type="button" role="tab" aria-selected={collectionMode} className={styles.drawModeButton} data-active={collectionMode || undefined} onClick={activateCollectionDraw}><VaultIcon name="collections" size={17} />Collection Draw</button>
           </div>
           <div className={styles.drawModeOptions}>
-            <div className={styles.drawActionSummary} data-paused={collectionMode || undefined}>
-              <span className={styles.drawSummaryHeading}><strong>{nextSetupStep ? `Step ${setupReadyCount + 1} of 3` : "Vault Draw ready"}</strong><small>{collectionMode ? "Saved while Collection Draw is active" : "Session, mood and goal"}</small></span>
-              <div className={styles.drawChoiceRow}>
-                {setupSteps.map((step) => <button key={step.id} type="button" className={styles.drawChoice} data-complete={Boolean(step.value) || undefined} onClick={() => focusSetupStep(step.id)}><VaultIcon name={step.value ? "check" : step.id === "session" ? "session" : step.id === "mood" ? "mood" : "goal"} size={14} />{step.value ?? step.label}</button>)}
-              </div>
-            </div>
             <span className={styles.drawModeOr} aria-hidden="true">or</span>
             <div className={styles.drawCollectionChoice} data-active={collectionMode || undefined}>
               <VaultCollectionCard

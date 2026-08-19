@@ -1,117 +1,18 @@
 .vaultPage {
   position: relative;
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
 
 .setupLayout {
   display: grid;
-  gap: 10px;
-}
-
-.setupGuide {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 12px 20px;
-  padding: 16px 18px;
-  border: 1px solid var(--vault-panel-feature-border);
-  border-radius: var(--vault-panel-radius);
-  background: var(--vault-panel-feature-surface);
-  box-shadow: var(--vault-panel-feature-shadow);
+  gap: 12px;
 }
 
 .setupLayout[data-paused="true"] .setupGuide {
   border-color: rgba(144, 104, 255, 0.3);
   background: linear-gradient(110deg, rgba(55, 34, 96, 0.22), rgba(8, 13, 31, 0.88) 48%), rgba(8, 13, 31, 0.9);
 }
-
-.setupGuideCopy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.setupGuideCopy h2,
-.setupGuideCopy p { margin: 0; }
-
-.setupGuideCopy h2 {
-  color: #f8f3ff;
-  font-size: clamp(1.08rem, 1.6vw, 1.3rem);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-}
-
-.setupGuideCopy p {
-  color: var(--vault-text-muted);
-  font-size: 0.78rem;
-  line-height: 1.4;
-}
-
-.setupCount {
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 10px;
-  border: 1px solid var(--vault-border-strong);
-  border-radius: 999px;
-  background: rgba(89, 38, 164, 0.26);
-  color: #dda1ff;
-  font-size: 0.72rem;
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
-
-.setupProgress {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-}
-
-.progressStep {
-  min-width: 0;
-  min-height: 48px;
-  display: grid;
-  grid-template-columns: 28px minmax(0, 1fr);
-  align-items: center;
-  gap: 9px;
-  padding: 7px 10px;
-  border: 1px solid var(--vault-border);
-  border-radius: 9px;
-  background: var(--vault-surface-soft);
-  color: #eeecf8;
-  text-align: left;
-}
-
-.progressStep:hover,
-.progressStep:focus-visible { border-color: rgba(197, 120, 255, 0.64); background: rgba(37, 22, 74, 0.72); }
-.progressStep:focus-visible { outline: 2px solid rgba(222, 158, 255, 0.86); outline-offset: 2px; }
-.progressStep[data-state="active"] { border-color: rgba(205, 119, 255, 0.72); background: rgba(55, 28, 104, 0.78); }
-.progressStep[data-state="complete"] { border-color: rgba(111, 207, 164, 0.3); background: rgba(12, 43, 42, 0.56); }
-
-.progressNumber {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--vault-border);
-  border-radius: 50%;
-  color: #d5a0f8;
-  font-size: 0.7rem;
-  font-weight: 820;
-}
-
-.progressStep[data-state="active"] .progressNumber { border-color: transparent; background: #7b35f4; color: #fff; box-shadow: 0 0 16px rgba(156, 66, 255, 0.32); }
-.progressStep[data-state="complete"] .progressNumber { border-color: rgba(108, 218, 168, 0.46); background: rgba(33, 127, 88, 0.34); color: #9de1bd; }
-
-.progressStep > span:last-child { min-width: 0; display: grid; gap: 2px; }
-.progressStep strong { font-size: 0.76rem; line-height: 1.1; }
-.progressStep small { overflow: hidden; color: var(--vault-text-soft); font-size: 0.64rem; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
-.progressStep[data-state="active"] small { color: #d8a4f5; }
-.progressStep[data-state="complete"] small { color: #8dc4aa; }
 
 .guestPreviewBanner {
   min-height: 74px;
@@ -179,15 +80,6 @@
   .setupLayout {
     margin-top: 0;
   }
-
-  .setupGuide {
-    grid-template-columns: minmax(0, 1fr) auto;
-    padding: 14px;
-  }
-
-  .setupProgress { gap: 6px; }
-  .progressStep { grid-template-columns: 24px minmax(0, 1fr); gap: 6px; padding: 6px; }
-  .progressNumber { width: 24px; height: 24px; }
 }
 
 .optionStack {
@@ -267,11 +159,10 @@
   grid-template-columns: minmax(0, 1fr) minmax(270px, 330px);
   align-items: center;
   gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--vault-border-strong);
-  border-radius: 14px;
-  background: var(--vault-surface-strong);
-  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.42), 0 0 30px rgba(118, 48, 214, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  padding: 14px;
+  border: 1px solid var(--vault-feature-border);
+  border-radius: var(--vault-feature-radius);
+  background: var(--vault-feature-surface);
   backdrop-filter: blur(18px);
 }
 
@@ -321,27 +212,6 @@
   gap: 8px;
 }
 
-.drawActionSummary {
-  min-width: 0;
-  min-height: 58px;
-  display: grid;
-  align-content: center;
-  gap: 7px;
-  padding: 8px 10px;
-  border: 1px solid var(--vault-border);
-  border-radius: 11px;
-  background: linear-gradient(135deg, rgba(20, 24, 55, 0.82), rgba(8, 11, 31, 0.72));
-  transition: opacity 160ms ease, border-color 160ms ease, background 160ms ease;
-}
-
-.drawActionSummary[data-paused="true"] { opacity: 0.58; border-style: dashed; }
-.drawActionSummary[data-paused="true"]:hover,
-.drawActionSummary[data-paused="true"]:focus-within { opacity: 0.9; border-color: rgba(196, 119, 255, 0.54); }
-.drawSummaryHeading { min-width: 0; display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.drawSummaryHeading strong { color: #f6f1ff; font-size: 0.78rem; line-height: 1.15; }
-.drawSummaryHeading small { overflow: hidden; color: #908da3; font-size: 0.6rem; text-overflow: ellipsis; white-space: nowrap; }
-.drawChoiceRow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
-
 .drawModeOr {
   align-self: center;
   width: 28px;
@@ -369,47 +239,23 @@
 .drawCollectionChoice:hover,
 .drawCollectionChoice:focus-within { opacity: 1; }
 
-.drawChoice {
-  min-width: 0;
-  min-height: 30px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  justify-content: center;
-  padding: 0 8px;
-  border: 1px solid var(--vault-border);
-  border-radius: 999px;
-  background: var(--vault-surface-soft);
-  color: #aaa8bc;
-  font-size: 0.64rem;
-  font-weight: 680;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.drawChoice:hover,
-.drawChoice:focus-visible { border-color: rgba(205, 126, 255, 0.7); color: #e3c4f8; }
-.drawChoice:focus-visible { outline: 2px solid rgba(222, 158, 255, 0.86); outline-offset: 2px; }
-.drawChoice[data-complete="true"] { border-color: rgba(102, 205, 158, 0.34); background: rgba(17, 57, 50, 0.62); color: #9dd8ba; }
-
 .drawActionControl { min-width: 0; display: grid; justify-items: stretch; gap: 3px; }
 .drawActionControl .ctaButton { width: 100%; max-width: none; }
 .drawActionControl .setupStatus { margin: 0; font-size: 0.66rem; }
 
-.poolSection,
+/* The result is the page's one card: the pick, why it matched, and what you can
+   do about it belong inside a single edge. */
 .resultCard {
   padding: 14px;
-  border-radius: var(--vault-panel-radius);
-  border: 1px solid var(--vault-panel-border);
-  background: var(--vault-panel-surface);
-  box-shadow: var(--vault-panel-shadow);
+  border-radius: var(--vault-card-radius);
+  border: 1px solid var(--vault-card-border);
+  background: var(--vault-card-surface);
 }
 
 .poolLabel,
 .resultEyebrow {
   margin: 0;
-  color: #d59eff;
+  color: #d392ff;
   font-size: 0.76rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -444,14 +290,11 @@
   color: var(--vault-text);
 }
 
+/* The deck is a section: its heading and tools, then a rail of cards. It used to
+   be a large lighter panel wrapped around cards that already have their own. */
 .poolSection {
   display: grid;
-  gap: 10px;
-  padding: 20px;
-  border-color: var(--vault-panel-feature-border);
-  border-radius: var(--vault-panel-radius);
-  background: var(--vault-panel-feature-surface);
-  box-shadow: var(--vault-panel-feature-shadow);
+  gap: 12px;
 }
 
 .poolControls {
@@ -461,10 +304,10 @@
 }
 
 .poolLabel {
-  color: #cf61ff;
-  font-size: clamp(0.98rem, 1.4vw, 1.18rem);
-  font-weight: 800;
-  letter-spacing: 0.11em;
+  color: #d392ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
 }
 
 .poolHeader {
@@ -486,11 +329,9 @@
   align-items: center;
   gap: 10px;
   padding: 8px 11px;
-  border: 1px solid var(--vault-border-strong);
-  border-radius: 12px;
-  background:
-    linear-gradient(135deg, rgba(91, 45, 177, 0.23), rgba(20, 24, 55, 0.84) 64%),
-    rgba(12, 15, 37, 0.92);
+  border: 1px solid var(--vault-card-border);
+  border-radius: 11px;
+  background: var(--vault-well-surface);
   color: #f4eaff;
   text-align: left;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.12);
@@ -770,9 +611,9 @@
   align-items: center;
   gap: 13px;
   padding: 14px 16px;
-  border: 1px solid #3d3463;
+  border: 1px solid var(--vault-card-border);
   border-radius: 11px;
-  background: #11152f;
+  background: var(--vault-well-surface);
   color: #fff;
   text-align: left;
   transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
@@ -835,7 +676,7 @@
   line-height: 1.6;
 }
 
-.sleepToast, .pinToast { position: fixed; z-index: 60; right: 24px; bottom: 24px; max-width: min(480px, calc(100vw - 32px)); display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-panel-radius); background: var(--vault-surface-strong); box-shadow: 0 18px 54px rgba(0,0,0,0.48), 0 0 28px rgba(126,53,220,0.18); }
+.sleepToast, .pinToast { position: fixed; z-index: 60; right: 24px; bottom: 24px; max-width: min(480px, calc(100vw - 32px)); display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-panel-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
 .sleepToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 .pinToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 
@@ -865,7 +706,6 @@
   .drawModeOr { width: 100%; height: 18px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; border: 0; border-radius: 0; background: transparent; }
   .drawModeOr::before,
   .drawModeOr::after { content: ""; height: 1px; align-self: center; background: rgba(150, 103, 225, 0.2); }
-  .drawActionSummary { gap: 5px; }
   .drawActionControl .setupStatus { display: none; }
   .resultSummary, .resultActions, .resultActions.guestResultActions { grid-template-columns: 1fr; }
   .resultBody { padding: 22px 18px; }
@@ -890,9 +730,6 @@
 
 @media (max-width: 440px) {
   .setupGuideCopy p { font-size: 0.72rem; }
-  .setupCount { min-height: 28px; padding: 0 8px; font-size: 0.66rem; }
-  .progressStep strong { font-size: 0.7rem; }
-  .progressStep small { font-size: 0.58rem; }
   .optionalLabel { display: none; }
   .optionalHeader { grid-template-columns: 36px minmax(0, 1fr); }
 
@@ -934,14 +771,11 @@
 /* Quick Draw sits beside the guided draw: no setup, one click, a game. */
 /* The escape hatch from the three-step setup. It sits beside the instruction to
    fill that setup in, because that is the moment the choice is actually made. */
-.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 38px; padding: 7px 16px; border: 1px dashed rgba(151,105,255,.5); border-radius: 999px; background: var(--vault-surface-soft); color: var(--vault-text-muted); font-size: .8rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
-.quickDrawButton:hover:not(:disabled) { border-style: solid; border-color: rgba(187,112,255,.8); background: rgba(30,34,72,.95); color: #fff; }
+.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid var(--vault-card-border); border-radius: 10px; background: transparent; color: var(--vault-text-muted); font-size: .86rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.quickDrawButton:hover:not(:disabled) { border-color: var(--vault-border-strong); color: var(--vault-text); }
 .quickDrawButton:disabled { opacity: .45; }
 
-@media (max-width: 860px) {
-  .setupGuide { grid-template-columns: minmax(0, 1fr) auto; }
-  .setupGuide .quickDrawButton { grid-column: 1 / -1; width: 100%; }
-}
+
 
 
 /* Pick feedback. Deliberately quiet: it is a question, not a call to action. */

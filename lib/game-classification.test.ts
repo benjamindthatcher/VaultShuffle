@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { gameProgress, isEndlessGame } from "./game-classification.ts";
+import {
+  gameProgress,
+  hasEndlessDurationShape,
+  hasStrongReplayabilitySignals,
+  isEndlessGame
+} from "./game-classification.ts";
 
 test("finite progress is derived from the averaged duration rather than stale stored progress", () => {
   assert.equal(gameProgress({
@@ -53,4 +58,23 @@ test("explicit endless classification always reports 99 percent even at zero hou
 
   assert.equal(isEndlessGame(game), true);
   assert.equal(gameProgress(game), 99);
+});
+
+test("a decisive tag only counts when it dominates the game's tags", () => {
+  // Runner3 is a linear platformer carrying a minority "Massively Multiplayer"
+  // vote; Valheim's survival-craft tag is its top tag.
+  assert.equal(hasStrongReplayabilitySignals({
+    tags: { "Platformer": 94, "Massively Multiplayer": 42 }, genres: [], categories: []
+  }), false);
+  assert.equal(hasStrongReplayabilitySignals({
+    tags: { "Open World Survival Craft": 2379, "Survival": 2100 }, genres: [], categories: []
+  }), true);
+});
+
+test("a completion time far beyond the story length reads as endless", () => {
+  // Counter-Strike 2: 1h story, 186h completionist.
+  assert.equal(hasEndlessDurationShape({ mainStoryMinutes: 60, completionistMinutes: 11160 }), true);
+  // A normal long RPG stays finite.
+  assert.equal(hasEndlessDurationShape({ mainStoryMinutes: 2400, completionistMinutes: 6000 }), false);
+  assert.equal(hasEndlessDurationShape({ mainStoryMinutes: null, completionistMinutes: null }), false);
 });

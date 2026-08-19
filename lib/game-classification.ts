@@ -14,14 +14,60 @@ type ReplayabilityMetadata = {
 
 const DECISIVE_ENDLESS_SIGNALS = new Set([
   "auto battler",
+  "automation",
   "battle royale",
   "clicker",
+  "colony sim",
   "idler",
+  "incremental",
   "massively multiplayer",
   "mmo",
   "mmorpg",
   "moba",
+  "open world survival craft",
+  "party game",
 ]);
+
+/**
+ * A decisive tag only counts when it is a dominant description of the game.
+ *
+ * Steam tags are community-voted, so a minority vote can plant a decisive tag on
+ * something it does not describe: Runner3, a linear platformer, carries
+ * "Massively Multiplayer" on 45% of its top tag's votes. Valheim's
+ * "Open World Survival Craft" sits at 100%, and Far Cry Primal's at 50% — which
+ * is why share, not presence, is the test.
+ */
+const DOMINANT_TAG_SHARE = 0.65;
+
+function dominantSignals(tags: ReplayabilityMetadata["tags"]) {
+  if (!tags || Array.isArray(tags) || typeof tags !== "object") return new Set<string>();
+  const counts = Object.values(tags).map(Number).filter((value) => Number.isFinite(value) && value > 0);
+  if (!counts.length) return new Set<string>();
+  const top = Math.max(...counts);
+  return new Set(
+    Object.entries(tags)
+      .filter(([, votes]) => Number(votes) >= DOMINANT_TAG_SHARE * top)
+      .map(([tag]) => tag.trim().toLowerCase())
+  );
+}
+
+/**
+ * A completion time far beyond the story length means the length is not a
+ * completion at all — it is score chasing or a live-service grind. Counter-Strike 2
+ * reports 1h story against 186h completionist; the median across the library is 2.6.
+ */
+const ENDLESS_COMPLETION_RATIO = 12;
+
+export function hasEndlessDurationShape(duration: {
+  mainStoryMinutes?: number | null;
+  completionistMinutes?: number | null;
+}) {
+  const story = Number(duration.mainStoryMinutes ?? 0);
+  const completionist = Number(duration.completionistMinutes ?? 0);
+  if (!completionist) return false;
+  if (story > 0) return completionist / story >= ENDLESS_COMPLETION_RATIO;
+  return completionist > 12_000;
+}
 
 const PERSISTENT_ONLINE_SIGNALS = new Set([
   "live service",
@@ -140,6 +186,10 @@ export function lengthBucket(game: GameLike): LengthLabel {
 export function isEndlessGame(game: GameLike) {
   if (game.duration_kind === "endless") return true;
   if (game.duration_kind === "finite" || game.duration_kind === "not-applicable") return false;
+  if (hasEndlessDurationShape({
+    mainStoryMinutes: game.main_story_minutes,
+    completionistMinutes: game.completionist_minutes
+  })) return true;
   if (estimatedTimeToBeatMinutes(durationForGame(game))) return false;
   const text = `${game.title} ${game.genre}`.toLowerCase();
   return (
@@ -160,7 +210,8 @@ export function hasStrongReplayabilitySignals(metadata: ReplayabilityMetadata) {
     ...normaliseSignals(metadata.categories),
   ]);
 
-  if ([...DECISIVE_ENDLESS_SIGNALS].some((signal) => signals.has(signal))) return true;
+  const dominant = dominantSignals(metadata.tags);
+  if ([...DECISIVE_ENDLESS_SIGNALS].some((signal) => dominant.has(signal))) return true;
   const persistent = [...PERSISTENT_ONLINE_SIGNALS].some((signal) => signals.has(signal));
   const replayLoop = [...REPLAY_LOOP_SIGNALS].some((signal) => signals.has(signal));
   return persistent && replayLoop;
