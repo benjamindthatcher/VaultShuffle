@@ -66,6 +66,19 @@ type DrawRow = {
 };
 
 type EventRow = { draw_id: string; event_type: string; created_at: string };
+type PurgeDecision = { userId: string; steamAppId: number; action: string; reviewedAt: string };
+
+/**
+ * How each Purge verdict reads as taste. Sleeping matches the weight a Vault
+ * "slept" carries, because it is the same decision. "Keep" is a deliberate
+ * retention rather than an endorsement, so it counts for half.
+ */
+const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
+  sleep: { positive: 0, total: 2 },
+  keep: { positive: 1, total: 2 },
+  pin: { positive: 2, total: 2 },
+  complete: { positive: 2, total: 2 }
+};
 type CatalogRow = { steam_appid: number | string; name: string | null; genres: string[] | null };
 type Tally = { positive: number; total: number };
 
@@ -73,6 +86,7 @@ export type GenrePreferenceRebuildSummary = {
   draws: number;
   events: number;
   scoredEvents: number;
+  purgeDecisions: number;
   users: number;
   rows: number;
   globalRows: number;
@@ -101,19 +115,24 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     draws: draws.length,
     events: 0,
     scoredEvents: 0,
+    purgeDecisions: 0,
     users: 0,
     rows: 0,
     globalRows: 0,
     deletedRows: 0
   };
-  if (!draws.length) return summary;
-
   const drawsById = new Map(draws.map((draw) => [draw.id, draw]));
-  const events = await fetchEvents(supabase, [...drawsById.keys()]);
+  const events = draws.length ? await fetchEvents(supabase, [...drawsById.keys()]) : [];
   summary.events = events.length;
-  if (!events.length) return summary;
 
-  const genresByAppId = await fetchGenres(supabase, draws.map((draw) => Number(draw.steam_appid)));
+  const purgeDecisions = await fetchPurgeDecisions(supabase, since);
+  summary.purgeDecisions = purgeDecisions.length;
+  if (!events.length && !purgeDecisions.length) return summary;
+
+  const genresByAppId = await fetchGenres(supabase, [
+    ...draws.map((draw) => Number(draw.steam_appid)),
+    ...purgeDecisions.map((decision) => decision.steamAppId)
+  ]);
 
   // user -> "context::genre" -> tally
   const tallies = new Map<string, Map<string, Tally>>();
@@ -156,6 +175,30 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
         if (!signal.moodOnly) addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, positive, total);
         if (draw.mood) addTally(userTallies, `${draw.mood}::${genre}`, positive, total);
       }
+    }
+  }
+
+  // A Purge decision is the most considered signal the app collects: the player
+  // was looking at one game and deliberately chose its fate. Until now none of it
+  // reached the recommender - every sleep in the system happened in Purge, so the
+  // learner's "slept" weight had never once fired, and the same action taught the
+  // model or not depending on which page it happened on.
+  for (const decision of purgeDecisions) {
+    const signal = PURGE_SIGNALS[decision.action];
+    if (!signal) continue;
+    const genres = genresByAppId.get(decision.steamAppId);
+    if (!genres?.length) continue;
+
+    const decay = recencyWeight(decision.reviewedAt);
+    if (decay <= 0) continue;
+
+    const userTallies = tallies.get(decision.userId) ?? new Map<string, Tally>();
+    tallies.set(decision.userId, userTallies);
+
+    // No mood context: a Purge decision is about the game, not about the evening
+    // the player happened to be having.
+    for (const genre of [...genres, BASELINE_GENRE]) {
+      addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, signal.positive * decay, signal.total * decay);
     }
   }
 
@@ -365,4 +408,55 @@ export async function listGenrePreferenceGlobals(): Promise<GenrePreference[]> {
     console.error("Could not load global genre preferences.", error);
     return [];
   }
+}
+
+/**
+ * The standing Purge verdict for each game, resolved to a Steam AppID.
+ *
+ * Only the most recent decision per game counts. A game kept and later slept has
+ * changed its mind, not voted twice, and counting both would let a flip-flop
+ * cancel itself out instead of recording where the player actually landed.
+ */
+async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promise<PurgeDecision[]> {
+  const { data, error } = await supabase
+    .from("purge_reviews")
+    .select("user_id, game_id, action, reviewed_at")
+    .gte("reviewed_at", since)
+    .order("reviewed_at", { ascending: false });
+  if (error) throw error;
+
+  const latest = new Map<string, { userId: string; gameId: string; action: string; reviewedAt: string }>();
+  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+    const key = `${String(row.user_id)}::${String(row.game_id)}`;
+    if (latest.has(key)) continue;
+    latest.set(key, {
+      userId: String(row.user_id),
+      gameId: String(row.game_id),
+      action: String(row.action),
+      reviewedAt: String(row.reviewed_at)
+    });
+  }
+  if (!latest.size) return [];
+
+  // purge_reviews keys on the ownership row, so the catalogue AppID has to be
+  // looked up before any of it can be turned into genres.
+  const gameIds = [...new Set([...latest.values()].map((decision) => decision.gameId))];
+  const appIdByGameId = new Map<string, number>();
+  for (let index = 0; index < gameIds.length; index += 200) {
+    const { data: rows, error: gamesError } = await supabase
+      .from("user_games")
+      .select("id, catalog_steam_appid")
+      .in("id", gameIds.slice(index, index + 200));
+    if (gamesError) throw gamesError;
+    for (const row of (rows ?? []) as Array<Record<string, unknown>>) {
+      const appId = Number(row.catalog_steam_appid);
+      if (Number.isFinite(appId) && appId > 0) appIdByGameId.set(String(row.id), appId);
+    }
+  }
+
+  return [...latest.values()].flatMap((decision) => {
+    const steamAppId = appIdByGameId.get(decision.gameId);
+    if (!steamAppId) return [];
+    return [{ userId: decision.userId, steamAppId, action: decision.action, reviewedAt: decision.reviewedAt }];
+  });
 }
