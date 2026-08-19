@@ -177,7 +177,7 @@ export default function CollectionsPage() {
     <section className={styles.collectionsPage}>
       <h1 className="visually-hidden">Collections</h1>
 
-      <StatPanel label="Collections summary">
+      <StatPanel label="Collections summary" columns={4}>
         <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
         <StatCard icon="smart-collections" label="Smart Collections" value={stats.smart} note="Automatically themed groupings." />
         <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note="Hand-shaped shelves with your own intent." />

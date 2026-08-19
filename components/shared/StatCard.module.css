@@ -18,12 +18,26 @@
     var(--vault-shadow);
 }
 
-/* auto-fit rather than per-page column counts: Library shows five tiles and
-   Collections four, and both should reflow at the same widths. */
+/* Explicit counts rather than auto-fit: Library shows five tiles and
+   Collections four, and auto-fit strands a lone fifth tile on its own row at
+   tablet widths. The counts come from the page as custom properties, so the two
+   pages reflow at exactly the same widths. */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(196px, 1fr));
+  grid-template-columns: 1fr;
   gap: var(--vault-top-card-gap);
+}
+
+@media (min-width: 720px) {
+  .grid {
+    grid-template-columns: repeat(var(--stat-columns-tablet, 2), minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1080px) {
+  .grid {
+    grid-template-columns: repeat(var(--stat-columns, 4), minmax(0, 1fr));
+  }
 }
 
 /* A tile inside the panel, not a panel of its own: the Purge .category shape.
