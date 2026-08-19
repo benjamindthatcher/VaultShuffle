@@ -22,11 +22,18 @@ import styles from "./finished.module.css";
 export default function FinishedPage() {
   const { games, isLive, updateGame } = useAppData();
   const [claimed, setClaimed] = useState<Record<string, "finished" | "not-yet">>({});
+  const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState<string | null>(null);
+  const [bulkRunning, setBulkRunning] = useState(false);
   const [error, setError] = useState("");
 
   const candidates = useMemo(() => findCompletionCandidates(games), [games]);
   const pending = candidates.filter((candidate) => !claimed[candidate.game.id]);
+
+  const selectedIds = pending.filter((candidate) => selected[candidate.game.id]);
+  const allSelected = pending.length > 0 && selectedIds.length === pending.length;
+  const selectedValue = selectedIds.reduce(
+    (total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
 
   const claimedCount = Object.values(claimed).filter((value) => value === "finished").length;
   const claimedValue = candidates
@@ -35,28 +42,67 @@ export default function FinishedPage() {
   const remainingValue = pending
     .reduce((total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
 
+  async function saveOne(gameId: string, finished: boolean) {
+    const game = games.find((entry) => entry.id === gameId);
+    if (finished) {
+      await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+    } else {
+      // Records the playtime at dismissal so it only asks again after another
+      // real session, rather than every time the page is opened.
+      await updateGame(gameId, {
+        completionSuggestionDismissedAt: new Date().toISOString(),
+        completionSuggestionDismissedPlaytime: Number(game?.hoursPlayed ?? 0)
+      });
+    }
+  }
+
   async function claim(gameId: string, finished: boolean) {
-    if (saving) return;
+    if (saving || bulkRunning) return;
     setSaving(gameId);
     setError("");
-    const game = games.find((entry) => entry.id === gameId);
     try {
-      if (finished) {
-        await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
-      } else {
-        // Records the playtime at dismissal so it only asks again after another
-        // real session, rather than every time the page is opened.
-        await updateGame(gameId, {
-          completionSuggestionDismissedAt: new Date().toISOString(),
-          completionSuggestionDismissedPlaytime: Number(game?.hoursPlayed ?? 0)
-        });
-      }
+      await saveOne(gameId, finished);
       setClaimed((value) => ({ ...value, [gameId]: finished ? "finished" : "not-yet" }));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save that. Please try again.");
     } finally {
       setSaving(null);
     }
+  }
+
+  /**
+   * Ticking through thirty-odd games one pair of buttons at a time is a chore, and
+   * a chore is exactly what this queue is meant not to be. Saves run one at a time
+   * so a mid-run failure leaves everything before it already committed rather than
+   * rolling the whole sweep back.
+   */
+  async function claimSelected(finished: boolean) {
+    const ids = pending.map((candidate) => candidate.game.id).filter((id) => selected[id]);
+    if (!ids.length || bulkRunning || saving) return;
+    setBulkRunning(true);
+    setError("");
+    const done: Record<string, "finished" | "not-yet"> = {};
+    try {
+      for (const id of ids) {
+        await saveOne(id, finished);
+        done[id] = finished ? "finished" : "not-yet";
+      }
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Some games could not be saved. The rest were kept.");
+    } finally {
+      setClaimed((value) => ({ ...value, ...done }));
+      setSelected({});
+      setBulkRunning(false);
+    }
+  }
+
+  function toggle(gameId: string) {
+    setSelected((value) => ({ ...value, [gameId]: !value[gameId] }));
+  }
+
+  function toggleAll() {
+    if (allSelected) return setSelected({});
+    setSelected(Object.fromEntries(pending.map((candidate) => [candidate.game.id, true])));
   }
 
   if (!isLive) {
@@ -98,9 +144,44 @@ export default function FinishedPage() {
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
       {pending.length ? (
+        <>
+        <div className={styles.selectBar}>
+          <label className={styles.selectAll}>
+            <input
+              type="checkbox"
+              checked={allSelected}
+              ref={(node) => { if (node) node.indeterminate = selectedIds.length > 0 && !allSelected; }}
+              onChange={toggleAll}
+              disabled={bulkRunning}
+            />
+            <span>{allSelected ? "Clear selection" : `Select all ${pending.length}`}</span>
+          </label>
+          {selectedIds.length ? (
+            <div className={styles.bulkActions}>
+              <span className={styles.selectedNote}>
+                {selectedIds.length} selected{selectedValue ? ` · ${formatMoney(selectedValue)}` : ""}
+              </span>
+              <button type="button" className={styles.primary} disabled={bulkRunning} onClick={() => void claimSelected(true)}>
+                {bulkRunning ? "Claiming…" : `Mark ${selectedIds.length} finished`}
+              </button>
+              <button type="button" className={styles.secondary} disabled={bulkRunning} onClick={() => void claimSelected(false)}>
+                Not yet
+              </button>
+            </div>
+          ) : null}
+        </div>
         <ul className={styles.list}>
           {pending.map((candidate) => (
-            <li key={candidate.game.id} className={styles.row}>
+            <li key={candidate.game.id} className={selected[candidate.game.id] ? styles.rowSelected : styles.row}>
+              <label className={styles.tick}>
+                <input
+                  type="checkbox"
+                  checked={Boolean(selected[candidate.game.id])}
+                  onChange={() => toggle(candidate.game.id)}
+                  disabled={bulkRunning}
+                  aria-label={`Select ${candidate.game.title}`}
+                />
+              </label>
               <span className={styles.art}><Artwork src={candidate.game.bannerUrl} sizes="104px" /></span>
               <span className={styles.body}>
                 <strong>{candidate.game.title}</strong>
@@ -126,6 +207,7 @@ export default function FinishedPage() {
             </li>
           ))}
         </ul>
+        </>
       ) : (
         <div className={styles.done}>
           <p>{claimedCount ? "That is your backlog looking a lot more honest." : "Nothing to claim right now."}</p>

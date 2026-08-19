@@ -55,8 +55,34 @@ test("dismissing holds until another real session has gone in", () => {
   } as Partial<DemoGame>;
 
   assert.deepEqual(findCompletionCandidates([game(dismissed)]), [], "should stay dismissed");
-  // Six more hours is a real session, so it is fair to ask again.
-  assert.equal(findCompletionCandidates([game({ ...dismissed, hoursPlayed: 18 })]).length, 1);
+  // Three more hours on a twelve-hour game is a genuine extra session.
+  assert.equal(findCompletionCandidates([game({ ...dismissed, hoursPlayed: 15.5 })]).length, 1);
+});
+
+test("the re-ask bar scales with how long the game already is", () => {
+  // Five more hours is a whole session on a short game and a rounding error on a
+  // two-hundred hour one, so a flat threshold nags exactly the wrong people.
+  const long = {
+    duration: { mainStoryMinutes: 6_000 },
+    completionSuggestionDismissedAt: "2026-08-01T00:00:00.000Z",
+    completionSuggestionDismissedPlaytime: 200
+  } as Partial<DemoGame>;
+
+  assert.deepEqual(findCompletionCandidates([game({ ...long, hoursPlayed: 210 })]), [],
+    "ten more hours out of two hundred is not new evidence");
+  assert.equal(findCompletionCandidates([game({ ...long, hoursPlayed: 260 })]).length, 1,
+    "a quarter more playtime is worth asking about again");
+});
+
+test("a dismissed game never played again is never asked about again", () => {
+  const dismissed = {
+    hoursPlayed: 12,
+    completionSuggestionDismissedAt: "2020-01-01T00:00:00.000Z",
+    completionSuggestionDismissedPlaytime: 12
+  } as Partial<DemoGame>;
+
+  // Years later, still untouched: nothing has changed, so there is nothing to ask.
+  assert.deepEqual(findCompletionCandidates([game(dismissed)], new Date("2030-01-01")), []);
 });
 
 test("the most certain finishes lead the queue", () => {

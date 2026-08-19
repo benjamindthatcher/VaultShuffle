@@ -170,7 +170,7 @@ export default function LibraryPage() {
 
       <CompletionClaimBanner />
 
-      <StatPanel label="Library summary" columns={5}>
+      <StatPanel label="Library summary" columns={4}>
         <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
         <StatCard icon="played" label="Sampled" value={stats.sampled} note="Started, but still at 20% progress or less." />
         <StatCard icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />

@@ -36,11 +36,21 @@ const MIN_CREDIBLE_ESTIMATE_MINUTES = 120;
 const FINISHED_RATIO = 0.9;
 
 /**
- * Re-asking after a dismissal needs new evidence, not just a new day. The
- * dismissal records the playtime at the time, so we only ask again once another
- * real session has gone in.
+ * Re-asking after a dismissal needs new evidence, not merely a new day. Time
+ * passing tells us nothing: if the game has not been touched since, the player is
+ * in exactly the state they were in when they said no.
+ *
+ * The bar scales with how long the game already is, because "five more hours" is
+ * a whole extra session on a six-hour game and a rounding error on a two-hundred
+ * hour one. A quarter more playtime is a real chunk at any size, with a floor so
+ * very short games do not re-ask after twenty minutes.
  */
-const REASK_AFTER_EXTRA_HOURS = 5;
+const REASK_MIN_EXTRA_HOURS = 3;
+const REASK_EXTRA_SHARE = 0.25;
+
+function reaskThreshold(hoursAtDismissal: number) {
+  return Math.max(REASK_MIN_EXTRA_HOURS, hoursAtDismissal * REASK_EXTRA_SHARE);
+}
 
 export function findCompletionCandidates(games: DemoGame[], now = new Date()): CompletionCandidate[] {
   const candidates: CompletionCandidate[] = [];
@@ -78,7 +88,7 @@ export function findCompletionCandidates(games: DemoGame[], now = new Date()): C
 function isDismissed(game: DemoGame, hoursPlayed: number) {
   if (!game.completionSuggestionDismissedAt) return false;
   const dismissedAt = Number(game.completionSuggestionDismissedPlaytime ?? 0);
-  return hoursPlayed < dismissedAt + REASK_AFTER_EXTRA_HOURS;
+  return hoursPlayed < dismissedAt + reaskThreshold(dismissedAt);
 }
 
 /**

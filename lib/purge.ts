@@ -1,5 +1,6 @@
 import type { DemoGame } from "./demo-data.ts";
 import { formatGameDuration } from "./game-duration.ts";
+import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 
 export type PurgeCategory = "untouched" | "stalled" | "dormant";
 
@@ -20,10 +21,24 @@ export type PurgeReview = {
   category: PurgeCategory;
   reviewedAt: string;
 };
+/**
+ * Evidence that makes the decision, rather than leaving the player to guess.
+ * `leaning` says which way it points, so the UI can colour a reason to cut
+ * differently from a reason to keep.
+ */
+export type PurgeSignal = {
+  label: string;
+  detail: string;
+  leaning: "cut" | "keep";
+};
+
 export type PurgeCandidate = {
   game: DemoGame;
   category: PurgeCategory;
   reason: string;
+  signal: PurgeSignal | null;
+  /** Higher means an easier call to make. Drives queue order. */
+  confidence: number;
 };
 
 /**
@@ -110,28 +125,67 @@ export function buildPurgeCandidates({
     // "untouched" now means what it says. It previously labelled games at 85%+
     // progress — the opposite of untouched — which is exactly the confusion that
     // hid the completion question inside a pruning tool.
+    const signal = purgeSignal(game);
+    const confidence = purgeConfidence(game, idle, signal?.leaning ?? null);
+
     if (game.hoursPlayed === 0) {
-      result.push({
-        game,
-        category: "untouched",
-        reason: `Never opened.${duration}`
-      });
+      result.push({ game, category: "untouched", reason: `Never opened.${duration}`, signal, confidence });
     } else if (game.completionPercent <= 50) {
       result.push({
         game,
         category: "stalled",
-        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`
+        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`,
+        signal,
+        confidence
       });
     } else {
       result.push({
         game,
         category: "dormant",
-        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`
+        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`,
+        signal,
+        confidence
       });
     }
   }
 
-  return result;
+  // Clearest decisions first. The queue was previously whatever order the library
+  // happened to be in, so a player facing 223 games got no sense of momentum and
+  // no reason to believe the next one would be any easier than the last.
+  return result.sort((left, right) => right.confidence - left.confidence);
+}
+
+/**
+ * How clear-cut a cut this is.
+ *
+ * Never opened, ancient and poorly reviewed is an easy yes. Something adored is
+ * not a purge candidate at all in spirit, so it sinks to the bottom rather than
+ * being put in front of the player as though it were.
+ */
+function purgeConfidence(game: DemoGame, idleDays: number, signalLeaning: "cut" | "keep" | null) {
+  let score = 0;
+  if (game.hoursPlayed === 0) score += 2;
+  if (idleDays >= 730) score += 1.5;
+  else if (idleDays >= 365) score += 1;
+  if (signalLeaning === "cut") score += 2;
+  if (signalLeaning === "keep") score -= 2.5;
+  return score;
+}
+
+/**
+ * Only the ends of the review spectrum are worth surfacing. "78% positive" does
+ * not help anyone decide; "41% positive" and "94% from 141 reviews" both do.
+ */
+function purgeSignal(game: DemoGame): PurgeSignal | null {
+  const appeal = gameAppeal(game);
+  const label = appealLabel(appeal.kind);
+  const detail = appealDetail(appeal);
+  if (!label || !detail) return null;
+  if (appeal.kind === "divisive") return { label, detail, leaning: "cut" };
+  if (appeal.kind === "hidden-gem" || appeal.kind === "acclaimed" || appeal.kind === "phenomenon") {
+    return { label, detail, leaning: "keep" };
+  }
+  return null;
 }
 
 function context(game: DemoGame) {

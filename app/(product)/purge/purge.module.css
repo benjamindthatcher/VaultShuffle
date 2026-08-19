@@ -519,3 +519,22 @@
   color: var(--vault-text-soft);
   font-style: italic;
 }
+
+/*
+ * The evidence behind the call. Only the ends of the review spectrum appear here:
+ * "78% positive" helps nobody decide, "41% positive" and "94% from 141 reviews"
+ * both do — and they point in opposite directions, so they are coloured apart.
+ */
+.signalCut, .signalKeep {
+  display: grid;
+  gap: 2px;
+  margin: 10px 0 0;
+  padding: 10px 13px;
+  border-radius: 11px;
+  border: 1px solid;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+.signalCut { border-color: rgba(255, 138, 128, 0.36); background: rgba(255, 106, 96, 0.09); color: rgba(255, 190, 184, 0.92); }
+.signalKeep { border-color: rgba(124, 231, 178, 0.36); background: rgba(124, 231, 178, 0.09); color: rgba(178, 240, 210, 0.92); }
+.signalCut strong, .signalKeep strong { color: var(--vault-text); font-size: 0.88rem; }

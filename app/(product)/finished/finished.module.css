@@ -9,15 +9,39 @@
 .claimBar span { color: var(--vault-text-muted); }
 .error { margin: 0; padding: 11px 15px; border: 1px solid rgba(255, 120, 140, 0.4); border-radius: 12px; background: rgba(255, 90, 120, 0.1); color: #ffb4c2; font-size: 0.86rem; }
 
-.list { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
-.row { display: grid; grid-template-columns: 104px minmax(0, 1fr) auto auto; gap: 14px; align-items: center; padding: 10px 14px 10px 10px; border: 1px solid var(--vault-border); border-radius: 14px; background: var(--vault-surface-soft); }
-.art { position: relative; width: 104px; height: 49px; border-radius: 8px; overflow: hidden; background: rgba(12, 16, 38, 0.7); }
+/* Four across on desktop: a sweep of thirty games should not be a thirty-row
+   column that buries the bulk actions under a scroll. */
+.list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+@media (max-width: 1180px) { .list { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 900px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.row, .rowSelected {
+  position: relative;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 9px;
+  padding: 9px;
+  border: 1px solid var(--vault-border);
+  border-radius: 14px;
+  background: var(--vault-surface-soft);
+}
+.rowSelected { border-color: rgba(124, 231, 178, 0.55); background: rgba(124, 231, 178, 0.07); }
+/* Sits over the artwork so the whole card reads as one tappable unit. */
+.tick { position: absolute; top: 15px; left: 15px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(6, 9, 24, 0.72); backdrop-filter: blur(3px); }
+.tick input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
+
+.selectBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px solid var(--vault-border); border-radius: 13px; background: var(--vault-surface); position: sticky; top: 8px; z-index: 2; }
+.selectAll { display: flex; align-items: center; gap: 9px; font-size: 0.86rem; font-weight: 650; cursor: pointer; }
+.selectAll input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
+.bulkActions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.selectedNote { color: var(--vault-text-muted); font-size: 0.82rem; }
+
+.art { position: relative; width: 100%; aspect-ratio: 92 / 43; border-radius: 9px; overflow: hidden; background: rgba(12, 16, 38, 0.7); }
 .body { display: grid; gap: 2px; min-width: 0; }
-.body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.98rem; }
+.body strong { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 0.92rem; line-height: 1.3; }
 .body small { color: var(--vault-text-muted); font-size: 0.79rem; }
-.price { font-weight: 700; color: #7ce7b2; white-space: nowrap; }
-.actions { display: flex; gap: 8px; }
-.primary, .secondary { min-height: 40px; padding: 0 16px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; white-space: nowrap; }
+.price { font-weight: 700; color: #7ce7b2; white-space: nowrap; font-size: 0.86rem; }
+.actions { display: flex; gap: 7px; }
+.primary, .secondary { flex: 1; min-height: 38px; padding: 0 10px; border-radius: 9px; font-weight: 700; font-size: 0.82rem; white-space: nowrap; }
 .primary { border: 1px solid rgba(124, 231, 178, 0.5); background: rgba(124, 231, 178, 0.16); color: #b6f4d4; }
 .primary:hover:not(:disabled) { background: rgba(124, 231, 178, 0.26); }
 .secondary { border: 1px solid var(--vault-border); background: transparent; color: var(--vault-text-muted); }
@@ -30,11 +54,8 @@
 .primaryLink { padding: 10px 16px; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
 .secondaryLink { padding: 10px 16px; border: 1px solid var(--vault-border); border-radius: 10px; color: var(--vault-text); font-weight: 700; font-size: 0.86rem; }
 
-@media (max-width: 760px) {
-  .row { grid-template-columns: 74px minmax(0, 1fr); grid-template-areas: "art body" "actions actions"; }
-  .art { width: 74px; height: 36px; grid-area: art; }
-  .body { grid-area: body; }
-  .price { display: none; }
-  .actions { grid-area: actions; }
-  .actions button { flex: 1; }
+@media (max-width: 520px) {
+  .selectBar { position: static; }
+  .bulkActions { width: 100%; }
+  .bulkActions .primary, .bulkActions .secondary { flex: 1; }
 }
