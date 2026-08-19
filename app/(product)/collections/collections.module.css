@@ -5,17 +5,10 @@
   gap: 12px;
 }
 
-.collectionsPage::after {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 0 50% 0 auto;
-  width: 100vw;
-  min-height: 100%;
-  transform: translateX(50%);
-  pointer-events: none;
-  background: var(--vault-bg);
-}
+/* No backdrop of its own. This page used to paint a flat 100vw block of
+   --vault-bg behind itself, from back when the banner needed masking. The shell
+   now paints the ground for all four pages, and the block sat on top of it as a
+   visible rectangle the width of the viewport and the height of the content. */
 
 .collectionsPage::before {
   content: "";
@@ -86,20 +79,21 @@
   display: grid;
   gap: 16px;
   padding: 14px;
-  border-radius: 12px;
-  border: 1px solid var(--vault-border);
-  background: var(--vault-surface);
-  box-shadow: var(--vault-shadow);
+  border-radius: var(--vault-panel-radius);
+  border: 1px solid var(--vault-panel-border);
+  background: var(--vault-panel-surface);
+  box-shadow: var(--vault-panel-shadow);
 }
 
+/* The page's call to action, so it takes the feature treatment the Vault setup
+   panel takes rather than a purple of its own. */
 .composerCard {
   scroll-margin-block: 24px;
   gap: 22px;
   padding: clamp(20px, 3vw, 30px);
-  border-color: rgba(190, 105, 255, 0.42);
-  background:
-    radial-gradient(circle at 12% 0%, rgba(150, 62, 255, 0.16), transparent 34%),
-    linear-gradient(145deg, rgba(11, 15, 39, 0.96), rgba(6, 10, 28, 0.94));
+  border-color: var(--vault-panel-feature-border);
+  background: var(--vault-panel-feature-surface);
+  box-shadow: var(--vault-panel-feature-shadow);
 }
 
 .composerHeader {
