@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { CompletionCelebration } from "@/components/library/CompletionCelebration";
-import { pinProgressLabel } from "@/components/shared/PinnedCommitments";
+import { pinProgress, pinProgressLabel } from "@/components/shared/PinnedCommitments";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
+import { PageHeading } from "@/components/shared/PageHeading";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
@@ -177,12 +178,16 @@ export default function LibraryPage() {
 
   return (
     <section className={styles.libraryPage}>
-      <h1 className="visually-hidden">Library</h1>
+      <PageHeading eyebrow="Library" title="Everything you own">
+        Every game in your Steam library, with what you have played, what is waiting, and what you have finished.
+      </PageHeading>
 
       {pinnedGames.length ? <div className={styles.pinnedShelf}>
         <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
         <div className={styles.pinnedGrid} aria-label="Pinned games">{pinnedGames.map((game, index) => {
-          const sincePinned = pinProgressLabel(game, vaultState.pins.find((pin) => pin.gameId === game.id));
+          const pin = vaultState.pins.find((entry) => entry.gameId === game.id);
+          const progress = pinProgress(game, pin);
+          const sincePinned = progress?.started ? pinProgressLabel(game, pin) : null;
           return <div key={game.id} className={styles.pinnedCard}>
             <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress />
             <span className={styles.pinBadge}>⌖ {index + 1}</span>
@@ -206,18 +211,13 @@ export default function LibraryPage() {
 
       <StatPanel label="Library summary" columns={4}>
         <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
-        <StatCard icon="played" label="Sampled" value={stats.sampled} note="Started, but still at 20% progress or less." />
         <StatCard icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
         <StatCard icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
-        <StatCard icon="in-progress" label="In Progress" value={stats.inProgress} note="Mid-journey picks ready to continue." />
+        <StatCard icon="in-progress" label="In Progress" value={stats.inProgress} note={`Mid-journey picks, ${stats.sampled} barely started.`} />
       </StatPanel>
 
-      <section className={styles.sectionCard}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h2 className={styles.sectionTitle}>Recent Activity</h2>
-          </div>
-        </div>
+      <section className={styles.section}>
+        <h2 className={styles.sectionTitle}>Recent activity</h2>
         <div className={styles.recentRow}>
           {recentActivity.map((game) => (
             <button key={game.id} type="button" className={styles.recentCard} onClick={() => setSelectedGameId(game.id)}>
@@ -241,11 +241,9 @@ export default function LibraryPage() {
         ))}
       </div>
 
-      <section className={`${styles.sectionCard} ${styles.gamesSection}`} role="tabpanel" aria-label={`${statusTab} games`}>
+      <section className={`${styles.section} ${styles.gamesSection}`} role="tabpanel" aria-label={`${statusTab} games`}>
         <div className={`${styles.sectionHeader} ${styles.gamesHeader}`}>
-          <div>
-            <h2 className={styles.sectionTitle}>{statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} Games <span className={styles.sectionCount}>({filteredGames.length})</span></h2>
-          </div>
+          <h2 className={styles.sectionTitle}>{statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} games <span className={styles.sectionCount}>{filteredGames.length}</span></h2>
         </div>
         <div className={styles.gamesToolbar}>
           <LibraryToolbar

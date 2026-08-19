@@ -8,11 +8,9 @@ type StatPanelProps = {
   children: ReactNode;
 };
 
-/* The panel the stat tiles sit in. Library and Collections both render this so
-   their top sections stay the same shape as each other, and as the setup panels
-   Vault and Purge open with. Only the column count differs: five tiles on
-   Library, four on Collections. Five splits 3 + 2 at tablet widths rather than
-   stranding one tile on a row of its own. */
+/* The stat row. A plain grid on the page ground: the cards are the only
+   surface, so there is no box around the box. Library and Collections both
+   render this, so their opening row stays identical. */
 export function StatPanel({ label, columns, children }: StatPanelProps) {
   const style = {
     "--stat-columns": columns,
@@ -20,9 +18,9 @@ export function StatPanel({ label, columns, children }: StatPanelProps) {
   } as CSSProperties;
 
   return (
-    <section className={styles.panel} aria-label={label} style={style}>
-      <div className={styles.grid}>{children}</div>
-    </section>
+    <div className={styles.grid} role="group" aria-label={label} style={style}>
+      {children}
+    </div>
   );
 }
 

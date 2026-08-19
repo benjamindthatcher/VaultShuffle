@@ -1,10 +1,6 @@
-/* The stat row Library and Collections open with. It is a plain grid on the
-   page ground now — the cards are the only surface. Wrapping them in a panel
-   made a box inside a box, which is the thing this pass is undoing. */
-.panel {
-  display: contents;
-}
-
+/* The stat row Library and Collections open with: a plain grid on the page
+   ground. The cards are the only surface — wrapping them in a panel made a box
+   inside a box, which is the thing this pass undoes. */
 .grid {
   display: grid;
   grid-template-columns: 1fr;
