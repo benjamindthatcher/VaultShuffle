@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { Artwork } from "@/components/shared/Artwork";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import styles from "./stats.module.css";
@@ -56,6 +57,8 @@ export default function StatsPage() {
           pricing for — what they sell for now, not what you paid for them.
         </p>
       </header>
+
+      <CompletionClaimBanner />
 
       <section className={styles.hero}>
         <p className={styles.heroLabel}>Library value completed</p>

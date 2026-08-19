@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
+import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
@@ -166,6 +167,8 @@ export default function LibraryPage() {
   return (
     <section className={styles.libraryPage}>
       <h1 className="visually-hidden">Library</h1>
+
+      <CompletionClaimBanner />
 
       <StatPanel label="Library summary" columns={5}>
         <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />

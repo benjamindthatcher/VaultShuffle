@@ -1,12 +1,22 @@
 import type { DemoGame } from "./demo-data.ts";
 import { formatGameDuration } from "./game-duration.ts";
 
-export type PurgeCategory = "untouched" | "barely-started" | "dormant";
-export type PurgeAction = "keep" | "pin" | "sleep" | "complete";
+export type PurgeCategory = "untouched" | "stalled" | "dormant";
+
+/**
+ * What Purge can do now. "complete" is deliberately absent: whether you finished
+ * something is a fact you already know, not a judgement about your draw pool, and
+ * mixing the two buried the quick rewarding question inside the slow one. It
+ * lives in the completion sweep instead.
+ */
+export type PurgeAction = "keep" | "pin" | "sleep";
+
+/** Includes "complete" so historical reviews taken before the split still read. */
+export type PurgeReviewAction = PurgeAction | "complete";
 export type PurgeReview = {
   id: string;
   gameId: string;
-  action: PurgeAction;
+  action: PurgeReviewAction;
   category: PurgeCategory;
   reviewedAt: string;
 };
@@ -29,7 +39,7 @@ export type PurgeCandidate = {
  * treated as Keep: unpinning is a change of mind about placement, not about
  * whether the game stays in the library.
  */
-export function isReviewSuperseded(action: PurgeAction, status: DemoGame["status"]) {
+export function isReviewSuperseded(action: PurgeReviewAction, status: DemoGame["status"]) {
   if (action === "sleep") return status !== "Slept";
   if (action === "complete") return status !== "Completed";
   return status === "Slept" || status === "Completed";
@@ -41,6 +51,7 @@ export function buildPurgeCandidates({
   currentPickId,
   snoozedIds,
   reviews = [],
+  likelyFinishedIds,
   now = new Date()
 }: {
   games: DemoGame[];
@@ -48,6 +59,8 @@ export function buildPurgeCandidates({
   currentPickId: string | null;
   snoozedIds: string[];
   reviews?: PurgeReview[];
+  /** Games already queued for the completion sweep; Purge must not ask about them too. */
+  likelyFinishedIds?: Set<string>;
   now?: Date;
 }): PurgeCandidate[] {
   const protectedIds = new Set([
@@ -82,7 +95,8 @@ export function buildPurgeCandidates({
       game.status === "Slept" ||
       protectedIds.has(game.id) ||
       recentlyKept.has(game.id) ||
-      recentlyActioned.has(game.id)
+      recentlyActioned.has(game.id) ||
+      likelyFinishedIds?.has(game.id)
     ) {
       continue;
     }
@@ -93,25 +107,26 @@ export function buildPurgeCandidates({
     // Recently played, unfinished games remain active and do not need a Purge review.
     if (game.hoursPlayed > 0 && idle < 180) continue;
 
-    if (game.hoursPlayed > 0 && game.completionPercent >= 85) {
+    // "untouched" now means what it says. It previously labelled games at 85%+
+    // progress — the opposite of untouched — which is exactly the confusion that
+    // hid the completion question inside a pruning tool.
+    if (game.hoursPlayed === 0) {
       result.push({
         game,
         category: "untouched",
-        reason: `${game.completionPercent}% estimated progress suggests you may already have finished this.${duration}`
+        reason: `Never opened.${duration}`
       });
-    } else if (game.hoursPlayed > 0 && game.completionPercent <= 50) {
+    } else if (game.completionPercent <= 50) {
       result.push({
         game,
-        category: "barely-started",
-        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress and inactive for ${formatAge(idle)}.${duration}`
+        category: "stalled",
+        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`
       });
     } else {
       result.push({
         game,
         category: "dormant",
-        reason: game.hoursPlayed === 0
-          ? `No recorded Steam playtime.${duration}`
-          : `${game.hoursPlayed}h played and inactive for ${formatAge(idle)}.${duration}`
+        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`
       });
     }
   }

@@ -10,28 +10,31 @@ import {
   type PurgeAction,
   type PurgeCandidate,
   type PurgeCategory,
-  type PurgeReview
+  type PurgeReview,
+  type PurgeReviewAction
 } from "@/lib/purge";
 import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
+import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
 
 const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
-  { id: "untouched", label: "Likely Completed", copy: "Inactive games at 85% progress or more." },
-  { id: "barely-started", label: "Abandoned", copy: "Inactive played games at 50% progress or less." },
-  { id: "dormant", label: "The Rest", copy: "Unplayed or long-inactive games still worth reviewing." }
+  { id: "untouched", label: "Never Opened", copy: "Bought and never launched, not once." },
+  { id: "stalled", label: "Stalled", copy: "Started, barely got anywhere, then stopped." },
+  { id: "dormant", label: "Drifted Away", copy: "Played properly once, untouched for a long time." }
 ];
 
-const OUTCOME_LABELS: Record<PurgeReview["action"], string> = {
+const OUTCOME_LABELS: Record<PurgeReviewAction, string> = {
   keep: "Kept active",
   pin: "Kept and pinned",
   sleep: "Put to sleep",
   complete: "Marked done"
 };
 
-function decisionReversed(action: PurgeReview["action"], status: DemoGame["status"]) {
+function decisionReversed(action: PurgeReviewAction, status: DemoGame["status"]) {
   if (action === "sleep") return status !== "Slept";
   if (action === "complete") return status !== "Completed";
   return status === "Slept" || status === "Completed";
@@ -70,15 +73,24 @@ export default function PurgePage() {
   const [reviewsReady, setReviewsReady] = useState(false);
   const [error, setError] = useState("");
 
+  // Anything the completion sweep is already asking about is not a pruning
+  // question, and being asked twice about the same game is how the two queues
+  // started feeling like one chore.
+  const likelyFinishedIds = useMemo(
+    () => new Set(findCompletionCandidates(games).map((candidate) => candidate.game.id)),
+    [games]
+  );
+
   const candidates = useMemo(
     () => buildPurgeCandidates({
       games,
       pinnedIds: vaultState.pinnedIds,
       currentPickId: vaultState.currentPickId,
       snoozedIds: vaultState.snoozedIds,
-      reviews
+      reviews,
+      likelyFinishedIds: likelyFinishedIds
     }),
-    [games, reviews, vaultState.currentPickId, vaultState.pinnedIds, vaultState.snoozedIds]
+    [games, likelyFinishedIds, reviews, vaultState.currentPickId, vaultState.pinnedIds, vaultState.snoozedIds]
   );
   const filteredCandidates = useMemo(() => {
     if (selectedCategories.length === CATEGORIES.length) return candidates;
@@ -217,7 +229,7 @@ export default function PurgePage() {
     if (!response.ok) throw new Error("Could not remove this Purge decision.");
   }
 
-  function finishDecision(candidate: PurgeCandidate, action: PurgeAction, previousStatus: DemoGame["status"], review: PurgeReview) {
+  function finishDecision(candidate: PurgeCandidate, action: PurgeReviewAction, previousStatus: DemoGame["status"], review: PurgeReview) {
     setReviews((value) => [review, ...value]);
     setUndo({ candidate, review, previousStatus });
     setSelectedOffset(0);
@@ -286,8 +298,6 @@ export default function PurgePage() {
         await recordVaultAction("pinned", candidate.game.id);
       } else if (committedAction === "sleep") {
         await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
-      } else if (committedAction === "complete") {
-        await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
       }
       trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: committedAction, category: candidate.category });
       finishDecision(candidate, committedAction, previousStatus, review);
@@ -349,6 +359,7 @@ export default function PurgePage() {
 
   return <PurgePageFrame>
     <h1 className="visually-hidden">Purge</h1>
+    <CompletionClaimBanner />
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
         <div className={styles.categoryGrid}>
@@ -397,7 +408,6 @@ export default function PurgePage() {
           <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
             <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
             <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
-            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("complete")}><PurgeDecisionIcon name="mark-completed" /><span><strong>Mark as Completed</strong><small>Move it to Completed and remove it from Vault draws.</small></span></button>
             <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
           </div>
         </section> : null}
@@ -443,15 +453,15 @@ function PurgePageFrame({ children }: { children: ReactNode }) {
 
 function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
   const categoryIcons: Record<PurgeCategory, VaultIconName> = {
-    untouched: "likely-completed",
-    "barely-started": "abandoned",
-    dormant: "the-rest",
+    untouched: "the-rest",
+    stalled: "abandoned",
+    dormant: "likely-completed",
   };
 
   return <VaultIcon className={styles.categoryIcon} name={categoryIcons[category]} size={36} />;
 }
 
-type PurgeDecisionIconName = "keep-active" | "pin" | "sleep" | "mark-completed";
+type PurgeDecisionIconName = "keep-active" | "pin" | "sleep";
 
 function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
   return <span className={styles.decisionIcon} aria-hidden="true"><VaultIcon name={name} size={34} /></span>;
