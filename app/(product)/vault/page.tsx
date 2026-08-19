@@ -60,7 +60,13 @@ export default function VaultPage() {
   const [pinMessage, setPinMessage] = useState("");
   const [completionUndo, setCompletionUndo] = useState<{ id: string; title: string } | null>(null);
   const [drawState, setDrawState] = useState<VaultDrawState>("idle");
+  // What the rail focuses on, set when the draw starts so the animation knows
+  // where it is heading.
   const [drawWinnerId, setDrawWinnerId] = useState<string | null>(null);
+  // What the result card shows, set only once the reveal lands. These used to be
+  // the same value, so the card named the game at the moment the draw started —
+  // the answer arrived a full animation before the animation that announces it.
+  const [revealedPickId, setRevealedPickId] = useState<string | null>(null);
   const [drawMessage, setDrawMessage] = useState("");
   const [lensOpen, setLensOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -159,7 +165,7 @@ export default function VaultPage() {
   }, [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, collectionDraw, collectionMode, ownedGames, selectedCollection?.name, snoozedIds]);
 
   const currentPick = ownedGames.find((game) =>
-    game.id === drawWinnerId &&
+    game.id === revealedPickId &&
     game.status !== "Completed" &&
     game.status !== "Slept" &&
     !snoozedIds.has(game.id)
@@ -211,6 +217,16 @@ export default function VaultPage() {
           ? "No games match this setup. Try loosening the optional filters."
           : "All three choices are ready. Open the Vault when you are ready.";
   const closeGuestSignInPrompt = useCallback(() => setGuestSignInOpen(false), []);
+
+  // The scroll to the result runs here rather than inside the draw, because the
+  // card now mounts with the reveal: measured from the draw's own tick there was
+  // nothing in the DOM to measure yet.
+  useEffect(() => {
+    if (drawState !== "revealed" || !revealedPickId) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const frame = requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
+    return () => cancelAnimationFrame(frame);
+  }, [drawState, revealedPickId]);
 
   useEffect(() => {
     const resetQueue = { setupKey, gameIds: [] };
@@ -348,6 +364,7 @@ export default function VaultPage() {
       drawRerollIndexRef.current = drawnCycleRef.current.size - 1;
       setCurrentDrawId(draw.id);
       setHighlightedGameId(nextPick.id);
+      setRevealedPickId(nextPick.id);
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
       trackEvent(ANALYTICS_EVENTS.vaultDrawRequested, {
@@ -363,7 +380,6 @@ export default function VaultPage() {
         vault_genre_learning: arm,
         preference_rows: preferenceRowCount,
       });
-      requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
       queueGuestSignInPrompt();
     } catch (error) {
       if (activeDraw !== activeDrawRef.current) return;
