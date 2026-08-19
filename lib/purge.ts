@@ -152,7 +152,14 @@ export function buildPurgeCandidates({
   // Clearest decisions first. The queue was previously whatever order the library
   // happened to be in, so a player facing 223 games got no sense of momentum and
   // no reason to believe the next one would be any easier than the last.
-  return result.sort((left, right) => right.confidence - left.confidence);
+  //
+  // Cheapest breaks a tie, because most never-opened games have too few reviews to
+  // carry a signal and would otherwise fall back to alphabetical. Letting go of a
+  // £2 impulse buy is an easier first decision than a £50 one.
+  return result.sort((left, right) =>
+    right.confidence - left.confidence
+    || shelfPrice(left.game) - shelfPrice(right.game)
+    || left.game.title.localeCompare(right.game.title));
 }
 
 /**
@@ -162,6 +169,11 @@ export function buildPurgeCandidates({
  * not a purge candidate at all in spirit, so it sinks to the bottom rather than
  * being put in front of the player as though it were.
  */
+function shelfPrice(game: DemoGame) {
+  if (game.isFree) return 0;
+  return Number(game.priceInitial ?? 0) || 0;
+}
+
 function purgeConfidence(game: DemoGame, idleDays: number, signalLeaning: "cut" | "keep" | null) {
   let score = 0;
   if (game.hoursPlayed === 0) score += 2;

@@ -64,3 +64,17 @@ test("never opened is now what untouched means", () => {
   assert.equal(fresh.category, "untouched");
   assert.match(fresh.reason, /Never opened/);
 });
+
+test("a tie breaks on the cheaper game, not the alphabet", () => {
+  // Most never-opened games have too few reviews to carry a signal, so ties are
+  // the common case rather than the exception.
+  const candidates = buildPurgeCandidates({
+    ...base,
+    games: [
+      game({ id: "pricey", title: "AAA Blockbuster", priceInitial: 5999 } as Partial<DemoGame>),
+      game({ id: "cheap", title: "Zzz Impulse Buy", priceInitial: 199 } as Partial<DemoGame>)
+    ]
+  });
+
+  assert.deepEqual(candidates.map((candidate) => candidate.game.id), ["cheap", "pricey"]);
+});
