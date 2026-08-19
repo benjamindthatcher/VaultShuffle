@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { CompletionCelebration } from "@/components/library/CompletionCelebration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
@@ -33,6 +34,7 @@ export default function LibraryPage() {
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [savingGameId, setSavingGameId] = useState<string | null>(null);
   const [undoGameId, setUndoGameId] = useState<string | null>(null);
+  const [celebratingId, setCelebratingId] = useState<string | null>(null);
   const [managePinsOpen, setManagePinsOpen] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
 
@@ -84,12 +86,14 @@ export default function LibraryPage() {
 
   async function markCompleted(gameId: string) {
     await updateGame(gameId, { status: "Completed" });
+    setCelebratingId(gameId);
     setUndoGameId(gameId);
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     undoTimerRef.current = window.setTimeout(() => setUndoGameId(null), 5300);
   }
 
   async function restoreCompleted(gameId: string) {
+    setCelebratingId(null);
     await restoreGame(gameId);
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     setUndoGameId(null);
@@ -136,6 +140,7 @@ export default function LibraryPage() {
   }, [libraryGames, query, sort, sortReversed, statusTab]);
 
   const selectedGame = filteredGames.find((game) => game.id === selectedGameId) ?? libraryGames.find((game) => game.id === selectedGameId) ?? null;
+  const celebratingGame = celebratingId ? games.find((game) => game.id === celebratingId) ?? null : null;
   const pinnedGames = vaultState.pinnedIds
     .map((id) => libraryGames.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game))
@@ -169,6 +174,16 @@ export default function LibraryPage() {
       <h1 className="visually-hidden">Library</h1>
 
       <CompletionClaimBanner />
+
+      {celebratingGame ? (
+        <CompletionCelebration
+          game={celebratingGame}
+          games={games}
+          pin={vaultState.pins.find((pin) => pin.gameId === celebratingGame.id)}
+          onDismiss={() => setCelebratingId(null)}
+          onUndo={() => void restoreCompleted(celebratingGame.id)}
+        />
+      ) : null}
 
       <StatPanel label="Library summary" columns={4}>
         <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />

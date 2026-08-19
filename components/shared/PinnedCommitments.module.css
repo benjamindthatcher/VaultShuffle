@@ -1,0 +1,18 @@
+.panel, .compact { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--vault-border); border-radius: 16px; background: var(--vault-surface-soft); }
+.compact { padding: 12px; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.label { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #d392ff; }
+.count { color: var(--vault-text-muted); font-size: 0.78rem; font-weight: 700; }
+.list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.item { min-width: 0; }
+.card { display: grid; gap: 8px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 12px; background: rgba(12, 16, 38, 0.5); text-align: left; }
+.card:hover:not(:disabled) { border-color: var(--vault-border-strong); }
+.art { position: relative; width: 100%; aspect-ratio: 92 / 43; border-radius: 8px; overflow: hidden; background: rgba(12, 16, 38, 0.7); }
+.body { display: grid; gap: 2px; min-width: 0; }
+.body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; color: var(--vault-text); }
+.body small { font-size: 0.74rem; color: var(--vault-text-muted); }
+/* Progress since pinning is the payoff, so it reads as a win once it exists. */
+.item[data-started="yes"] .body small { color: #7ce7b2; font-weight: 650; }
+
+@media (max-width: 720px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 460px) { .list { grid-template-columns: 1fr; } }

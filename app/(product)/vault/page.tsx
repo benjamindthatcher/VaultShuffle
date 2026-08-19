@@ -15,6 +15,7 @@ import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
+import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { useGenreLearning, type GenreLearningArm } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
@@ -655,6 +656,16 @@ export default function VaultPage() {
           <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
         </div>
       </section>
+
+      {isLive ? (
+        <PinnedCommitments
+          games={ownedGames}
+          pins={vaultState.pins}
+          pinnedIds={vaultState.pinnedIds}
+          onSelect={(gameId) => setDetailsGameId(gameId)}
+          compact
+        />
+      ) : null}
 
       <section className={styles.poolSection} id="vault-pool">
         <div className={styles.poolControls}>

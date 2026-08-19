@@ -2,8 +2,16 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 
 export type VaultAction = "drawn" | "pinned" | "unpinned" | "snoozed" | "unsnoozed";
 
+/** A pin is a commitment, so it carries when it was made and the playtime it started from. */
+export type VaultPin = {
+  gameId: string;
+  pinnedAt: string | null;
+  hoursAtPin: number | null;
+};
+
 export type VaultState = {
   pinnedIds: string[];
+  pins: VaultPin[];
   snoozedIds: string[];
   currentPickId: string | null;
 };
@@ -17,7 +25,7 @@ export async function getVaultState(userId: string): Promise<VaultState> {
   ] = await Promise.all([
     supabase
       .from("user_game_pins")
-      .select("game_id, slot, scope")
+      .select("game_id, slot, scope, pinned_at, hours_at_pin")
       .eq("user_id", userId)
       .order("slot", { ascending: true }),
     supabase
@@ -38,6 +46,11 @@ export async function getVaultState(userId: string): Promise<VaultState> {
 
   return {
     pinnedIds: (pins ?? []).filter((pin) => pin.scope === "library").map((pin) => String(pin.game_id)),
+    pins: (pins ?? []).filter((pin) => pin.scope === "library").map((pin) => ({
+      gameId: String(pin.game_id),
+      pinnedAt: pin.pinned_at ? String(pin.pinned_at) : null,
+      hoursAtPin: pin.hours_at_pin === null || pin.hours_at_pin === undefined ? null : Number(pin.hours_at_pin)
+    })),
     snoozedIds: (snoozes ?? []).map((snooze) => String(snooze.game_id)),
     currentPickId: cleanId(String(vaultState?.current_game_id ?? ""))
   };

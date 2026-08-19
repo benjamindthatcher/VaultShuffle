@@ -39,7 +39,7 @@ function matchesDeviceMode(game: DemoGame, mode: DeviceMode) {
   return (game.deckCompatibility ?? 0) >= 2;
 }
 
-const emptyVaultState: VaultState = { pinnedIds: [], snoozedIds: [], currentPickId: null };
+const emptyVaultState: VaultState = { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null };
 const EMPTY_GENRE_PREFERENCES: GenrePreference[] = [];
 
 type AppDataContextValue = {
@@ -537,7 +537,13 @@ function reduceGuestVaultState(state: VaultState, action: VaultAction, gameId: s
   }
   if (action === "unsnoozed") snoozedIds.delete(gameId);
 
-  return { pinnedIds, snoozedIds: [...snoozedIds], currentPickId };
+  // Guests keep the shape but not the history: their pins live only for the session.
+  return {
+    pinnedIds,
+    pins: pinnedIds.map((id) => ({ gameId: id, pinnedAt: null, hoursAtPin: null })),
+    snoozedIds: [...snoozedIds],
+    currentPickId
+  };
 }
 
 export function useAppData() {
