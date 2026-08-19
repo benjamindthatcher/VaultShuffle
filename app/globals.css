@@ -16,40 +16,48 @@
   --vault-control-hover-glow: rgba(161, 79, 255, 0.38);
   --vault-control-focus: #dca0ff;
   --vault-success: #62d3af;
-  --vault-shadow: 0 24px 64px rgba(1, 4, 18, 0.46);
+  /* Kept as a name because components still ask for it; the new surfaces do
+     not cast shadows, so it resolves to none. */
+  --vault-shadow: none;
   --vault-radius-xl: 28px;
   --vault-radius-lg: 22px;
   --vault-radius-md: 16px;
   --vault-radius-sm: 12px;
   --vault-content-width: min(1480px, calc(100vw - 48px));
-  /* One panel treatment for the whole app, lifted from the Vault, which is the
-     page the others are meant to look like. Every app panel is one of two
-     things: the feature panel a page opens with (or its main call to action),
-     and the content panel everything else sits in. Pages set their own padding
-     and inner layout, but never their own border, fill, radius or shadow. */
-  --vault-panel-radius: 13px;
-  --vault-panel-border: var(--vault-border);
-  --vault-panel-surface: linear-gradient(145deg, rgba(11, 15, 39, 0.96), rgba(6, 10, 28, 0.94));
-  --vault-panel-shadow: var(--vault-shadow);
-  --vault-panel-feature-border: var(--vault-border-strong);
-  --vault-panel-feature-surface:
-    linear-gradient(110deg, rgba(82, 36, 155, 0.3), rgba(8, 13, 31, 0.91) 48%),
-    rgba(8, 13, 31, 0.92);
-  --vault-panel-feature-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.045),
-    0 16px 42px rgba(0, 0, 0, 0.18),
-    0 0 28px rgba(123, 46, 211, 0.1);
-  /* The tiles that sit inside a panel: the Vault setup steps, the Purge
-     categories, the Library and Collections stats. Also from the Vault. */
+  /* One surface treatment for the whole app, taken from the Completion Check and
+     Stats pages: a dark ground with lighter content sitting directly on it. No
+     panel inside a panel, no glow, no drop shadow. Pages set their own padding
+     and layout and nothing else.
+
+     card      — almost everything: a section, a stat, a row, a game.
+     feature   — the one thing on a page that leads: slightly lighter, a
+                 stronger border, a wider radius. At most one per screen.
+     well      — a recess inside a card, for artwork and inputs. Darker than the
+                 card, never lighter. */
+  --vault-card-radius: 14px;
+  --vault-card-border: var(--vault-border);
+  --vault-card-surface: var(--vault-surface-soft);
+  --vault-feature-radius: 18px;
+  --vault-feature-border: var(--vault-border-strong);
+  --vault-feature-surface: var(--vault-surface);
+  --vault-well-radius: 9px;
+  --vault-well-surface: rgba(12, 16, 38, 0.7);
+
+  /* The older panel and tile names now resolve to the same two surfaces, so the
+     pages still written in terms of them come along without being rewritten. */
+  --vault-panel-radius: var(--vault-card-radius);
+  --vault-panel-border: var(--vault-card-border);
+  --vault-panel-surface: var(--vault-card-surface);
+  --vault-panel-shadow: none;
+  --vault-panel-feature-border: var(--vault-feature-border);
+  --vault-panel-feature-surface: var(--vault-feature-surface);
+  --vault-panel-feature-shadow: none;
   --vault-tile-radius: 12px;
-  --vault-tile-border: rgba(144, 104, 255, 0.28);
-  --vault-tile-surface: rgba(8, 13, 31, 0.58);
-  --vault-tile-selected-border: rgba(206, 116, 255, 0.82);
-  --vault-tile-selected-surface: linear-gradient(135deg, rgba(40, 22, 84, 0.72), rgba(8, 13, 31, 0.84) 58%);
-  --vault-tile-selected-shadow:
-    0 0 0 1px rgba(191, 102, 255, 0.12),
-    0 14px 38px rgba(39, 14, 86, 0.26),
-    0 0 34px rgba(142, 62, 226, 0.14);
+  --vault-tile-border: var(--vault-card-border);
+  --vault-tile-surface: var(--vault-well-surface);
+  --vault-tile-selected-border: var(--vault-border-strong);
+  --vault-tile-selected-surface: rgba(124, 92, 255, 0.14);
+  --vault-tile-selected-shadow: none;
   --vault-header-height: 70px;
   /* Height and gap of the tiles in the Library and Collections top panels.
      88px/10px is the Purge setup tile, so all four pages open at the same

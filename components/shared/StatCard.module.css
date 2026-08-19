@@ -1,24 +1,10 @@
-/* The top section Library and Collections open with. Vault opens with the
-   "Build your Vault Draw" panel and Purge with its setup row: in both cases a
-   bordered panel holding a grid of tiles. Library and Collections used to open
-   with free-floating cards instead, which is why those two pages never lined up
-   with the other two however the padding was tuned. Both pages now build their
-   top section from this file, so they are identical to each other by
-   construction and the same shape as Vault and Purge. */
+/* The stat row Library and Collections open with. It is a plain grid on the
+   page ground now — the cards are the only surface. Wrapping them in a panel
+   made a box inside a box, which is the thing this pass is undoing. */
 .panel {
-  padding: 20px;
-  /* The shared feature treatment: the same border, fill, radius and shadow the
-     Vault setup panel and the Purge setup row take. */
-  border: 1px solid var(--vault-panel-feature-border);
-  border-radius: var(--vault-panel-radius);
-  background: var(--vault-panel-feature-surface);
-  box-shadow: var(--vault-panel-feature-shadow);
+  display: contents;
 }
 
-/* Explicit counts rather than auto-fit: Library shows five tiles and
-   Collections four, and auto-fit strands a lone fifth tile on its own row at
-   tablet widths. The counts come from the page as custom properties, so the two
-   pages reflow at exactly the same widths. */
 .grid {
   display: grid;
   grid-template-columns: 1fr;
@@ -37,15 +23,13 @@
   }
 }
 
-/* A tile inside the panel, not a panel of its own: the Purge .category shape.
-   It no longer carries the raised border, glow and 142px height it needed back
-   when it sat on the page ground by itself. */
+/* The standard card: lighter than the ground it sits on, one border, no glow. */
 .card {
   min-height: var(--vault-top-card-height);
-  padding: 14px;
-  border: 1px solid var(--vault-tile-border);
-  border-radius: var(--vault-tile-radius);
-  background: var(--vault-tile-surface);
+  padding: 15px 16px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
   display: grid;
   grid-template-columns: 48px minmax(0, 1fr);
   align-items: center;
@@ -91,8 +75,4 @@
   line-height: 1.35;
 }
 
-@media (max-width: 720px) {
-  .panel {
-    padding: 14px;
-  }
-}
+

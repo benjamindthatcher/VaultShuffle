@@ -1,0 +1,55 @@
+/* The heading every app page opens with. The pattern is the Completion Check
+   and Stats pages': it sits directly on the ground, in the wash of colour the
+   shell paints at the top, with nothing boxed around it. */
+.header {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #d392ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  margin: 0;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  letter-spacing: -0.02em;
+}
+
+.sub {
+  margin: 0;
+  max-width: 66ch;
+  color: var(--vault-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+/* For a page that needs one control beside the heading rather than under it. */
+.withAction {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 20px;
+}
+
+.withAction h1,
+.withAction .eyebrow { grid-column: 1; }
+.withAction .sub { grid-column: 1; }
+.withAction .action { grid-column: 2; grid-row: 1 / span 3; }
+
+@media (max-width: 720px) {
+  .withAction {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .withAction .action {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: start;
+  }
+}

@@ -36,6 +36,7 @@ import {
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
+import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
@@ -555,6 +556,7 @@ export default function VaultPage() {
 
   async function completeGame(game: DemoGame) {
     await updateGame(game.id, { status: "Completed" });
+    trackCompletionClaim(game, "vault", isLive);
     setHighlightedGameId(null);
     setCompletionUndo({ id: game.id, title: game.title });
   }
@@ -562,13 +564,25 @@ export default function VaultPage() {
   async function undoCompletion() {
     if (!completionUndo) return;
     const gameId = completionUndo.id;
+    const game = ownedGames.find((entry) => entry.id === gameId);
     setCompletionUndo(null);
     await restoreGame(gameId);
+    if (game) trackCompletionUndone(game, "vault", isLive);
   }
 
   return (
     <section className={styles.vaultPage}>
       <h1 className="visually-hidden">Vault</h1>
+
+      {isLive ? (
+        <PinnedCommitments
+          games={ownedGames}
+          pins={vaultState.pins}
+          pinnedIds={vaultState.pinnedIds}
+          onSelect={(gameId) => setDetailsGameId(gameId)}
+          compact
+        />
+      ) : null}
 
       {!isLive ? <aside className={styles.guestPreviewBanner} aria-label="Guest preview">
         <span className={styles.guestPreviewIcon}><VaultIcon name="current-pick" size={24} /></span>
@@ -656,16 +670,6 @@ export default function VaultPage() {
           <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
         </div>
       </section>
-
-      {isLive ? (
-        <PinnedCommitments
-          games={ownedGames}
-          pins={vaultState.pins}
-          pinnedIds={vaultState.pinnedIds}
-          onSelect={(gameId) => setDetailsGameId(gameId)}
-          compact
-        />
-      ) : null}
 
       <section className={styles.poolSection} id="vault-pool">
         <div className={styles.poolControls}>

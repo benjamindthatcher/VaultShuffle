@@ -52,6 +52,13 @@ export const ANALYTICS_EVENTS = {
   collectionDeleted: "collection_deleted",
   collectionMembershipChanged: "collection_membership_changed",
 
+  // Completion. The loop the whole product exists to close, so it gets its own
+  // funnel rather than hiding inside game_status_changed with no source on it.
+  completionSweepViewed: "completion_sweep_viewed",
+  completionClaimed: "completion_claimed",
+  completionDismissed: "completion_dismissed",
+  completionUndone: "completion_undone",
+
   // Purge
   purgeDecision: "purge_decision",
 

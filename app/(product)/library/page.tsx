@@ -4,7 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { CompletionCelebration } from "@/components/library/CompletionCelebration";
+import { pinProgressLabel } from "@/components/shared/PinnedCommitments";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
@@ -85,7 +87,9 @@ export default function LibraryPage() {
   );
 
   async function markCompleted(gameId: string) {
+    const game = games.find((entry) => entry.id === gameId);
     await updateGame(gameId, { status: "Completed" });
+    if (game) trackCompletionClaim(game, "library", isLive);
     setCelebratingId(gameId);
     setUndoGameId(gameId);
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
@@ -93,8 +97,10 @@ export default function LibraryPage() {
   }
 
   async function restoreCompleted(gameId: string) {
+    const game = games.find((entry) => entry.id === gameId);
     setCelebratingId(null);
     await restoreGame(gameId);
+    if (game) trackCompletionUndone(game, "library", isLive);
     if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
     setUndoGameId(null);
   }
@@ -173,6 +179,19 @@ export default function LibraryPage() {
     <section className={styles.libraryPage}>
       <h1 className="visually-hidden">Library</h1>
 
+      {pinnedGames.length ? <div className={styles.pinnedShelf}>
+        <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
+        <div className={styles.pinnedGrid} aria-label="Pinned games">{pinnedGames.map((game, index) => {
+          const sincePinned = pinProgressLabel(game, vaultState.pins.find((pin) => pin.gameId === game.id));
+          return <div key={game.id} className={styles.pinnedCard}>
+            <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress />
+            <span className={styles.pinBadge}>⌖ {index + 1}</span>
+            {sincePinned ? <span className={styles.pinProgress}>{sincePinned}</span> : null}
+          </div>;
+        })}{Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>)}</div>
+      </div> : null}
+
+
       <CompletionClaimBanner />
 
       {celebratingGame ? (
@@ -245,10 +264,6 @@ export default function LibraryPage() {
             onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value }); }}
           />
         </div>
-        {statusTab === "active" && (visiblePinnedGames.length || !query) ? <div className={styles.pinnedShelf}>
-          <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
-          <div className={styles.pinnedGrid} role="region" aria-label="Pinned games" tabIndex={0}>{visiblePinnedGames.map((game, index) => <div key={game.id} className={styles.pinnedCard}><GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress /><span className={styles.pinBadge}>⌖ {index + 1}</span></div>)}{!query ? Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>) : null}</div>
-        </div> : null}
         <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>
           {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={setSelectedGameId} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (
             <div className={styles.emptyState}><h3>{statusTab === "slept" ? "No sleeping games" : statusTab === "completed" ? "Nothing completed yet" : "No active games match"}</h3><p>{statusTab === "slept" ? "Games you put to sleep will appear here and stay out of Vault draws." : statusTab === "completed" ? "Mark a finished game as completed and it will appear here." : "Try changing your search."}</p>{statusTab !== "active" ? <button type="button" onClick={() => setStatusTab("active")}>Browse Active Games</button> : null}</div>

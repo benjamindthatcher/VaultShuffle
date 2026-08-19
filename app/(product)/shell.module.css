@@ -8,25 +8,23 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* Lifted off --vault-bg so the panels, which are darker than the ground, read
-     as raised rather than dissolving into it. The banner used to supply this
-     contrast at the top of each page; with it hidden the pages were flat.
-     Defined once here so all four app pages are identical by construction. */
+  /* The ground is dark and stays dark, so the content sitting on it is the
+     lighter thing on the screen. It used to carry a white lift across the top
+     third, which forced every panel to be darker than the page to read as
+     raised — the inversion that made the app feel heavy. All that is left is
+     the wash of colour behind the page heading. */
   background:
-    radial-gradient(circle at 50% 0%, rgba(120, 78, 255, 0.2), transparent 38%),
-    radial-gradient(circle at 15% 18%, rgba(58, 110, 255, 0.12), transparent 22%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02) 30%, transparent 62%),
-    #0A1024;
+    radial-gradient(circle at 50% -6%, rgba(126, 84, 255, 0.26), transparent 46%),
+    radial-gradient(circle at 12% 10%, rgba(58, 110, 255, 0.08), transparent 28%),
+    #060A18;
   z-index: -2;
 }
 
 .appContent {
   width: var(--vault-content-width);
   margin: 0 auto;
-  /* The one place the app pages get their top offset. Vault and Purge open with
-     setup panels, Library and Collections with stat cards, and giving each page
-     its own padding meant those two shapes never lined up. */
-  padding: 22px 0 44px;
+  /* The one place the app pages get their top offset. */
+  padding: 26px 0 56px;
 }
 
 .loadNotice {

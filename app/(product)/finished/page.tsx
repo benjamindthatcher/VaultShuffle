@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
@@ -8,6 +8,8 @@ import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import { formatMoney } from "@/lib/backlog-stats";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { trackCompletionClaim, trackCompletionDismissed } from "@/lib/completion-tracking";
 import styles from "./finished.module.css";
 
 /**
@@ -28,6 +30,19 @@ export default function FinishedPage() {
   const [error, setError] = useState("");
 
   const candidates = useMemo(() => findCompletionCandidates(games), [games]);
+
+  // Fired once per visit, from the queue as it was found rather than as it is
+  // left, so the funnel measures what was offered against what was claimed.
+  const viewLogged = useRef(false);
+  useEffect(() => {
+    if (viewLogged.current || !isLive || !candidates.length) return;
+    viewLogged.current = true;
+    trackEvent(ANALYTICS_EVENTS.completionSweepViewed, {
+      candidates: candidates.length,
+      value_cents: candidates.reduce(
+        (total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0)
+    });
+  }, [candidates, isLive]);
   const pending = candidates.filter((candidate) => !claimed[candidate.game.id]);
 
   const selectedIds = pending.filter((candidate) => selected[candidate.game.id]);
@@ -42,11 +57,13 @@ export default function FinishedPage() {
   const remainingValue = pending
     .reduce((total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
 
-  async function saveOne(gameId: string, finished: boolean) {
+  async function saveOne(gameId: string, finished: boolean, bulk = false) {
     const game = games.find((entry) => entry.id === gameId);
     if (finished) {
       await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      if (game) trackCompletionClaim(game, bulk ? "sweep_bulk" : "sweep", isLive);
     } else {
+      if (game) trackCompletionDismissed(game, bulk);
       // Records the playtime at dismissal so it only asks again after another
       // real session, rather than every time the page is opened.
       await updateGame(gameId, {
@@ -84,7 +101,7 @@ export default function FinishedPage() {
     const done: Record<string, "finished" | "not-yet"> = {};
     try {
       for (const id of ids) {
-        await saveOne(id, finished);
+        await saveOne(id, finished, true);
         done[id] = finished ? "finished" : "not-yet";
       }
     } catch (caught) {
