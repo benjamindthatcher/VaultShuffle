@@ -38,7 +38,6 @@ export default function LibraryPage() {
   const [savingGameId, setSavingGameId] = useState<string | null>(null);
   const [undoGameId, setUndoGameId] = useState<string | null>(null);
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
-  const [managePinsOpen, setManagePinsOpen] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
 
   useEffect(() => {
@@ -158,7 +157,7 @@ export default function LibraryPage() {
   async function togglePin(game: DemoGame) {
     if (vaultState.pinnedIds.includes(game.id)) await recordVaultAction("unpinned", game.id);
     else if (vaultState.pinnedIds.length < 3) await recordVaultAction("pinned", game.id);
-    else { setPinCandidate(game); setManagePinsOpen(true); }
+    else setPinCandidate(game);
   }
 
   async function toggleSelectedPin() {
@@ -183,13 +182,13 @@ export default function LibraryPage() {
       </PageHeading>
 
       {pinnedGames.length ? <div className={styles.pinnedShelf}>
-        <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div><button type="button" onClick={() => setManagePinsOpen(true)}>Manage Pins</button></div>
+        <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div></div>
         <div className={styles.pinnedGrid} aria-label="Pinned games">{pinnedGames.map((game, index) => {
           const pin = vaultState.pins.find((entry) => entry.gameId === game.id);
           const progress = pinProgress(game, pin);
           const sincePinned = progress?.started ? pinProgressLabel(game, pin) : null;
           return <div key={game.id} className={styles.pinnedCard}>
-            <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} pinned showProgress />
+            <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} onUnpin={() => void togglePin(game)} pinned showProgress />
             <span className={styles.pinBadge}>⌖ {index + 1}</span>
             {sincePinned ? <span className={styles.pinProgress}>{sincePinned}</span> : null}
           </div>;
@@ -290,13 +289,13 @@ export default function LibraryPage() {
         pinSlot={selectedGame ? vaultState.pinnedIds.indexOf(selectedGame.id) + 1 || null : null}
         pinCount={vaultState.pinnedIds.length}
         onTogglePin={() => void toggleSelectedPin()}
-        onManagePins={() => { if (selectedGame) setPinCandidate(selectedGame); setManagePinsOpen(true); }}
+        onManagePins={() => { if (selectedGame) setPinCandidate(selectedGame); }}
         onComplete={() => selectedGame ? markCompleted(selectedGame.id) : Promise.resolve()}
         onRestore={() => selectedGame ? restoreCompleted(selectedGame.id) : Promise.resolve()}
         onSleep={() => selectedGame ? updateGame(selectedGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null }) : Promise.resolve()}
       />
       {undoGameId ? <div key={undoGameId} className={styles.undoToast} role="status">{libraryGames.find((game) => game.id === undoGameId)?.title ?? "Game"} marked as completed.<button type="button" onClick={() => void restoreCompleted(undoGameId)}>Undo</button></div> : null}
-      {managePinsOpen ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate && !vaultState.pinnedIds.includes(pinCandidate.id) ? pinCandidate : null} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { if (pinCandidate) await recordVaultAction("pinned", pinCandidate.id, { replace_game_id: replaceId }); }} onClose={() => { setManagePinsOpen(false); setPinCandidate(null); }} /> : null}
+      {pinCandidate && !vaultState.pinnedIds.includes(pinCandidate.id) ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { if (pinCandidate) await recordVaultAction("pinned", pinCandidate.id, { replace_game_id: replaceId }); }} onClose={() => setPinCandidate(null)} /> : null}
     </section>
   );
 }

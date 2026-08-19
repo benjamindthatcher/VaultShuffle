@@ -583,6 +583,7 @@ export default function VaultPage() {
           pins={vaultState.pins}
           pinnedIds={vaultState.pinnedIds}
           onSelect={(gameId) => setDetailsGameId(gameId)}
+          onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
           compact
         />
       ) : null}

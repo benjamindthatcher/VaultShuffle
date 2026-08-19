@@ -17,11 +17,13 @@ type GameCardProps = {
   onRestore?: () => void;
   onSleep?: () => void;
   onTogglePin?: () => void;
+  /** Direct unpin, shown as an X on the card so a pin can be dropped from anywhere. */
+  onUnpin?: () => void;
   pinned?: boolean;
   showProgress?: boolean;
 };
 
-export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, pinned = false, showProgress = false }: GameCardProps) {
+export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, onUnpin, pinned = false, showProgress = false }: GameCardProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuShellRef = useRef<HTMLDivElement>(null);
@@ -104,7 +106,14 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
 
   return <article className={`${styles.cardShell}${menuOpen ? ` ${styles.cardShellMenuOpen}` : ""}`}>
     <button type="button" className={isList ? `${styles.card} ${styles.cardList}` : styles.card} onClick={onClick}>{content}</button>
-    {(onComplete || onRestore || onSleep || onTogglePin) ? <div ref={menuShellRef} className={styles.menuShell}>
+    {onUnpin ? <button
+      type="button"
+      className={styles.unpinButton}
+      aria-label={`Unpin ${game.title}`}
+      title="Unpin"
+      onClick={(event) => { event.stopPropagation(); onUnpin(); }}
+    ><VaultIcon name="close" size={15} /></button> : null}
+    {(onComplete || onRestore || onSleep || onTogglePin) ? <div ref={menuShellRef} className={`${styles.menuShell}${onUnpin ? ` ${styles.menuShellWithUnpin}` : ""}`}>
       <button type="button" className={styles.menuTrigger} aria-label={`Actions for ${game.title}`} aria-expanded={menuOpen} onClick={toggleMenu}><VaultIcon name="menu-dots" size={20} /></button>
       {menuOpen ? createPortal(<div ref={menuRef} className={styles.menu} style={menuPosition} role="menu">
         <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onClick?.(); }}><VaultIcon name="details" size={18} />View Details</button>

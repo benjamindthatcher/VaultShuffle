@@ -34,10 +34,11 @@ type Props = {
   pins: VaultPin[];
   pinnedIds: string[];
   onSelect?: (gameId: string) => void;
+  onUnpin?: (gameId: string) => void;
   compact?: boolean;
 };
 
-export function PinnedCommitments({ games, pins, pinnedIds, onSelect, compact = false }: Props) {
+export function PinnedCommitments({ games, pins, pinnedIds, onSelect, onUnpin, compact = false }: Props) {
   const pinned = pinnedIds
     .map((id) => games.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game));
@@ -57,6 +58,15 @@ export function PinnedCommitments({ games, pins, pinnedIds, onSelect, compact = 
           const progress = pinProgress(game, pinFor(game.id));
           return (
             <li key={game.id} className={styles.item} data-started={progress?.started ? "yes" : "no"}>
+              {onUnpin ? (
+                <button
+                  type="button"
+                  className={styles.unpin}
+                  aria-label={`Unpin ${game.title}`}
+                  title="Unpin"
+                  onClick={() => onUnpin(game.id)}
+                ><VaultIcon name="close" size={14} /></button>
+              ) : null}
               <button type="button" className={styles.card} onClick={() => onSelect?.(game.id)} disabled={!onSelect}>
                 <span className={styles.art}><Artwork src={game.bannerUrl} sizes="180px" /></span>
                 <span className={styles.body}>
