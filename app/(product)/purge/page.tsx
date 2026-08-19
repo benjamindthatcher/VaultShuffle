@@ -30,6 +30,12 @@ const OUTCOME_LABELS: Record<PurgeReview["action"], string> = {
   complete: "Marked done"
 };
 
+function decisionReversed(action: PurgeReview["action"], status: DemoGame["status"]) {
+  if (action === "sleep") return status !== "Slept";
+  if (action === "complete") return status !== "Completed";
+  return status === "Slept" || status === "Completed";
+}
+
 const CATEGORY_LABELS = Object.fromEntries(
   CATEGORIES.map(({ id, label }) => [id, label])
 ) as Record<PurgeCategory, string>;
@@ -387,7 +393,11 @@ export default function PurgePage() {
                   <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="88px" /></span>
                   <span className={styles.outcomeName}>{game.title}</span>
                   <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : game.status === "Completed" ? "Completed" : "Active"}</span>
-                  <span className={styles.outcomeDecision}>decided: {OUTCOME_LABELS[review.action]}</span>
+                  <span className={styles.outcomeDecision} data-stale={decisionReversed(review.action, game.status) || undefined}>
+                    {decisionReversed(review.action, game.status)
+                      ? `was ${OUTCOME_LABELS[review.action].toLowerCase()}, changed since`
+                      : `decided: ${OUTCOME_LABELS[review.action]}`}
+                  </span>
                 </li>)}
               </ul>
             : <p className={styles.emptyNote}>You have not reviewed anything yet. Start with Needs Review.</p>)

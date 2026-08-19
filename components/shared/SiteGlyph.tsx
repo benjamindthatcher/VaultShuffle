@@ -87,10 +87,15 @@ function glyph(name: string): ReactNode {
     case "survival": return <><path d="M12 3c4 4 6 7 6 11a6 6 0 1 1-12 0c0-2 1-4 3-6 0 3 1 4 3 5 2-2 1-6 0-10Z"/></>;
     case "open-steam": case "steam": return <><circle cx="12" cy="12" r="8.5"/><circle cx="15.5" cy="8.5" r="2.3"/><circle cx="8.3" cy="15.5" r="2"/><path d="m10 14.2 3.8-4M4.7 14l2 1"/></>;
     case "play-now": return <><circle cx="12" cy="12" r="8.5"/><path d="m10 8 6 4-6 4V8Z"/></>;
-    case "draw-again": case "retry": return <><path d="M19 8V4l-2 2a8 8 0 1 0 2.3 8"/><path d="M19 4h-4"/></>;
+    case "retry": return <><path d="M19 8V4l-2 2a8 8 0 1 0 2.3 8"/><path d="M19 4h-4"/></>;
+    // Roll it again: a die, with the arc coming back round to it. The circular
+    // refresh arrow this replaced is the browser's reload, not another draw.
+    case "draw-again": return <><rect x="3.2" y="7.2" width="14" height="14" rx="3.3"/><circle cx="7" cy="11" r="1.15" fill="currentColor" stroke="none"/><circle cx="13.4" cy="11" r="1.15" fill="currentColor" stroke="none"/><circle cx="10.2" cy="14.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="7" cy="17.4" r="1.15" fill="currentColor" stroke="none"/><circle cx="13.4" cy="17.4" r="1.15" fill="currentColor" stroke="none"/><path d="M13.2 3.9a6.9 6.9 0 0 1 6.6 6"/><path d="m17.4 10.2 2.5-.4.4-2.5"/></>;
     case "refresh-prices": return <><path d="M19 8V4l-2 2a8 8 0 1 0 2.3 8"/><path d="M19 4h-4M9 9h6m-6 6h6m-4-8v10"/></>;
     case "sync": case "refresh-data": return <><path d="M4 9a8 8 0 0 1 13-3l2 2M20 15a8 8 0 0 1-13 3l-2-2"/><path d="M19 4v4h-4M5 20v-4h4"/></>;
-    case "draw-from-vault": return <><path d="M4 7h3c4 0 6 10 10 10h3M17 4l3 3-3 3M4 17h3c1.7 0 3-1.5 4.2-3.4M17 14l3 3-3 3"/><circle cx="12" cy="12" r="2"/></>;
+    // One card drawn clear of the deck. It used to be the shuffle glyph with a
+    // dot dropped in the middle of it, which read as neither.
+    case "draw-from-vault": return <><rect x="2.8" y="7.8" width="9.2" height="12.6" rx="2.1" transform="rotate(-16 7.4 14.1)"/><rect x="12" y="4.4" width="9.2" height="12.6" rx="2.1" transform="rotate(13 16.6 10.7)"/></>;
     case "shuffle": return <><path d="M4 7h3c4 0 6 10 10 10h3M17 4l3 3-3 3M4 17h3c1.7 0 3-1.5 4.2-3.4M17 14l3 3-3 3"/></>;
     case "open-vault": return <><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 8.5v-2m3 4 2-1m-2 4 2 1m-5 1v2m-3-4-2 1m2-4-2-1"/></>;
     case "snooze": case "sleep": return <><path d="M6 17h8M8 14h8M10 11h8"/><path d="M17.5 5.5A7 7 0 1 0 18 17a7.5 7.5 0 0 1-.5-11.5Z"/></>;
