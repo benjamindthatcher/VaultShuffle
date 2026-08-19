@@ -1,60 +1,67 @@
 .collectionsPage {
   display: grid;
-  gap: 12px;
+  gap: 18px;
 }
 
 
-.primaryAction,
-.secondaryAction,
-.field input,
-.field select {
-  min-height: 50px;
-  border-radius: 16px;
-}
-
+/* One button shape for the page: a solid accent for the action that creates
+   something, an outline for everything else. */
 .primaryAction,
 .secondaryAction {
+  min-height: 42px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 0 18px;
-  border-radius: 999px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .primaryAction {
   border: 0;
-  background: linear-gradient(90deg, #8a4dff, #3151ff);
-  color: white;
+  background: var(--vault-accent);
+  color: #fff;
 }
 
 .secondaryAction {
-  border: 1px solid var(--vault-border);
-  background: var(--vault-surface);
+  border: 1px solid var(--vault-card-border);
+  background: transparent;
+  color: var(--vault-text-muted);
+}
+
+.secondaryAction:hover {
+  border-color: var(--vault-border-strong);
   color: var(--vault-text);
 }
 
-.composerCard,
+.field input,
+.field select {
+  min-height: 42px;
+  border-radius: 10px;
+}
+
+/* Your collections and the selected shelf are sections: a heading on the page
+   ground with their content under it, not boxes wrapped around boxes. */
 .selectedPanel,
 .collectionPanel {
   display: grid;
-  gap: 16px;
-  padding: 14px;
-  border-radius: var(--vault-panel-radius);
-  border: 1px solid var(--vault-panel-border);
-  background: var(--vault-panel-surface);
-  box-shadow: var(--vault-panel-shadow);
+  gap: 12px;
 }
 
-/* The page's call to action, so it takes the feature treatment the Vault setup
-   panel takes rather than a purple of its own. */
+/* The composer is a real card, because it is a form and wants an edge. It only
+   exists while it is open — it used to sit there permanently as a large empty
+   panel whose only job was to hold the button that opened it. */
 .composerCard {
+  display: grid;
+  gap: 16px;
   scroll-margin-block: 24px;
-  gap: 22px;
-  padding: clamp(20px, 3vw, 30px);
-  border-color: var(--vault-panel-feature-border);
-  background: var(--vault-panel-feature-surface);
-  box-shadow: var(--vault-panel-feature-shadow);
+  padding: 20px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
 }
 
 .composerHeader {
@@ -66,14 +73,13 @@
 
 .composerBody {
   display: grid;
-  gap: 22px;
-  padding-top: 22px;
-  border-top: 1px solid rgba(145, 105, 255, 0.18);
+  gap: 16px;
 }
 
 .composerTitle {
-  margin: 8px 0 0;
-  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 700;
 }
 
 .composerCopy,
@@ -85,7 +91,8 @@
 
 .collectionPanelTitle {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1.02rem;
+  font-weight: 700;
 }
 
 .collectionPanelHeader {
@@ -102,12 +109,12 @@
 
 .railActions button {
   display: grid;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   place-items: center;
-  border: 1px solid var(--vault-border);
-  border-radius: 50%;
-  background: var(--vault-surface-strong);
+  border: 1px solid var(--vault-card-border);
+  border-radius: 10px;
+  background: transparent;
   color: #dc8cff;
 }
 
@@ -149,9 +156,9 @@
 .field input,
 .field select {
   width: 100%;
-  padding: 0 16px;
-  border: 1px solid var(--vault-border);
-  background: var(--vault-surface-soft);
+  padding: 0 14px;
+  border: 1px solid var(--vault-card-border);
+  background: var(--vault-well-surface);
   color: var(--vault-text);
 }
 
@@ -198,31 +205,38 @@
 
 .sectionEyebrow {
   margin: 0;
-  color: #d59eff;
-  font-size: 0.76rem;
-  letter-spacing: 0.14em;
+  color: #d392ff;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
 .sectionTitle {
-  margin: 8px 0 0;
-  font-size: clamp(1.5rem, 4vw, 2rem);
+  margin: 3px 0 0;
+  font-size: 1.02rem;
+  font-weight: 700;
 }
 
 .sectionCopy {
-  max-width: 44rem;
-  margin: 10px 0 0;
+  max-width: 66ch;
+  margin: 4px 0 0;
   color: var(--vault-text-muted);
-  line-height: 1.65;
+  font-size: 0.86rem;
+  line-height: 1.55;
 }
 
 .emptyState {
-  padding: 6px 0;
+  display: grid;
+  gap: 4px;
+  padding: 22px;
+  border: 1px dashed var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
 }
 
 .emptyTitle {
-  margin: 0 0 10px;
-  font-size: 1.4rem;
+  margin: 0 0 6px;
+  font-size: 1rem;
 }
 
 .emptyCopy {

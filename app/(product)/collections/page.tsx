@@ -5,6 +5,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
+import { PageHeading } from "@/components/shared/PageHeading";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
@@ -175,7 +176,21 @@ export default function CollectionsPage() {
 
   return (
     <section className={styles.collectionsPage}>
-      <h1 className="visually-hidden">Collections</h1>
+      <PageHeading
+        eyebrow="Collections"
+        title="Shelves you build"
+        action={<button
+          type="button"
+          className={styles.primaryAction}
+          aria-expanded={composerOpen}
+          onClick={composerOpen ? closeComposer : openNewComposer}
+        >
+          <VaultIcon name="new-collection" size={22} />
+          {composerOpen ? "Close" : "New collection"}
+        </button>}
+      >
+        Group your games by hand, or by a rule that keeps itself up to date. Any shelf can be the source of a Vault draw.
+      </PageHeading>
 
       <StatPanel label="Collections summary" columns={4}>
         <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
@@ -184,27 +199,11 @@ export default function CollectionsPage() {
         <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note="Owned games already sorted into groups." />
       </StatPanel>
 
-      <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">
-        <div className={styles.composerHeader}>
-          <div>
-            <p className={styles.sectionEyebrow}>{editing ? "Editing collection" : "Create a collection"}</p>
-            <h2 id="collection-composer-title" className={styles.composerTitle}>{editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}</h2>
-            <p className={styles.composerCopy}>{editing
-              ? "Update its identity or change how its games are gathered."
-              : "Build a hand-picked shelf or one that follows progress, playtime and recency automatically."}</p>
-          </div>
-          <button
-            type="button"
-            className={styles.primaryAction}
-            aria-expanded={composerOpen}
-            onClick={composerOpen ? closeComposer : openNewComposer}
-          >
-            <VaultIcon name="new-collection" size={25} />
-            {composerOpen ? "Close" : "New Collection"}
-          </button>
-        </div>
-
-        {composerOpen ? (
+      {composerOpen ? (
+        <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">
+          <h2 id="collection-composer-title" className={styles.composerTitle}>
+            {editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}
+          </h2>
           <div className={styles.composerBody}>
             <div className={styles.composerGrid}>
               <label className={styles.field}>
@@ -246,15 +245,12 @@ export default function CollectionsPage() {
             </div>
             {mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
           </div>
-        ) : null}
-      </section>
+        </section>
+      ) : null}
 
       <section className={styles.collectionPanel}>
         <div className={styles.collectionPanelHeader}>
-          <div>
-            <h2 className={styles.collectionPanelTitle}>Your Collections</h2>
-            <p className={styles.collectionPanelCopy}>Browse every shelf in your vault.</p>
-          </div>
+          <h2 className={styles.collectionPanelTitle}>Your collections</h2>
           <div className={styles.railActions} role="group" aria-label="Browse collections">
             <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
             <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
