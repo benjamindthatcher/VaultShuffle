@@ -10,6 +10,7 @@ const ICONS: Record<VaultMatchInsightKind, VaultIconName> = {
   mood: "details",
   goal: "finish",
   taste: "heart",
+  appeal: "new",
   dormancy: "calendar",
   genre: "collections"
 };

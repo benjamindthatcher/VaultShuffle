@@ -47,6 +47,10 @@ export type DemoGame = {
   duration?: import("@/lib/types").GameDurationEstimate;
   platforms?: { windows: boolean; mac: boolean; linux: boolean };
   deckCompatibility?: number | null;
+  /** Steam review counts, used for the hype and hidden-gem terms. */
+  reviewPositive?: number | null;
+  reviewNegative?: number | null;
+  reviewTotal?: number | null;
 };
 
 export const demoCollections: DemoCollection[] = [

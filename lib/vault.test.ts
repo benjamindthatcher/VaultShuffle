@@ -124,6 +124,7 @@ test("caps the deck and rotates a rerolled game behind replacements", () => {
     game: makeGame({ id: `game-${index}`, title: `Game ${String(index).padStart(2, "0")}` }),
     score: 100 - index,
     preferencePoints: 0,
+    appealPoints: 0,
     reasons: []
   }));
 
@@ -199,6 +200,7 @@ test("a learned preference changes the odds but never the candidate set", () => 
     score: 100 - index,
     // The last game in the deck is heavily disfavoured.
     preferencePoints: index === 31 ? -8 : 0,
+    appealPoints: 0,
     reasons: []
   }));
 
@@ -215,8 +217,8 @@ test("a learned preference changes the odds but never the candidate set", () => 
 
 test("the preference term shifts selection odds in the arm that uses it", () => {
   const pool = [
-    { game: makeGame({ id: "liked", title: "Liked" }), score: 80, preferencePoints: 8, reasons: [] },
-    { game: makeGame({ id: "disliked", title: "Disliked" }), score: 80, preferencePoints: -8, reasons: [] }
+    { game: makeGame({ id: "liked", title: "Liked" }), score: 80, preferencePoints: 8, appealPoints: 0, reasons: [] },
+    { game: makeGame({ id: "disliked", title: "Disliked" }), score: 80, preferencePoints: -8, appealPoints: 0, reasons: [] }
   ];
 
   // Chosen to sit between the two arms' cutoffs: with equal weights the draw

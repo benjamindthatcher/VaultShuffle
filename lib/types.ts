@@ -25,6 +25,10 @@ export type Game = {
   price_final?: number | null;
   discount_percent?: number | null;
   is_free?: boolean;
+  review_positive?: number | null;
+  review_negative?: number | null;
+  review_total?: number | null;
+  release_date?: string | null;
   completed_at?: string | null;
   previous_active_status?: "Not Started" | "Sampled" | "In Progress" | null;
   slept_at?: string | null;

@@ -153,6 +153,9 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         completionPercent: gameProgress(game),
         endless: isEndlessGame(game)
       }),
+      reviewPositive: game.review_positive ?? null,
+      reviewNegative: game.review_negative ?? null,
+      reviewTotal: game.review_total ?? null,
       moodTags: moodTagsFromScores(moodScores),
       moodScores,
       completedAt: game.completed_at,

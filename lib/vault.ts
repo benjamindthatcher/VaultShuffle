@@ -2,6 +2,7 @@ import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
+import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -50,6 +51,12 @@ export type VaultPoolEntry = {
    * are. This is applied at selection time instead, where it can only reweight.
    */
   preferencePoints: number;
+  /**
+   * How much the game stands out on its own merits — hype and hidden-gem — rather
+   * than how well it fits the setup. Applied in both experiment arms, because it
+   * is a property of the game and has nothing to do with learned taste.
+   */
+  appealPoints: number;
   reasons: string[];
 };
 
@@ -263,7 +270,7 @@ export function drawVaultGame(
   const finalists = vaultFinalists(pool, previousWinnerId);
   if (!finalists.length) return null;
   const selectionScore = (entry: VaultPoolEntry) =>
-    entry.score + (applyPreferences ? entry.preferencePoints : 0);
+    entry.score + entry.appealPoints + (applyPreferences ? entry.preferencePoints : 0);
   const maxScore = Math.max(...finalists.map(selectionScore));
   const weights = finalists.map((entry) => Math.exp((selectionScore(entry) - maxScore) / VAULT_SELECTION_TEMPERATURE));
   const weightTotal = weights.reduce((total, weight) => total + (Number.isFinite(weight) ? weight : 0), 0);
@@ -348,7 +355,11 @@ export function scoreVaultGame(
   const preference = genrePreferenceAdjustment(preferenceContext, game.genres, game.title, mood);
   if (preference.reason) reasons.push(preference.reason);
 
-  return { game, score, preferencePoints: preference.points, reasons: reasons.slice(0, 4) };
+  const appeal = gameAppeal(game);
+  const appealName = appealLabel(appeal.kind);
+  if (appealName) reasons.push(appealName);
+
+  return { game, score, preferencePoints: preference.points, appealPoints: appeal.points, reasons: reasons.slice(0, 4) };
 }
 
 export function vaultMatchLabel(score: number) {
@@ -522,7 +533,7 @@ function labelForMood(mood: VaultMoodId) {
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }
 
-export type VaultMatchInsightKind = "selection" | "session" | "mood" | "goal" | "taste" | "dormancy" | "genre";
+export type VaultMatchInsightKind = "selection" | "session" | "mood" | "goal" | "taste" | "appeal" | "dormancy" | "genre";
 
 export type VaultMatchInsight = {
   kind: VaultMatchInsightKind;
@@ -667,6 +678,18 @@ export function buildVaultMatchExplanation({
         detail: `You filtered for ${selectedGenres.map(displayGenre).join(", ")} and this matches ${matches.length} of ${selectedGenres.length}.`
       });
     }
+  }
+
+  const appeal = gameAppeal(game);
+  const appealName = appealLabel(appeal.kind);
+  const appealWhy = appealDetail(appeal);
+  if (appealName && appealWhy) {
+    insights.push({
+      kind: "appeal",
+      strength: appeal.points >= 3 ? "perfect" : appeal.points > 0 ? "strong" : "good",
+      headline: appealName,
+      detail: appealWhy
+    });
   }
 
   // The learned term, when it had something to say about this game.
