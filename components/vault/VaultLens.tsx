@@ -16,7 +16,8 @@ type Props = {
 export function VaultLens({ stages, selectedCollection, selectedGenres, snoozedCount, onClearGenres, onUseEntireVault, onClearSnoozes }: Props) {
   const availableCount = stages.find((stage) => stage.id === "available")?.count ?? 0;
   const deckCount = stages.find((stage) => stage.id === "shortlist")?.count ?? availableCount;
-  const activeCount = stages[0]?.count ?? 0;
+  // Purge is worth suggesting based on what is left to play, not the raw library.
+  const activeCount = stages.find((stage) => stage.id === "active")?.count ?? stages[0]?.count ?? 0;
 
   return <div id="vault-lens-panel" className={styles.panel}>
       <div className={styles.heading}>
@@ -25,7 +26,11 @@ export function VaultLens({ stages, selectedCollection, selectedGenres, snoozedC
       </div>
       <ol className={styles.funnel} aria-label="Vault eligibility stages">
         {stages.map((stage, index) => <li key={stage.id}>
-          <span><strong>{stage.count}</strong>{stage.label}</span>
+          <span>
+            <strong>{stage.count}</strong>
+            {stage.label}
+            {stage.detail ? <small className={styles.stageDetail}>{stage.detail}</small> : null}
+          </span>
           {index < stages.length - 1 ? <VaultIcon name="chevron-right" size={18} className={styles.arrow} /> : null}
         </li>)}
       </ol>

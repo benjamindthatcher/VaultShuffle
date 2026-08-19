@@ -48,6 +48,10 @@ export type DemoGame = {
   platforms?: { windows: boolean; mac: boolean; linux: boolean };
   deckCompatibility?: number | null;
   /** Steam review counts, used for the hype and hidden-gem terms. */
+  /** Steam store prices, in cents, at whatever the catalogue last saw. */
+  priceInitial?: number | null;
+  priceFinal?: number | null;
+  isFree?: boolean | null;
   reviewPositive?: number | null;
   reviewNegative?: number | null;
   reviewTotal?: number | null;

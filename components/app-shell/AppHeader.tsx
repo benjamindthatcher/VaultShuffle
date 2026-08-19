@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { BacklogStatsPanel } from "./BacklogStatsPanel";
 import styles from "./AppHeader.module.css";
 
 const NAV_ITEMS = [
@@ -21,7 +22,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
-  const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut, deviceMode, setDeviceMode } = useAppData();
+  const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut, deviceMode, setDeviceMode, games } = useAppData();
   const [accountMessage, setAccountMessage] = useState("");
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
@@ -124,6 +125,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
             </div>
             {isLive ? (
               <>
+                <BacklogStatsPanel games={games} />
                 <button type="button" className={styles.menuAction} onClick={() => void handleSync()} disabled={isSyncing}>
                   {isSyncing ? "Syncing Steam…" : "Sync Steam library"}
                 </button>

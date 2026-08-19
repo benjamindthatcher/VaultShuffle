@@ -8,6 +8,7 @@ import {
   buildVaultPool,
   drawQuickVaultGame,
   drawVaultGame,
+  getVaultEligibility,
   scoreVaultGame,
   vaultMatchLabel
 } from "./vault.ts";
@@ -351,4 +352,36 @@ test("every explanation line carries the evidence behind it", () => {
     assert.ok(insight.headline.length > 0 && insight.detail.length > 0, "an insight without a detail is just a label again");
     assert.notEqual(insight.headline, insight.detail);
   }
+});
+
+test("the lens starts at the whole library and names what was actioned away", () => {
+  // Opening on the already-filtered count meant the funnel began part-way through
+  // its own story: the completing and sleeping the player had done was invisible.
+  const games = [
+    ...Array.from({ length: 228 }, (_, i) => makeGame({ id: `a${i}` })),
+    ...Array.from({ length: 2 }, (_, i) => makeGame({ id: `c${i}`, status: "Completed" })),
+    ...Array.from({ length: 4 }, (_, i) => makeGame({ id: `s${i}`, status: "Slept" }))
+  ];
+
+  const { stages } = getVaultEligibility({
+    games, session: null, mood: null, goal: null,
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+
+  assert.equal(stages[0].id, "library");
+  assert.equal(stages[0].count, 234, "the funnel should open on the real library size");
+  assert.equal(stages[1].id, "active");
+  assert.equal(stages[1].count, 228);
+  assert.equal(stages[1].detail, "2 completed · 4 asleep");
+});
+
+test("a library with nothing actioned does not show an empty removal step", () => {
+  const games = [makeGame({ id: "a" }), makeGame({ id: "b" })];
+  const { stages } = getVaultEligibility({
+    games, session: null, mood: null, goal: null,
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+
+  assert.equal(stages[0].id, "library");
+  assert.ok(!stages.some((stage) => stage.id === "active"), "nothing was removed, so nothing to explain");
 });

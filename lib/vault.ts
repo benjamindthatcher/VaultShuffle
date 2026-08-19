@@ -68,9 +68,11 @@ const VAULT_SCORE_WEIGHTS = {
 } as const;
 
 export type VaultEligibilityStage = {
-  id: "active" | "collection" | "genres" | "goal" | "snoozes" | "available" | "shortlist";
+  id: "library" | "active" | "collection" | "genres" | "goal" | "snoozes" | "available" | "shortlist";
   label: string;
   count: number;
+  /** What this step removed, so the funnel explains itself rather than just shrinking. */
+  detail?: string;
 };
 
 export type VaultEligibility = {
@@ -106,9 +108,10 @@ export function getVaultEligibility({
   }
 
   const collectionDraw = isCollectionDraw(selectedCollectionId);
-  const active = games
-    .filter((game) => game.ownership === "Owned")
-    .filter((game) => game.status !== "Completed" && game.status !== "Slept");
+  const owned = games.filter((game) => game.ownership === "Owned");
+  const completedCount = owned.filter((game) => game.status === "Completed").length;
+  const sleptCount = owned.filter((game) => game.status === "Slept").length;
+  const active = owned.filter((game) => game.status !== "Completed" && game.status !== "Slept");
   const inCollection = !collectionDraw
     ? active
     : active.filter((game) => game.collectionIds.includes(selectedCollectionId!));
@@ -126,7 +129,18 @@ export function getVaultEligibility({
   // declared ineligible.
   const goalMatches = collectionDraw ? genreMatches : genreMatches.filter((game) => goalEligible(game, goal));
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
-  const stages: VaultEligibilityStage[] = [{ id: "active", label: "Active", count: active.length }];
+  // Start from the whole library and name what each step took away. Opening on
+  // the already-filtered "Active" count meant the funnel began part-way through
+  // its own story, and the work the player had done — completing and sleeping
+  // games — was invisible.
+  const stages: VaultEligibilityStage[] = [{ id: "library", label: "In Library", count: owned.length }];
+  if (completedCount || sleptCount) {
+    const removed = [
+      completedCount ? `${completedCount} completed` : null,
+      sleptCount ? `${sleptCount} asleep` : null
+    ].filter(Boolean).join(" · ");
+    stages.push({ id: "active", label: "Still To Play", count: active.length, detail: removed });
+  }
 
   if (collectionDraw) {
     stages.push({ id: "collection", label: `in ${selectedCollectionName || "Collection"}`, count: inCollection.length });

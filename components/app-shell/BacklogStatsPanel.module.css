@@ -1,0 +1,22 @@
+.panel { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--vault-border); border-radius: 14px; background: var(--vault-surface-soft); }
+.headline { display: grid; gap: 6px; }
+.label { margin: 0; font-size: 0.66rem; letter-spacing: 0.14em; text-transform: uppercase; color: #d392ff; }
+.value { margin: 0; font-size: 1.32rem; font-weight: 750; color: var(--vault-text); }
+.of { font-size: 0.86rem; font-weight: 600; color: var(--vault-text-muted); }
+.track { height: 7px; border-radius: 999px; background: rgba(134, 91, 255, 0.18); overflow: hidden; }
+.fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #7ce7b2, #b57cff); transition: width 420ms ease-out; }
+.hint { margin: 0; font-size: 0.74rem; color: var(--vault-text-muted); }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.grid div { min-width: 0; }
+.grid dt { font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--vault-text-muted); }
+.grid dd { margin: 2px 0 0; font-size: 0.98rem; font-weight: 700; color: var(--vault-text); }
+.grid dd small { font-size: 0.72rem; font-weight: 600; color: var(--vault-text-muted); }
+.tight { font-size: 0.84rem !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.latest { display: flex; align-items: baseline; gap: 8px; margin: 0; padding-top: 10px; border-top: 1px solid var(--vault-border); font-size: 0.8rem; }
+.latest span { color: var(--vault-text-muted); }
+.latest strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--vault-text); }
+
+.more { display: block; padding: 9px; border: 1px solid var(--vault-border); border-radius: 10px; color: #d59eff; font-size: 0.82rem; font-weight: 700; text-align: center; }
+.more:hover { border-color: var(--vault-border-strong); }
