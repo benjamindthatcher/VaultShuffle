@@ -510,9 +510,7 @@ export default function VaultPage() {
 
   return (
     <section className={styles.vaultPage}>
-      <div className={styles.heroPanel}>
-        <h1 className="visually-hidden">Vault</h1>
-      </div>
+      <h1 className="visually-hidden">Vault</h1>
 
       {!isLive ? <aside className={styles.guestPreviewBanner} aria-label="Guest preview">
         <span className={styles.guestPreviewIcon}><VaultIcon name="current-pick" size={24} /></span>

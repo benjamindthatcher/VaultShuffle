@@ -38,11 +38,6 @@
     ),
     url("/assets/vault/vault-header.webp") center 54% / cover no-repeat;
 }
-.hero {
-  position: relative;
-  z-index: 1;
-  min-height: 290px;
-}
 .content {
   position: relative;
   z-index: 1;
@@ -518,8 +513,7 @@
   }
 }
 @media (max-width: 760px) {
-  .page::before,
-  .hero {
+  .page::before {
     display: none;
   }
   .content {
@@ -654,9 +648,6 @@
    as one block per page rather than edits inside the rules above, so the
    original values stay intact and reviewable. */
 .page::before {
-  display: none;
-}
-.hero {
   display: none;
 }
 

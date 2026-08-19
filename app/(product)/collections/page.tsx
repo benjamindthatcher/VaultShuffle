@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
@@ -175,16 +175,14 @@ export default function CollectionsPage() {
 
   return (
     <section className={styles.collectionsPage}>
-      <header className={styles.header}>
-        <h1 className="visually-hidden">Collections</h1>
-      </header>
+      <h1 className="visually-hidden">Collections</h1>
 
-      <div className={styles.statsGrid}>
+      <StatPanel label="Collections summary">
         <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
         <StatCard icon="smart-collections" label="Smart Collections" value={stats.smart} note="Automatically themed groupings." />
         <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note="Hand-shaped shelves with your own intent." />
         <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note="Owned games already sorted into groups." />
-      </div>
+      </StatPanel>
 
       <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">
         <div className={styles.composerHeader}>

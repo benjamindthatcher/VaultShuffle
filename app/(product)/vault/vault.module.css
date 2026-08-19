@@ -36,18 +36,6 @@
   z-index: 1;
 }
 
-.heroPanel {
-  min-height: 290px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 28px;
-  border-radius: 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
 
 .setupLayout {
   display: grid;
@@ -226,10 +214,6 @@
 }
 
 @media (max-width: 720px) {
-  .heroPanel {
-    display: none;
-  }
-
   .vaultPage::before {
     display: none;
   }
@@ -933,10 +917,6 @@
 }
 
 @media (min-width: 1080px) {
-  .heroPanel {
-    min-height: 290px;
-  }
-
   .setupLayout { grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr); align-items: stretch; }
 
   .resultCard {
@@ -1010,9 +990,6 @@
    as one block per page rather than edits inside the rules above, so the
    original values stay intact and reviewable. */
 .vaultPage::before {
-  display: none;
-}
-.heroPanel {
   display: none;
 }
 

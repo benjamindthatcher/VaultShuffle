@@ -23,8 +23,11 @@
   --vault-radius-sm: 12px;
   --vault-content-width: min(1480px, calc(100vw - 48px));
   --vault-header-height: 70px;
-  --vault-top-card-height: 142px;
-  --vault-top-card-gap: 14px;
+  /* Height and gap of the tiles in the Library and Collections top panels.
+     88px/10px is the Purge setup tile, so all four pages open at the same
+     panel height. */
+  --vault-top-card-height: 88px;
+  --vault-top-card-gap: 10px;
 }
 
 * {

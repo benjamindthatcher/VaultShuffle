@@ -1,0 +1,75 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link rel="stylesheet" href="/app/globals.css">
+<link rel="stylesheet" href="/app/(product)/shell.module.css">
+<link rel="stylesheet" href="/components/shared/StatCard.module.css">
+<link rel="stylesheet" href="/app/(product)/vault/vault.module.css">
+<link rel="stylesheet" href="/app/(product)/purge/purge.module.css">
+<link rel="stylesheet" href="/app/(product)/library/library.module.css">
+<link rel="stylesheet" href="/app/(product)/collections/collections.module.css">
+<style>body{margin:0;background:#050816;color:#f4f7ff;font-family:system-ui}
+.frame{outline:1px dashed #444;margin-bottom:40px}</style>
+</head><body>
+<div class="appShell">
+
+<div class="frame" id="f-vault"><div class="appContent">
+  <section class="vaultPage">
+    <h1 class="visually-hidden">Vault</h1>
+    <div class="setupLayout" id="p-vault"><div class="setupGuide"><div class="setupGuideCopy"><h2>Build your Vault Draw</h2><p>Make three quick choices.</p></div></div></div>
+  </section>
+</div></div>
+
+<div class="frame" id="f-purge"><div class="appContent">
+  <section class="page"><div class="content">
+    <h1 class="visually-hidden">Purge</h1>
+    <section class="setupGrid" id="p-purge">
+      <div class="setupPanel"><div class="categoryGrid">
+        <button class="categorySelected"><span class="categoryIcon">◧</span><span><strong>Likely Completed</strong><small>Inactive games at 85% progress or more.</small></span><b>48</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>Abandoned</strong><small>Inactive played games at 50% or less.</small></span><b>65</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>The Rest</strong><small>Unplayed or long-inactive games.</small></span><b>110</b></button>
+      </div></div>
+      <aside class="snapshot"><div class="categoryGrid">
+        <button class="categorySelected"><span class="categoryIcon">◧</span><span><strong>Needs Review</strong><small>Flagged and waiting.</small></span><b>223</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>Reviewed</strong><small>5 kept · 4 slept.</small></span><b>10</b></button>
+        <button class="category"><span class="categoryIcon">◧</span><span><strong>No Review Needed</strong><small>Nothing flagged.</small></span><b>3</b></button>
+      </div></aside>
+    </section>
+  </div></section>
+</div></div>
+
+<div class="frame" id="f-library"><div class="appContent">
+  <section class="libraryPage">
+    <h1 class="visually-hidden">Library</h1>
+    <section class="panel" id="p-library"><div class="grid">
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">All Games</p><strong class="value">235</strong><p class="note">Everything currently in your library.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Sampled</p><strong class="value">28</strong><p class="note">Started, but still at 20% progress or less.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Backlog</p><strong class="value">96</strong><p class="note">Untouched games waiting for their moment.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Completed</p><strong class="value">2</strong><p class="note">Wrapped up and archived with pride.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">In Progress</p><strong class="value">133</strong><p class="note">Mid-journey picks ready to continue.</p></div></article>
+    </div></section>
+    <section class="sectionCard"><h2 class="sectionTitle">Recent Activity</h2></section>
+  </section>
+</div></div>
+
+<div class="frame" id="f-collections"><div class="appContent">
+  <section class="collectionsPage">
+    <h1 class="visually-hidden">Collections</h1>
+    <section class="panel" id="p-collections"><div class="grid">
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">All Collections</p><strong class="value">1</strong><p class="note">Every shelf currently in rotation.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Smart Collections</p><strong class="value">1</strong><p class="note">Automatically themed groupings.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Custom Collections</p><strong class="value">0</strong><p class="note">Hand-shaped shelves with your own intent.</p></div></article>
+      <article class="card"><span class="icon">◧</span><div class="content"><p class="label">Games in Collections</p><strong class="value">16</strong><p class="note">Owned games already sorted into groups.</p></div></article>
+    </div></section>
+    <section class="composerCard"><h2 class="composerTitle">Build your next shelf</h2></section>
+  </section>
+</div></div>
+
+</div>
+<script>
+window.measure = () => Object.fromEntries(["vault","purge","library","collections"].map(k=>{
+  const frame=document.getElementById("f-"+k).getBoundingClientRect();
+  const panel=document.getElementById("p-"+k).getBoundingClientRect();
+  return [k,{topOffset:+(panel.top-frame.top).toFixed(1), panelHeight:+panel.height.toFixed(1), left:+(panel.left-frame.left).toFixed(1), width:+panel.width.toFixed(1)}];
+}));
+</script>
+</body></html>

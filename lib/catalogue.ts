@@ -168,31 +168,15 @@ export async function processCatalogueQueue(
       // violation, and recorded it as a transient failure — roughly eighty retries
       // per entry, forever.
       //
-      // Resolved here rather than quarantined, deliberately. Several of these are
-      // genuinely playable and already sit in users' libraries: standalone
-      // expansions and re-releases that Steam happens to label 'dlc'. Hiding them
-      // is a product decision and should be made as one, not fall out of a storage
-      // constraint. Visibility is therefore left exactly as it was.
-      const steamType = String(details.steam_type || "").trim().toLowerCase();
-      if (steamType && steamType !== "game") {
-        rejected += 1;
-        const resolvedAt = new Date().toISOString();
-        const { error: unstorableError } = await supabase.from("catalog_ingest_queue").update({
-          status: "rejected",
-          rejection_reason: `Steam classifies this AppID as ${steamType}; the shared catalogue only stores games.`,
-          processed_at: resolvedAt,
-          processing_started_at: null,
-          last_error: null,
-          updated_at: resolvedAt
-        }).eq("steam_appid", row.steam_appid);
-        if (unstorableError) throw unstorableError;
-        continue;
-      }
+      // The shared write is skipped rather than attempted; classification below
+      // then quarantines the entry through the same path as every other
+      // non-game, so it settles instead of churning.
+      const storable = String(details.steam_type || "").trim().toLowerCase() === "game";
 
       // Preserve the complete shared Steam record before deciding whether it
       // belongs on user-facing game surfaces. Quarantine controls visibility;
       // it must not discard metadata that may be useful for review later.
-      await persistSteamCatalogueDetails(row.steam_appid, details);
+      if (storable) await persistSteamCatalogueDetails(row.steam_appid, details);
 
       const manualDecision = manualDecisions.get(row.steam_appid);
       const classification = manualDecision
@@ -407,6 +391,18 @@ function classifySteamCatalogueEntry(details: Awaited<ReturnType<typeof fetchSte
       matchedRule: "metadata_unavailable"
     };
   }
+  // Steam's own classification is the most reliable signal there is, and the
+  // shared catalogue physically cannot hold anything else.
+  const steamType = String(details.steam_type || "").trim().toLowerCase();
+  if (steamType && steamType !== "game") {
+    return {
+      accepted: false,
+      excluded: true,
+      reason: `Steam classifies this AppID as ${steamType}, not a game.`,
+      matchedRule: `steam_type:${steamType}`
+    };
+  }
+
   const normalizedLabels = [...(details.genres ?? []), ...(details.categories ?? [])]
     .map((label) => String(label).trim().toLowerCase());
   const matchedRule = automaticCatalogueExclusionRule(String(details.title || ""), normalizedLabels);

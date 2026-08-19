@@ -6,7 +6,7 @@ import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
-import { StatCard } from "@/components/shared/StatCard";
+import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
@@ -165,17 +165,15 @@ export default function LibraryPage() {
 
   return (
     <section className={styles.libraryPage}>
-      <header className={styles.header}>
-        <h1 className="visually-hidden">Library</h1>
-      </header>
+      <h1 className="visually-hidden">Library</h1>
 
-      <div className={styles.statsGrid}>
-        <StatCard density="compact" icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
-        <StatCard density="compact" icon="played" label="Sampled" value={stats.sampled} note="Started, but still at 20% progress or less." />
-        <StatCard density="compact" icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
-        <StatCard density="compact" icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
-        <StatCard density="compact" icon="in-progress" label="In Progress" value={stats.inProgress} note="Mid-journey picks ready to continue." />
-      </div>
+      <StatPanel label="Library summary">
+        <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
+        <StatCard icon="played" label="Sampled" value={stats.sampled} note="Started, but still at 20% progress or less." />
+        <StatCard icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
+        <StatCard icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
+        <StatCard icon="in-progress" label="In Progress" value={stats.inProgress} note="Mid-journey picks ready to continue." />
+      </StatPanel>
 
       <section className={styles.sectionCard}>
         <div className={styles.sectionHeader}>

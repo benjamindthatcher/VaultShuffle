@@ -408,7 +408,7 @@ export default function PurgePage() {
 }
 
 function PurgePageFrame({ children }: { children: ReactNode }) {
-  return <section className={styles.page}><div className={styles.hero} aria-hidden="true" /><div className={styles.content}>{children}</div></section>;
+  return <section className={styles.page}><div className={styles.content}>{children}</div></section>;
 }
 
 function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
