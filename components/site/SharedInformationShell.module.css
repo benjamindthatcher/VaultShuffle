@@ -1,11 +1,13 @@
 .content {
   width: min(960px, 100%);
   margin: 0 auto;
-  padding: clamp(48px, 5vw, 72px) 0 clamp(64px, 7vw, 96px);
+  /* The same top offset the app pages use, so the heading sits in the wash the
+     shell paints rather than below it. */
+  padding: 26px 0 64px;
 }
 
 @media (max-width: 720px) {
   .content {
-    padding: 24px 0 52px;
+    padding: 20px 0 52px;
   }
 }
