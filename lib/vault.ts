@@ -1,7 +1,7 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
-import type { VaultMoodScores } from "./vault-matching.ts";
+import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -520,4 +520,221 @@ function lastPlayedReason(game: DemoGame, now: number) {
 function labelForMood(mood: VaultMoodId) {
   if (mood === "brain-off") return "Brain-Off";
   return mood.charAt(0).toUpperCase() + mood.slice(1);
+}
+
+export type VaultMatchInsightKind = "selection" | "session" | "mood" | "goal" | "taste" | "dormancy" | "genre";
+
+export type VaultMatchInsight = {
+  kind: VaultMatchInsightKind;
+  /** Drives the accent colour: how strongly this dimension supports the pick. */
+  strength: "perfect" | "strong" | "good";
+  headline: string;
+  detail: string;
+};
+
+export type VaultMatchExplanation = {
+  score: number;
+  label: string;
+  rank: number;
+  poolSize: number;
+  insights: VaultMatchInsight[];
+};
+
+/**
+ * The case for a specific pick, in the player's terms.
+ *
+ * The result screen previously showed four bare fragments — "1h left",
+ * "Untouched for over a year" — which state facts without ever making an
+ * argument, and could flatly contradict the panel beside them: "1h left" next to
+ * "17h estimated" reads as a bug rather than as "you are nearly finished".
+ *
+ * Every line here is derived from the same values that produced the score, so the
+ * explanation cannot drift from the decision. Nothing is asserted that the data
+ * does not support: each insight is omitted when its evidence is missing.
+ */
+export function buildVaultMatchExplanation({
+  entry,
+  pool,
+  session,
+  mood,
+  goal,
+  selectedGenres = [],
+  now = Date.now()
+}: {
+  entry: VaultPoolEntry;
+  pool: VaultPoolEntry[];
+  session: VaultSessionId | null;
+  mood: VaultMoodId | null;
+  goal: VaultGoalId | null;
+  selectedGenres?: string[];
+  now?: number;
+}): VaultMatchExplanation {
+  const { game } = entry;
+  const insights: VaultMatchInsight[] = [];
+  const rank = Math.max(1, pool.findIndex((candidate) => candidate.game.id === game.id) + 1);
+  const remaining = remainingHours(game);
+  const totalHours = totalPlaythroughHours(game);
+
+  // What the pick was chosen from. A recommendation carries far more weight when
+  // the player can see the field it came through.
+  if (pool.length > 1) {
+    insights.push({
+      kind: "selection",
+      strength: rank <= 3 ? "perfect" : rank <= 10 ? "strong" : "good",
+      headline: rank === 1 ? `Best fit of ${pool.length} games` : `Ranked ${ordinal(rank)} of ${pool.length} games`,
+      detail: `Scored ${entry.score}/100 against everything else your setup allows.`
+    });
+  }
+
+  if (session) {
+    const label = sessionLabel(session).toLowerCase();
+    const earned = sessionPoints(game, session);
+    const ratio = earned / VAULT_SCORE_WEIGHTS.session;
+    insights.push({
+      kind: "session",
+      strength: ratio >= 0.93 ? "perfect" : ratio >= 0.8 ? "strong" : "good",
+      headline: game.duration?.endless ? "Plays to any length" : `${ratio >= 0.93 ? "Ideal" : ratio >= 0.8 ? "Good" : "Workable"} ${label} length`,
+      detail: game.duration?.endless
+        ? "No fixed ending, so you can stop whenever you like."
+        : remaining === null
+          ? "No length estimate yet, so this is neither helped nor penalised."
+          : sessionDetail(session, remaining)
+    });
+  }
+
+  if (mood) {
+    const strength = moodScoreFor(game.moodScores, mood, game.moodTags.includes(mood));
+    const drivers = moodContributors(game.genres, mood, 3);
+    if (strength >= 1 || drivers.length) {
+      insights.push({
+        kind: "mood",
+        strength: strength >= 7 ? "perfect" : strength >= 5 ? "strong" : "good",
+        headline: `${strength >= 7 ? "Perfect" : strength >= 5 ? "Strong" : "Fair"} ${labelForMood(mood)} match`,
+        // The score is derived from a wider label set than the handful shown on the
+        // card, so a strong match can genuinely have no visible driver. Saying
+        // "nothing pulls against it" under a "Perfect" headline would undersell the
+        // very claim it is meant to support.
+        detail: drivers.length
+          ? `Tagged ${drivers.join(", ")} — that is what gives it the ${labelForMood(mood)} feel.`
+          : strength >= 5
+            ? `Its overall tag mix reads strongly ${labelForMood(mood)}.`
+            : `Nothing about it pulls against a ${labelForMood(mood)} night.`
+      });
+    }
+  }
+
+  if (goal === "finish" && game.completionPercent > 0) {
+    const left = remaining === null ? null : Math.max(1, Math.round(remaining));
+    insights.push({
+      kind: "goal",
+      strength: game.completionPercent >= 80 ? "perfect" : game.completionPercent >= 40 ? "strong" : "good",
+      headline: left === null ? `${game.completionPercent}% through` : `About ${left}h from the credits`,
+      detail: totalHours && left !== null
+        ? `You're ${game.completionPercent}% through a game of roughly ${Math.round(totalHours)}h — the ending is genuinely in reach.`
+        : `You're ${game.completionPercent}% through, so finishing it is realistic.`
+    });
+  }
+
+  if (goal === "new") {
+    insights.push({
+      kind: "goal",
+      strength: game.hoursPlayed === 0 ? "perfect" : "strong",
+      headline: game.hoursPlayed === 0 ? "Never played" : "Barely sampled",
+      detail: game.hoursPlayed === 0
+        ? "It has been sitting in your library waiting for exactly this."
+        : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
+    });
+  }
+
+  const dormancy = dormancyDetail(game, now);
+  if (dormancy) {
+    insights.push({
+      kind: "dormancy",
+      strength: "strong",
+      headline: dormancy.headline,
+      detail: dormancy.detail
+    });
+  }
+
+  if (selectedGenres.length) {
+    const gameGenres = game.genres.map(canonicalGenre);
+    const matches = selectedGenres.filter((genre) => gameGenres.includes(genre));
+    if (matches.length) {
+      insights.push({
+        kind: "genre",
+        strength: matches.length === selectedGenres.length ? "perfect" : "strong",
+        headline: `${matches.map(displayGenre).join(" and ")}, as asked`,
+        detail: `You filtered for ${selectedGenres.map(displayGenre).join(", ")} and this matches ${matches.length} of ${selectedGenres.length}.`
+      });
+    }
+  }
+
+  // The learned term, when it had something to say about this game.
+  const taste = entry.reasons.find((reason) => reason.includes("lands well for you"));
+  if (taste) {
+    insights.push({
+      kind: "taste",
+      strength: entry.preferencePoints >= 5 ? "perfect" : "strong",
+      headline: taste,
+      detail: "Drawn from what you have actually launched and liked before, not what you told us."
+    });
+  }
+
+  return { score: entry.score, label: vaultMatchLabel(entry.score), rank, poolSize: pool.length, insights };
+}
+
+function totalPlaythroughHours(game: DemoGame) {
+  const minutes = estimatedTimeToBeatMinutes(game.duration);
+  return minutes ? minutes / 60 : null;
+}
+
+function remainingHours(game: DemoGame) {
+  const minutes = estimatedTimeToBeatMinutes(game.duration);
+  if (!minutes || game.duration?.endless) return null;
+  return (minutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100)) / 60;
+}
+
+function sessionDetail(session: VaultSessionId, remaining: number) {
+  const left = remaining < 1 ? "Under an hour left" : `Roughly ${Math.round(remaining)}h left`;
+  if (session === "short") {
+    return remaining <= 3
+      ? `${left} — you could see the end of it tonight.`
+      : `${left}, so one sitting makes real progress.`;
+  }
+  if (session === "evening") {
+    return remaining >= 10 && remaining <= 30
+      ? `${left} — a few evenings, which is exactly the shape you asked for.`
+      : `${left}, so an evening covers a good chunk of it.`;
+  }
+  return remaining > 30
+    ? `${left} — enough to properly sink into over a weekend.`
+    : `${left}, so a weekend would see it finished.`;
+}
+
+function dormancyDetail(game: DemoGame, now: number) {
+  if (!game.lastPlayedAt) return null;
+  const playedAt = new Date(game.lastPlayedAt).getTime();
+  if (!Number.isFinite(playedAt)) return null;
+  const days = Math.floor((now - playedAt) / 86_400_000);
+  if (days < 21) return null;
+
+  const when = new Date(playedAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  if (days >= 365) {
+    const years = Math.floor(days / 365);
+    return {
+      headline: years >= 2 ? `Untouched for ${years} years` : "Untouched for over a year",
+      detail: `Last played ${when}. This is exactly the kind of game the Vault exists to resurface.`
+    };
+  }
+  if (days >= 60) {
+    return { headline: `Not played in ${Math.round(days / 30)} months`, detail: `Last played ${when}, so it is well overdue another look.` };
+  }
+  return { headline: `Not played in ${days} days`, detail: `Last played ${when}.` };
+}
+
+function ordinal(value: number) {
+  const remainder = value % 100;
+  if (remainder >= 11 && remainder <= 13) return `${value}th`;
+  const suffix = ["th", "st", "nd", "rd"][value % 10] ?? "th";
+  return `${value}${value % 10 <= 3 ? suffix : "th"}`;
 }

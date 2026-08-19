@@ -14,12 +14,14 @@ import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
+import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { useGenreLearning, type GenreLearningArm } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
 import {
   buildVaultDeck,
   buildVaultPool,
+  buildVaultMatchExplanation,
   vaultFinalists,
   drawVaultGame,
   drawQuickVaultGame,
@@ -170,6 +172,27 @@ export default function VaultPage() {
     game.status !== "Slept" &&
     !snoozedIds.has(game.id)
   ) ?? null;
+  // Explained against the pool the pick actually came from, and only for the
+  // inputs that actually shaped it: a Quick Draw ignores the setup entirely and a
+  // Collection Draw drops session, mood and goal, so claiming credit for them
+  // would be inventing reasoning the draw never used.
+  const currentPickExplanation = useMemo(() => {
+    if (!currentPick) return null;
+    const pool = lastDrawWasQuick ? quickPool : fullPool;
+    const entry = pool.find((candidate) => candidate.game.id === currentPick.id);
+    if (!entry) return null;
+
+    const guided = !lastDrawWasQuick && !collectionMode;
+    return buildVaultMatchExplanation({
+      entry,
+      pool,
+      session: guided ? activeSession : null,
+      mood: guided ? activeMood : null,
+      goal: guided ? activeGoal : null,
+      selectedGenres: guided ? activeGenres : []
+    });
+  }, [activeGenres, activeGoal, activeMood, activeSession, collectionMode, currentPick, fullPool, lastDrawWasQuick, quickPool]);
+
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
   const canDraw = collectionMode
     ? Boolean(collectionDraw && deck.length > 0)
@@ -723,10 +746,14 @@ export default function VaultPage() {
           <div className={styles.resultBody}>
             <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
             <p className={styles.resultCopy}>{currentPick.description}</p>
-            <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
-            <div className={styles.resultReasonRow}>
-              {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
-            </div>
+            {currentPickExplanation ? <VaultMatchReasons explanation={currentPickExplanation} /> : (
+              <>
+                <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
+                <div className={styles.resultReasonRow}>
+                  {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
+                </div>
+              </>
+            )}
             {isLive && currentDrawId ? <div className={styles.feedbackRow}>
               <span className={styles.feedbackLabel}>Good pick?</span>
               <button

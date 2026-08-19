@@ -4,6 +4,7 @@ import type { DemoGame, VaultSessionId } from "./demo-data.ts";
 import {
   MAX_VAULT_DECK_SIZE,
   buildVaultDeck,
+  buildVaultMatchExplanation,
   buildVaultPool,
   drawQuickVaultGame,
   drawVaultGame,
@@ -297,4 +298,55 @@ test("a weekend prefers a long game over a short one", () => {
   const longScore = scoreVaultGame({ ...long, sessionFit: [...long.sessionFit] }, "weekend", null, null, []);
 
   assert.ok(longScore.score > shortScore.score, "a weekend draw should still favour something meaty");
+});
+
+test("the finish goal explains progress instead of contradicting the estimate", () => {
+  // The reported confusion: "1h left" sat beside "17h estimated" and read as a
+  // bug, when the real story was that the player is nearly at the credits.
+  const nearlyDone = { ...makeGame(), duration: { mainStoryMinutes: 1_020 }, completionPercent: 94, hoursPlayed: 16 };
+  const pool = buildVaultPool({
+    games: [nearlyDone], session: "short", mood: null, goal: "finish",
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: "short", mood: null, goal: "finish"
+  });
+  const goal = explanation.insights.find((insight) => insight.kind === "goal");
+
+  assert.ok(goal, "a finish draw should explain how close the ending is");
+  assert.match(goal.detail, /94%/);
+  assert.match(goal.detail, /17h/);
+});
+
+test("an explanation claims nothing the draw did not use", () => {
+  // Quick Draw and Collection Draw ignore session, mood and goal, so crediting
+  // them would be inventing reasoning.
+  const pool = buildVaultPool({
+    games: [makeGame()], session: null, mood: null, goal: null,
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: null, mood: null, goal: null
+  });
+
+  for (const kind of ["session", "mood", "goal", "genre"]) {
+    assert.ok(!explanation.insights.some((insight) => insight.kind === kind), `${kind} was asserted without being used`);
+  }
+});
+
+test("every explanation line carries the evidence behind it", () => {
+  const pool = buildVaultPool({
+    games: [{ ...makeGame(), completionPercent: 40, hoursPlayed: 5 }],
+    session: "short", mood: "intense", goal: "finish",
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: "short", mood: "intense", goal: "finish"
+  });
+
+  assert.ok(explanation.insights.length >= 3, "a guided draw should give a real case, not one line");
+  for (const insight of explanation.insights) {
+    assert.ok(insight.headline.length > 0 && insight.detail.length > 0, "an insight without a detail is just a label again");
+    assert.notEqual(insight.headline, insight.detail);
+  }
 });

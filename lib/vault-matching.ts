@@ -104,6 +104,32 @@ export function deriveMoodScores(labels: string[]): VaultMoodScores {
   };
 }
 
+/**
+ * The tags that actually pushed a game toward a mood, strongest first.
+ *
+ * The scores alone can say a game is Brain-Off but never why, which makes the
+ * strongest claim on the result screen the least believable one. This reads the
+ * same MOOD_RULES the score came from, so the explanation cannot drift from the
+ * number it is explaining.
+ */
+export function moodContributors(labels: string[], mood: VaultMoodId, limit = 3): string[] {
+  const seen = new Set<string>();
+  const contributions: Array<{ label: string; weight: number }> = [];
+
+  for (const label of labels) {
+    const tag = normalizeTag(label);
+    if (!tag || seen.has(tag)) continue;
+    seen.add(tag);
+    const weight = MOOD_RULES[tag]?.[mood] ?? 0;
+    if (weight > 0) contributions.push({ label, weight });
+  }
+
+  return contributions
+    .sort((left, right) => right.weight - left.weight)
+    .slice(0, limit)
+    .map((contribution) => contribution.label);
+}
+
 export function moodTagsFromScores(scores: VaultMoodScores): VaultMoodId[] {
   return (["brain-off", "chill", "intense"] as const).filter((mood) => scores[mood] >= MOOD_THRESHOLD);
 }

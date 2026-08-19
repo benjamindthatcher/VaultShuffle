@@ -1,0 +1,89 @@
+.panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.label {
+  margin: 0;
+  color: #d392ff;
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.score {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--vault-text-muted, rgba(226, 232, 255, 0.72));
+}
+
+.score[data-strength="high"] { color: #7ce7b2; }
+.score[data-strength="mid"] { color: #d392ff; }
+
+.list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 11px 14px;
+  border: 1px solid var(--vault-border, rgba(134, 91, 255, 0.26));
+  border-left-width: 3px;
+  border-radius: 12px;
+  background: var(--vault-surface-soft, rgba(18, 25, 53, 0.72));
+}
+
+/* The accent carries how strongly this dimension supports the pick. */
+.item[data-strength="perfect"] { border-left-color: #7ce7b2; }
+.item[data-strength="strong"] { border-left-color: #b57cff; }
+.item[data-strength="good"] { border-left-color: rgba(134, 91, 255, 0.45); }
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: var(--vault-accent-soft, rgba(142, 77, 255, 0.2));
+  color: #e6d6ff;
+}
+
+.copy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.headline {
+  font-size: 0.92rem;
+  font-weight: 650;
+  color: var(--vault-text, #f2f4ff);
+}
+
+.detail {
+  font-size: 0.83rem;
+  line-height: 1.45;
+  color: var(--vault-text-muted, rgba(226, 232, 255, 0.72));
+}
+
+@media (max-width: 620px) {
+  .item { padding: 10px 12px; gap: 10px; }
+  .headline { font-size: 0.88rem; }
+  .detail { font-size: 0.8rem; }
+}
