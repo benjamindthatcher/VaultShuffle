@@ -204,12 +204,16 @@
 .drawModeButton:focus-visible { outline: 2px solid rgba(222, 158, 255, 0.86); outline-offset: 2px; }
 .drawModeButton[data-active="true"] { background: linear-gradient(135deg, rgba(118, 51, 224, 0.68), rgba(62, 43, 145, 0.72)); color: #fff; box-shadow: 0 6px 18px rgba(90, 35, 176, 0.24); }
 
+/* Two children now: the "or" and the collection picker. It used to be three,
+   with a summary of the setup steps in the first column — when that went, the
+   picker was left squeezed into a column sized for the leftovers. */
 .drawModeOptions {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(280px, 1fr) 28px minmax(245px, 310px);
+  grid-template-columns: 28px minmax(260px, 360px);
   align-items: stretch;
-  gap: 8px;
+  justify-content: start;
+  gap: 10px;
 }
 
 .drawModeOr {
