@@ -17,6 +17,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
+import { PageHeading } from "@/components/shared/PageHeading";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
@@ -358,10 +359,13 @@ export default function PurgePage() {
   }
 
   return <PurgePageFrame>
-    <h1 className="visually-hidden">Purge</h1>
+    <PageHeading eyebrow="Purge" title="What still deserves a place?">
+      Games your playtime says you have finished or walked away from. Keep them, sleep them, or mark them done — one decision at a time.
+    </PageHeading>
     <CompletionClaimBanner />
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
+        <p className={styles.setupLabel}>What to review</p>
         <div className={styles.categoryGrid}>
           {CATEGORIES.map((category) => {
             const selected = selectedCategories.includes(category.id);
@@ -373,6 +377,7 @@ export default function PurgePage() {
         </div>
       </div>
       <aside className={styles.snapshot} aria-label="Review status">
+        <p className={styles.setupLabel}>Where things stand</p>
         <div className={styles.categoryGrid}>
           {([
             { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: "Flagged and waiting on a decision.", count: purgeStats.ready },
