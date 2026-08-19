@@ -230,6 +230,7 @@ export default function HomePage() {
       alt=""
       width={460}
       height={215}
+      unoptimized
       sizes="(max-width: 760px) 245px, 315px"
     />
 
