@@ -156,96 +156,28 @@ every draw in control.
 
 ---
 
-## Infrastructure risk worth addressing
+## Schema changes
 
-### The schema ledger and the repo disagree
+Applied directly to Supabase through the Management API. There are deliberately
+no migration files and no written history of what has been applied — the database
+is the record.
 
-Corrected 2026-08-19 — an earlier version of this file said there was no
-migration tooling. That is wrong, and the truth is more awkward.
+Two things that bite every time and are worth knowing before touching it:
 
-- Production **does** track migrations: `supabase_migrations.schema_migrations`
-  holds 83 applied entries, the most recent `20260814172252`.
-- The repo **deliberately** does not. The files were removed in `e287bba`
-  ("Remove Supabase migration history", 2026-08-12), with no stated reason. The
-  checkout is still linked (`supabase/.temp/project-ref`).
-- Everything this feature changed was applied straight through the Management
-  API, so it is in neither place — not in the repo, and not in the ledger.
+- **A new table needs explicit grants.** RLS-enabled with no policies is the
+  convention here, since everything goes through the service role — but the
+  service role still needs table privileges. Creating the table is not enough,
+  and the failure surfaces as a worker dying on `permission denied` rather than
+  anything obviously grant-shaped.
+- **Changing an RPC's signature means drop-and-create**, not `create or replace`.
+  Run both in one statement batch so it stays atomic and there is never a moment
+  where the function does not exist.
 
-So the ledger no longer describes the live schema either. `supabase db diff`,
-`db push` and especially `db reset` will all reason from a picture that is
-missing today's objects, which is a sharper hazard than simply having no
-migrations at all.
-
-This needs a decision rather than a unilateral fix, because reinstating
-migrations would reverse a deliberate choice:
-
-1. **Bring the schema back under migrations.** Baseline the current live schema
-   as one migration, mark it applied, and require future changes to go through
-   it. Highest effort, removes the class of problem.
-2. **Keep applying directly and treat this file as the record.** Cheap and
-   honest, but every schema change depends on someone remembering to write it
-   down — which is exactly the failure that produced this note.
-3. **Drop the ledger too**, so nothing implies a workflow that is not followed.
-   Removes the trap without adding process.
-
-Two footguns worth keeping regardless of the choice, both of which cost a failed
-production run today:
-
-- A new table needs explicit grants. RLS-enabled with no policies is the
-  convention here (everything goes through the service role), but the service
-  role still needs table privileges — creating the table is not enough.
-- Changing an RPC's signature means drop-and-create, not `create or replace`.
-  Doing both in one statement batch keeps it atomic, so there is no window where
-  the function does not exist.
-
-Applied to production 2026-08-18, recorded here because nothing else records it:
-
-```sql
-create table public.user_genre_preferences (
-  user_id uuid not null references public.app_users(id) on delete cascade,
-  genre text not null,
-  context_mood text not null default 'any',
-  positive double precision not null default 0 check (positive >= 0),
-  total double precision not null default 0 check (total >= 0),
-  updated_at timestamptz not null default now(),
-  constraint user_genre_preferences_pkey primary key (user_id, genre, context_mood),
-  constraint user_genre_preferences_context_mood_check
-    check (context_mood = any (array['any','brain-off','chill','intense'])),
-  constraint user_genre_preferences_positive_lte_total check (positive <= total)
-);
-
-alter table public.user_genre_preferences enable row level security;
-create index user_genre_preferences_user_idx on public.user_genre_preferences (user_id);
-grant select, insert, update, delete on public.user_genre_preferences to service_role;
-
-
--- Population rates, and the two changes that keep the learner fed.
-create table public.genre_preference_globals (
-  genre text not null,
-  context_mood text not null default 'any',
-  positive double precision not null default 0 check (positive >= 0),
-  total double precision not null default 0 check (total >= 0),
-  updated_at timestamptz not null default now(),
-  constraint genre_preference_globals_pkey primary key (genre, context_mood),
-  constraint genre_preference_globals_context_mood_check
-    check (context_mood = any (array['any','brain-off','chill','intense'])),
-  constraint genre_preference_globals_positive_lte_total check (positive <= total)
-);
-alter table public.genre_preference_globals enable row level security;
-grant select, insert, update, delete on public.genre_preference_globals to service_role;
-
--- The choice set each pick was made from.
-alter table public.vault_draws add column finalist_appids bigint[];
-
--- trim_vault_draw_history: offset raised 50 -> 500.
--- record_user_vault_draw: gained p_finalist_appids bigint[] default null,
---   applied as a single drop+create batch so there was no window without it.
-```
-
-Adopting Supabase migrations properly is the real fix. Until then, every schema
-change should be appended to a file like this one.
-
----
+One live hazard: the checkout is still linked to the project
+(`supabase/.temp/project-ref`) and `supabase_migrations.schema_migrations` still
+lists 83 old entries, while the repo has no migration files. The CLI reads that
+as "the entire schema is untracked drift", so **do not run `supabase db reset`,
+`db push` or `db diff`** against this project. Nothing else uses that ledger.
 
 ## Unrelated work still outstanding
 
