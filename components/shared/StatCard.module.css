@@ -1,10 +1,15 @@
-/* The stat row Library and Collections open with: a plain grid on the page
-   ground. The cards are the only surface — wrapping them in a panel made a box
-   inside a box, which is the thing this pass undoes. */
+/* The stat row: one sheet, with the stats sitting on it. */
+.panel {
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
+}
+
 .grid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--vault-top-card-gap);
+  gap: 10px;
 }
 
 @media (min-width: 720px) {
@@ -19,10 +24,10 @@
   }
 }
 
-/* The standard card: lighter than the ground it sits on, one border, no glow. */
+/* An item on the sheet: a hairline edge and nothing else. */
 .card {
   min-height: var(--vault-top-card-height);
-  padding: 15px 16px;
+  padding: 14px 15px;
   border: 1px solid var(--vault-card-border);
   border-radius: var(--vault-card-radius);
   background: var(--vault-card-surface);

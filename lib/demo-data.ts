@@ -55,6 +55,9 @@ export type DemoGame = {
   reviewPositive?: number | null;
   reviewNegative?: number | null;
   reviewTotal?: number | null;
+  /** Where catalogue enrichment has got to, so "still processing" can mean it. */
+  durationStatus?: string | null;
+  tagsStatus?: string | null;
 };
 
 export const demoCollections: DemoCollection[] = [

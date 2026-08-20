@@ -159,6 +159,8 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       reviewPositive: game.review_positive ?? null,
       reviewNegative: game.review_negative ?? null,
       reviewTotal: game.review_total ?? null,
+      durationStatus: game.duration_status ?? null,
+      tagsStatus: game.tags_status ?? null,
       moodTags: moodTagsFromScores(moodScores),
       moodScores,
       completedAt: game.completed_at,

@@ -5,32 +5,40 @@ import { measureLibraryEnrichment } from "./library-enrichment.ts";
 
 const game = (overrides: Partial<DemoGame> = {}) =>
   ({ id: "g", title: "Game", ownership: "Owned", genres: ["Action"],
-     duration: { mainStoryMinutes: 600 }, ...overrides }) as unknown as DemoGame;
+     durationStatus: "ready", tagsStatus: "ready", ...overrides }) as unknown as DemoGame;
 
-test("a fully known library reports complete", () => {
+test("a settled library reports nothing in flight", () => {
   const measure = measureLibraryEnrichment([game(), game({ id: "b" })]);
+  assert.equal(measure.processing, 0);
   assert.equal(measure.percent, 100);
-  assert.equal(measure.ready, 2);
 });
 
-test("missing lengths and genres are counted separately", () => {
+test("a game with no length found is settled, not still processing", () => {
+  // Enrichment ran and concluded there is nothing to find — an endless game has
+  // no campaign, and obscure titles are in no duration database. Reporting that
+  // as in-progress is untrue and never resolves.
   const measure = measureLibraryEnrichment([
-    game(),
-    game({ id: "b", duration: undefined } as Partial<DemoGame>),
-    game({ id: "c", genres: ["Unknown"] })
+    game({ durationStatus: "review_required" }),
+    game({ id: "b", durationStatus: "no_match" }),
+    game({ id: "c", durationStatus: "failed" })
   ]);
-  assert.equal(measure.missingLength, 1);
-  assert.equal(measure.missingGenres, 1);
-  assert.equal(measure.ready, 1);
+  assert.equal(measure.processing, 0);
 });
 
-test("an endless game counts as known, not missing", () => {
-  // Having no estimate because a game has no ending is knowledge, not a gap.
+test("queued and running work does count", () => {
   const measure = measureLibraryEnrichment([
-    game({ duration: { mainStoryMinutes: null, endless: true } } as Partial<DemoGame>)
+    game({ durationStatus: "pending" }),
+    game({ id: "b", tagsStatus: "processing" }),
+    game({ id: "c" })
   ]);
-  assert.equal(measure.missingLength, 0);
-  assert.equal(measure.percent, 100);
+  assert.equal(measure.processing, 2);
+});
+
+test("a freshly imported game with no catalogue row yet counts", () => {
+  const measure = measureLibraryEnrichment([
+    game({ id: "fresh", genres: ["Unknown"], durationStatus: null, tagsStatus: null } as Partial<DemoGame>)
+  ]);
+  assert.equal(measure.processing, 1);
 });
 
 test("an empty library does not divide by zero", () => {

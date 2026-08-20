@@ -7,6 +7,10 @@
 .setupLayout {
   display: grid;
   gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
 .setupLayout[data-paused="true"] .setupGuide {
@@ -105,10 +109,9 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid var(--vault-panel-border);
-  border-radius: var(--vault-panel-radius);
-  background: var(--vault-panel-surface);
-  box-shadow: var(--vault-panel-shadow);
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
 .optionalSetup[data-disabled="true"] {
@@ -163,7 +166,6 @@
   border: 1px solid var(--vault-feature-border);
   border-radius: var(--vault-feature-radius);
   background: var(--vault-feature-surface);
-  backdrop-filter: blur(18px);
 }
 
 .drawModePicker {
@@ -248,13 +250,12 @@
 .drawActionControl .setupStatus { margin: 0 0 2px; font-size: 0.66rem; }
 .drawActionControl .quickDrawButton { width: 100%; min-height: 38px; font-size: 0.8rem; }
 
-/* The result is the page's one card: the pick, why it matched, and what you can
-   do about it belong inside a single edge. */
+/* The result sheet: the pick, why it matched, and what you can do about it. */
 .resultCard {
-  padding: 14px;
-  border-radius: var(--vault-card-radius);
-  border: 1px solid var(--vault-card-border);
-  background: var(--vault-card-surface);
+  padding: 0;
+  border-radius: var(--vault-sheet-radius);
+  border: 1px solid var(--vault-sheet-border);
+  background: var(--vault-sheet-surface);
 }
 
 /* The label on a region inside a card — "Now reviewing", "Decision". Sections on
@@ -297,11 +298,14 @@
   color: var(--vault-text);
 }
 
-/* The deck is a section: its heading and tools, then a rail of cards. It used to
-   be a large lighter panel wrapped around cards that already have their own. */
+/* The deck sheet: its heading and tools, then the rail of cards. */
 .poolSection {
   display: grid;
   gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
 .poolControls {

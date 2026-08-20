@@ -1,53 +1,48 @@
 import type { DemoGame } from "./demo-data.ts";
-import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 
 /**
- * How much of a library the app actually knows enough about to draw well.
+ * How many games are genuinely still being processed.
  *
- * An import finishes in seconds because enrichment is deferred to background
- * workers, which is architecturally right and completely invisible: the app says
- * "done" while lengths and genres arrive over the following days. That silence is
- * why a pick can say "no length estimate yet" with no explanation.
+ * This used to count games with no duration at all, which conflated two
+ * completely different things. A game can be missing a length because the
+ * catalogue has not looked yet, or because it looked and there is nothing to
+ * find — an endless game has no campaign length, and plenty of obscure titles
+ * are in no duration database at all. Reporting the second as "still filling in"
+ * is untrue, never resolves, and hands the player a number they can do nothing
+ * about.
  *
- * Only the two fields the draw actually depends on are counted. Steam Deck
- * compatibility is a far longer backfill and would peg the number low for weeks
- * while telling the player nothing about their next draw.
+ * Only work actually in flight counts. Once the queue drains this reports zero
+ * and the banner disappears, which is the honest end state.
  */
 export type LibraryEnrichment = {
   total: number;
+  /** Games with catalogue work still queued or running. */
+  processing: number;
   ready: number;
-  missingLength: number;
-  missingGenres: number;
   percent: number;
 };
 
+const IN_FLIGHT = new Set(["pending", "processing"]);
+
 export function measureLibraryEnrichment(games: DemoGame[]): LibraryEnrichment {
   const owned = games.filter((game) => game.ownership === "Owned");
-  if (!owned.length) return { total: 0, ready: 0, missingLength: 0, missingGenres: 0, percent: 100 };
+  if (!owned.length) return { total: 0, processing: 0, ready: 0, percent: 100 };
 
-  let missingLength = 0;
-  let missingGenres = 0;
-  for (const game of owned) {
-    if (!hasLength(game)) missingLength += 1;
-    if (!hasGenres(game)) missingGenres += 1;
-  }
-
-  const ready = owned.filter((game) => hasLength(game) && hasGenres(game)).length;
+  const processing = owned.filter(isProcessing).length;
+  const ready = owned.length - processing;
   return {
     total: owned.length,
+    processing,
     ready,
-    missingLength,
-    missingGenres,
     percent: Math.round((ready / owned.length) * 100)
   };
 }
 
-/** Endless games have no estimate by nature, which is knowledge rather than a gap. */
-function hasLength(game: DemoGame) {
-  if (game.duration?.endless) return true;
-  return Boolean(estimatedTimeToBeatMinutes(game.duration));
-}
-
-function hasGenres(game: DemoGame) {
-  return game.genres.some((genre) => genre && genre.toLowerCase() !== "unknown");
+function isProcessing(game: DemoGame) {
+  if (IN_FLIGHT.has(String(game.durationStatus ?? ""))) return true;
+  if (IN_FLIGHT.has(String(game.tagsStatus ?? ""))) return true;
+  // A freshly imported game has no catalogue row yet, so nothing has a status and
+  // it has no genres either — that is genuinely still on its way.
+  const unknownGenres = !game.genres.some((genre) => genre && genre.toLowerCase() !== "unknown");
+  return unknownGenres && !game.durationStatus && !game.tagsStatus;
 }

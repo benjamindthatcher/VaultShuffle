@@ -18,9 +18,9 @@ export function StatPanel({ label, columns, children }: StatPanelProps) {
   } as CSSProperties;
 
   return (
-    <div className={styles.grid} role="group" aria-label={label} style={style}>
-      {children}
-    </div>
+    <section className={styles.panel} aria-label={label} style={style}>
+      <div className={styles.grid}>{children}</div>
+    </section>
   );
 }
 

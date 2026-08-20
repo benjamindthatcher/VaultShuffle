@@ -24,37 +24,41 @@
   --vault-radius-md: 16px;
   --vault-radius-sm: 12px;
   --vault-content-width: min(1480px, calc(100vw - 48px));
-  /* One surface treatment for the whole app, taken from the Completion Check and
-     Stats pages: a dark ground with lighter content sitting directly on it. No
-     panel inside a panel, no glow, no drop shadow. Pages set their own padding
-     and layout and nothing else.
+  /* One surface treatment for the whole app. The ground is dark; the sheet that
+     holds a section is the lighter thing on it; what sits inside a sheet does
+     not carry a fill of its own. Getting that the wrong way round — lifting
+     every tile off the ground individually — is what made the pages read as a
+     scatter of boxes rather than as panels of content.
 
-     card      — almost everything: a section, a stat, a row, a game.
-     feature   — the one thing on a page that leads: slightly lighter, a
-                 stronger border, a wider radius. At most one per screen.
-     well      — a recess inside a card, for artwork and inputs. Darker than the
-                 card, never lighter. */
-  --vault-card-radius: 14px;
-  --vault-card-border: var(--vault-border);
-  --vault-card-surface: var(--vault-surface-soft);
-  --vault-feature-radius: 18px;
-  --vault-feature-border: var(--vault-border-strong);
-  --vault-feature-surface: var(--vault-surface);
+     sheet — the container a section's content lives in. Lighter than the ground.
+     card  — an item inside a sheet: a stat, a game, a row. No fill, a hairline
+             edge, and nothing else.
+     well  — a recess inside a sheet, for artwork and inputs. Darker than the
+             sheet, never lighter. */
+  --vault-sheet-radius: 18px;
+  --vault-sheet-border: rgba(255, 255, 255, 0.07);
+  --vault-sheet-surface: rgba(255, 255, 255, 0.055);
+  --vault-card-radius: 12px;
+  --vault-card-border: rgba(255, 255, 255, 0.1);
+  --vault-card-surface: transparent;
+  --vault-feature-radius: var(--vault-sheet-radius);
+  --vault-feature-border: rgba(178, 132, 255, 0.34);
+  --vault-feature-surface: rgba(255, 255, 255, 0.06);
   --vault-well-radius: 9px;
-  --vault-well-surface: rgba(12, 16, 38, 0.7);
+  --vault-well-surface: rgba(0, 0, 0, 0.26);
 
   /* The older panel and tile names now resolve to the same two surfaces, so the
      pages still written in terms of them come along without being rewritten. */
-  --vault-panel-radius: var(--vault-card-radius);
-  --vault-panel-border: var(--vault-card-border);
-  --vault-panel-surface: var(--vault-card-surface);
+  --vault-panel-radius: var(--vault-sheet-radius);
+  --vault-panel-border: var(--vault-sheet-border);
+  --vault-panel-surface: var(--vault-sheet-surface);
   --vault-panel-shadow: none;
   --vault-panel-feature-border: var(--vault-feature-border);
   --vault-panel-feature-surface: var(--vault-feature-surface);
   --vault-panel-feature-shadow: none;
-  --vault-tile-radius: 12px;
+  --vault-tile-radius: var(--vault-card-radius);
   --vault-tile-border: var(--vault-card-border);
-  --vault-tile-surface: var(--vault-well-surface);
+  --vault-tile-surface: var(--vault-card-surface);
   --vault-tile-selected-border: var(--vault-border-strong);
   --vault-tile-selected-surface: rgba(124, 92, 255, 0.14);
   --vault-tile-selected-shadow: none;

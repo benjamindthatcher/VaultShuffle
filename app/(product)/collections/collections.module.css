@@ -42,25 +42,28 @@
   border-radius: 10px;
 }
 
-/* Your collections and the selected shelf are sections: a heading on the page
-   ground with their content under it, not boxes wrapped around boxes. */
+/* Your collections and the selected shelf are sheets: lighter than the ground,
+   holding their heading and their content. */
 .selectedPanel,
 .collectionPanel {
   display: grid;
   gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
-/* The composer is a real card, because it is a form and wants an edge. It only
-   exists while it is open — it used to sit there permanently as a large empty
-   panel whose only job was to hold the button that opened it. */
+/* The composer only exists while it is open — it used to sit there permanently
+   as a large empty panel whose only job was to hold the button that opened it. */
 .composerCard {
   display: grid;
   gap: 16px;
   scroll-margin-block: 24px;
-  padding: 20px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: var(--vault-card-radius);
-  background: var(--vault-card-surface);
+  padding: 18px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
 .composerHeader {
@@ -194,7 +197,6 @@
   padding: 22px;
   border: 1px dashed var(--vault-card-border);
   border-radius: var(--vault-card-radius);
-  background: var(--vault-card-surface);
 }
 
 .emptyTitle {

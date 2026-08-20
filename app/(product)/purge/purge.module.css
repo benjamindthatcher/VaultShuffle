@@ -18,18 +18,27 @@
 .setupPanel,
 .snapshot {
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
-/* The review panel is the one card on the page: the game under review, its
-   facts and the three decisions belong together inside one edge. */
+/* The review sheet: the game under review, its facts and the three decisions
+   belong together on one surface. */
 .reviewPanel {
-  border: 1px solid var(--vault-card-border);
-  border-radius: var(--vault-card-radius);
-  background: var(--vault-card-surface);
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
+  overflow: hidden;
 }
-/* The queue is a section, not a card: a heading with a rail of cards under it. */
 .queuePanel {
   display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 .eyebrow {
   margin: 0;

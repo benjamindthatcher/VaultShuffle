@@ -28,6 +28,8 @@ export type Game = {
   review_positive?: number | null;
   review_negative?: number | null;
   review_total?: number | null;
+  duration_status?: string | null;
+  tags_status?: string | null;
   release_date?: string | null;
   completed_at?: string | null;
   previous_active_status?: "Not Started" | "Sampled" | "In Progress" | null;
