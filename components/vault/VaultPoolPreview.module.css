@@ -242,7 +242,7 @@
   position: relative;
   aspect-ratio: 460 / 215;
   overflow: hidden;
-  background: #050817;
+  background: var(--vault-well-surface);
 }
 
 .cardArt img {

@@ -24,9 +24,9 @@
 }
 .unpin:hover { border-color: rgba(255, 138, 128, 0.6); background: rgba(70, 14, 24, 0.8); color: #ffb4c2; }
 .unpin:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
-.card { display: grid; gap: 8px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 12px; background: rgba(12, 16, 38, 0.5); text-align: left; }
+.card { display: grid; gap: 8px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 12px; background: var(--vault-well-surface); text-align: left; }
 .card:hover:not(:disabled) { border-color: var(--vault-border-strong); }
-.art { position: relative; width: 100%; aspect-ratio: 92 / 43; border-radius: 8px; overflow: hidden; background: rgba(12, 16, 38, 0.7); }
+.art { position: relative; width: 100%; aspect-ratio: 92 / 43; border-radius: 8px; overflow: hidden; background: var(--vault-well-surface); }
 .body { display: grid; gap: 2px; min-width: 0; }
 .body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; color: var(--vault-text); }
 .body small { font-size: 0.74rem; color: var(--vault-text-muted); }

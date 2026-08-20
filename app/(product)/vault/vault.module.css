@@ -15,7 +15,7 @@
 
 .setupLayout[data-paused="true"] .setupGuide {
   border-color: rgba(144, 104, 255, 0.3);
-  background: linear-gradient(110deg, rgba(55, 34, 96, 0.22), rgba(8, 13, 31, 0.88) 48%), rgba(8, 13, 31, 0.9);
+  background: var(--vault-feature-surface);
 }
 
 .guestPreviewBanner {
@@ -451,7 +451,7 @@
   align-self: stretch;
   border-radius: 0;
   aspect-ratio: 460 / 215;
-  background: #050817;
+  background: var(--vault-well-surface);
 }
 
 .currentPickBadge {

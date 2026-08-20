@@ -1,30 +1,29 @@
 :root {
-  /* A single violet-ink ramp, mixed as solid colours rather than white veils
-     over navy. The veils were what made the surfaces look milky and grey: the
-     more you lifted a panel, the more the colour drained out of it. Each step
-     here keeps the same hue and only changes how light it is.
+  /* A purple ramp, not a grey one with a purple lamp pointed at it. Every step
+     is the same hue at a different lightness, so a sheet reads as purple rather
+     than as a lit patch of slate:
 
-     ink      #08080F  the ground
-     sheet    #14141F  the container a section lives in
-     raised   #1C1C2E  a sheet under the pointer, or one that leads
-     well     #0C0C16  a recess inside a sheet */
-  --vault-ink: #08080f;
+     ink      #0C0718  the ground
+     sheet    #1A1030  the container a section lives in
+     feature  #241640  the one thing on a page that leads
+     well     #120A24  a recess inside a sheet */
+  --vault-ink: #0c0718;
   --vault-bg: var(--vault-ink);
-  --vault-surface: #141420;
-  --vault-surface-strong: #101019;
-  --vault-surface-soft: #14141f;
-  --vault-border: #26263f;
-  --vault-border-strong: #35355a;
-  --vault-text: #f2f1f8;
-  --vault-text-muted: rgba(226, 224, 244, 0.68);
-  --vault-text-soft: rgba(206, 203, 232, 0.46);
-  --vault-accent: #7c5cff;
-  --vault-accent-strong: #5b3ce0;
-  --vault-accent-soft: rgba(124, 92, 255, 0.18);
-  --vault-control-hover-border: rgba(167, 139, 250, 0.85);
-  --vault-control-hover-bg: rgba(124, 92, 255, 0.16);
-  --vault-control-hover-glow: rgba(124, 92, 255, 0.32);
-  --vault-control-focus: #a78bfa;
+  --vault-surface: #1a1030;
+  --vault-surface-strong: #150c28;
+  --vault-surface-soft: #1a1030;
+  --vault-border: #33224f;
+  --vault-border-strong: #4a2e7a;
+  --vault-text: #f5f1ff;
+  --vault-text-muted: rgba(226, 215, 255, 0.7);
+  --vault-text-soft: rgba(203, 189, 236, 0.5);
+  --vault-accent: #a855f7;
+  --vault-accent-strong: #7c3aed;
+  --vault-accent-soft: rgba(168, 85, 247, 0.18);
+  --vault-control-hover-border: rgba(201, 166, 255, 0.9);
+  --vault-control-hover-bg: rgba(168, 85, 247, 0.18);
+  --vault-control-hover-glow: rgba(168, 85, 247, 0.34);
+  --vault-control-focus: #c9a6ff;
   --vault-success: #6ee7b7;
   /* Kept as a name because components still ask for it; these surfaces do not
      cast shadows, so it resolves to none. */
@@ -46,16 +45,16 @@
      well  — a recess inside a sheet, for artwork and inputs. Darker than the
              sheet, never lighter. */
   --vault-sheet-radius: 16px;
-  --vault-sheet-border: #22223a;
-  --vault-sheet-surface: #14141f;
+  --vault-sheet-border: #2e1e4d;
+  --vault-sheet-surface: #1a1030;
   --vault-card-radius: 11px;
-  --vault-card-border: #26263f;
+  --vault-card-border: #33224f;
   --vault-card-surface: transparent;
   --vault-feature-radius: var(--vault-sheet-radius);
-  --vault-feature-border: #3a2f6b;
-  --vault-feature-surface: #191a2b;
+  --vault-feature-border: #5a35a0;
+  --vault-feature-surface: #241640;
   --vault-well-radius: 9px;
-  --vault-well-surface: #0c0c16;
+  --vault-well-surface: #120a24;
 
   /* The older panel and tile names now resolve to the same two surfaces, so the
      pages still written in terms of them come along without being rewritten. */
@@ -101,7 +100,7 @@ html {
   background:
     radial-gradient(circle at top, rgba(108, 56, 255, 0.22), transparent 34%),
     radial-gradient(circle at 82% 18%, rgba(34, 108, 255, 0.18), transparent 22%),
-    linear-gradient(180deg, #060914 0%, #050816 42%, #04050f 100%);
+    linear-gradient(180deg, #0e0820 0%, var(--vault-ink) 42%, #08040f 100%);
   color: var(--vault-text);
   scroll-behavior: smooth;
 }

@@ -156,7 +156,7 @@
   display: block;
   aspect-ratio: 460/215;
   overflow: hidden;
-  background: #050817;
+  background: var(--vault-well-surface);
 }
 .queueArtwork img {
   object-fit: cover;
@@ -213,7 +213,7 @@
   width: 100%;
   min-height: 0;
   overflow: hidden;
-  background: #050817;
+  background: var(--vault-well-surface);
 }
 .reviewCopy {
   display: flex;

@@ -16,7 +16,7 @@
 .card { display: grid; grid-template-columns: 120px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 13px; border: 1px solid rgba(124, 231, 178, 0.45); border-radius: 16px; background: linear-gradient(125deg, rgba(18, 40, 34, 0.97), rgba(20, 24, 52, 0.97)); box-shadow: 0 22px 60px rgba(2, 6, 20, 0.6); }
 .wrap[data-spectacle="big"] .card { border-color: rgba(124, 231, 178, 0.75); box-shadow: 0 22px 70px rgba(2, 6, 20, 0.66), 0 0 40px rgba(124, 231, 178, 0.22); }
 
-.art { position: relative; width: 120px; aspect-ratio: 92 / 43; border-radius: 9px; overflow: hidden; background: rgba(12, 16, 38, 0.7); }
+.art { position: relative; width: 120px; aspect-ratio: 92 / 43; border-radius: 9px; overflow: hidden; background: var(--vault-well-surface); }
 .body { display: grid; gap: 3px; min-width: 0; }
 .headline { display: flex; align-items: center; gap: 7px; margin: 0; color: #7ce7b2; font-size: 0.74rem; font-weight: 750; letter-spacing: 0.1em; text-transform: uppercase; }
 .title { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1rem; font-weight: 700; color: var(--vault-text); }
