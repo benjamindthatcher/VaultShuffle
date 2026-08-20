@@ -1,7 +1,9 @@
+/* Four across at most. Five made the cards too narrow for their own titles, and
+   nothing else in the app runs five to a row. */
 .grid {
   display: grid;
-  gap: 10px;
-  padding: 12px 5px 5px;
+  gap: 12px;
+  padding: 0;
 }
 
 .gridList {
@@ -17,6 +19,6 @@
 
 @media (min-width: 1180px) {
   .grid:not(.gridList) {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

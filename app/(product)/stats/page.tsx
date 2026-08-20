@@ -12,7 +12,7 @@ import { PageHeading } from "@/components/shared/PageHeading";
 import styles from "./stats.module.css";
 
 export default function StatsPage() {
-  const { games, isLive } = useAppData();
+  const { games, isLive, playtime } = useAppData();
   const stats = useMemo(() => buildBacklogStats(games), [games]);
 
   const recentCompletions = useMemo(
@@ -73,6 +73,17 @@ export default function StatsPage() {
 
       <section className={styles.tiles}>
         <article><p>Hours played</p><strong>{formatHours(stats.totalHours)}</strong><small>across the whole library</small></article>
+        <article>
+          <p>Play streak</p>
+          <strong>{playtime.daysTracked < 2 ? "—" : `${playtime.streakDays}d`}</strong>
+          <small>
+            {playtime.daysTracked < 2
+              ? "Starts once we have a couple of nights of history"
+              : playtime.streakDays
+                ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`
+                : "No play recorded yesterday"}
+          </small>
+        </article>
         <article><p>Games completed</p><strong>{stats.completedPercent}%</strong><small>{stats.completedGames} of {stats.totalGames}</small></article>
         <article><p>Never opened</p><strong>{stats.unplayedGames}</strong><small>worth {formatMoney(stats.unplayedValueCents, stats.currency)}</small></article>
         <article><p>Best value</p><strong>{stats.bestValue ? formatValueRate(stats.bestValue, stats.currency) : "—"}</strong><small>{stats.bestValue ? stats.bestValue.title : "Play something to find out"}</small></article>

@@ -10,6 +10,7 @@ import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 import type { GenrePreference } from "@/lib/genre-preferences";
+import type { PlaytimeSummary } from "@/lib/playtime-summary";
 
 type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
@@ -21,6 +22,7 @@ type AppBootstrapPayload = {
   vaultState?: VaultState;
   genrePreferences?: GenrePreference[];
   genrePreferenceGlobals?: GenrePreference[];
+  playtime?: PlaytimeSummary;
   data_error?: boolean;
   guest_pool_source?: "live_catalogue" | "fallback";
 };
@@ -41,6 +43,7 @@ function matchesDeviceMode(game: DemoGame, mode: DeviceMode) {
 
 const emptyVaultState: VaultState = { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null };
 const EMPTY_GENRE_PREFERENCES: GenrePreference[] = [];
+const EMPTY_PLAYTIME: PlaytimeSummary = { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0 };
 
 type AppDataContextValue = {
   session: SessionPayload;
@@ -49,6 +52,7 @@ type AppDataContextValue = {
   vaultState: VaultState;
   genrePreferences: GenrePreference[];
   genrePreferenceGlobals: GenrePreference[];
+  playtime: PlaytimeSummary;
   vaultHistory: VaultDraw[];
   isLive: boolean;
   playHistoryMissing: boolean;
@@ -102,6 +106,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [liveVaultHistory, setLiveVaultHistory] = useState<VaultDraw[]>([]);
   const [liveGenrePreferences, setLiveGenrePreferences] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
   const [liveGenrePreferenceGlobals, setLiveGenrePreferenceGlobals] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
+  const [livePlaytime, setLivePlaytime] = useState<PlaytimeSummary>(EMPTY_PLAYTIME);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -145,6 +150,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // means the learned term contributes nothing to their scores.
       setLiveGenrePreferences(bootstrap.genrePreferences ?? EMPTY_GENRE_PREFERENCES);
       setLiveGenrePreferenceGlobals(bootstrap.genrePreferenceGlobals ?? EMPTY_GENRE_PREFERENCES);
+      setLivePlaytime(bootstrap.playtime ?? EMPTY_PLAYTIME);
     } catch (error) {
       setSession(guestSession);
       setIsLive(false);
@@ -435,6 +441,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // Guests have no history to learn from, so they always draw unweighted.
       genrePreferences: isLive ? liveGenrePreferences : EMPTY_GENRE_PREFERENCES,
       genrePreferenceGlobals: isLive ? liveGenrePreferenceGlobals : EMPTY_GENRE_PREFERENCES,
+      playtime: isLive ? livePlaytime : EMPTY_PLAYTIME,
       vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
       isLive,
       isLoading,
@@ -455,7 +462,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, liveVaultHistory, guestVaultHistory]
+    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

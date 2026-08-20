@@ -18,6 +18,7 @@ import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { PageHeading } from "@/components/shared/PageHeading";
+import { SectionHeading } from "@/components/shared/SectionHeading";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
@@ -99,7 +100,7 @@ export default function PurgePage() {
   }, [candidates, selectedCategories]);
   const activeIndex = Math.min(selectedOffset, Math.max(0, filteredCandidates.length - 1));
   const current = filteredCandidates[activeIndex] ?? null;
-  const queue = filteredCandidates.slice(0, 5);
+  const queue = filteredCandidates.slice(0, 4);
   const effectivePinnedIds = new Set([...vaultState.pinnedIds, ...optimisticPinnedIds]);
   const pinsFull = effectivePinnedIds.size >= 3 && current ? !effectivePinnedIds.has(current.game.id) : false;
 
@@ -365,7 +366,7 @@ export default function PurgePage() {
     <CompletionClaimBanner />
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
-        <p className={styles.setupLabel}>What to review</p>
+        <SectionHeading title="What to review" />
         <div className={styles.categoryGrid}>
           {CATEGORIES.map((category) => {
             const selected = selectedCategories.includes(category.id);
@@ -377,7 +378,7 @@ export default function PurgePage() {
         </div>
       </div>
       <aside className={styles.snapshot} aria-label="Review status">
-        <p className={styles.setupLabel}>Where things stand</p>
+        <SectionHeading title="Where things stand" />
         <div className={styles.categoryGrid}>
           {([
             { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: "Flagged and waiting on a decision.", count: purgeStats.ready },
@@ -395,7 +396,7 @@ export default function PurgePage() {
     </section>
       {reviewView === "needs" ? <>
         <section className={styles.queuePanel}>
-          <div className={styles.sectionHeading}><div><p className={styles.eyebrow}>Review queue</p><h2>{filteredCandidates.length} games to consider</h2></div></div>
+          <SectionHeading title="Review queue" meta={`${filteredCandidates.length} to consider`} />
           {queue.length ? <div className={styles.queue}>
             {queue.map((candidate, offset) => {
               const selected = current?.game.id === candidate.game.id;
@@ -417,10 +418,10 @@ export default function PurgePage() {
           </div>
         </section> : null}
       </> : <section className={styles.queuePanel}>
-        <div className={styles.sectionHeading}><div>
-          <p className={styles.eyebrow}>{reviewView === "reviewed" ? "Already decided" : "Nothing flagged"}</p>
-          <h2>{reviewView === "reviewed" ? `${reviewedList.length} games reviewed` : `${settledList.length} games need no review`}</h2>
-        </div></div>
+        <SectionHeading
+          title={reviewView === "reviewed" ? "Already decided" : "Nothing flagged"}
+          meta={reviewView === "reviewed" ? `${reviewedList.length} reviewed` : `${settledList.length} need no review`}
+        />
         {reviewView === "reviewed"
           ? (reviewedList.length
             ? <ul className={styles.outcomeList}>

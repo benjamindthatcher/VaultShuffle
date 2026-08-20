@@ -150,8 +150,8 @@
 .queue {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: minmax(170px, 1fr);
-  grid-template-columns: repeat(5, minmax(170px, 1fr));
+  grid-auto-columns: minmax(210px, 1fr);
+  grid-template-columns: repeat(4, minmax(210px, 1fr));
   gap: 10px;
   overflow-x: auto;
   padding: 1px 1px 8px;

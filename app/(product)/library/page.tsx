@@ -12,6 +12,7 @@ import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { PageHeading } from "@/components/shared/PageHeading";
+import { SectionHeading } from "@/components/shared/SectionHeading";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
@@ -82,7 +83,7 @@ export default function LibraryPage() {
         const comparison = sortableLastPlayed(right) - sortableLastPlayed(left);
         return comparison || left.title.localeCompare(right.title);
       })
-      .slice(0, 5),
+      .slice(0, 4),
     [libraryGames]
   );
 
@@ -216,7 +217,7 @@ export default function LibraryPage() {
       </StatPanel>
 
       <section className={styles.section}>
-        <h2 className={styles.sectionTitle}>Recent activity</h2>
+        <SectionHeading title="Recent activity" />
         <div className={styles.recentRow}>
           {recentActivity.map((game) => (
             <button key={game.id} type="button" className={styles.recentCard} onClick={() => setSelectedGameId(game.id)}>
@@ -241,9 +242,10 @@ export default function LibraryPage() {
       </div>
 
       <section className={`${styles.section} ${styles.gamesSection}`} role="tabpanel" aria-label={`${statusTab} games`}>
-        <div className={`${styles.sectionHeader} ${styles.gamesHeader}`}>
-          <h2 className={styles.sectionTitle}>{statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} games <span className={styles.sectionCount}>{filteredGames.length}</span></h2>
-        </div>
+        <SectionHeading
+          title={`${statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} games`}
+          meta={`${filteredGames.length}`}
+        />
         <div className={styles.gamesToolbar}>
           <LibraryToolbar
             query={query}

@@ -6,6 +6,7 @@ import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { PageHeading } from "@/components/shared/PageHeading";
+import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
@@ -249,13 +250,14 @@ export default function CollectionsPage() {
       ) : null}
 
       <section className={styles.collectionPanel}>
-        <div className={styles.collectionPanelHeader}>
-          <h2 className={styles.collectionPanelTitle}>Your collections</h2>
-          <div className={styles.railActions} role="group" aria-label="Browse collections">
+        <SectionHeading
+          title="Your collections"
+          meta={`${baseCollections.length}`}
+          action={<div className={styles.railActions} role="group" aria-label="Browse collections">
             <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
             <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
-          </div>
-        </div>
+          </div>}
+        />
         <div ref={collectionRailRef} className={styles.collectionGrid} role="region" tabIndex={0} aria-label="Your collections">
           {baseCollections.map((collection) => (
             <CollectionCard

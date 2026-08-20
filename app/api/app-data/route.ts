@@ -4,6 +4,7 @@ import { listGames } from "@/lib/games";
 import { getSessionPayload } from "@/lib/session-payload";
 import { getVaultState } from "@/lib/vault-state";
 import { listGenrePreferences, listGenrePreferenceGlobals } from "@/lib/genre-preference-worker";
+import { getPlaytimeSummary } from "@/lib/playtime-snapshots";
 import { listGuestCatalogueGames } from "@/lib/guest-catalogue";
 
 export async function GET() {
@@ -23,12 +24,13 @@ export async function GET() {
   }
 
   try {
-    const [games, { collections, memberships }, vaultState, genrePreferences, genrePreferenceGlobals] = await Promise.all([
+    const [games, { collections, memberships }, vaultState, genrePreferences, genrePreferenceGlobals, playtime] = await Promise.all([
       listGames(session.user_id),
       listCollectionsWithMemberships(session.user_id, { includeSmartCounts: false }),
       getVaultState(session.user_id),
       listGenrePreferences(session.user_id),
-      listGenrePreferenceGlobals()
+      listGenrePreferenceGlobals(),
+      getPlaytimeSummary(session.user_id)
     ]);
 
     return NextResponse.json({
@@ -38,7 +40,8 @@ export async function GET() {
       memberships,
       vaultState,
       genrePreferences,
-      genrePreferenceGlobals
+      genrePreferenceGlobals,
+      playtime
     });
   } catch (error) {
     console.error("Could not load app data.", error);

@@ -3,6 +3,7 @@ import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames } from "@/lib/steam";
 import { steamVisibilityFromGames } from "@/lib/steam-owned-games";
+import { capturePlaytimeSnapshot } from "@/lib/playtime-snapshots";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { formatMetadataWorkerError } from "@/lib/worker-runs";
 
@@ -47,6 +48,10 @@ export async function refreshNightlyMetadata() {
         // Recorded every night so a change in someone's Steam privacy settings
         // shows up on its own rather than being discovered by reading rows.
         await recordSteamVisibility(user.id, steamVisibilityFromGames(ownedGames)).catch(() => undefined);
+        // Written from the library we already have in hand, so this costs no extra
+        // Steam calls. Steam exposes only a running total, so a day that is not
+        // recorded tonight can never be recovered.
+        await capturePlaytimeSnapshot(user.id, ownedGames);
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
       } catch (error) {
