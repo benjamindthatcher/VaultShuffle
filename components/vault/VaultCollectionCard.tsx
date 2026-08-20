@@ -74,12 +74,14 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
         aria-label={selectionActive
-          ? `Collection draw from ${selectedCollection.name}. Change collection.`
-          : "Choose a collection draw instead."}
+          ? `Drawing from ${selectedCollection.name}. Change collection.`
+          : "Choose which collection to draw from."}
       >
         <span className={styles.compactIcon}><VaultIcon name="collections" size={19} /></span>
-        <span className={styles.compactCopy}><small>{selectionActive ? "Collection draw" : "Choose instead"}</small><strong>{selectionActive ? selectedCollection.name : "Browse collections"}</strong></span>
-        <span className={styles.compactMeta}>{selectionActive ? `${collectionCounts[selectedCollection.id] ?? 0} games` : "Overrides Vault Draw"}</span>
+        {/* The picker only appears once Collection Draw is the mode, so it asks
+            one question — which collection — rather than re-explaining the mode. */}
+        <span className={styles.compactCopy}><strong>{selectionActive ? selectedCollection.name : "Choose a collection"}</strong></span>
+        <span className={styles.compactMeta}>{selectionActive ? `${collectionCounts[selectedCollection.id] ?? 0} games` : "None chosen"}</span>
         <VaultIcon className={styles.compactChevron} name="chevron-right" size={18} />
       </button>
 

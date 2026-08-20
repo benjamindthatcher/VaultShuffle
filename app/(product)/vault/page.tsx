@@ -594,26 +594,27 @@ export default function VaultPage() {
             <button type="button" role="tab" aria-selected={!collectionMode} className={styles.drawModeButton} data-active={!collectionMode || undefined} onClick={() => setDrawMode("vault")}><VaultIcon name="draw-from-vault" size={17} />Vault Draw</button>
             <button type="button" role="tab" aria-selected={collectionMode} className={styles.drawModeButton} data-active={collectionMode || undefined} onClick={activateCollectionDraw}><VaultIcon name="collections" size={17} />Collection Draw</button>
           </div>
-          <div className={styles.drawModeOptions}>
-            <span className={styles.drawModeOr} aria-hidden="true">or</span>
-            <div className={styles.drawCollectionChoice} data-active={collectionMode || undefined}>
-              <VaultCollectionCard
-                triggerId="vault-collection-picker-trigger"
-                selectedCollection={selectedCollection ?? entireVault}
-                collections={collections}
-                collectionCounts={collectionCounts}
-                onSelect={selectDrawCollection}
-                selectionActive={collectionDraw}
-                allowEntireVault={false}
-              />
-            </div>
-          </div>
+          {/* The picker is only the question "which collection", so it only asks
+              once Collection Draw is the mode. It used to sit here permanently
+              as a second, differently worded way to switch modes. */}
+          {collectionMode ? (
+            <VaultCollectionCard
+              triggerId="vault-collection-picker-trigger"
+              selectedCollection={selectedCollection ?? entireVault}
+              collections={collections}
+              collectionCounts={collectionCounts}
+              onSelect={selectDrawCollection}
+              selectionActive={collectionDraw}
+              allowEntireVault={false}
+            />
+          ) : (
+            <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
+          )}
         </div>
         <div className={styles.drawActionControl}>
           <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={drawingRef.current || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
           </button>
-          <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
           <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
             <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
           </button>
