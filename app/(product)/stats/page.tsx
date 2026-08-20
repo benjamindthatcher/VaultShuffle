@@ -114,6 +114,8 @@ export default function StatsPage() {
         </section>
       ) : null}
 
+      <ShareCard />
+
       <section className={styles.section}>
         <SectionHeading title="Recently finished" />
         {recentCompletions.length ? (
