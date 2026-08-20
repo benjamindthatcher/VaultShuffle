@@ -13,14 +13,12 @@ type VaultCollectionCardProps = {
   collections: DemoCollection[];
   collectionCounts: Record<string, number>;
   onSelect: (id: string) => void;
-  guestLocked?: boolean;
-  onGuestLocked?: () => void;
   selectionActive?: boolean;
   allowEntireVault?: boolean;
   triggerId?: string;
 };
 
-export function VaultCollectionCard({ selectedCollection, collections, collectionCounts, onSelect, guestLocked = false, onGuestLocked, selectionActive = true, allowEntireVault = true, triggerId }: VaultCollectionCardProps) {
+export function VaultCollectionCard({ selectedCollection, collections, collectionCounts, onSelect, selectionActive = true, allowEntireVault = true, triggerId }: VaultCollectionCardProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -73,19 +71,19 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
         type="button"
         className={styles.compactCard}
         data-active={selectionActive || undefined}
-        onClick={() => guestLocked ? onGuestLocked?.() : setOpen(true)}
-        aria-haspopup={guestLocked ? undefined : "dialog"}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         aria-label={selectionActive
-          ? `Collection draw from ${selectedCollection.name}. ${guestLocked ? "Sign in to change collection" : "Change collection"}.`
-          : `${guestLocked ? "Sign in to use collections" : "Choose a collection draw instead"}.`}
+          ? `Collection draw from ${selectedCollection.name}. Change collection.`
+          : "Choose a collection draw instead."}
       >
-        <span className={styles.compactIcon}><VaultIcon name={guestLocked ? "privacy" : "collections"} size={19} /></span>
+        <span className={styles.compactIcon}><VaultIcon name="collections" size={19} /></span>
         <span className={styles.compactCopy}><small>{selectionActive ? "Collection draw" : "Choose instead"}</small><strong>{selectionActive ? selectedCollection.name : "Browse collections"}</strong></span>
-        <span className={styles.compactMeta}>{guestLocked ? "Sign in to use" : selectionActive ? `${collectionCounts[selectedCollection.id] ?? 0} games` : "Overrides Vault Draw"}</span>
+        <span className={styles.compactMeta}>{selectionActive ? `${collectionCounts[selectedCollection.id] ?? 0} games` : "Overrides Vault Draw"}</span>
         <VaultIcon className={styles.compactChevron} name="chevron-right" size={18} />
       </button>
 
-      {open && !guestLocked ? createPortal(<div className={styles.modalLayer}>
+      {open ? createPortal(<div className={styles.modalLayer}>
         <button type="button" className={styles.backdrop} onClick={close} aria-label="Close collection picker" />
         <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="collection-picker-title">
           <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" className={styles.closeButton} onClick={close} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { RateLimitExceededError } from "@/lib/rate-limit";
 
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
 
@@ -54,6 +55,22 @@ export function jsonError(error: unknown, status = 500) {
   }
   if (error instanceof HttpError) {
     return NextResponse.json({ error: error.message }, { status: error.status });
+  }
+  if (error instanceof RateLimitExceededError) {
+    return NextResponse.json(
+      {
+        error: error.message,
+        code: error.code,
+        retry_after_seconds: error.retryAfterSeconds
+      },
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "private, no-store, max-age=0",
+          "Retry-After": String(error.retryAfterSeconds)
+        }
+      }
+    );
   }
 
   const message = error instanceof Error ? error.message : "Something went wrong.";

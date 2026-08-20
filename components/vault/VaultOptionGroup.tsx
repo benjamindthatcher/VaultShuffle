@@ -65,13 +65,12 @@ export function VaultOptionGroup({
               type="button"
               className={`${styles.optionButton}${isActive ? ` ${styles.optionButtonActive}` : ""}${isLocked ? ` ${styles.optionButtonLocked}` : ""}`}
               aria-pressed={isActive}
-              aria-disabled={isLocked}
-              aria-label={isLocked ? `${option.label}. Sign in with Steam to use this option.` : option.label}
+              aria-label={isLocked ? `${option.label}. Uses your Steam playtime; the rest of the preview stays available.` : option.label}
               onClick={() => isLocked ? onLockedSelect?.(option.id) : onSelect(option.id)}
             >
               <VaultIcon name={optionIconName(option.id)} size={38} className={styles.optionIcon} />
               <strong className={styles.optionLabel}>{option.label}</strong>
-              {isLocked ? <span className={styles.lockMark} title="Sign in required"><VaultIcon name="privacy" size={14} /></span> : null}
+              {isLocked ? <span className={styles.lockMark} title="Uses your Steam playtime"><VaultIcon name="privacy" size={14} /></span> : null}
             </button>
           );
         })}

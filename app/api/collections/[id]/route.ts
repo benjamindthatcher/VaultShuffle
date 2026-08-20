@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
 import { deleteCollection, getCollectionWithGames, updateCollection } from "@/lib/collections";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { collectionPatchSchema } from "@/lib/validation";
@@ -19,7 +19,7 @@ export async function GET(_request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
+    const [{ user }, { id }] = await Promise.all([requireWriteSession(), context.params]);
     const payload = collectionPatchSchema.parse(await readJsonBody(request));
     const collection = await updateCollection(user.id, id, payload);
     if (!collection) return NextResponse.json({ error: "Collection not found." }, { status: 404 });
@@ -31,10 +31,11 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
-    const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
+    const [{ user }, { id }] = await Promise.all([requireWriteSession(), context.params]);
     await deleteCollection(user.id, id);
     return NextResponse.json({ ok: true });
-  } catch {
-    return unauthorizedResponse();
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();
+    return jsonError(error);
   }
 }

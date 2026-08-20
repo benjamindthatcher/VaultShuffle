@@ -16,7 +16,7 @@ import {
 import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
-import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
+import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { findCompletionCandidates } from "@/lib/completion-check";
@@ -300,7 +300,11 @@ export default function PurgePage() {
       } else if (committedAction === "sleep") {
         await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
       }
-      trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: committedAction, category: candidate.category });
+      trackEvent(ANALYTICS_EVENTS.purgeDecision, {
+        action: committedAction,
+        category: candidate.category,
+        preview_mode: true,
+      });
       finishDecision(candidate, committedAction, previousStatus, review);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");
@@ -348,19 +352,14 @@ export default function PurgePage() {
     setError("");
   }
 
-  if (!isLive) {
-    return <GuestFeatureGate
-      feature="Purge"
-      icon="sleep"
-      title="Purge works from your real play history"
-      description="Purge needs your Steam playtime and your saved VaultShuffle decisions before it can make honest recommendations about what to keep, sleep or complete."
-      benefits={["Find untouched and abandoned games", "Save every decision to your account", "Undo decisions without losing your library state"]}
-    />;
-  }
-
   return <PurgePageFrame>
     <h1 className="visually-hidden">Purge</h1>
-    <CompletionClaimBanner />
+    {!isLive ? (
+      <GuestPreviewNotice feature="Purge" icon="sleep" catalogueSize={games.length}>
+        Try the review flow with catalogue metadata. There is no personal play history here, and preview decisions reset when you leave.
+      </GuestPreviewNotice>
+    ) : null}
+    {isLive ? <CompletionClaimBanner /> : null}
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
         <SectionHeading title="What to review" />
@@ -409,9 +408,9 @@ export default function PurgePage() {
           <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
           <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p>{current.signal ? <p className={current.signal.leaning === "cut" ? styles.signalCut : styles.signalKeep}><strong>{current.signal.label}</strong>{current.signal.detail}</p> : null}<div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
           <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
-            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>Leave active and review again in 180 days.</small></span></button>
-            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>Remove it from active views and Vault draws.</small></span></button>
-            <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : "Keep it at the front of your Library."}</small></span></button>
+            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>{isLive ? "Leave active and review again in 180 days." : "Leave it active in this preview."}</small></span></button>
+            <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>{isLive ? "Remove it from active views and Vault draws." : "Remove it from this visit's active views and draws."}</small></span></button>
+            <button type="button" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : isLive ? "Keep it at the front of your Library." : "Keep it at the front of the preview Library."}</small></span></button>
           </div>
         </section> : null}
       </> : <section className={styles.queuePanel}>
@@ -444,7 +443,7 @@ export default function PurgePage() {
               </ul>
             : <p className={styles.emptyNote}>Every active game has either been flagged or reviewed.</p>)}
       </section>}
-    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : "Every decision saves and advances automatically."}</span></footer>
+    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : isLive ? "Every decision saves and advances automatically." : "Every preview decision advances automatically and lasts for this visit."}</span></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
   </PurgePageFrame>;
@@ -469,4 +468,3 @@ type PurgeDecisionIconName = "keep-active" | "pin" | "sleep";
 function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
   return <span className={styles.decisionIcon} aria-hidden="true"><VaultIcon name={name} size={34} /></span>;
 }
-

@@ -201,14 +201,52 @@ export function mapGuestGames(games: Game[]): DemoGame[] {
 }
 
 export function guestPreviewCollection(gameCount: number): DemoCollection[] {
-  return [{
-    id: "all",
-    kind: "system",
-    name: "Guest Catalogue",
-    description: `${gameCount} popular and iconic Steam games available for preview draws.`,
-    artworkUrl: "/assets/vault/vault-stage-open.png",
-    accent: "Sign in to replace this pool with your own Steam library."
-  }];
+  return [
+    {
+      id: "all",
+      kind: "system",
+      name: "Guest Catalogue",
+      description: `${gameCount} popular and iconic Steam games available for preview draws.`,
+      artworkUrl: "/assets/vault/vault-stage-open.png",
+      accent: "Sign in to replace this pool with your own Steam library."
+    },
+    {
+      id: "guest-catalogue-sampler",
+      kind: "smart",
+      name: "Catalogue Sampler",
+      description: "A broad shelf from the guest catalogue, ready even when richer metadata is still loading.",
+      artworkUrl: collectionBanner("Guest Catalogue") || "/assets/vault/vault-stage-open.png",
+      accent: "A dependable preview shelf built from active catalogue games.",
+      smartPreset: "untouched"
+    },
+    {
+      id: "guest-quick-wins",
+      kind: "smart",
+      name: "Quick Wins",
+      description: "Shorter games from the guest catalogue that fit into eight hours or less.",
+      artworkUrl: collectionBanner("Quick Wins") || "/assets/vault/vault-stage-open.png",
+      accent: "A live preview built from catalogue duration data.",
+      smartPreset: "quick-wins"
+    },
+    {
+      id: "guest-long-hauls",
+      kind: "smart",
+      name: "Long Hauls",
+      description: "Bigger commitments with an estimated main path of forty hours or more.",
+      artworkUrl: collectionBanner("Long Hauls") || "/assets/vault/vault-stage-open.png",
+      accent: "A live preview built from catalogue duration data.",
+      smartPreset: "long-haul"
+    },
+    {
+      id: "guest-endless-rotation",
+      kind: "smart",
+      name: "Endless Rotation",
+      description: "Replayable games and ongoing worlds without a conventional finish line.",
+      artworkUrl: collectionBanner("Endless Rotation") || "/assets/vault/vault-stage-open.png",
+      accent: "A live preview built from catalogue classification data.",
+      smartPreset: "endless-rotation"
+    }
+  ];
 }
 
 function normaliseGenres(game: Game) {

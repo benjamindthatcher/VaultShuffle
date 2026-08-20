@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
-import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
+import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { findCompletionCandidates } from "@/lib/completion-check";
@@ -123,25 +123,17 @@ export default function FinishedPage() {
     setSelected(Object.fromEntries(pending.map((candidate) => [candidate.game.id, true])));
   }
 
-  if (!isLive) {
-    return (
-      <GuestFeatureGate
-        feature="Completion check"
-        icon="completed"
-        title="Claim the games you already finished"
-        description="Connect Steam and VaultShuffle can spot the games your playtime says you finished but never marked, so your library reflects what you have actually done."
-        benefits={[
-          "Find finished games hiding in your backlog",
-          "Watch your completed value climb as you claim them",
-          "Stop them turning up in Vault draws"
-        ]}
-      />
-    );
-  }
-
   return (
     <div className={styles.page}>
-      <PageHeading title={pending.length ? "Did you finish these?" : "Nothing left to claim"} />
+      <PageHeading title={!isLive ? "Completion check preview" : pending.length ? "Did you finish these?" : "Nothing left to claim"}>
+        {!isLive ? "This page becomes a real review queue once Steam can provide your playtime." : undefined}
+      </PageHeading>
+
+      {!isLive ? (
+        <GuestPreviewNotice feature="Completion check" icon="completed" catalogueSize={games.length}>
+          The guest catalogue has no personal playtime, so VaultShuffle will not invent games for you to claim as finished.
+        </GuestPreviewNotice>
+      ) : null}
 
       {claimedCount ? (
         <p className={styles.claimBar} role="status">
@@ -223,9 +215,11 @@ export default function FinishedPage() {
         </>
       ) : (
         <div className={styles.done}>
-          <p>{claimedCount ? "That is your backlog looking a lot more honest." : "Nothing to claim right now."}</p>
+          <p>{!isLive
+            ? "There is nothing personal to check yet. You can still browse the guest Library and try the rest of VaultShuffle."
+            : claimedCount ? "That is your backlog looking a lot more honest." : "Nothing to claim right now."}</p>
           <div className={styles.doneActions}>
-            <Link className={styles.primaryLink} href="/stats">See your stats</Link>
+            <Link className={styles.primaryLink} href="/dashboard">See your dashboard</Link>
             <Link className={styles.secondaryLink} href="/vault">Draw something to play</Link>
           </div>
         </div>

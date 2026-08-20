@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession } from "@/lib/auth";
+import { requireWriteSession } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -29,7 +29,7 @@ const eventSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const input = eventSchema.parse(await readJsonBody(request));
     const supabase = getSupabaseAdmin();
     const { data: draw, error: drawError } = await supabase

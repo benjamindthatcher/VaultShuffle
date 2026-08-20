@@ -63,3 +63,16 @@ venv/
 *.zip
 data/private/
 data/exports/
+
+# Generated catalogue and duration working data. Regenerable from
+# scripts/catalogue and scripts/durations, and far too large for git — the
+# parquet alone is 181MB, well past GitHub's 100MB per-file hard limit, and
+# deleting these later would not reclaim the space once they are in history.
+data/catalogue/.cache/
+data/catalogue/*.parquet
+data/catalogue/hltb-*.json
+data/catalogue/igdb-*.json
+data/catalogue/popular-appids-*
+data/catalogue/steam-metadata-*.json
+data/catalogue/steamspy-*.json
+data/catalogue/steam-device-mode-*.json

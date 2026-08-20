@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession } from "@/lib/auth";
+import { requireWriteSession } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { recordCompletionClaim, recordCompletionUndone } from "@/lib/completion-events";
 
@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const input = schema.parse(await readJsonBody(request));
 
     if (input.action === "undone") {

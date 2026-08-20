@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { requestFingerprint } from "@/lib/rate-limit";
 import type { z } from "zod";
 import type { contactMessageSchema, feedbackSubmissionSchema } from "@/lib/validation";
 
@@ -11,41 +12,16 @@ export class SubmissionStorageError extends Error {}
 
 export class DuplicateSubmissionError extends Error {}
 
-export class SubmissionRateLimitError extends Error {
-  constructor(public readonly retryAfterSeconds: number) {
-    super("Too many submissions. Please wait a few minutes and try again.");
-  }
-}
-
-const attempts = new Map<string, number[]>();
-
-export function assertSubmissionRate(key: string, limit = 5, windowMs = 10 * 60 * 1000) {
-  const now = Date.now();
-  const recent = (attempts.get(key) ?? []).filter((time) => now - time < windowMs);
-  if (recent.length >= limit) {
-    const retryAfter = Math.max(1, Math.ceil((windowMs - (now - recent[0])) / 1000));
-    throw new SubmissionRateLimitError(retryAfter);
-  }
-  attempts.set(key, [...recent, now]);
-  if (attempts.size > 5000) {
-    for (const [attemptKey, times] of attempts) {
-      if (!times.some((time) => now - time < windowMs)) attempts.delete(attemptKey);
-    }
-  }
-}
+export class InvalidSubmissionError extends Error {}
 
 export function assertHumanSubmission(startedAt: number, website = "") {
   const elapsed = Date.now() - startedAt;
   if (website || elapsed < 800 || elapsed > 24 * 60 * 60 * 1000) {
-    throw new Error("Please refresh the form and try again.");
+    throw new InvalidSubmissionError("Please refresh the form and try again.");
   }
 }
 
-export function requestFingerprint(request: Request) {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const source = forwarded || request.headers.get("x-real-ip") || "local";
-  return crypto.createHash("sha256").update(source).digest("hex");
-}
+export { requestFingerprint };
 
 function contentHash(parts: Array<string | null | undefined>) {
   return crypto.createHash("sha256").update(parts.filter(Boolean).join("\u001f")).digest("hex");

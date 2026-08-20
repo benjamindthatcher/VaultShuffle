@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { getVaultState, recordVaultAction } from "@/lib/vault-state";
 
@@ -24,7 +24,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const payload = vaultActionSchema.parse(await readJsonBody(request));
     return NextResponse.json(await recordVaultAction(user.id, payload.action, payload.game_id, payload.context));
   } catch (error) {

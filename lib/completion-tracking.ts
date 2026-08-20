@@ -32,7 +32,8 @@ export function trackCompletionClaim(game: DemoGame, source: CompletionSource, i
     estimate_hours: estimateMinutes ? Math.round(estimateMinutes / 60) : null,
     // Above 1 means they played past the estimate, which is what the sweep spots.
     played_vs_estimate: estimateMinutes ? Number((hoursPlayed / (estimateMinutes / 60)).toFixed(2)) : null,
-    had_estimate: Boolean(estimateMinutes)
+    had_estimate: Boolean(estimateMinutes),
+    preview_mode: !isLive,
   });
 
   if (!isLive) return;
@@ -51,7 +52,11 @@ export function trackCompletionClaim(game: DemoGame, source: CompletionSource, i
 }
 
 export function trackCompletionUndone(game: DemoGame, source: CompletionSource, isLive: boolean) {
-  trackEvent(ANALYTICS_EVENTS.completionUndone, { source, price_cents: priceCents(game) });
+  trackEvent(ANALYTICS_EVENTS.completionUndone, {
+    source,
+    price_cents: priceCents(game),
+    preview_mode: !isLive,
+  });
   if (!isLive) return;
   void fetch("/api/completions", {
     method: "POST",

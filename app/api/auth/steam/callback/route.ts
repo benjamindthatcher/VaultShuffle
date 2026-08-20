@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { attachSessionCookie, createSessionForSteamId } from "@/lib/auth";
+import { enforceRateLimit, RateLimitExceededError, requestFingerprint } from "@/lib/rate-limit";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
@@ -21,6 +22,13 @@ export async function GET(request: Request) {
   const baseUrl = siteBaseUrl(request);
 
   try {
+    await enforceRateLimit({
+      bucket: "steam_auth_callback",
+      identity: requestFingerprint(request),
+      limit: 20,
+      windowSeconds: 10 * 60,
+      message: "Too many Steam sign-in responses were received from this connection. Please wait before trying again."
+    });
     if (url.searchParams.get("openid.mode") === "cancel") {
       throw new Error("Steam sign-in was cancelled.");
     }
@@ -42,7 +50,7 @@ export async function GET(request: Request) {
 
     const { token } = await createSessionForSteamId(steamId, profile);
 
-    const response = NextResponse.redirect(new URL("/vault", baseUrl));
+    const response = NextResponse.redirect(new URL("/dashboard", baseUrl));
 
     response.cookies.set({
       name: STEAM_IMPORT_COOKIE,
@@ -57,9 +65,11 @@ export async function GET(request: Request) {
     return attachSessionCookie(response, token);
   } catch (error) {
     const detailedMessage = describeError(error);
-    const publicMessage = detailedMessage === "Steam sign-in was cancelled."
-      ? detailedMessage
-      : "Steam sign-in failed. Please try again.";
+    const publicMessage = error instanceof RateLimitExceededError
+      ? `${error.message} Try again in about ${Math.max(1, Math.ceil(error.retryAfterSeconds / 60))} minute${error.retryAfterSeconds > 60 ? "s" : ""}.`
+      : detailedMessage === "Steam sign-in was cancelled."
+        ? detailedMessage
+        : "Steam sign-in failed. Please try again.";
     const message = encodeURIComponent(publicMessage);
 
     console.error("Steam callback failed:", detailedMessage);

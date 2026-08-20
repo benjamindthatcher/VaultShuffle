@@ -4,6 +4,7 @@ import { useRef, useState, type FormEvent } from "react";
 import { useFeedback } from "@/components/feedback/FeedbackProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { announceCooldown } from "@/lib/cooldown";
 import styles from "@/app/contact/contact.module.css";
 
 const enquiryTypes = [
@@ -38,7 +39,8 @@ export function ContactContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enquiry_type: enquiryType, email, subject, message, website: "", form_started_at: formStartedAt.current })
       });
-      const body = await response.json() as { error?: string };
+      const body = await response.json() as { error?: string; code?: string; retry_after_seconds?: number };
+      announceCooldown(response, body);
       if (!response.ok) throw new Error(body.error || "We couldn't send your message. Please try again.");
       trackEvent(ANALYTICS_EVENTS.contactSubmitted, { enquiry_type: enquiryType });
       setSuccess(true);

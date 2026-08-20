@@ -1,22 +1,56 @@
 import { after, NextResponse } from "next/server";
+import { z } from "zod";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
-import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
-import { jsonError } from "@/lib/http";
+import { jsonError, readJsonBody } from "@/lib/http";
+import { enforceRateLimit } from "@/lib/rate-limit";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import { SteamLibraryUnavailableError, steamPlayHistoryMissing, steamVisibilityFromGames } from "@/lib/steam-owned-games";
-import { processCatalogueQueue, recordImportedSteamAppIds } from "@/lib/catalogue";
+import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
+import { processCatalogueQueue } from "@/lib/catalogue";
+import { getSteamImportProgress, processNextSteamImportBatch, stageSteamImport } from "@/lib/steam-import-jobs";
 
 export const maxDuration = 60;
 
-export async function POST() {
-  return importLibrary();
-}
+const requestSchema = z.object({ restart: z.boolean().optional() }).strict();
 
-async function importLibrary() {
-  const startedAt = Date.now();
-  console.log(JSON.stringify({ level: "info", message: "Steam library import started", route: "/api/steam/owned-games" }));
+export async function GET() {
   try {
     const { user } = await requireSession();
+    return NextResponse.json({ progress: await getSteamImportProgress(user.id) });
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();
+    return jsonError(error, 502);
+  }
+}
+
+export async function POST(request: Request) {
+  const startedAt = Date.now();
+  try {
+    const { user } = await requireSession();
+    const body = requestSchema.parse(await readJsonBody(request, 1024));
+    const restart = body.restart !== false;
+
+    const existing = await getSteamImportProgress(user.id);
+    const resumable = existing.total > existing.imported && (existing.status === "importing" || existing.status === "failed");
+    if (!restart || resumable) {
+      await enforceRateLimit({
+        bucket: "steam_import_batch",
+        identity: `user:${user.id}`,
+        limit: 45,
+        windowSeconds: 5 * 60,
+        message: "This Steam import is receiving too many batch requests. Please let the current import settle before resuming."
+      });
+      const result = await processNextSteamImportBatch(user.id);
+      scheduleInitialEnrichment(result.progress.status, user.id);
+      return NextResponse.json(
+        {
+          progress: result.progress,
+          ...(result.retryAfterSeconds ? { retry_after_seconds: result.retryAfterSeconds } : {})
+        },
+        { status: result.retryAfterSeconds ? 202 : 200 }
+      );
+    }
+
+    console.log(JSON.stringify({ level: "info", message: "Steam library staging started", route: "/api/steam/owned-games" }));
     const apiKey = process.env.STEAM_WEB_API_KEY;
 
     if (!apiKey) {
@@ -26,35 +60,25 @@ async function importLibrary() {
       );
     }
 
-    const importedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
-    const importedAppIds = importedGames.flatMap((game) =>
-      game.steam_appid ? [String(game.steam_appid)] : []
-    );
-
-    const catalogue = await recordImportedSteamAppIds(user.id, importedAppIds)
-      .catch(() => ({ queued: 0 }));
-    const games = await upsertSteamGames(user.id, importedGames);
-    await recordSteamVisibility(user.id, steamVisibilityFromGames(importedGames)).catch(() => undefined);
-
-    // Metadata and catalogue enrichment are useful, but they must not delay the
-    // sign-in/import response. They continue after the updated library is saved.
-    after(async () => {
-      const deadlineAt = Date.now() + 45_000;
-      await processCatalogueQueue(20, importedAppIds.map(Number), deadlineAt).catch(() => undefined);
+    await enforceRateLimit({
+      bucket: "steam_library_refresh",
+      identity: `user:${user.id}`,
+      limit: 1,
+      windowSeconds: 5 * 60,
+      message: "Your Steam library was refreshed recently. To protect your account and Steam, please wait before starting another refresh."
     });
+
+    const importedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
+    const progress = await stageSteamImport(user.id, importedGames);
 
     console.log(JSON.stringify({
       level: "info",
-      message: "Steam library import completed",
+      message: "Steam library staged for bounded import",
       route: "/api/steam/owned-games",
-      imported: games.length,
+      total: progress.total,
       duration_ms: Date.now() - startedAt
     }));
-    return NextResponse.json({
-      imported: games.length,
-      catalogue,
-      play_history_missing: steamPlayHistoryMissing(importedGames)
-    });
+    return NextResponse.json({ progress });
   } catch (error) {
     if (error instanceof Error && error.message.includes("sign-in")) {
       return unauthorizedResponse();
@@ -70,4 +94,16 @@ async function importLibrary() {
     }
     return jsonError(error, 502);
   }
+}
+
+function scheduleInitialEnrichment(status: string, userId: string) {
+  if (status !== "complete") return;
+  after(async () => {
+    const deadlineAt = Date.now() + 45_000;
+    // Queue claims are shared, and user imports are registered with elevated
+    // priority. A small first pass helps without extending the ownership job.
+    await processCatalogueQueue(20, undefined, deadlineAt).catch((error) => {
+      console.warn("Initial catalogue enrichment did not complete", { userId, error });
+    });
+  });
 }

@@ -45,6 +45,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Could not load app data.", error);
-    return NextResponse.json({ session, data_error: true });
+    return NextResponse.json(
+      { error: "Your VaultShuffle data could not be loaded.", session, data_error: true },
+      { status: 503 }
+    );
   }
 }

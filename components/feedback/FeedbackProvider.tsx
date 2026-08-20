@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { usePathname } from "next/navigation";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { announceCooldown } from "@/lib/cooldown";
 import styles from "./FeedbackProvider.module.css";
 
 type FeedbackType = "improvement" | "bug";
@@ -143,7 +144,8 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
           form_started_at: formStartedAt.current
         })
       });
-      const body = await response.json() as { error?: string };
+      const body = await response.json() as { error?: string; code?: string; retry_after_seconds?: number };
+      announceCooldown(response, body);
       if (!response.ok) throw new Error(body.error || "We couldn't send your feedback. Please try again.");
       trackEvent(ANALYTICS_EVENTS.feedbackSubmitted, { feedback_type: type, app_area: appArea(route), source });
       sessionStorage.removeItem("vault-feedback-draft");

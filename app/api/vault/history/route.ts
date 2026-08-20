@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { jsonError, readJsonBody } from "@/lib/http";
 
@@ -50,7 +50,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const input = drawSchema.parse(await readJsonBody(request));
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase.rpc("record_user_vault_draw", {
@@ -72,6 +72,6 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
-  try { const { user } = await requireSession(); const { error } = await getSupabaseAdmin().from("vault_draws").delete().eq("user_id", user.id); if (error) throw error; return NextResponse.json({ ok: true }); }
+  try { const { user } = await requireWriteSession(); const { error } = await getSupabaseAdmin().from("vault_draws").delete().eq("user_id", user.id); if (error) throw error; return NextResponse.json({ ok: true }); }
   catch (error) { return jsonError(error, error instanceof Error && error.message.includes("sign-in") ? 401 : 400); }
 }

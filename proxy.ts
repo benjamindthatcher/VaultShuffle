@@ -99,6 +99,8 @@ export const config = {
   matcher: [
     "/api/:path*",
     "/ingest/:path*",
+    "/dashboard",
+    "/stats",
     "/vault",
     "/library",
     "/purge",

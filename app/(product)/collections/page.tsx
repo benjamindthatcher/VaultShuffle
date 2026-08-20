@@ -7,7 +7,7 @@ import { GameCard } from "@/components/shared/GameCard";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
+import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
@@ -164,25 +164,21 @@ export default function CollectionsPage() {
     }
   }
 
-  if (!isLive) {
-    return <GuestFeatureGate
-      feature="Collections"
-      icon="collections"
-      title="Build shelves from the games you own"
-      description="Collections become meaningful once Steam is connected: create your own shelves or let smart rules organise games from your live library."
-      benefits={["Create custom game shelves", "Use smart rules based on progress and playtime", "Choose a collection as the source for a Vault draw"]}
-    />;
-  }
-
   return (
     <section className={styles.collectionsPage}>
       <h1 className="visually-hidden">Collections</h1>
 
-      <StatPanel label="Collections summary" columns={4}>
-        <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
+      {!isLive ? (
+        <GuestPreviewNotice feature="Collections" icon="collections" catalogueSize={ownedGames.length}>
+          Explore smart shelves built from catalogue metadata, or make a temporary collection of your own. Preview changes are not saved.
+        </GuestPreviewNotice>
+      ) : null}
+
+      <StatPanel label={isLive ? "Collections summary" : "Preview collections summary"} columns={4}>
+        <StatCard icon="all-collections" label={isLive ? "All Collections" : "Preview Collections"} value={stats.total} note={isLive ? "Every shelf currently in rotation." : "Smart and temporary shelves to explore."} />
         <StatCard icon="smart-collections" label="Smart Collections" value={stats.smart} note="Automatically themed groupings." />
-        <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note="Hand-shaped shelves with your own intent." />
-        <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note="Owned games already sorted into groups." />
+        <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note={isLive ? "Hand-shaped shelves with your own intent." : "Anything you create during this visit."} />
+        <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note={isLive ? "Owned games already sorted into groups." : "Guest catalogue games matched by preview rules."} />
       </StatPanel>
 
       {composerOpen ? (
@@ -236,7 +232,7 @@ export default function CollectionsPage() {
 
       <section className={styles.collectionPanel}>
         <SectionHeading
-          title="Your collections"
+          title={isLive ? "Your collections" : "Preview collections"}
           meta={`${baseCollections.length}`}
           action={<>
             <div className={styles.railActions} role="group" aria-label="Browse collections">
@@ -279,7 +275,7 @@ export default function CollectionsPage() {
           />
           <p className={styles.sectionCopy}>
             {selectedCollection.description}
-            {selectedCollection.kind === "smart" ? " Updates automatically from your library." : ""}
+            {selectedCollection.kind === "smart" ? (isLive ? " Updates automatically from your library." : " Updates from the guest catalogue while you preview.") : ""}
           </p>
           {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
           <div className={styles.selectedGames}>
@@ -289,8 +285,8 @@ export default function CollectionsPage() {
               <div className={styles.emptyState}>
                 <h3 className={styles.emptyTitle}>No games in this collection yet.</h3>
                 <p className={styles.emptyCopy}>{selectedCollection.kind === "smart"
-                  ? "No owned games currently match this automatic rule."
-                  : "Open a game from Library and select this collection to add it here."}</p>
+                  ? (isLive ? "No owned games currently match this automatic rule." : "No guest catalogue games currently match this preview rule.")
+                  : `Open a game from Library and select this collection to add it here${isLive ? "." : " for this visit."}`}</p>
               </div>
             )}
           </div>

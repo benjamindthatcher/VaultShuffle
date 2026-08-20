@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
 import { ANALYTICS_EVENTS, VAULT_ACTION_EVENT_NAMES, VAULT_DRAW_EVENT_NAMES, setAnalyticsAudience, trackEvent, trackNavigationEvent } from "@/lib/analytics";
@@ -11,6 +11,11 @@ import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
+import { announceCooldown } from "@/lib/cooldown";
+import {
+  IDLE_STEAM_IMPORT,
+  type SteamImportProgress
+} from "@/lib/steam-import-progress";
 
 type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
@@ -60,9 +65,12 @@ type AppDataContextValue = {
   setDeviceMode: (mode: DeviceMode) => void;
   isLoading: boolean;
   isSyncing: boolean;
+  steamImport: SteamImportProgress;
+  steamImportChecked: boolean;
   loadError: string | null;
-  refresh: () => Promise<void>;
-  syncSteamLibrary: () => Promise<number>;
+  refresh: () => Promise<boolean>;
+  checkSteamImport: () => Promise<SteamImportProgress>;
+  syncSteamLibrary: (options?: { restart?: boolean }) => Promise<number>;
   signOut: () => Promise<void>;
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
@@ -90,7 +98,10 @@ async function api<T>(path: string, options: RequestInit = {}) {
   }
 
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.error || "Request failed.");
+  if (!response.ok) {
+    announceCooldown(response, payload);
+    throw new Error(payload.error || "Request failed.");
+  }
   return payload as T;
 }
 
@@ -110,9 +121,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [steamImport, setSteamImport] = useState<SteamImportProgress>(IDLE_STEAM_IMPORT);
+  const [steamImportChecked, setSteamImportChecked] = useState(false);
   const [playHistoryMissing, setPlayHistoryMissing] = useState(false);
   const [deviceMode, setDeviceModeState] = useState<DeviceMode>("all");
   const [loadError, setLoadError] = useState<string | null>(null);
+  const syncPromiseRef = useRef<Promise<number> | null>(null);
 
   async function load() {
     setIsLoading(true);
@@ -131,14 +145,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         } else if (bootstrap.data_error) {
           setLoadError("The live guest catalogue is temporarily unavailable. A smaller preview is still ready.");
         }
-        return;
+        return false;
       }
 
       setIsLive(true);
       const { games, collections, memberships, vaultState } = bootstrap;
       if (bootstrap.data_error || !games || !collections || !memberships || !vaultState) {
         setLoadError("Your VaultShuffle data could not be loaded. Please retry.");
-        return;
+        return false;
       }
 
       const details = buildCollectionDetails(collections, games, memberships);
@@ -151,12 +165,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setLiveGenrePreferences(bootstrap.genrePreferences ?? EMPTY_GENRE_PREFERENCES);
       setLiveGenrePreferenceGlobals(bootstrap.genrePreferenceGlobals ?? EMPTY_GENRE_PREFERENCES);
       setLivePlaytime(bootstrap.playtime ?? EMPTY_PLAYTIME);
+      return true;
     } catch (error) {
-      setSession(guestSession);
-      setIsLive(false);
-      if (error instanceof Error && error.message !== "unauthorized") {
-        setLoadError("VaultShuffle could not check your session. Guest preview is still available.");
+      if (error instanceof Error && error.message === "unauthorized") {
+        setSession(guestSession);
+        setIsLive(false);
+      } else {
+        setLoadError(
+          isLive
+            ? "VaultShuffle could not reload your data. Your existing view is still available."
+            : "VaultShuffle could not check your session. Guest preview is still available."
+        );
       }
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -165,6 +186,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void load();
   }, []);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isLive) {
+      setSteamImport(IDLE_STEAM_IMPORT);
+      setSteamImportChecked(true);
+      return;
+    }
+    void checkSteamImport().catch((error) => {
+      console.error("Could not check Steam import status", error);
+      setSteamImport((current) => ({
+        ...current,
+        status: "failed",
+        lastError: "VaultShuffle could not check the saved Steam import. Retry to check again."
+      }));
+    });
+  }, [isLive, isLoading]);
 
   useEffect(() => {
     try {
@@ -193,31 +231,106 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     trackEvent(ANALYTICS_EVENTS.deviceModeChanged, { mode });
   }
 
-  async function syncSteamLibrary() {
+  async function checkSteamImport() {
+    try {
+      const result = await api<{ progress: SteamImportProgress }>("/api/steam/owned-games");
+      setSteamImport(result.progress);
+      return result.progress;
+    } finally {
+      setSteamImportChecked(true);
+    }
+  }
+
+  function syncSteamLibrary(options: { restart?: boolean } = {}) {
+    if (syncPromiseRef.current) return syncPromiseRef.current;
+    const promise = runSteamLibrarySync(options);
+    syncPromiseRef.current = promise;
+    void promise.finally(() => {
+      if (syncPromiseRef.current === promise) syncPromiseRef.current = null;
+    }).catch(() => undefined);
+    return promise;
+  }
+
+  async function runSteamLibrarySync({ restart = true }: { restart?: boolean }) {
     if (!isLive) throw new Error("Sign in with Steam before syncing your library.");
 
     setIsSyncing(true);
+    setSteamImport((current) => ({
+      ...current,
+      status: restart ? "fetching" : current.status,
+      imported: restart ? 0 : current.imported,
+      total: restart ? 0 : current.total,
+      percent: restart ? 0 : current.percent,
+      lastError: null,
+      completedAt: restart ? null : current.completedAt
+    }));
+    let steamImportSaved = restart ? false : steamImport.imported > 0;
+    let importCompleted = false;
     try {
-      const result = await api<{ imported: number; play_history_missing?: boolean }>("/api/steam/owned-games", { method: "POST" });
-      await load();
+      let result = await requestSteamImportBatch(restart);
+      setSteamImport(result.progress);
+      steamImportSaved = result.progress.imported > 0;
+
+      let unchangedResponses = 0;
+      while (result.progress.status === "importing") {
+        if (result.retry_after_seconds) {
+          const retryAfterMs = result.retry_after_seconds * 1000;
+          await new Promise((resolve) => window.setTimeout(resolve, retryAfterMs));
+        }
+        const previousImported = result.progress.imported;
+        result = await requestSteamImportBatch(false);
+        setSteamImport(result.progress);
+        steamImportSaved ||= result.progress.imported > 0;
+        unchangedResponses = result.progress.imported === previousImported
+          ? unchangedResponses + 1
+          : 0;
+        if (unchangedResponses >= 3) {
+          throw new Error("The Steam import stopped making progress. Its saved batches are safe; retry to resume.");
+        }
+      }
+
+      if (result.progress.status === "failed") {
+        throw new Error(result.progress.lastError || "The Steam import paused before it finished.");
+      }
+      importCompleted = result.progress.status === "complete";
+
+      const refreshed = await load();
+      if (!refreshed) {
+        throw new Error(
+          "Steam data was saved, but VaultShuffle could not reload it. Your sync is safe; try again in a moment."
+        );
+      }
       trackEvent(ANALYTICS_EVENTS.steamLibrarySynced, {
-        imported_count: result.imported,
-        play_history_missing: Boolean(result.play_history_missing)
+        imported_count: result.progress.total,
+        play_history_missing: result.progress.playHistoryMissing
       });
-      setPlayHistoryMissing(Boolean(result.play_history_missing));
-      return result.imported;
+      setPlayHistoryMissing(result.progress.playHistoryMissing);
+      return result.progress.total;
     } catch (error) {
+      const message = error instanceof Error ? error.message : "The Steam import stopped before it finished.";
+      if (!importCompleted) {
+        setSteamImport((current) => ({ ...current, status: "failed", lastError: message }));
+      }
       // A failed first import is the highest-intent moment in the funnel failing.
       // Reporting only successes would leave it invisible, which is exactly how
       // the Steam launch event stayed at zero for a month.
-      trackEvent(ANALYTICS_EVENTS.steamImportFailed, {
-        reason: error instanceof Error ? error.message : "unknown",
-        first_import: liveGames.length === 0
-      });
+      if (!steamImportSaved) {
+        trackEvent(ANALYTICS_EVENTS.steamImportFailed, {
+          reason: message,
+          first_import: liveGames.length === 0
+        });
+      }
       throw error;
     } finally {
       setIsSyncing(false);
     }
+  }
+
+  function requestSteamImportBatch(restart: boolean) {
+    return api<{ progress: SteamImportProgress; retry_after_seconds?: number }>("/api/steam/owned-games", {
+      method: "POST",
+      body: JSON.stringify({ restart })
+    });
   }
 
   async function signOut() {
@@ -248,7 +361,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     };
 
     setGuestCollections((current) => [nextCollection, ...current]);
-    trackEvent(ANALYTICS_EVENTS.collectionCreated, { kind: payload.kind ?? "custom" });
+    trackEvent(ANALYTICS_EVENTS.collectionCreated, {
+      kind: payload.kind ?? "custom",
+      preview_mode: true,
+    });
     return nextCollection.id;
   }
 
@@ -266,7 +382,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       kind: payload.kind ?? collection.kind,
       smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
     } : collection));
-    trackEvent(ANALYTICS_EVENTS.collectionUpdated, { kind: payload.kind ?? "custom" });
+    trackEvent(ANALYTICS_EVENTS.collectionUpdated, {
+      kind: payload.kind ?? "custom",
+      preview_mode: true,
+    });
   }
 
   async function removeCollection(collectionId: string) {
@@ -281,7 +400,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...game,
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
-    trackEvent(ANALYTICS_EVENTS.collectionDeleted);
+    trackEvent(ANALYTICS_EVENTS.collectionDeleted, { preview_mode: true });
   }
 
   async function updateGame(
@@ -318,8 +437,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
+    if (patch.status) {
+      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
+        status: patch.status,
+        preview_mode: true,
+      });
+    }
     if (patch.status === "Completed" || patch.status === "Slept") {
-      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status });
       setGuestVaultState((current) => ({
         ...current,
         pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
@@ -340,7 +464,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-    trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true });
+    trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
+      status: "Active",
+      restored: true,
+      preview_mode: true,
+    });
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
@@ -360,7 +488,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         ? Array.from(new Set([...game.collectionIds, collectionId]))
         : game.collectionIds.filter((id) => id !== collectionId)
     } : game));
-    trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: assigned ? "added" : "removed" });
+    trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, {
+      action: assigned ? "added" : "removed",
+      preview_mode: true,
+    });
   }
 
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
@@ -377,7 +508,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
     const guestEvent = VAULT_ACTION_EVENT_NAMES[action];
-    if (guestEvent) trackEvent(guestEvent, { action });
+    if (guestEvent) trackEvent(guestEvent, { action, preview_mode: true });
   }
 
   async function loadVaultHistory() {
@@ -406,7 +537,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     // The experiment arm and reroll depth ride along on every follow-up event:
     // the arm is per draw, so it cannot be a super-property, and the outcome
     // metric is measured on this event rather than on the draw that preceded it.
-    const properties: Record<string, unknown> = { draw_id: drawId, draw_action: eventType, ...analytics };
+    const properties: Record<string, unknown> = {
+      draw_id: drawId,
+      draw_action: eventType,
+      preview_mode: !isLive,
+      ...analytics,
+    };
     if (eventType === "snoozed_7_days") properties.snooze_days = 7;
     if (eventType === "snoozed_30_days") properties.snooze_days = 30;
 
@@ -427,6 +563,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   async function clearVaultHistory() {
     if (isLive) await api("/api/vault/history", { method: "DELETE" });
     if (isLive) setLiveVaultHistory([]); else setGuestVaultHistory([]);
+    trackEvent(ANALYTICS_EVENTS.vaultHistoryCleared, { preview_mode: !isLive });
   }
 
   const value = useMemo<AppDataContextValue>(
@@ -446,8 +583,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       isLive,
       isLoading,
       isSyncing,
+      steamImport,
+      steamImportChecked,
       loadError,
       refresh: load,
+      checkSteamImport,
       syncSteamLibrary,
       signOut,
       createCollection,
@@ -462,7 +602,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

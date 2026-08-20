@@ -20,6 +20,14 @@ export const ANALYTICS_EVENTS = {
   steamLibrarySynced: "steam_library_synced",
   steamImportFailed: "steam_import_failed",
 
+  // Guest previews use the same first-class product events as signed-in use so
+  // the funnels remain comparable. These events describe the preview-specific
+  // surfaces around that activity without duplicating every click.
+  guestPreviewViewed: "guest_preview_viewed",
+  guestPreviewAction: "guest_preview_action",
+  guestSignInNudgeShown: "guest_sign_in_nudge_shown",
+  guestSignInNudgeDismissed: "guest_sign_in_nudge_dismissed",
+
   // The Vault loop. vault_pick_launched is the north-star metric: it is the point
   // at which VaultShuffle has actually solved the user's decision problem.
   vaultSetupChanged: "vault_setup_changed",
@@ -45,6 +53,7 @@ export const ANALYTICS_EVENTS = {
   librarySearched: "library_searched",
   libraryFiltered: "library_filtered",
   libraryGameOpened: "library_game_opened",
+  gameSteamOpened: "game_steam_opened",
 
   // Collections
   collectionCreated: "collection_created",
@@ -141,5 +150,8 @@ export function trackNavigationEvent(event: AnalyticsEvent, properties?: Record<
 
 /** Registers session-wide context so every later event can be segmented by it. */
 export function setAnalyticsAudience(isGuest: boolean) {
-  registerAnalyticsContext({ is_guest: isGuest });
+  registerAnalyticsContext({
+    is_guest: isGuest,
+    data_scope: isGuest ? "guest_session" : "steam_library",
+  });
 }

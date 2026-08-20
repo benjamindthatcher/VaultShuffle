@@ -17,7 +17,7 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
-import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
+import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import type { DemoGame } from "@/lib/demo-data";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import styles from "./library.module.css";
@@ -45,10 +45,13 @@ export default function LibraryPage() {
   useEffect(() => {
     if (!query) return;
     const timer = setTimeout(() => {
-      trackEvent(ANALYTICS_EVENTS.librarySearched, { query_length: query.length });
+      trackEvent(ANALYTICS_EVENTS.librarySearched, {
+        query_length: query.length,
+        preview_mode: !isLive,
+      });
     }, 800);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [isLive, query]);
   const undoTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -87,6 +90,12 @@ export default function LibraryPage() {
       .slice(0, 4),
     [libraryGames]
   );
+
+  const guestSummary = useMemo(() => ({
+    genres: new Set(libraryGames.flatMap((game) => game.genres)).size,
+    timed: libraryGames.filter((game) => estimatedTimeToBeatMinutes(game.duration) !== null).length,
+    reviewed: libraryGames.filter((game) => Number(game.reviewTotal ?? 0) > 0).length
+  }), [libraryGames]);
 
   async function markCompleted(gameId: string) {
     const game = games.find((entry) => entry.id === gameId);
@@ -167,19 +176,23 @@ export default function LibraryPage() {
     await togglePin(selectedGame);
   }
 
-  if (!isLive) {
-    return <GuestFeatureGate
-      feature="Library"
-      icon="all-games"
-      title="Bring your own Steam library to life"
-      description="The guest Vault can demonstrate the draw, but Library needs your real games, playtime and recent activity to become useful."
-      benefits={["Import owned games directly from Steam", "Keep progress, notes and statuses together", "Launch installed games from their library cards"]}
-    />;
+  function openGame(gameId: string, surface: "recent" | "catalogue" | "pinned") {
+    setSelectedGameId(gameId);
+    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
+      surface,
+      preview_mode: !isLive,
+    });
   }
 
   return (
     <section className={styles.libraryPage}>
       <h1 className="visually-hidden">Library</h1>
+
+      {!isLive ? (
+        <GuestPreviewNotice feature="Library" icon="all-games" catalogueSize={libraryGames.length}>
+          Browse and filter the live guest catalogue. Any statuses, pins or notes you try are temporary until you connect Steam.
+        </GuestPreviewNotice>
+      ) : null}
 
       {pinnedGames.length ? <div className={styles.pinnedShelf}>
         <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div></div>
@@ -188,7 +201,7 @@ export default function LibraryPage() {
           const progress = pinProgress(game, pin);
           const sincePinned = progress?.started ? pinProgressLabel(game, pin) : null;
           return <div key={game.id} className={styles.pinnedCard}>
-            <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onUnpin={() => void togglePin(game)} pinned showProgress />
+            <GameCard game={game} onClick={() => openGame(game.id, "pinned")} onUnpin={() => void togglePin(game)} pinned showProgress />
             <span className={styles.pinBadge}>⌖ {index + 1}</span>
             {sincePinned ? <span className={styles.pinProgress}>{sincePinned}</span> : null}
           </div>;
@@ -196,10 +209,10 @@ export default function LibraryPage() {
       </div> : null}
 
 
-      <WelcomeBack />
+      {isLive ? <WelcomeBack /> : null}
 
-      <CompletionClaimBanner />
-      <LibraryEnrichmentBanner />
+      {isLive ? <CompletionClaimBanner /> : null}
+      {isLive ? <LibraryEnrichmentBanner /> : null}
 
       {celebratingGame ? (
         <CompletionCelebration
@@ -211,33 +224,42 @@ export default function LibraryPage() {
         />
       ) : null}
 
-      <StatPanel label="Library summary" columns={4}>
-        <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
-        <StatCard icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
-        <StatCard icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
-        <StatCard icon="in-progress" label="In Progress" value={stats.inProgress} note={`Mid-journey picks, ${stats.sampled} barely started.`} />
-      </StatPanel>
+      {isLive ? (
+        <StatPanel label="Library summary" columns={4}>
+          <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
+          <StatCard icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
+          <StatCard icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
+          <StatCard icon="in-progress" label="In Progress" value={stats.inProgress} note={`Mid-journey picks, ${stats.sampled} barely started.`} />
+        </StatPanel>
+      ) : (
+        <StatPanel label="Guest catalogue summary" columns={4}>
+          <StatCard icon="all-games" label="Catalogue Games" value={stats.total} note="Popular Steam games in this preview." />
+          <StatCard icon="genre" label="Genres" value={guestSummary.genres} note="Available to search and filter." />
+          <StatCard icon="clock" label="Time Estimates" value={guestSummary.timed} note="Games with known playthrough lengths." />
+          <StatCard icon="details" label="Review Signals" value={guestSummary.reviewed} note="Games with public Steam review data." />
+        </StatPanel>
+      )}
 
       <section className={styles.section}>
-        <SectionHeading title="Recent activity" />
+        <SectionHeading title={isLive ? "Recent activity" : "A few games in the preview"} />
         <div className={styles.recentRow}>
-          {recentActivity.map((game) => (
-            <button key={game.id} type="button" className={styles.recentCard} onClick={() => setSelectedGameId(game.id)}>
+          {(isLive ? recentActivity : libraryGames.slice(0, 4)).map((game) => (
+            <button key={game.id} type="button" className={styles.recentCard} onClick={() => openGame(game.id, "recent")}>
               <span className={styles.recentArtwork}>
                 <Artwork src={game.bannerUrl} sizes="(max-width: 720px) 80vw, 260px" />
               </span>
               <div className={styles.recentBody}>
                 <strong>{game.title}</strong>
-                <span>{game.lastPlayedLabel}</span>
+                <span>{isLive ? game.lastPlayedLabel : game.genres.slice(0, 2).join(" · ") || "Guest catalogue"}</span>
               </div>
             </button>
           ))}
         </div>
       </section>
 
-      <div className={styles.statusTabs} role="tablist" aria-label="Library status">
+      <div className={styles.statusTabs} role="tablist" aria-label={isLive ? "Library status" : "Preview status"}>
         {(["active", "slept", "completed"] as const).map((tab) => (
-          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setStatusTab(tab); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "status", value: tab }); }}>
+          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setStatusTab(tab); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "status", value: tab, preview_mode: !isLive }); }}>
             <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{statusCounts[tab]}</strong>
           </button>
         ))}
@@ -245,7 +267,9 @@ export default function LibraryPage() {
 
       <section className={`${styles.section} ${styles.gamesSection}`} role="tabpanel" aria-label={`${statusTab} games`}>
         <SectionHeading
-          title={`${statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} games`}
+          title={isLive
+            ? `${statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} games`
+            : `${statusTab === "active" ? "Guest catalogue" : statusTab === "slept" ? "Sleeping in this preview" : "Completed in this preview"}`}
           meta={`${filteredGames.length}`}
         />
         <div className={styles.gamesToolbar}>
@@ -256,17 +280,17 @@ export default function LibraryPage() {
             onSortChange={(value) => {
               setSort(value);
               setSortReversed(false);
-              trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "sort", value });
+              trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "sort", value, preview_mode: !isLive });
             }}
             sortReversed={sortReversed}
             onToggleSortDirection={() => setSortReversed((current) => !current)}
             showDurationSort={hasDurationSort}
             viewMode={viewMode}
-            onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value }); }}
+            onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value, preview_mode: !isLive }); }}
           />
         </div>
         <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>
-          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={setSelectedGameId} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (
+          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (
             <div className={styles.emptyState}><h3>{statusTab === "slept" ? "No sleeping games" : statusTab === "completed" ? "Nothing completed yet" : "No active games match"}</h3><p>{statusTab === "slept" ? "Games you put to sleep will appear here and stay out of Vault draws." : statusTab === "completed" ? "Mark a finished game as completed and it will appear here." : "Try changing your search."}</p>{statusTab !== "active" ? <button type="button" onClick={() => setStatusTab("active")}>Browse Active Games</button> : null}</div>
           )}
         </div>
@@ -274,6 +298,7 @@ export default function LibraryPage() {
 
       <LibraryDetailsDrawer
         game={selectedGame}
+        previewMode={!isLive}
         collections={collections}
         saving={savingGameId === selectedGame?.id}
         onSave={async (patch) => {

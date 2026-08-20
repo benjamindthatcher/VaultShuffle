@@ -13,6 +13,7 @@ import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
 import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
+import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
@@ -37,6 +38,7 @@ import {
 } from "@/lib/vault";
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
+import { matchesSmartPreset } from "@/lib/smart-collections";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import styles from "./vault.module.css";
@@ -46,7 +48,6 @@ type VaultSetupStep = "session" | "mood" | "goal";
 type VaultDrawMode = "vault" | "collection";
 type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 const EMPTY_GAME_IDS: string[] = [];
-const GUEST_SIGN_IN_PROMPT_KEY = "vaultshuffle:guest-first-draw-prompt:v1";
 
 export default function VaultPage() {
   const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
@@ -78,7 +79,6 @@ export default function VaultPage() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
-  const guestDrawCountRef = useRef(0);
   const [lastDrawWasQuick, setLastDrawWasQuick] = useState(false);
   const [rerollCount, setRerollCount] = useState(0);
   const [drawArm, setDrawArm] = useState<GenreLearningArm>("control");
@@ -90,8 +90,6 @@ export default function VaultPage() {
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
-  const guestPromptQueuedRef = useRef(false);
-  const guestPromptTimerRef = useRef<number | null>(null);
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
   const { genrePreferences, genrePreferenceGlobals, preferenceRowCount, nextArm } = useGenreLearning(learnedGenrePreferences, learnedGenreGlobals);
@@ -99,10 +97,24 @@ export default function VaultPage() {
   // that produced the draw, and so rerolls-to-launch is readable straight off
   // vault_pick_launched.
   const drawEventAnalytics = useCallback(
-    () => ({ vault_genre_learning: drawArm, reroll_index: drawRerollIndexRef.current }),
-    [drawArm]
+    () => ({
+      vault_genre_learning: drawArm,
+      reroll_index: drawRerollIndexRef.current,
+      preview_mode: !isLive,
+    }),
+    [drawArm, isLive]
   );
-  const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
+  const ownedGames = useMemo(() => games
+    .filter((game) => game.ownership === "Owned")
+    .map((game) => ({
+      ...game,
+      collectionIds: Array.from(new Set([
+        ...game.collectionIds,
+        ...collections
+          .filter((collection) => collection.kind === "smart" && collection.smartPreset && matchesSmartPreset(game, collection.smartPreset))
+          .map((collection) => collection.id),
+      ])),
+    })), [collections, games]);
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
   const drawableGames = useMemo(() => ownedGames.filter((game) => game.status !== "Completed" && game.status !== "Slept" && !snoozedIds.has(game.id)), [ownedGames, snoozedIds]);
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? null;
@@ -267,43 +279,6 @@ export default function VaultPage() {
     if (!deck.length) setLensOpen(true);
   }, [deck.length]);
 
-  useEffect(() => () => {
-    if (guestPromptTimerRef.current !== null) window.clearTimeout(guestPromptTimerRef.current);
-  }, []);
-
-  // The prompt used to open 650ms after a guest's very first draw, which covered
-  // the result they had just asked for. A guest who has drawn three times is
-  // clearly getting something out of it and has earned the interruption; one who
-  // has drawn once has not decided anything yet.
-  const GUEST_PROMPT_AFTER_DRAWS = 3;
-
-  function queueGuestSignInPrompt() {
-    if (isLive || guestPromptQueuedRef.current) return;
-
-    guestDrawCountRef.current += 1;
-    if (guestDrawCountRef.current < GUEST_PROMPT_AFTER_DRAWS) return;
-
-    try {
-      if (window.sessionStorage.getItem(GUEST_SIGN_IN_PROMPT_KEY)) {
-        guestPromptQueuedRef.current = true;
-        return;
-      }
-    } catch {
-      // The in-memory guard still prevents repeat prompts when storage is unavailable.
-    }
-
-    guestPromptQueuedRef.current = true;
-    guestPromptTimerRef.current = window.setTimeout(() => {
-      try {
-        window.sessionStorage.setItem(GUEST_SIGN_IN_PROMPT_KEY, "shown");
-      } catch {
-        // Private browsing can disable storage; showing the prompt should still work.
-      }
-      setGuestSignInOpen(true);
-      guestPromptTimerRef.current = null;
-    }, 1400);
-  }
-
   async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
     // Quick Draw bypasses the setup gate on purpose: it exists for the visitor who
     // has not filled anything in and wants a game anyway.
@@ -400,8 +375,8 @@ export default function VaultPage() {
         reroll_index: drawnCycleRef.current.size - 1,
         vault_genre_learning: arm,
         preference_rows: preferenceRowCount,
+        preview_mode: !isLive,
       });
-      queueGuestSignInPrompt();
     } catch (error) {
       if (activeDraw !== activeDrawRef.current) return;
       console.error("Vault draw failed", error);
@@ -409,7 +384,8 @@ export default function VaultPage() {
       // Quick Draw shipped broken precisely because only successes reported.
       trackEvent(ANALYTICS_EVENTS.vaultDrawFailed, {
         draw_mode: quick ? "quick" : collectionMode ? "collection" : "vault",
-        reason: error instanceof Error ? error.message : "unknown"
+        reason: error instanceof Error ? error.message : "unknown",
+        preview_mode: !isLive,
       });
       drawnCycleRef.current.delete(nextPick.id);
       setDrawState("error");
@@ -450,7 +426,11 @@ export default function VaultPage() {
     setDrawMode("vault");
     // The configure step of the funnel: which of the three inputs people actually
     // fill in, and where they drop out before ever reaching a draw.
-    trackEvent(ANALYTICS_EVENTS.vaultSetupChanged, { step, value: id });
+    trackEvent(ANALYTICS_EVENTS.vaultSetupChanged, {
+      step,
+      value: id,
+      preview_mode: !isLive,
+    });
     let nextStep: VaultSetupStep | null = null;
 
     if (step === "session") {
@@ -469,10 +449,6 @@ export default function VaultPage() {
   }
 
   function activateCollectionDraw() {
-    if (!isLive) {
-      setGuestSignInOpen(true);
-      return;
-    }
     setDrawMode("collection");
   }
 
@@ -583,11 +559,11 @@ export default function VaultPage() {
 
       <WelcomeBack />
 
-      {!isLive ? <aside className={styles.guestPreviewBanner} aria-label="Guest preview">
-        <span className={styles.guestPreviewIcon}><VaultIcon name="current-pick" size={24} /></span>
-        <span className={styles.guestPreviewCopy}><strong>Guest preview · {ownedGames.length} popular Steam games</strong><small>Try the Vault with live catalogue data, then connect Steam to shuffle your own library and save your picks.</small></span>
-        <a href="/api/auth/steam" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_banner" })}><VaultIcon name="open-steam" size={18} />Shuffle my library<VaultIcon name="chevron-right" size={16} /></a>
-      </aside> : null}
+      {!isLive ? (
+        <GuestPreviewNotice feature="Vault" icon="current-pick" actionLabel="Shuffle my library" catalogueSize={ownedGames.length}>
+          Draw from {ownedGames.length} popular Steam games or try a catalogue collection. Your picks and history last for this visit only.
+        </GuestPreviewNotice>
+      ) : null}
 
       <section className={styles.setupLayout} aria-label="Vault draw setup" data-paused={collectionMode || undefined}>
         <div className={styles.optionStack}>
@@ -627,8 +603,6 @@ export default function VaultPage() {
                 collections={collections}
                 collectionCounts={collectionCounts}
                 onSelect={selectDrawCollection}
-                guestLocked={!isLive}
-                onGuestLocked={() => setGuestSignInOpen(true)}
                 selectionActive={collectionDraw}
                 allowEntireVault={false}
               />
@@ -667,19 +641,16 @@ export default function VaultPage() {
               <button
                 type="button"
                 className={styles.deckToolButton}
-                aria-expanded={isLive ? historyOpen : false}
+                aria-expanded={historyOpen}
                 aria-haspopup="dialog"
                 onClick={() => {
-                  if (!isLive) {
-                    setGuestSignInOpen(true);
-                    return;
-                  }
                   setHistoryOpen(true);
                   void loadVaultHistory();
+                  trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened, { preview_mode: !isLive });
                 }}
               >
                 <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Sign in to save draws"}</small></span>
+                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
                 <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
               </button>
             </div>}
@@ -704,7 +675,7 @@ export default function VaultPage() {
             drawState={drawState}
             winner={drawWinner}
             highlightedId={highlightedGameId}
-            onSelect={isLive ? setDetailsGameId : () => setGuestSignInOpen(true)}
+            onSelect={setDetailsGameId}
             sleepingId={sleepingGameId}
             onSleep={(id) => void sleepPoolGame(id)}
             pinnedIds={vaultState.pinnedIds}
@@ -714,7 +685,7 @@ export default function VaultPage() {
               if (game) void completeGame(game);
             }}
             onUserScroll={() => setHighlightedGameId(null)}
-            allowActions={isLive}
+            allowActions
           />
         ) : (
           <div className={styles.emptyState}>
@@ -745,7 +716,7 @@ export default function VaultPage() {
                 </div>
               </>
             )}
-            {isLive && currentDrawId ? <div className={styles.feedbackRow}>
+            {currentDrawId ? <div className={styles.feedbackRow}>
               <span className={styles.feedbackLabel}>Good pick?</span>
               <button
                 type="button"
@@ -764,7 +735,7 @@ export default function VaultPage() {
               {feedbackGiven ? <span className={styles.feedbackThanks}>Noted.</span> : null}
             </div> : null}
 
-            {isLive && currentDrawId && rerollCount >= 3 && !rerollReasonGiven ? <div className={styles.rerollAsk}>
+            {currentDrawId && rerollCount >= 3 && !rerollReasonGiven ? <div className={styles.rerollAsk}>
               <span className={styles.feedbackLabel}>Nothing landing. What&apos;s off?</span>
               <div className={styles.rerollReasons}>
                 {VAULT_REROLL_REASONS.map((reason) => (
@@ -783,15 +754,13 @@ export default function VaultPage() {
               <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong><small>{isLive ? "Launch the game" : "Open the store page"}</small></span>
               </a>
-              {isLive ? <>
               <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
                 <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
               </button>
-              </> : null}
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again", drawEventAnalytics()); void handleOpenVault({ deferCurrentPick: true, quick: lastDrawWasQuick }); }}>
                 <VaultResultActionIcon name="draw-again" /><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
               </button>
-              {isLive ? <><button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
+              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
                 <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
               </button>
               <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
@@ -799,9 +768,10 @@ export default function VaultPage() {
               </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed", drawEventAnalytics()); void completeGame(currentPick); }}>
                 <VaultResultActionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
-              </button></> : <a href="/api/auth/steam" className={styles.resultAction} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_result" })}>
+              </button>
+              {!isLive ? <a href="/api/auth/steam" className={styles.resultAction} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_result", preview_mode: true })}>
                 <VaultResultActionIcon name="all-games" /><span className={styles.resultActionCopy}><strong>Shuffle My Library</strong><small>Connect Steam for personal draws</small></span>
-              </a>}
+              </a> : null}
             </div>
           </div>
           <aside className={styles.resultContext} aria-label="Selected setup">
@@ -819,8 +789,9 @@ export default function VaultPage() {
         </section>
       ) : null}
 
-      {isLive ? <LibraryDetailsDrawer
+      <LibraryDetailsDrawer
         game={detailsGame}
+        previewMode={!isLive}
         collections={collections}
         saving={savingGameId === detailsGame?.id}
         onSave={async (patch) => {
@@ -840,8 +811,8 @@ export default function VaultPage() {
         onComplete={() => detailsGame ? completeGame(detailsGame) : Promise.resolve()}
         onSleep={() => detailsGame ? sleepPoolGame(detailsGame.id) : Promise.resolve()}
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}
-      /> : null}
-      {isLive ? <VaultHistoryDrawer
+      />
+      <VaultHistoryDrawer
         open={historyOpen}
         draws={vaultHistory}
         games={ownedGames}
@@ -851,8 +822,8 @@ export default function VaultPage() {
           setHistoryOpen(false);
           setDetailsGameId(game.id);
         }}
-      /> : null}
-      <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} catalogueSize={ownedGames.length} />
+      />
+      <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} catalogueSize={ownedGames.length} reason="finish_goal" />
       {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}
       {pinMessage ? <div className={styles.pinToast} role="status">{pinMessage}<button type="button" onClick={() => setPinMessage("")}>Dismiss</button></div> : null}
       {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion()}>Undo</button></div> : null}

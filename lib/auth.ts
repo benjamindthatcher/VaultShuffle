@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { enforceAuthenticatedWriteRate } from "@/lib/rate-limit";
 import type { AppUser, SteamPlayerSummary } from "@/lib/types";
 
 export const SESSION_COOKIE = "vault_session";
@@ -65,6 +66,12 @@ export async function requireSession() {
   if (!session) {
     throw new Error("Steam sign-in is required.");
   }
+  return session;
+}
+
+export async function requireWriteSession() {
+  const session = await requireSession();
+  await enforceAuthenticatedWriteRate(session.user.id);
   return session;
 }
 

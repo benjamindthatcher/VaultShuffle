@@ -3,94 +3,89 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
+import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./GuestSignInPrompt.module.css";
 
 type GuestSignInPromptProps = {
   open: boolean;
   onClose: () => void;
   catalogueSize: number;
+  reason?: string;
 };
 
-export function GuestSignInPrompt({ open, onClose, catalogueSize }: GuestSignInPromptProps) {
+export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "personal_progress" }: GuestSignInPromptProps) {
   const [mounted, setMounted] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const shownTrackedRef = useRef(false);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted || !open) return;
 
-    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    dialogRef.current?.focus();
+    if (!shownTrackedRef.current) {
+      shownTrackedRef.current = true;
+      trackEvent(ANALYTICS_EVENTS.guestSignInNudgeShown, {
+        reason,
+        catalogue_size: catalogueSize,
+        preview_mode: true,
+      });
+    }
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        event.preventDefault();
+        trackEvent(ANALYTICS_EVENTS.guestSignInNudgeDismissed, {
+          reason,
+          method: "escape",
+          preview_mode: true,
+        });
         onClose();
-        return;
-      }
-
-      if (event.key !== "Tab" || !dialogRef.current) return;
-      const focusable = Array.from(dialogRef.current.querySelectorAll<HTMLElement>(
-        'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
-      ));
-      if (!focusable.length) {
-        event.preventDefault();
-        dialogRef.current.focus();
-        return;
-      }
-
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault();
-        first.focus();
       }
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
-    };
-  }, [mounted, onClose, open]);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [catalogueSize, mounted, onClose, open, reason]);
+
+  useEffect(() => {
+    if (!open) shownTrackedRef.current = false;
+  }, [open]);
+
+  function dismiss(method: "close" | "keep_previewing") {
+    trackEvent(ANALYTICS_EVENTS.guestSignInNudgeDismissed, {
+      reason,
+      method,
+      preview_mode: true,
+    });
+    onClose();
+  }
 
   if (!mounted || !open) return null;
 
   return createPortal(
-    <div className={styles.layer}>
-      <button type="button" className={styles.backdrop} onClick={onClose} aria-label="Close sign-in prompt" />
-      <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="guest-sign-in-title" tabIndex={-1}>
-        <button type="button" className={styles.close} onClick={onClose} aria-label="Close sign-in prompt">
-          <VaultIcon name="close" size={18} />
-        </button>
-
-        <span className={styles.icon}><VaultIcon name="current-pick" size={30} /></span>
-        <p className={styles.eyebrow}>Optional</p>
-        <h2 id="guest-sign-in-title">Want it to use your own games?</h2>
-        <p className={styles.copy}>You are drawing from {catalogueSize} popular games. Connecting Steam swaps that for the games you actually own. The preview keeps working either way.</p>
-
-        <div className={styles.benefits} aria-label="Benefits of signing in">
-          <span><VaultIcon name="all-games" size={18} />Your Steam library</span>
-          <span><VaultIcon name="clock" size={18} />Saved draw history</span>
-          <span><VaultIcon name="collections" size={18} />Collections and progress</span>
-        </div>
-
-        <div className={styles.actions}>
-          <a href="/api/auth/steam" className={styles.primary} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "first_draw_prompt" })}><VaultIcon name="open-steam" size={20} />Continue with Steam<VaultIcon name="chevron-right" size={17} /></a>
-          <button type="button" className={styles.secondary} onClick={onClose}>No thanks, keep previewing</button>
-        </div>
-
-        <p className={styles.trust}><VaultIcon name="privacy" size={16} />Steam handles sign-in securely. VaultShuffle never sees your password.</p>
-      </div>
-    </div>,
+    <aside className={styles.prompt} aria-label="Optional Steam sign-in suggestion">
+      <button type="button" className={styles.close} onClick={() => dismiss("close")} aria-label="Dismiss suggestion">
+        <VaultIcon name="close" size={16} />
+      </button>
+      <span className={styles.icon} aria-hidden="true"><VaultIcon name="finish-something" size={22} /></span>
+      <span className={styles.copy}>
+        <strong>This one needs your playtime</strong>
+        <small>Steam lets VaultShuffle spot games you have actually started. You can keep using the {catalogueSize}-game preview without it.</small>
+      </span>
+      <span className={styles.actions}>
+        <a
+          href="/api/auth/steam"
+          className={styles.primary}
+          onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
+            location: "guest_personal_progress_nudge",
+            reason,
+            preview_mode: true,
+          })}
+        >
+          Use my Steam library
+        </a>
+        <button type="button" className={styles.secondary} onClick={() => dismiss("keep_previewing")}>Keep previewing</button>
+      </span>
+    </aside>,
     document.body
   );
 }

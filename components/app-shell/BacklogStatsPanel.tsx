@@ -46,7 +46,7 @@ export function BacklogStatsPanel({ games }: { games: DemoGame[] }) {
         </p>
       ) : null}
 
-      <Link className={styles.more} href="/stats">See everything</Link>
+      <Link className={styles.more} href="/dashboard">See everything</Link>
     </div>
   );
 }

@@ -6,7 +6,8 @@ import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
-import { steamLaunchUrl } from "@/lib/steam-images";
+import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
+import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./LibraryDetailsDrawer.module.css";
 
 type LibraryDetailsDrawerProps = {
@@ -23,9 +24,10 @@ type LibraryDetailsDrawerProps = {
   onComplete?: () => Promise<void>;
   onRestore?: () => Promise<void>;
   onSleep?: () => Promise<void>;
+  previewMode?: boolean;
 };
 
-export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore, onSleep }: LibraryDetailsDrawerProps) {
+export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore, onSleep, previewMode = false }: LibraryDetailsDrawerProps) {
   const [mounted, setMounted] = useState(false);
   const [notes, setNotes] = useState("");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
@@ -157,10 +159,16 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           <div className={styles.actionRow}>
             <a
               className={styles.steamButton}
-              href={steamLaunchUrl(game.steamAppId)}
+              href={previewMode ? steamStoreUrl(game.steamAppId) : steamLaunchUrl(game.steamAppId)}
+              target={previewMode ? "_blank" : undefined}
+              rel={previewMode ? "noreferrer" : undefined}
+              onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.gameSteamOpened, {
+                action: previewMode ? "view_store" : "launch_game",
+                preview_mode: previewMode,
+              })}
             >
               <VaultIcon name="open-steam" size={20} />
-              <span>Play on Steam</span>
+              <span>{previewMode ? "View on Steam" : "Play on Steam"}</span>
               <VaultIcon name="chevron-right" size={18} className={styles.steamArrow} />
             </a>
             <button

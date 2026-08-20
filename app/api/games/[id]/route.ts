@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession } from "@/lib/auth";
+import { requireWriteSession } from "@/lib/auth";
 import { deleteGame, patchGame, restoreGameToActive, updateGame } from "@/lib/games";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { gamePayloadSchema, patchGameSchema } from "@/lib/validation";
@@ -10,7 +10,7 @@ type RouteContext = {
 
 export async function PUT(request: Request, context: RouteContext) {
   try {
-    const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
+    const [{ user }, { id }] = await Promise.all([requireWriteSession(), context.params]);
     const payload = gamePayloadSchema.parse(await readJsonBody(request));
     const game = await updateGame(user.id, id, payload);
     if (!game) return NextResponse.json({ error: "Game not found." }, { status: 404 });
@@ -22,7 +22,7 @@ export async function PUT(request: Request, context: RouteContext) {
 
 export async function PATCH(request: Request, context: RouteContext) {
   try {
-    const [{ user }, { id }] = await Promise.all([requireSession(), context.params]);
+    const [{ user }, { id }] = await Promise.all([requireWriteSession(), context.params]);
     const payload = patchGameSchema.parse(await readJsonBody(request));
     const { restore_active: restoreActive, ...patch } = payload;
     const game = restoreActive
@@ -37,7 +37,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
-    const session = await requireSession();
+    const session = await requireWriteSession();
     const { id } = await context.params;
     const game = await deleteGame(session.user.id, id);
     if (!game) return NextResponse.json({ error: "Game not found." }, { status: 404 });

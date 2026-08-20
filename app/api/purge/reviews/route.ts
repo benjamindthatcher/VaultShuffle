@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession } from "@/lib/auth";
+import { requireSession, requireWriteSession } from "@/lib/auth";
 import { HttpError, jsonError, readJsonBody } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -28,7 +28,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const input = reviewSchema.parse(await readJsonBody(request));
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const id = z.string().uuid().parse(new URL(request.url).searchParams.get("id"));
     const { error } = await getSupabaseAdmin()
       .rpc("undo_user_purge_decision", {

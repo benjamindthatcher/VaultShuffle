@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
 import { createGame, listGames } from "@/lib/games";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { gamePayloadSchema } from "@/lib/validation";
@@ -15,7 +15,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const { user } = await requireSession();
+    const { user } = await requireWriteSession();
     const payload = gamePayloadSchema.parse(await readJsonBody(request));
     const game = await createGame(user.id, payload);
     return NextResponse.json({ ok: true, game }, { status: 201 });

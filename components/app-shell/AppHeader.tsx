@@ -2,14 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { BacklogStatsPanel } from "./BacklogStatsPanel";
 import styles from "./AppHeader.module.css";
 
 const NAV_ITEMS = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/vault", label: "Vault" },
   { href: "/library", label: "Library" },
   { href: "/purge", label: "Purge" },
@@ -22,8 +23,8 @@ type AppHeaderProps = {
 
 export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
-  const { session, isLive, isLoading, isSyncing, refresh, syncSteamLibrary, signOut, deviceMode, setDeviceMode, games } = useAppData();
-  const [accountMessage, setAccountMessage] = useState("");
+  const router = useRouter();
+  const { session, isLive, isLoading, isSyncing, syncSteamLibrary, signOut, deviceMode, setDeviceMode, games } = useAppData();
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
   const profileInitial = profileName.trim().charAt(0).toUpperCase() || "G";
@@ -49,20 +50,10 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
     };
   }, []);
 
-  async function handleSync() {
-    setAccountMessage("");
-    try {
-      const imported = await syncSteamLibrary();
-      setAccountMessage(`${imported} Steam games synced.`);
-    } catch (error) {
-      setAccountMessage(error instanceof Error ? error.message : "Steam sync failed.");
-    }
-  }
-
-  async function handleRefresh() {
-    setAccountMessage("");
-    await refresh();
-    setAccountMessage("VaultShuffle data refreshed.");
+  function handleSync() {
+    if (profileMenuRef.current) profileMenuRef.current.open = false;
+    router.push("/dashboard");
+    void syncSteamLibrary().catch(() => undefined);
   }
 
   return (
@@ -89,7 +80,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
           <nav className={styles.nav} aria-label="Primary">
             {NAV_ITEMS.map((item) => {
               const isActive = pathname === item.href;
-              const isGuestLocked = !isLive && item.href !== "/vault";
               return (
                 <Link
                   key={item.href}
@@ -97,7 +87,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                   className={isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
                 >
                   {item.label}
-                  {isGuestLocked ? <VaultIcon name="privacy" size={12} className={styles.navLock} /> : null}
                 </Link>
               );
             })}
@@ -126,11 +115,14 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
             {isLive ? (
               <>
                 <BacklogStatsPanel games={games} />
-                <button type="button" className={styles.menuAction} onClick={() => void handleSync()} disabled={isSyncing}>
-                  {isSyncing ? "Syncing Steam…" : "Sync Steam library"}
-                </button>
-                <button type="button" className={styles.menuAction} onClick={() => void handleRefresh()} disabled={isLoading}>
-                  Refresh app data
+                <button
+                  type="button"
+                  className={styles.menuAction}
+                  onClick={handleSync}
+                  disabled={isSyncing || isLoading}
+                  aria-busy={isSyncing}
+                >
+                  {isSyncing ? "Refreshing from Steam…" : "Refresh from Steam"}
                 </button>
                 <div className={styles.menuGroup} role="group" aria-label="Device mode">
                   <p className={styles.menuGroupLabel}>Device mode</p>
@@ -160,7 +152,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
             ) : (
               <a href="/api/auth/steam" className={styles.menuAction}>Sign in with Steam</a>
             )}
-            {accountMessage ? <p className={styles.accountMessage} role="status">{accountMessage}</p> : null}
           </div>
         </details>
       </div>

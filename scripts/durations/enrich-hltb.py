@@ -16,7 +16,10 @@ import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
+import requests
+from fake_useragent import UserAgent
 from howlongtobeatpy import HowLongToBeat
+from howlongtobeatpy.HTMLRequests import HTMLRequests
 
 EDITION_SUFFIX = re.compile(
     r"\s*(?:[-:]\s*)?(?:definitive|anniversary|gold|complete|game of the year|"
@@ -25,6 +28,57 @@ EDITION_SUFFIX = re.compile(
 )
 MARKS = re.compile(r"[™®©]")
 YEAR = re.compile(r"\s*\((?:19|20)\d{2}\)\s*$")
+HLTB_SESSION_TTL_SECONDS = 300
+_hltb_session = {}
+
+
+def refresh_hltb_session():
+    user_agent = UserAgent().random.strip()
+    search_info = HTMLRequests.send_website_request_getcode(False, user_agent)
+    if search_info is None or search_info.search_url is None:
+        search_info = HTMLRequests.send_website_request_getcode(True, user_agent)
+    parsed_search_url = search_info.search_url if search_info is not None else None
+    auth = HTMLRequests.send_website_get_auth_token(parsed_search_url, user_agent)
+    if auth is None:
+        raise RuntimeError("HLTB did not return a search authentication token.")
+    if parsed_search_url:
+        HTMLRequests.SEARCH_URL = HTMLRequests.BASE_URL + parsed_search_url
+    _hltb_session.update({
+        "user_agent": user_agent,
+        "auth": auth,
+        "expires_at": time.monotonic() + HLTB_SESSION_TTL_SECONDS,
+    })
+
+
+def cached_hltb_request(game_name, search_modifiers=None, page=1):
+    """Use one HLTB search session for several minutes instead of per title."""
+    if not _hltb_session or time.monotonic() >= _hltb_session["expires_at"]:
+        refresh_hltb_session()
+    modifier = search_modifiers if search_modifiers is not None else 0
+    last_status = None
+    for attempt in range(2):
+        headers = HTMLRequests.get_search_request_headers(
+            _hltb_session["auth"], _hltb_session["user_agent"]
+        )
+        payload = HTMLRequests.get_search_request_data(
+            game_name, modifier, page, _hltb_session["auth"]
+        )
+        response = requests.post(
+            HTMLRequests.SEARCH_URL,
+            headers=headers,
+            data=payload,
+            timeout=60,
+        )
+        last_status = response.status_code
+        if response.status_code == 200:
+            return response.text
+        _hltb_session.clear()
+        if attempt == 0:
+            refresh_hltb_session()
+    raise RuntimeError(f"HLTB search returned HTTP {last_status}.")
+
+
+HTMLRequests.send_web_request = staticmethod(cached_hltb_request)
 
 
 def request(path, key, params=None, method="GET", payload=None, prefer=None):

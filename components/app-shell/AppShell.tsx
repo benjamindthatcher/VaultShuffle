@@ -1,13 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AppDataProvider, useAppData } from "@/components/app-shell/AppDataProvider";
 import { AppHeader } from "@/components/app-shell/AppHeader";
 import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import styles from "@/app/(product)/shell.module.css";
-
-const STEAM_IMPORT_COOKIE = "vault_steam_import";
 
 type AppShellProps = {
   children: ReactNode;
@@ -37,8 +36,8 @@ function AppShellContent({
   headerVariant,
   waitForAppData
 }: Required<AppShellProps>) {
+  const router = useRouter();
   const {
-    games,
     loadError,
     isLive,
     isLoading,
@@ -54,98 +53,17 @@ function AppShellContent({
   const steamLastPlayedHidden = isLive && session?.steam_last_played_visible === false;
 
   const [bootComplete, setBootComplete] = useState(false);
-  const [initialMarkerChecked, setInitialMarkerChecked] = useState(false);
-  const [pendingSteamImport, setPendingSteamImport] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const automaticImportStartedRef = useRef(false);
-
-  useEffect(() => {
-    const url = new URL(window.location.href);
-    const legacyUrlMarker = url.searchParams.get("steam_connected") === "1";
-    const cookieMarker = document.cookie
-      .split(";")
-      .map((part) => part.trim())
-      .some((part) => part === `${STEAM_IMPORT_COOKIE}=1`);
-
-    if (cookieMarker) {
-      document.cookie = `${STEAM_IMPORT_COOKIE}=; Path=/; Max-Age=0; SameSite=Lax`;
-    }
-
-    if (legacyUrlMarker) {
-      url.searchParams.delete("steam_connected");
-      window.history.replaceState(
-        window.history.state,
-        "",
-        `${url.pathname}${url.search}${url.hash}`
-      );
-    }
-
-    setPendingSteamImport(cookieMarker || legacyUrlMarker);
-    setInitialMarkerChecked(true);
-  }, []);
 
   useEffect(() => {
     if (!isLoading) setBootComplete(true);
   }, [isLoading]);
 
-  useEffect(() => {
-    if (!initialMarkerChecked || isLoading) return;
-
-    const recoveringEmptyLibrary = isLive && games.length === 0;
-    if (!pendingSteamImport && !recoveringEmptyLibrary) return;
-
-    if (!isLive) {
-      setImportError("Steam sign-in did not produce an active session.");
-      setPendingSteamImport(false);
-      return;
-    }
-
-    if (automaticImportStartedRef.current) return;
-    automaticImportStartedRef.current = true;
-    setImportError(null);
-
-    void syncSteamLibrary()
-      .catch((error) => {
-        console.error("Automatic Steam library import failed", error);
-        setImportError(
-          error instanceof Error
-            ? error.message
-            : "Steam sign-in worked, but the library import failed."
-        );
-      })
-      .finally(() => {
-        setPendingSteamImport(false);
-      });
-  }, [
-    initialMarkerChecked,
-    pendingSteamImport,
-    isLive,
-    isLoading,
-    games.length,
-    syncSteamLibrary
-  ]);
-
   function retrySteamImport() {
-    setImportError(null);
-
-    void syncSteamLibrary().catch((error) => {
-      console.error("Steam library import retry failed", error);
-      setImportError(
-        error instanceof Error
-          ? error.message
-          : "The Steam library import failed again."
-      );
-    });
+    router.push("/dashboard");
+    void syncSteamLibrary().catch(() => undefined);
   }
 
-  const holdInitialContent =
-    waitForAppData &&
-    (
-      !initialMarkerChecked ||
-      !bootComplete ||
-      pendingSteamImport ||
-      (isLive && games.length === 0 && !importError)
-    );
+  const holdInitialContent = waitForAppData && !bootComplete;
 
   return (
     <div className={styles.appShell}>
@@ -161,7 +79,7 @@ function AppShellContent({
         </div>
       ) : null}
 
-      {!importError && !playHistoryMissing && steamLastPlayedHidden ? (
+      {!playHistoryMissing && steamLastPlayedHidden ? (
         <div className={styles.importNotice} role="status">
           <span>
             Steam is sharing your playtime but not when you last played. Anything based on
@@ -175,7 +93,7 @@ function AppShellContent({
           </button>
         </div>
       ) : null}
-      {!importError && playHistoryMissing ? (
+      {playHistoryMissing ? (
         <div className={styles.importNotice} role="status">
           <span>
             Your games imported, but Steam did not share any playtime. VaultShuffle uses playtime to
@@ -188,15 +106,6 @@ function AppShellContent({
           </button>
         </div>
       ) : null}
-      {importError ? (
-        <div className={styles.loadNotice} role="alert">
-          <span>{importError}</span>
-          <button type="button" disabled={isSyncing} onClick={retrySteamImport}>
-            {isSyncing ? "Importing…" : "Retry Steam import"}
-          </button>
-        </div>
-      ) : null}
-
       <main className={styles.appContent}>
         {holdInitialContent ? null : children}
       </main>
