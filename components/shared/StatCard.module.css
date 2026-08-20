@@ -32,6 +32,11 @@
   gap: 12px;
 }
 
+/* Some stats have no icon worth drawing. The card is the same card either way. */
+.card[data-icon="none"] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .icon {
   width: 48px;
   height: 48px;

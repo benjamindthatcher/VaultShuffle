@@ -26,18 +26,19 @@ export function StatPanel({ label, columns, children }: StatPanelProps) {
 
 type StatCardProps = {
   label: string;
-  value: number;
-  note: string;
+  /** Short enough to stay on one line: a count, a percentage, a rate. */
+  value: ReactNode;
+  note: ReactNode;
   icon?: VaultIconName;
   actionIcon?: VaultIconName;
 };
 
 export function StatCard({ label, value, note, icon, actionIcon }: StatCardProps) {
+  const glyph = actionIcon ?? icon;
+
   return (
-    <article className={styles.card}>
-      <span className={styles.icon}>
-        {actionIcon || icon ? <VaultIcon name={(actionIcon ?? icon)!} size={36} /> : null}
-      </span>
+    <article className={styles.card} data-icon={glyph ? undefined : "none"}>
+      {glyph ? <span className={styles.icon}><VaultIcon name={glyph} size={36} /></span> : null}
       <div className={styles.content}>
         <p className={styles.label}>{label}</p>
         <strong className={styles.value}>{value}</strong>
