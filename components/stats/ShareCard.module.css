@@ -6,7 +6,7 @@
  * the page. Capping the preview keeps it recognisable as the thing you are about
  * to post without it dominating everything above it.
  */
-.panel {
+.panel, .panelIdle {
   display: grid;
   grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
   gap: 18px;
@@ -16,6 +16,10 @@
   border-radius: 16px;
   background: var(--vault-surface-soft);
 }
+
+/* Before the card is made there is no preview, so the panel is a single column
+   rather than a wide empty gap where the image will eventually go. */
+.panelIdle { grid-template-columns: minmax(0, 1fr); }
 
 .preview { overflow: hidden; border: 1px solid var(--vault-border); border-radius: 12px; }
 .canvas { display: block; width: 100%; height: auto; }
