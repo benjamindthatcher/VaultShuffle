@@ -92,24 +92,6 @@ export function ShareCard() {
 
   return (
     <section className={styles.panel} aria-labelledby="share-card-title">
-      <div className={styles.head}>
-        <div>
-          <p className={styles.eyebrow}>Share</p>
-          <h2 id="share-card-title">Your backlog, as a card</h2>
-          <p className={styles.copyNote}>
-            Made on your device. Nothing is published unless you post it yourself.
-          </p>
-        </div>
-        <div className={styles.actions}>
-          <button type="button" className={styles.primary} onClick={() => void copy()}>
-            <VaultIcon name="check" size={16} />{status === "copied" ? "Copied" : "Copy image"}
-          </button>
-          <button type="button" className={styles.secondary} onClick={() => void download()}>
-            {status === "saved" ? "Saved" : "Download"}
-          </button>
-        </div>
-      </div>
-
       <div className={styles.preview}>
         <canvas
           ref={canvasRef}
@@ -121,11 +103,26 @@ export function ShareCard() {
         />
       </div>
 
-      {status === "failed" ? (
-        <p className={styles.failed} role="alert">
-          Copying is not supported in this browser — use Download instead.
+      <div className={styles.body}>
+        <p className={styles.eyebrow}>Share</p>
+        <h2 id="share-card-title">Your backlog, as a card</h2>
+        <p className={styles.copyNote}>
+          Made on your device. Nothing is published unless you post it yourself.
         </p>
-      ) : null}
+        <div className={styles.actions}>
+          <button type="button" className={styles.primary} onClick={() => void copy()}>
+            <VaultIcon name="check" size={16} />{status === "copied" ? "Copied" : "Copy image"}
+          </button>
+          <button type="button" className={styles.secondary} onClick={() => void download()}>
+            {status === "saved" ? "Saved" : "Download"}
+          </button>
+        </div>
+        {status === "failed" ? (
+          <p className={styles.failed} role="alert">
+            Copying is not supported in this browser — use Download instead.
+          </p>
+        ) : null}
+      </div>
     </section>
   );
 }
