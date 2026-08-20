@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { BacklogStatsPanel } from "./BacklogStatsPanel";
 import styles from "./AppHeader.module.css";
 
 const NAV_ITEMS = [
@@ -24,7 +23,7 @@ type AppHeaderProps = {
 export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { session, isLive, isLoading, isSyncing, syncSteamLibrary, signOut, deviceMode, setDeviceMode, games } = useAppData();
+  const { session, isLive, isLoading, isSyncing, syncSteamLibrary, signOut, deviceMode, setDeviceMode } = useAppData();
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
   const profileInitial = profileName.trim().charAt(0).toUpperCase() || "G";
@@ -114,16 +113,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
             </div>
             {isLive ? (
               <>
-                <BacklogStatsPanel games={games} />
-                <button
-                  type="button"
-                  className={styles.menuAction}
-                  onClick={handleSync}
-                  disabled={isSyncing || isLoading}
-                  aria-busy={isSyncing}
-                >
-                  {isSyncing ? "Refreshing from Steam…" : "Refresh from Steam"}
-                </button>
                 <div className={styles.menuGroup} role="group" aria-label="Device mode">
                   <p className={styles.menuGroupLabel}>Device mode</p>
                   <p className={styles.menuGroupHint}>Hide games that will not run on the machine you are playing on.</p>
@@ -145,6 +134,15 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                     ))}
                   </div>
                 </div>
+                <button
+                  type="button"
+                  className={styles.menuAction}
+                  onClick={handleSync}
+                  disabled={isSyncing || isLoading}
+                  aria-busy={isSyncing}
+                >
+                  {isSyncing ? "Refreshing from Steam…" : "Refresh from Steam"}
+                </button>
                 <button type="button" className={`${styles.menuAction} ${styles.dangerAction}`} onClick={() => void signOut()}>
                   Sign out
                 </button>

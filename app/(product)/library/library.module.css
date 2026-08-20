@@ -4,12 +4,15 @@
   gap: 18px;
 }
 
-/* A section is its heading and its content, stacked on the page ground. It used
-   to be a bordered card with a 2rem title inside it, wrapped around content that
-   was already made of cards. */
+/* A section is a sheet: lighter than the ground, holding its heading and its
+   content. What sits inside it does not carry a fill of its own. */
 .section {
   display: grid;
   gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 .gamesSection { min-height: 0; }
 .gamesToolbar { width: 100%; }
@@ -24,12 +27,12 @@
  */
 .gamesScroller { padding-right: 5px; }
 
-.statusTabs { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); justify-self: start; gap: 6px; padding: 6px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); }
+.statusTabs { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); justify-self: start; gap: 6px; padding: 6px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
 .statusTab, .statusTabActive { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px; color: var(--vault-text-muted); background: transparent; font-weight: 650; font-size: 0.88rem; }
 .statusTab strong, .statusTabActive strong { min-width: 25px; padding: 3px 7px; border-radius: 999px; background: rgba(144, 96, 255, 0.14); color: #d59eff; font-size: 0.8rem; }
 .statusTabActive { border-color: var(--vault-tile-selected-border); color: var(--vault-text); background: var(--vault-tile-selected-surface); }
 .statusTab:focus-visible, .statusTabActive:focus-visible { outline: 2px solid #c08bff; outline-offset: 2px; }
-.emptyState { display: grid; justify-items: center; gap: 8px; padding: 44px 20px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); color: var(--vault-text-muted); text-align: center; }
+.emptyState { display: grid; justify-items: center; gap: 8px; padding: 44px 20px; color: var(--vault-text-muted); text-align: center; }
 .emptyState h3, .emptyState p { margin: 0; }
 .emptyState button { min-height: 40px; margin-top: 8px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
 .undoToast { position: fixed; z-index: 30; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 18px; padding: 13px 17px; border: 1px solid var(--vault-feature-border); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); animation: undoToastExit 300ms ease 5s forwards; }
