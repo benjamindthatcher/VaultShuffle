@@ -109,9 +109,11 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border: 1px solid var(--vault-sheet-border);
-  border-radius: var(--vault-sheet-radius);
-  background: var(--vault-sheet-surface);
+  /* Inside the setup sheet, so it takes the flat item treatment rather than
+     lifting a second time. */
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
 }
 
 .optionalSetup[data-disabled="true"] {
