@@ -19,7 +19,7 @@
 .rankRate { font-weight: 720; color: #7ce7b2; white-space: nowrap; }
 .rankRate small { color: var(--vault-text-muted); font-weight: 600; font-size: 0.7rem; }
 
-.empty { display: grid; gap: 12px; justify-items: start; padding: 20px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); }
+.empty { width: min(440px, 100%); margin-inline: auto; display: grid; gap: 12px; justify-items: center; text-align: center; padding: 20px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); }
 .empty p { margin: 0; color: var(--vault-text-muted); }
 .emptyAction { padding: 9px 15px; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
 

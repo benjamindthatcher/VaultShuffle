@@ -44,7 +44,7 @@
 .secondary:hover:not(:disabled) { border-color: var(--vault-border-strong); color: var(--vault-text); }
 .primary:disabled, .secondary:disabled { opacity: 0.55; }
 
-.done { display: grid; gap: 14px; justify-items: start; padding: 24px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
+.done { width: min(520px, 100%); margin-inline: auto; display: grid; gap: 14px; justify-items: center; text-align: center; padding: 26px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
 .done p { margin: 0; color: var(--vault-text-muted); }
 .doneActions { display: flex; flex-wrap: wrap; gap: 10px; }
 .primaryLink { padding: 10px 16px; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }

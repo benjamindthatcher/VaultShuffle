@@ -18,6 +18,7 @@ export function SteamImportProgressCard() {
     syncSteamLibrary
   } = useAppData();
   const [markerChecked, setMarkerChecked] = useState(false);
+  const [justFinished, setJustFinished] = useState(false);
   const [refreshRequested, setRefreshRequested] = useState(false);
   const [engaged, setEngaged] = useState(false);
   const automaticStartRef = useRef(false);
@@ -45,6 +46,26 @@ export function SteamImportProgressCard() {
   useEffect(() => {
     if (isSyncing) setEngaged(true);
   }, [isSyncing]);
+
+  // A finished import is not news. It stays up for a few seconds if you watched
+  // it finish, and does not appear at all on a later visit — the dashboard
+  // underneath is the evidence that it worked.
+  const runningRef = useRef(false);
+  useEffect(() => {
+    const running = isSyncing || steamImport.status === "importing" || steamImport.status === "fetching";
+    if (running) {
+      runningRef.current = true;
+      return;
+    }
+    if (!runningRef.current || steamImport.status !== "complete") return;
+    runningRef.current = false;
+    setJustFinished(true);
+    const timer = window.setTimeout(() => {
+      setJustFinished(false);
+      setEngaged(false);
+    }, 4000);
+    return () => window.clearTimeout(timer);
+  }, [isSyncing, steamImport.status]);
 
   useEffect(() => {
     if (!markerChecked || !steamImportChecked || isLoading || !isLive || isSyncing) return;
@@ -74,16 +95,16 @@ export function SteamImportProgressCard() {
   ]);
 
   const checkingForFirstImport = isLive && games.length === 0 && (!markerChecked || !steamImportChecked);
-  const visible = engaged
-    || isSyncing
-    || checkingForFirstImport
-    || steamImport.status === "importing"
-    || (steamImport.status === "failed" && games.length === 0);
+  const running = isSyncing || checkingForFirstImport || steamImport.status === "importing" || steamImport.status === "fetching";
+  const visible = running
+    || justFinished
+    || (steamImport.status === "failed" && games.length === 0)
+    || (engaged && steamImport.status === "failed");
   if (!visible) return null;
 
   const fetching = checkingForFirstImport || steamImport.status === "fetching";
   const failed = steamImport.status === "failed";
-  const complete = steamImport.status === "complete" && !isSyncing;
+  const complete = justFinished && !running;
   const title = fetching
     ? "Reading your Steam library"
     : failed
@@ -92,12 +113,12 @@ export function SteamImportProgressCard() {
         ? "Your Steam library is ready"
         : "Building your dashboard";
   const detail = fetching
-    ? "Steam sends the ownership list once. We will then save it to VaultShuffle in small, resumable batches."
+    ? "Steam sends the ownership list once, then we save it in small batches."
     : failed
       ? (steamImport.lastError || "The next batch was not saved. Everything shown in the bar is already safe.")
       : complete
-        ? `All ${steamImport.total} games are saved. Artwork, genres and length estimates continue separately below.`
-        : `${steamImport.imported} of ${steamImport.total} games have been committed to your database.`;
+        ? `All ${steamImport.total} games saved. Artwork and length estimates continue below.`
+        : `${steamImport.imported} of ${steamImport.total} games saved to VaultShuffle.`;
 
   function retry() {
     const canResume = steamImport.total > steamImport.imported;
@@ -109,12 +130,8 @@ export function SteamImportProgressCard() {
     <section className={`${styles.card}${failed ? ` ${styles.failed}` : ""}`} aria-live="polite">
       <span className={styles.icon}><VaultIcon name={complete ? "check" : "steam-data"} size={23} /></span>
       <div className={styles.copy}>
-        <p className={styles.kicker}>{complete ? "Import complete" : "Steam import"}</p>
         <h2>{title}</h2>
         <p>{detail}</p>
-        {!complete && !failed ? (
-          <small>You can leave this page. Saved batches stay safe, and the dashboard resumes the rest when you return.</small>
-        ) : null}
       </div>
       <div className={styles.progressBlock}>
         <div
@@ -128,10 +145,10 @@ export function SteamImportProgressCard() {
         >
           <span className={styles.fill} style={fetching ? undefined : { width: `${steamImport.percent}%` }} />
         </div>
-        <div className={styles.progressMeta}>
+        <p className={styles.progressMeta}>
           <strong>{fetching ? "Connecting…" : `${steamImport.percent}%`}</strong>
           {!fetching && steamImport.total ? <span>{steamImport.imported} / {steamImport.total}</span> : null}
-        </div>
+        </p>
         {failed ? (
           <button type="button" onClick={retry} disabled={isSyncing}>
             {isSyncing ? "Resuming…" : steamImport.total > steamImport.imported ? "Resume import" : "Try Steam again"}

@@ -1,23 +1,33 @@
 :root {
-  --vault-bg: #050816;
-  --vault-surface: rgba(10, 16, 38, 0.82);
-  --vault-surface-strong: rgba(9, 14, 34, 0.94);
-  --vault-surface-soft: rgba(18, 25, 53, 0.72);
-  --vault-border: rgba(134, 91, 255, 0.26);
-  --vault-border-strong: rgba(158, 111, 255, 0.48);
-  --vault-text: #f4f7ff;
-  --vault-text-muted: rgba(219, 226, 255, 0.72);
-  --vault-text-soft: rgba(194, 203, 232, 0.54);
-  --vault-accent: #8e4dff;
-  --vault-accent-strong: #324cff;
-  --vault-accent-soft: rgba(142, 77, 255, 0.2);
-  --vault-control-hover-border: rgba(221, 154, 255, 0.9);
-  --vault-control-hover-bg: rgba(157, 82, 255, 0.18);
-  --vault-control-hover-glow: rgba(161, 79, 255, 0.38);
-  --vault-control-focus: #dca0ff;
-  --vault-success: #62d3af;
-  /* Kept as a name because components still ask for it; the new surfaces do
-     not cast shadows, so it resolves to none. */
+  /* A single violet-ink ramp, mixed as solid colours rather than white veils
+     over navy. The veils were what made the surfaces look milky and grey: the
+     more you lifted a panel, the more the colour drained out of it. Each step
+     here keeps the same hue and only changes how light it is.
+
+     ink      #08080F  the ground
+     sheet    #14141F  the container a section lives in
+     raised   #1C1C2E  a sheet under the pointer, or one that leads
+     well     #0C0C16  a recess inside a sheet */
+  --vault-ink: #08080f;
+  --vault-bg: var(--vault-ink);
+  --vault-surface: #141420;
+  --vault-surface-strong: #101019;
+  --vault-surface-soft: #14141f;
+  --vault-border: #26263f;
+  --vault-border-strong: #35355a;
+  --vault-text: #f2f1f8;
+  --vault-text-muted: rgba(226, 224, 244, 0.68);
+  --vault-text-soft: rgba(206, 203, 232, 0.46);
+  --vault-accent: #7c5cff;
+  --vault-accent-strong: #5b3ce0;
+  --vault-accent-soft: rgba(124, 92, 255, 0.18);
+  --vault-control-hover-border: rgba(167, 139, 250, 0.85);
+  --vault-control-hover-bg: rgba(124, 92, 255, 0.16);
+  --vault-control-hover-glow: rgba(124, 92, 255, 0.32);
+  --vault-control-focus: #a78bfa;
+  --vault-success: #6ee7b7;
+  /* Kept as a name because components still ask for it; these surfaces do not
+     cast shadows, so it resolves to none. */
   --vault-shadow: none;
   --vault-radius-xl: 28px;
   --vault-radius-lg: 22px;
@@ -35,17 +45,17 @@
              edge, and nothing else.
      well  — a recess inside a sheet, for artwork and inputs. Darker than the
              sheet, never lighter. */
-  --vault-sheet-radius: 18px;
-  --vault-sheet-border: rgba(255, 255, 255, 0.07);
-  --vault-sheet-surface: rgba(255, 255, 255, 0.055);
-  --vault-card-radius: 12px;
-  --vault-card-border: rgba(255, 255, 255, 0.1);
+  --vault-sheet-radius: 16px;
+  --vault-sheet-border: #22223a;
+  --vault-sheet-surface: #14141f;
+  --vault-card-radius: 11px;
+  --vault-card-border: #26263f;
   --vault-card-surface: transparent;
   --vault-feature-radius: var(--vault-sheet-radius);
-  --vault-feature-border: rgba(178, 132, 255, 0.34);
-  --vault-feature-surface: rgba(255, 255, 255, 0.06);
+  --vault-feature-border: #3a2f6b;
+  --vault-feature-surface: #191a2b;
   --vault-well-radius: 9px;
-  --vault-well-surface: rgba(0, 0, 0, 0.26);
+  --vault-well-surface: #0c0c16;
 
   /* The older panel and tile names now resolve to the same two surfaces, so the
      pages still written in terms of them come along without being rewritten. */
