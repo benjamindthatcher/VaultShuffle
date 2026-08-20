@@ -54,10 +54,7 @@ export default function StatsPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeading eyebrow="Your backlog" title="The damage so far">
-        Values are Steam&apos;s current store prices for the {stats.pricedGames} of {stats.totalGames} games we have
-        pricing for — what they sell for now, not what you paid for them.
-      </PageHeading>
+      <PageHeading title="The damage so far" />
 
       <CompletionClaimBanner />
       <LibraryEnrichmentBanner />
@@ -72,7 +69,8 @@ export default function StatsPage() {
           <span className={styles.fill} style={{ width: `${Math.max(stats.valueCompletedPercent, 1.5)}%` }} />
         </div>
         <p className={styles.heroHint}>
-          {stats.valueCompletedPercent}% finished · {stats.completedGames} of {stats.totalGames} games
+          {stats.valueCompletedPercent}% finished · {stats.completedGames} of {stats.totalGames} games ·
+          {" "}Steam prices today for {stats.pricedGames} of {stats.totalGames}
         </p>
       </section>
 

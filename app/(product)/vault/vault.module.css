@@ -243,9 +243,10 @@
 .drawCollectionChoice:hover,
 .drawCollectionChoice:focus-within { opacity: 1; }
 
-.drawActionControl { min-width: 0; display: grid; justify-items: stretch; gap: 3px; }
+.drawActionControl { min-width: 0; display: grid; justify-items: stretch; gap: 6px; }
 .drawActionControl .ctaButton { width: 100%; max-width: none; }
-.drawActionControl .setupStatus { margin: 0; font-size: 0.66rem; }
+.drawActionControl .setupStatus { margin: 0 0 2px; font-size: 0.66rem; }
+.drawActionControl .quickDrawButton { width: 100%; min-height: 38px; font-size: 0.8rem; }
 
 /* The result is the page's one card: the pick, why it matched, and what you can
    do about it belong inside a single edge. */

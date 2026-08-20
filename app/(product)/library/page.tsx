@@ -12,7 +12,6 @@ import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer"
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
-import { PageHeading } from "@/components/shared/PageHeading";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
@@ -179,9 +178,7 @@ export default function LibraryPage() {
 
   return (
     <section className={styles.libraryPage}>
-      <PageHeading eyebrow="Library" title="Everything you own">
-        Every game in your Steam library, with what you have played, what is waiting, and what you have finished.
-      </PageHeading>
+      <h1 className="visually-hidden">Library</h1>
 
       {pinnedGames.length ? <div className={styles.pinnedShelf}>
         <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div></div>

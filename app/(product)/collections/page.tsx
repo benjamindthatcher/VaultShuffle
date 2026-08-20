@@ -5,7 +5,6 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
-import { PageHeading } from "@/components/shared/PageHeading";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
@@ -177,21 +176,7 @@ export default function CollectionsPage() {
 
   return (
     <section className={styles.collectionsPage}>
-      <PageHeading
-        eyebrow="Collections"
-        title="Shelves you build"
-        action={<button
-          type="button"
-          className={styles.primaryAction}
-          aria-expanded={composerOpen}
-          onClick={composerOpen ? closeComposer : openNewComposer}
-        >
-          <VaultIcon name="new-collection" size={22} />
-          {composerOpen ? "Close" : "New collection"}
-        </button>}
-      >
-        Group your games by hand, or by a rule that keeps itself up to date. Any shelf can be the source of a Vault draw.
-      </PageHeading>
+      <h1 className="visually-hidden">Collections</h1>
 
       <StatPanel label="Collections summary" columns={4}>
         <StatCard icon="all-collections" label="All Collections" value={stats.total} note="Every shelf currently in rotation." />
@@ -253,10 +238,21 @@ export default function CollectionsPage() {
         <SectionHeading
           title="Your collections"
           meta={`${baseCollections.length}`}
-          action={<div className={styles.railActions} role="group" aria-label="Browse collections">
-            <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
-            <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
-          </div>}
+          action={<>
+            <div className={styles.railActions} role="group" aria-label="Browse collections">
+              <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
+              <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
+            </div>
+            <button
+              type="button"
+              className={styles.primaryAction}
+              aria-expanded={composerOpen}
+              onClick={composerOpen ? closeComposer : openNewComposer}
+            >
+              <VaultIcon name="new-collection" size={20} />
+              {composerOpen ? "Close" : "New collection"}
+            </button>
+          </>}
         />
         <div ref={collectionRailRef} className={styles.collectionGrid} role="region" tabIndex={0} aria-label="Your collections">
           {baseCollections.map((collection) => (

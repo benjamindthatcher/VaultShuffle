@@ -141,11 +141,7 @@ export default function FinishedPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeading eyebrow="Completion check" title={pending.length ? "Did you finish these?" : "Nothing left to claim"}>
-          {pending.length
-            ? `Your Steam playtime says you reached the credits on these. Claiming them keeps them out of Vault draws and moves your completed value — ${formatMoney(remainingValue)} still waiting.`
-            : "Every game your playtime flagged has been dealt with. New ones appear here as you play."}
-      </PageHeading>
+      <PageHeading title={pending.length ? "Did you finish these?" : "Nothing left to claim"} />
 
       {claimedCount ? (
         <p className={styles.claimBar} role="status">
@@ -170,6 +166,9 @@ export default function FinishedPage() {
             />
             <span>{allSelected ? "Clear selection" : `Select all ${pending.length}`}</span>
           </label>
+          {selectedIds.length ? null : (
+            <span className={styles.selectedNote}>{formatMoney(remainingValue)} still to claim</span>
+          )}
           {selectedIds.length ? (
             <div className={styles.bulkActions}>
               <span className={styles.selectedNote}>

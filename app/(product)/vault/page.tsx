@@ -13,7 +13,6 @@ import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
 import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
-import { PageHeading } from "@/components/shared/PageHeading";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
@@ -568,15 +567,7 @@ export default function VaultPage() {
 
   return (
     <section className={styles.vaultPage}>
-      <PageHeading
-        eyebrow="Vault"
-        title="What are you playing tonight?"
-        action={<button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
-          <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
-        </button>}
-      >
-        Three quick choices and the Vault picks a game you already own.
-      </PageHeading>
+      <h1 className="visually-hidden">Vault</h1>
 
       {isLive ? (
         <PinnedCommitments
@@ -646,6 +637,9 @@ export default function VaultPage() {
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
           </button>
           <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
+          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
+            <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
+          </button>
         </div>
       </section>
 

@@ -17,7 +17,6 @@ import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
-import { PageHeading } from "@/components/shared/PageHeading";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { findCompletionCandidates } from "@/lib/completion-check";
@@ -360,9 +359,7 @@ export default function PurgePage() {
   }
 
   return <PurgePageFrame>
-    <PageHeading eyebrow="Purge" title="What still deserves a place?">
-      Games your playtime says you have finished or walked away from. Keep them, sleep them, or mark them done — one decision at a time.
-    </PageHeading>
+    <h1 className="visually-hidden">Purge</h1>
     <CompletionClaimBanner />
     <section className={styles.setupGrid} aria-label="Purge setup">
       <div className={styles.setupPanel}>
