@@ -49,9 +49,7 @@ export default function DashboardPage() {
   if (!isLive) {
     return (
       <div className={styles.page}>
-        <PageHeading title="Dashboard preview">
-          Explore what VaultShuffle already knows about the guest catalogue. Personal playtime, progress and value appear here after Steam sign-in.
-        </PageHeading>
+        <PageHeading title="Dashboard preview" />
 
         <GuestPreviewNotice feature="Dashboard" icon="details" catalogueSize={games.length}>
           These are catalogue facts, not claims about your library. Connect Steam whenever you want this dashboard to become yours.
@@ -111,9 +109,7 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.page}>
-      <PageHeading title="Your dashboard">
-        Your Steam library, progress and value — with import status shown as it really happens.
-      </PageHeading>
+      <h1 className="visually-hidden">Dashboard</h1>
 
       <SteamImportProgressCard />
 
