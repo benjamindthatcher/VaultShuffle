@@ -153,6 +153,36 @@ img {
   margin-top: 30px;
 }
 
+.vs-cta-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  max-width: 56ch;
+  margin: 16px 0 0;
+  color: rgba(214, 220, 250, 0.62);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.vs-cta-note svg {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  margin-top: 2px;
+  color: rgba(178, 142, 255, 0.9);
+}
+
+.vs-signin-notice {
+  max-width: 54ch;
+  margin: 14px 0 0;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 120, 140, 0.4);
+  border-radius: 12px;
+  background: rgba(255, 90, 120, 0.1);
+  color: #ffb4c2;
+  font-size: 14px;
+}
+
 .vs-cta {
   gap: 14px;
   min-height: 64px;

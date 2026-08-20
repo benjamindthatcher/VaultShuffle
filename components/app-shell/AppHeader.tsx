@@ -158,7 +158,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                 </button>
               </>
             ) : (
-              <Link href="/login" className={styles.menuAction}>Sign in with Steam</Link>
+              <a href="/api/auth/steam" className={styles.menuAction}>Sign in with Steam</a>
             )}
             {accountMessage ? <p className={styles.accountMessage} role="status">{accountMessage}</p> : null}
           </div>

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { Suspense } from "react";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
+import { SignInNotice } from "@/components/site/SignInNotice";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -182,17 +184,27 @@ export default function HomePage() {
             </p>
 
             <div className="vs-cta-row" role="group" aria-label="Get started">
-              <Link className="vs-cta vs-cta-primary" href="/login">
+              <a className="vs-cta vs-cta-primary" href="/api/auth/steam">
                 <span className="vs-cta-icon"><LandingIcon name="steam" /></span>
                 <span className="vs-cta-label">Continue with Steam</span>
                 <span className="vs-cta-arrow" aria-hidden="true">&rarr;</span>
-              </Link>
+              </a>
 
               <Link className="vs-cta vs-cta-secondary" href="/vault">
                 <LandingIcon name="guest" />
                 Try Guest Mode
               </Link>
             </div>
+
+            <Suspense fallback={null}><SignInNotice /></Suspense>
+
+            <p className="vs-cta-note">
+              <LandingIcon name="lock" />
+              <span>
+                Steam handles the sign-in itself. VaultShuffle never sees your password — only your SteamID, so it can
+                sync the games you own.
+              </span>
+            </p>
 
             <div className="vs-trust-row" role="group" aria-label="Vault Shuffle promises">
               <span>
@@ -313,10 +325,6 @@ export default function HomePage() {
             </article>
           ))}
         </section>
-        <div className="vs-data-note">
-          <LandingIcon name="lock" />
-          <span>Steam handles sign-in securely. VaultShuffle never sees your Steam password or login details.</span>
-        </div>
       </main>
     </>
   );

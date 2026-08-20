@@ -217,7 +217,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   async function signOut() {
     await api("/api/logout", { method: "POST" });
     trackEvent(ANALYTICS_EVENTS.signedOut);
-    window.location.assign("/login");
+    window.location.assign("/");
   }
 
   async function createCollection(payload: CollectionInput) {

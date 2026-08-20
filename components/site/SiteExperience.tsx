@@ -66,7 +66,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [noticeSeen, setNoticeSeen] = useState(true);
   const [loaded, setLoaded] = useState(false);
-  const hideFooter = pathname.startsWith("/login") || pathname.startsWith("/auth");
+  const hideFooter = pathname.startsWith("/auth");
   const isAppPage = ["/vault", "/library", "/purge", "/collections"].some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );

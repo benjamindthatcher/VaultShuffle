@@ -63,6 +63,6 @@ export async function GET(request: Request) {
     const message = encodeURIComponent(publicMessage);
 
     console.error("Steam callback failed:", detailedMessage);
-    return NextResponse.redirect(`${baseUrl}/login?error=${message}`);
+    return NextResponse.redirect(`${baseUrl}/?signin=${message}`);
   }
 }
