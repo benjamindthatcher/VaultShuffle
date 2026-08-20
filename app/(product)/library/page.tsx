@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { WelcomeBack } from "@/components/shared/WelcomeBack";
 import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
 import { CompletionCelebration } from "@/components/library/CompletionCelebration";
 import { pinProgress, pinProgressLabel } from "@/components/shared/PinnedCommitments";
@@ -194,6 +195,8 @@ export default function LibraryPage() {
         })}{Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>)}</div>
       </div> : null}
 
+
+      <WelcomeBack />
 
       <CompletionClaimBanner />
       <LibraryEnrichmentBanner />

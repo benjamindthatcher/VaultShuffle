@@ -7,6 +7,12 @@ export type PlaytimeSummary = {
   minutesLast30Days: number;
   /** Days of history available, so the UI can avoid claiming a streak it cannot see. */
   daysTracked: number;
+  /**
+   * Minutes gained per day, newest first. Sent to the client so a "since you were
+   * last here" recap can be measured against whenever that visit actually was,
+   * rather than the app guessing at a fixed window.
+   */
+  dailyGains: Array<{ day: string; minutes: number }>;
 };
 
 /**
@@ -18,7 +24,7 @@ export type PlaytimeSummary = {
  */
 export function summarisePlaytime(snapshots: PlaytimeSnapshot[], today = new Date()): PlaytimeSummary {
   if (snapshots.length < 2) {
-    return { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: snapshots.length };
+    return { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: snapshots.length, dailyGains: [] };
   }
 
   const gainedByDay = new Map<string, number>();
@@ -52,6 +58,9 @@ export function summarisePlaytime(snapshots: PlaytimeSnapshot[], today = new Dat
     streakDays,
     minutesLast7Days: sumWithin(7),
     minutesLast30Days: sumWithin(30),
-    daysTracked: snapshots.length
+    daysTracked: snapshots.length,
+    dailyGains: [...gainedByDay.entries()]
+      .map(([day, minutes]) => ({ day, minutes }))
+      .sort((left, right) => right.day.localeCompare(left.day))
   };
 }

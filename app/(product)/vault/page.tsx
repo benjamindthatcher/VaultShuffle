@@ -17,6 +17,7 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
+import { WelcomeBack } from "@/components/shared/WelcomeBack";
 import { useGenreLearning, type GenreLearningArm } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
@@ -579,6 +580,8 @@ export default function VaultPage() {
           compact
         />
       ) : null}
+
+      <WelcomeBack />
 
       {!isLive ? <aside className={styles.guestPreviewBanner} aria-label="Guest preview">
         <span className={styles.guestPreviewIcon}><VaultIcon name="current-pick" size={24} /></span>

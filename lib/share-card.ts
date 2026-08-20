@@ -1,5 +1,6 @@
 import type { BacklogStats } from "./backlog-stats.ts";
 import { formatHours, formatMoney } from "./backlog-stats.ts";
+import type { DemoGame } from "./demo-data.ts";
 
 export type ShareCardLine = { label: string; value: string };
 
@@ -8,6 +9,10 @@ export type ShareCardContent = {
   subhead: string;
   percent: number;
   lines: ShareCardLine[];
+  /** Cover art for the strip along the bottom. Steam's CDN allows CORS, so these
+   *  can be drawn without tainting the canvas and blocking export. */
+  artwork: string[];
+  artworkLabel: string;
 };
 
 /**
@@ -18,8 +23,22 @@ export type ShareCardContent = {
  * estimate, and "never opened" is included because a backlog card that only shows
  * triumphs is not recognisable to anyone who has a backlog.
  */
-export function buildShareCard(stats: BacklogStats, streakDays: number): ShareCardContent {
+export function buildShareCard(stats: BacklogStats, streakDays: number, games: DemoGame[] = []): ShareCardContent {
+  // What was finished is the part worth showing off. Falling back to the best
+  // value for money keeps the card from looking empty before anything is done.
+  const finished = games
+    .filter((game) => game.status === "Completed" && game.completedAt && game.bannerUrl)
+    .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)));
+
+  const fallback = games
+    .filter((game) => game.bannerUrl && game.hoursPlayed >= 1)
+    .sort((left, right) => right.hoursPlayed - left.hoursPlayed);
+
+  const showcase = (finished.length ? finished : fallback).slice(0, 4);
+
   return {
+    artwork: showcase.map((game) => game.bannerUrl).filter((url): url is string => Boolean(url)),
+    artworkLabel: finished.length ? "Recently finished" : "Most played",
     headline: `${formatMoney(stats.completedValueCents, stats.currency)} of ${formatMoney(stats.libraryValueCents, stats.currency)} finished`,
     subhead: stats.bestValue
       ? `Best value: ${stats.bestValue.title}`
@@ -48,7 +67,8 @@ export const SHARE_CARD_HEIGHT = 630;
 export function drawShareCard(
   context: CanvasRenderingContext2D,
   content: ShareCardContent,
-  displayName: string
+  displayName: string,
+  artwork: Array<CanvasImageSource | null> = []
 ) {
   const width = SHARE_CARD_WIDTH;
   const height = SHARE_CARD_HEIGHT;
@@ -104,16 +124,41 @@ export function drawShareCard(
   content.lines.forEach((line, index) => {
     const x = 64 + columnWidth * index;
     context.fillStyle = "rgba(226, 232, 255, 0.56)";
-    context.font = "600 20px system-ui, -apple-system, Segoe UI, sans-serif";
-    context.fillText(line.label.toUpperCase(), x, 470);
+    context.font = "600 19px system-ui, -apple-system, Segoe UI, sans-serif";
+    context.fillText(line.label.toUpperCase(), x, 434);
     context.fillStyle = "#f2f4ff";
-    context.font = "800 44px system-ui, -apple-system, Segoe UI, sans-serif";
-    context.fillText(line.value, x, 522);
+    context.font = "800 40px system-ui, -apple-system, Segoe UI, sans-serif";
+    context.fillText(line.value, x, 478);
   });
 
+  const drawable = artwork.filter(Boolean) as CanvasImageSource[];
+  if (drawable.length) {
+    context.fillStyle = "rgba(226, 232, 255, 0.5)";
+    context.font = "600 18px system-ui, -apple-system, Segoe UI, sans-serif";
+    context.fillText(content.artworkLabel.toUpperCase(), 64, 524);
+
+    const gap = 16;
+    const tileWidth = (barWidth - gap * (drawable.length - 1)) / drawable.length;
+    const tileHeight = Math.min(78, tileWidth * (43 / 92));
+    drawable.forEach((image, index) => {
+      const x = 64 + (tileWidth + gap) * index;
+      context.save();
+      roundedRect(context, x, 542, tileWidth, tileHeight, 10);
+      context.clip();
+      // Cover-fit: Steam headers are 92:43, so anything squarer is cropped rather
+      // than squashed.
+      context.drawImage(image, x, 542, tileWidth, tileHeight);
+      context.restore();
+      context.strokeStyle = "rgba(255, 255, 255, 0.12)";
+      context.lineWidth = 1;
+      roundedRect(context, x, 542, tileWidth, tileHeight, 10);
+      context.stroke();
+    });
+  }
+
   context.fillStyle = "rgba(226, 232, 255, 0.44)";
-  context.font = "500 22px system-ui, -apple-system, Segoe UI, sans-serif";
-  context.fillText("vaultshuffle.com", 64, height - 52);
+  context.font = "500 20px system-ui, -apple-system, Segoe UI, sans-serif";
+  context.fillText("vaultshuffle.com", width - 240, height - 34);
 }
 
 function roundedRect(context: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, radius: number) {

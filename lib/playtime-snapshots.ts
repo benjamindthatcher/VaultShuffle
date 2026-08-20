@@ -58,7 +58,7 @@ export async function getPlaytimeSummary(userId: string): Promise<PlaytimeSummar
     return summarisePlaytime(snapshots);
   } catch (error) {
     console.error("Could not load playtime summary.", error);
-    return { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0 };
+    return { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0, dailyGains: [] };
   }
 }
 

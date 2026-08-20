@@ -21,16 +21,40 @@ export function ShareCard() {
   const [status, setStatus] = useState<"idle" | "copied" | "saved" | "failed">("idle");
 
   const stats = buildBacklogStats(games);
-  const content = buildShareCard(stats, playtime.streakDays);
+  const content = buildShareCard(stats, playtime.streakDays, games);
   const displayName = session.display_name || "Steam player";
 
+  const artworkKey = content.artwork.join("|");
   useEffect(() => {
+    let cancelled = false;
     const canvas = canvasRef.current;
     const context = canvas?.getContext("2d");
     if (!canvas || !context) return;
+
+    // Drawn once without art so the card is never blank while covers load, then
+    // again with whatever arrived. Steam's CDN sends access-control-allow-origin,
+    // so crossOrigin keeps the canvas exportable.
     context.clearRect(0, 0, canvas.width, canvas.height);
     drawShareCard(context, content, displayName);
-  }, [content, displayName]);
+
+    const urls = artworkKey ? artworkKey.split("|") : [];
+    if (!urls.length) return;
+
+    void Promise.all(urls.map((url) => new Promise<HTMLImageElement | null>((resolve) => {
+      const image = new Image();
+      image.crossOrigin = "anonymous";
+      image.onload = () => resolve(image);
+      // A cover that will not load simply leaves its slot out.
+      image.onerror = () => resolve(null);
+      image.src = url;
+    }))).then((images) => {
+      if (cancelled) return;
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawShareCard(context, content, displayName, images);
+    });
+
+    return () => { cancelled = true; };
+  }, [artworkKey, content, displayName]);
 
   async function withBlob(handler: (blob: Blob) => Promise<void> | void) {
     const canvas = canvasRef.current;

@@ -43,7 +43,7 @@ function matchesDeviceMode(game: DemoGame, mode: DeviceMode) {
 
 const emptyVaultState: VaultState = { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null };
 const EMPTY_GENRE_PREFERENCES: GenrePreference[] = [];
-const EMPTY_PLAYTIME: PlaytimeSummary = { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0 };
+const EMPTY_PLAYTIME: PlaytimeSummary = { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0, dailyGains: [] };
 
 type AppDataContextValue = {
   session: SessionPayload;
