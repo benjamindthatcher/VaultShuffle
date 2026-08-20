@@ -1,4 +1,4 @@
-.panel, .compact { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--vault-border); border-radius: 16px; background: var(--vault-surface-soft); }
+.panel, .compact { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
 .compact { padding: 12px; }
 .header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .label { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #d392ff; }

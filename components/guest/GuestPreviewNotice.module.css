@@ -5,9 +5,9 @@
   align-items: center;
   gap: 12px;
   padding: 11px 12px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: var(--vault-card-radius);
-  background: linear-gradient(110deg, rgba(74, 39, 145, .18), var(--vault-card-surface) 52%);
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: linear-gradient(110deg, rgba(122, 74, 226, 0.16), var(--vault-sheet-surface) 52%);
 }
 
 .icon {

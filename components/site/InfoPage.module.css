@@ -40,9 +40,9 @@
 
 .sections section {
   padding: 18px 20px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: var(--vault-card-radius);
-  background: var(--vault-card-surface);
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
 .sections h2,

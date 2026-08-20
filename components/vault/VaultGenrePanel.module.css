@@ -2,9 +2,9 @@
   display: grid;
   gap: 10px;
   padding: 14px;
-  border-radius: var(--vault-tile-radius);
-  border: 1px solid var(--vault-tile-border);
-  background: var(--vault-tile-surface);
+  border-radius: var(--vault-card-radius);
+  border: 1px solid var(--vault-card-border);
+  background: var(--vault-card-surface);
   box-shadow: var(--vault-shadow);
 }
 

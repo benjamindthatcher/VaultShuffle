@@ -79,9 +79,9 @@
   scroll-snap-align: start;
   overflow: hidden;
   color: inherit;
-  border-radius: 8px;
-  border: 1px solid rgba(146, 107, 255, 0.18);
-  background: rgba(10, 15, 35, 0.88);
+  border-radius: var(--vault-card-radius);
+  border: 1px solid var(--vault-card-border);
+  background: var(--vault-card-surface);
   box-shadow: var(--vault-shadow);
   transition: transform 220ms ease, opacity 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
 }

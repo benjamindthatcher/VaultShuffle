@@ -90,9 +90,9 @@
   display: grid;
   gap: 8px;
   padding: 8px;
-  border-radius: 10px;
-  border: 1px solid rgba(145, 105, 255, 0.18);
-  background-color: rgba(8, 13, 31, 0.94);
+  border-radius: var(--vault-card-radius);
+  border: 1px solid var(--vault-card-border);
+  background-color: var(--vault-card-surface);
   text-align: left;
   box-shadow: var(--vault-shadow);
   transition:

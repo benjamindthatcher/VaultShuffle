@@ -1,9 +1,9 @@
 .group {
   min-height: 0;
   overflow: hidden;
-  border-radius: var(--vault-tile-radius);
-  border: 1px solid var(--vault-tile-border);
-  background: var(--vault-tile-surface);
+  border-radius: var(--vault-card-radius);
+  border: 1px solid var(--vault-card-border);
+  background: var(--vault-card-surface);
   box-shadow: var(--vault-shadow);
   transition: border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
