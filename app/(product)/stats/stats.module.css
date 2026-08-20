@@ -8,11 +8,6 @@
 .fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #7ce7b2, #b57cff); transition: width 600ms ease-out; }
 .heroHint { margin: 0; color: var(--vault-text-muted); font-size: 0.84rem; }
 
-.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
-.tiles article { display: grid; gap: 3px; padding: 16px; border: 1px solid var(--vault-border); border-radius: 14px; background: var(--vault-surface-soft); }
-.tiles p { margin: 0; font-size: 0.66rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--vault-text-muted); }
-.tiles strong { font-size: 1.5rem; font-weight: 760; color: var(--vault-text); overflow: hidden; text-overflow: ellipsis; }
-.tiles small { color: var(--vault-text-muted); font-size: 0.78rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .section { display: grid; gap: 12px; }
 .section h2 { display: flex; align-items: center; gap: 9px; margin: 0; font-size: 1.02rem; }

@@ -6,10 +6,13 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { ShareCard } from "@/components/stats/ShareCard";
 import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
 import { Artwork } from "@/components/shared/Artwork";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import { PageHeading } from "@/components/shared/PageHeading";
+import { StatCard, StatPanel } from "@/components/shared/StatCard";
+import { SectionHeading } from "@/components/shared/SectionHeading";
 import styles from "./stats.module.css";
 
 export default function StatsPage() {
@@ -73,27 +76,29 @@ export default function StatsPage() {
         </p>
       </section>
 
-      <section className={styles.tiles}>
-        <article><p>Hours played</p><strong>{formatHours(stats.totalHours)}</strong><small>across the whole library</small></article>
-        <article>
-          <p>Play streak</p>
-          <strong>{playtime.daysTracked < 2 ? "—" : `${playtime.streakDays}d`}</strong>
-          <small>
-            {playtime.daysTracked < 2
-              ? "Starts once we have a couple of nights of history"
-              : playtime.streakDays
-                ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`
-                : "No play recorded yesterday"}
-          </small>
-        </article>
-        <article><p>Games completed</p><strong>{stats.completedPercent}%</strong><small>{stats.completedGames} of {stats.totalGames}</small></article>
-        <article><p>Never opened</p><strong>{stats.unplayedGames}</strong><small>worth {formatMoney(stats.unplayedValueCents, stats.currency)}</small></article>
-        <article><p>Best value</p><strong>{stats.bestValue ? formatValueRate(stats.bestValue, stats.currency) : "—"}</strong><small>{stats.bestValue ? stats.bestValue.title : "Play something to find out"}</small></article>
-      </section>
+      <StatPanel label="Backlog summary" columns={5}>
+        <StatCard label="Hours played" value={formatHours(stats.totalHours)} note="across the whole library" />
+        <StatCard
+          label="Play streak"
+          value={playtime.daysTracked < 2 ? "—" : `${playtime.streakDays}d`}
+          note={playtime.daysTracked < 2
+            ? "Starts once we have a couple of nights of history"
+            : playtime.streakDays
+              ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`
+              : "No play recorded yesterday"}
+        />
+        <StatCard label="Games completed" value={`${stats.completedPercent}%`} note={`${stats.completedGames} of ${stats.totalGames}`} />
+        <StatCard label="Never opened" value={stats.unplayedGames} note={`worth ${formatMoney(stats.unplayedValueCents, stats.currency)}`} />
+        <StatCard
+          label="Best value"
+          value={stats.bestValue ? formatValueRate(stats.bestValue, stats.currency) : "—"}
+          note={stats.bestValue ? stats.bestValue.title : "Play something to find out"}
+        />
+      </StatPanel>
 
       {bestValueGames.length ? (
         <section className={styles.section}>
-          <h2><VaultIcon name="heart" size={18} />Most value for money</h2>
+          <SectionHeading title="Most value for money" />
           <ol className={styles.rankList}>
             {bestValueGames.map(({ game, centsPerHour }) => (
               <li key={game.id}>
@@ -110,7 +115,7 @@ export default function StatsPage() {
       ) : null}
 
       <section className={styles.section}>
-        <h2><VaultIcon name="completed" size={18} />Recently finished</h2>
+        <SectionHeading title="Recently finished" />
         {recentCompletions.length ? (
           <ol className={styles.rankList}>
             {recentCompletions.map((game) => (
