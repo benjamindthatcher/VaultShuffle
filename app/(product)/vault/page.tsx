@@ -14,6 +14,7 @@ import { VaultLens } from "@/components/vault/VaultLens";
 import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { PageHeading } from "@/components/shared/PageHeading";
+import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
@@ -650,9 +651,10 @@ export default function VaultPage() {
 
       <section className={styles.poolSection} id="vault-pool">
         <div className={styles.poolControls}>
-          <div className={styles.poolHeader}>
-            <div className={styles.poolIdentity}><p className={styles.poolLabel}>Vault Deck</p><span className={styles.matchBadge}><VaultIcon name="new" size={15} />{deck.length}{fullPool.length > deck.length ? ` of ${fullPool.length}` : ""} matches</span></div>
-            <div className={styles.deckTools}>
+          <SectionHeading
+            title="Vault deck"
+            meta={`${deck.length}${fullPool.length > deck.length ? ` of ${fullPool.length}` : ""} matches`}
+            action={<div className={styles.deckTools}>
               <button
                 type="button"
                 className={styles.deckToolButton}
@@ -683,8 +685,8 @@ export default function VaultPage() {
                 <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Sign in to save draws"}</small></span>
                 <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
               </button>
-            </div>
-          </div>
+            </div>}
+          />
 
           {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
 

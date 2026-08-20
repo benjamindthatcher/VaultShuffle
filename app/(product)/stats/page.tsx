@@ -6,6 +6,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestFeatureGate } from "@/components/guest/GuestFeatureGate";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
 import { Artwork } from "@/components/shared/Artwork";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import { PageHeading } from "@/components/shared/PageHeading";
@@ -56,6 +57,7 @@ export default function StatsPage() {
       </PageHeading>
 
       <CompletionClaimBanner />
+      <LibraryEnrichmentBanner />
 
       <section className={styles.hero}>
         <p className={styles.heroLabel}>Library value completed</p>

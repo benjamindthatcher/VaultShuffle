@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
 import { CompletionCelebration } from "@/components/library/CompletionCelebration";
 import { pinProgress, pinProgressLabel } from "@/components/shared/PinnedCommitments";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
@@ -198,6 +199,7 @@ export default function LibraryPage() {
 
 
       <CompletionClaimBanner />
+      <LibraryEnrichmentBanner />
 
       {celebratingGame ? (
         <CompletionCelebration

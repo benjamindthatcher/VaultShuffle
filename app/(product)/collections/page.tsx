@@ -273,18 +273,18 @@ export default function CollectionsPage() {
 
       {selectedCollection ? (
         <section className={styles.selectedPanel}>
-          <div className={styles.selectedHeader}>
-            <div>
-              <p className={styles.sectionEyebrow}>Selected collection</p>
-              <h2 className={styles.sectionTitle}>{selectedCollection.name}</h2>
-              <p className={styles.sectionCopy}>{selectedCollection.description}</p>
-              {selectedCollection.kind === "smart" ? <p className={styles.ruleNote}>Updates automatically from your library.</p> : null}
-            </div>
-            <div className={styles.selectedActions}>
+          <SectionHeading
+            title="Selected collection"
+            meta={selectedCollection.name}
+            action={<div className={styles.selectedActions}>
               <button type="button" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
               <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
-            </div>
-          </div>
+            </div>}
+          />
+          <p className={styles.sectionCopy}>
+            {selectedCollection.description}
+            {selectedCollection.kind === "smart" ? " Updates automatically from your library." : ""}
+          </p>
           {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
           <div className={styles.selectedGames}>
             {selectedGames.length ? (

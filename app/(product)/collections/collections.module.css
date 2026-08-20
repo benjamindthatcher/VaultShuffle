@@ -3,7 +3,6 @@
   gap: 18px;
 }
 
-
 /* One button shape for the page: a solid accent for the action that creates
    something, an outline for everything else. */
 .primaryAction,
@@ -82,24 +81,10 @@
   font-weight: 700;
 }
 
-.composerCopy,
-.collectionPanelCopy {
+.composerCopy {
   margin: 7px 0 0;
   color: var(--vault-text-muted);
   line-height: 1.55;
-}
-
-.collectionPanelTitle {
-  margin: 0;
-  font-size: 1.02rem;
-  font-weight: 700;
-}
-
-.collectionPanelHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
 }
 
 .railActions {
@@ -146,7 +131,6 @@
   scroll-snap-align: start;
 }
 
-
 .field {
   display: grid;
   gap: 8px;
@@ -186,13 +170,6 @@
   font-weight: 650;
 }
 
-.selectedHeader {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
-}
-
 .selectedActions {
   display: flex;
   gap: 10px;
@@ -201,20 +178,6 @@
 .dangerAction {
   color: #ff9db1;
   border-color: rgba(255, 112, 143, 0.26);
-}
-
-.sectionEyebrow {
-  margin: 0;
-  color: #d392ff;
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-.sectionTitle {
-  margin: 3px 0 0;
-  font-size: 1.02rem;
-  font-weight: 700;
 }
 
 .sectionCopy {
@@ -265,11 +228,6 @@
 
   .composerActions {
     justify-content: stretch;
-    flex-direction: column;
-  }
-
-  .selectedHeader {
-    align-items: flex-start;
     flex-direction: column;
   }
 

@@ -256,11 +256,13 @@
   background: var(--vault-card-surface);
 }
 
-.poolLabel,
+/* The label on a region inside a card — "Now reviewing", "Decision". Sections on
+   the page ground use SectionHeading instead; this is for parts within a card. */
 .resultEyebrow {
   margin: 0;
   color: #d392ff;
-  font-size: 0.76rem;
+  font-size: 0.7rem;
+  font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
@@ -305,19 +307,6 @@
   display: grid;
   grid-template-rows: auto auto;
   gap: 8px;
-}
-
-.poolLabel {
-  color: #d392ff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-}
-
-.poolHeader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 .deckTools {
   margin-left: auto;
@@ -404,8 +393,6 @@
   color: #e1b2ff;
   transform: translateX(2px);
 }
-
-.poolIdentity { display: flex; align-items: center; gap: 12px; }
 .poolActionArea {
   display: grid;
   justify-items: center;
@@ -429,18 +416,6 @@
 
 .pillRow > * { flex: 0 0 auto; }
 .noFilters { display: inline-flex; align-items: center; color: var(--vault-text-soft); font-size: 0.78rem; }
-
-.matchBadge {
-  flex: 0 0 auto;
-  min-height: 32px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 8px;
-  border-radius: 999px;
-  gap: 6px;
-  border: 0;
-  color: #d8a4ff;
-}
 
 .ctaButton {
   width: min(100%, 250px);
@@ -694,13 +669,6 @@
     grid-column: 1 / -1;
     width: 100%;
   }
-
-  .poolHeader {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .poolHeader { gap: 12px; }
   .deckTools { width: 100%; margin-left: 0; }
   .deckToolButton { width: 50%; min-width: 0; }
   .ctaButton { width: 100%; max-width: none; }
@@ -778,9 +746,6 @@
 .quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid var(--vault-card-border); border-radius: 10px; background: transparent; color: var(--vault-text-muted); font-size: .86rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
 .quickDrawButton:hover:not(:disabled) { border-color: var(--vault-border-strong); color: var(--vault-text); }
 .quickDrawButton:disabled { opacity: .45; }
-
-
-
 
 /* Pick feedback. Deliberately quiet: it is a question, not a call to action. */
 .feedbackRow,

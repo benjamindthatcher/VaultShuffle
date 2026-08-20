@@ -20,14 +20,6 @@
   display: grid;
   gap: 10px;
 }
-.setupLabel {
-  margin: 0;
-  color: var(--vault-text-muted);
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
 /* The review panel is the one card on the page: the game under review, its
    facts and the three decisions belong together inside one edge. */
 .reviewPanel {
@@ -38,31 +30,6 @@
 /* The queue is a section, not a card: a heading with a rail of cards under it. */
 .queuePanel {
   display: grid;
-}
-.sectionHeading {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 12px;
-}
-.sectionHeading h1,
-.sectionHeading h2 {
-  margin: 4px 0 0;
-  letter-spacing: -0.03em;
-}
-.sectionHeading h1 {
-  font-size: clamp(1.55rem, 3vw, 2.2rem);
-}
-.sectionHeading h2 {
-  font-size: 1.02rem;
-  font-weight: 700;
-  letter-spacing: 0;
-}
-.sectionHeading > p {
-  margin: 0;
-  color: #9295ad;
-  font-size: 0.78rem;
 }
 .eyebrow {
   margin: 0;
@@ -426,13 +393,6 @@
     grid-template-columns: 1fr;
     padding: 18px;
   }
-  .sectionHeading {
-    align-items: start;
-    flex-direction: column;
-  }
-  .sectionHeading > p {
-    display: none;
-  }
   .reviewFooter {
     align-items: flex-start;
     flex-direction: column-reverse;
@@ -509,7 +469,6 @@
   color: var(--vault-text-soft);
   font-size: 0.92rem;
 }
-
 
 /* A decision that no longer matches the game's state is history, not status. */
 .outcomeDecision[data-stale] {
