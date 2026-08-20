@@ -113,7 +113,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
       title="Unpin"
       onClick={(event) => { event.stopPropagation(); onUnpin(); }}
     ><VaultIcon name="close" size={15} /></button> : null}
-    {(onComplete || onRestore || onSleep || onTogglePin) ? <div ref={menuShellRef} className={`${styles.menuShell}${onUnpin ? ` ${styles.menuShellWithUnpin}` : ""}`}>
+    {(onComplete || onRestore || onSleep || onTogglePin) ? <div ref={menuShellRef} className={styles.menuShell}>
       <button type="button" className={styles.menuTrigger} aria-label={`Actions for ${game.title}`} aria-expanded={menuOpen} onClick={toggleMenu}><VaultIcon name="menu-dots" size={20} /></button>
       {menuOpen ? createPortal(<div ref={menuRef} className={styles.menu} style={menuPosition} role="menu">
         <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onClick?.(); }}><VaultIcon name="details" size={18} />View Details</button>

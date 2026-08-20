@@ -56,26 +56,33 @@ export async function getVaultState(userId: string): Promise<VaultState> {
   };
 }
 
+/**
+ * Applies a vault action and returns the resulting state.
+ *
+ * The state is re-read rather than assembled from what the RPC hands back. The
+ * RPC returns its own summary object, which silently lacked `pins` when that was
+ * added here — so every pin, unpin or snooze replaced the client's state with one
+ * missing a field the type promised, and the next render crashed on it. The
+ * client casts this response to VaultState, so nothing in TypeScript was ever
+ * going to catch the gap.
+ *
+ * One read, one definition of the shape, no way for the two to drift again.
+ */
 export async function recordVaultAction(
   userId: string,
   action: VaultAction,
   gameId: string,
   context: Record<string, unknown> = {}
-) {
+): Promise<VaultState> {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.rpc("apply_user_vault_action", {
+  const { error } = await supabase.rpc("apply_user_vault_action", {
     p_user_id: userId,
     p_action: action,
     p_game_id: gameId,
     p_context: context
   });
   if (error) throw error;
-  const state = (data ?? {}) as Partial<VaultState>;
-  return {
-    pinnedIds: Array.isArray(state.pinnedIds) ? state.pinnedIds.map(String) : [],
-    snoozedIds: Array.isArray(state.snoozedIds) ? state.snoozedIds.map(String) : [],
-    currentPickId: cleanId(state.currentPickId ?? null)
-  };
+  return getVaultState(userId);
 }
 
 function cleanId(value: string | null | undefined) {

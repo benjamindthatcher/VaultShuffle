@@ -184,11 +184,11 @@ export default function LibraryPage() {
       {pinnedGames.length ? <div className={styles.pinnedShelf}>
         <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div></div>
         <div className={styles.pinnedGrid} aria-label="Pinned games">{pinnedGames.map((game, index) => {
-          const pin = vaultState.pins.find((entry) => entry.gameId === game.id);
+          const pin = (vaultState.pins ?? []).find((entry) => entry.gameId === game.id);
           const progress = pinProgress(game, pin);
           const sincePinned = progress?.started ? pinProgressLabel(game, pin) : null;
           return <div key={game.id} className={styles.pinnedCard}>
-            <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onComplete={() => void markCompleted(game.id)} onSleep={() => void updateGame(game.id, { status: "Slept" })} onTogglePin={() => void togglePin(game)} onUnpin={() => void togglePin(game)} pinned showProgress />
+            <GameCard game={game} onClick={() => setSelectedGameId(game.id)} onUnpin={() => void togglePin(game)} pinned showProgress />
             <span className={styles.pinBadge}>⌖ {index + 1}</span>
             {sincePinned ? <span className={styles.pinProgress}>{sincePinned}</span> : null}
           </div>;
@@ -202,7 +202,7 @@ export default function LibraryPage() {
         <CompletionCelebration
           game={celebratingGame}
           games={games}
-          pin={vaultState.pins.find((pin) => pin.gameId === celebratingGame.id)}
+          pin={(vaultState.pins ?? []).find((entry) => entry.gameId === celebratingGame.id)}
           onDismiss={() => setCelebratingId(null)}
           onUndo={() => void restoreCompleted(celebratingGame.id)}
         />

@@ -31,14 +31,17 @@ export function pinProgressLabel(game: DemoGame, pin: VaultPin | undefined) {
 
 type Props = {
   games: DemoGame[];
-  pins: VaultPin[];
+  pins?: VaultPin[];
   pinnedIds: string[];
   onSelect?: (gameId: string) => void;
   onUnpin?: (gameId: string) => void;
   compact?: boolean;
 };
 
-export function PinnedCommitments({ games, pins, pinnedIds, onSelect, onUnpin, compact = false }: Props) {
+export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnpin, compact = false }: Props) {
+  // Defaulted because the state arrives from the API through an unchecked cast:
+  // a server response missing this field should degrade to "no progress known",
+  // never take the page down.
   const pinned = pinnedIds
     .map((id) => games.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game));

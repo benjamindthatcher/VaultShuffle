@@ -580,7 +580,7 @@ export default function VaultPage() {
       {isLive ? (
         <PinnedCommitments
           games={ownedGames}
-          pins={vaultState.pins}
+          pins={vaultState.pins ?? []}
           pinnedIds={vaultState.pinnedIds}
           onSelect={(gameId) => setDetailsGameId(gameId)}
           onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
