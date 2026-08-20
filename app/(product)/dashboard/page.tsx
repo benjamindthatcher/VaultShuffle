@@ -9,6 +9,7 @@ import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { ShareCard } from "@/components/stats/ShareCard";
 import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
+import { WelcomeBack } from "@/components/shared/WelcomeBack";
 import { Artwork } from "@/components/shared/Artwork";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import { PageHeading } from "@/components/shared/PageHeading";
@@ -118,6 +119,7 @@ export default function DashboardPage() {
 
       {awaitingFirstLibrary ? null : (
         <>
+          <WelcomeBack />
           <CompletionClaimBanner />
           <LibraryEnrichmentBanner />
 
