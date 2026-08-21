@@ -252,10 +252,6 @@ export default function CollectionsPage() {
               <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
             </div>}
           />
-          <p className={styles.sectionCopy}>
-            {selectedCollection.description}
-            {selectedCollection.kind === "smart" ? (isLive ? " Updates automatically from your library." : " Updates from the guest catalogue while you preview.") : ""}
-          </p>
           {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
           <div className={styles.selectedGames}>
             {selectedGames.length ? (

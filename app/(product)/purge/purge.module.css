@@ -173,10 +173,12 @@
   letter-spacing: 0.12em;
 }
 .queueCopy strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-size: 0.82rem;
+  line-height: 1.3;
 }
 .queueCopy em {
   color: #8f92a9;

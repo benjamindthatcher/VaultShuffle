@@ -62,9 +62,13 @@
 
 .copy {
   margin: 5px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   font-size: 0.82rem;
   color: var(--vault-text-muted);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .footer {
