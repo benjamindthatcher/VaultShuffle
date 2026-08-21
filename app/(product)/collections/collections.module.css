@@ -128,7 +128,7 @@
 }
 
 .collectionGrid > * {
-  flex: 0 0 clamp(240px, 30vw, 340px);
+  flex: 0 0 clamp(260px, 30vw, 380px);
   scroll-snap-align: start;
 }
 

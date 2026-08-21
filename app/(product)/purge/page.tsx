@@ -99,7 +99,7 @@ export default function PurgePage() {
   }, [candidates, selectedCategories]);
   const activeIndex = Math.min(selectedOffset, Math.max(0, filteredCandidates.length - 1));
   const current = filteredCandidates[activeIndex] ?? null;
-  const queue = filteredCandidates.slice(0, 3);
+  const queue = filteredCandidates.slice(0, 4);
   const effectivePinnedIds = new Set([...vaultState.pinnedIds, ...optimisticPinnedIds]);
   const pinsFull = effectivePinnedIds.size >= 3 && current ? !effectivePinnedIds.has(current.game.id) : false;
 
