@@ -3,21 +3,26 @@
      is the same hue at a different lightness, so a sheet reads as purple rather
      than as a lit patch of slate:
 
-     ink      #0C0718  the ground
-     piece    #1A1030  a block that holds something: a stat, a game, a panel
-     feature  #241640  the one piece on a page that leads
-     well     #120A24  a recess inside a piece
+     ink      #170D2E  the ground, the same purple on every page
+     piece    #221543  a block that holds something: a stat, a game, a panel
+     feature  #2c1b57  the one piece on a page that leads
+     well     #120a24  a recess inside a piece
+
+     The ground used to be near-black with a purple wash over the top of the
+     viewport, so a page whose content filled the width looked purple and a page
+     whose content did not looked black around the edges. It is one colour
+     now.
 
      Sections do not have a surface of their own. A section is a heading and the
      pieces under it; painting a slab behind them turned a row of blocks into
      one solid rectangle with content printed on it. */
-  --vault-ink: #0c0718;
+  --vault-ink: #170d2e;
   --vault-bg: var(--vault-ink);
-  --vault-surface: #1a1030;
-  --vault-surface-strong: #150c28;
-  --vault-surface-soft: #1a1030;
-  --vault-border: #33224f;
-  --vault-border-strong: #4a2e7a;
+  --vault-surface: #221543;
+  --vault-surface-strong: #1c1039;
+  --vault-surface-soft: #221543;
+  --vault-border: #3a2866;
+  --vault-border-strong: #57379a;
   --vault-text: #f5f1ff;
   --vault-text-muted: rgba(226, 215, 255, 0.7);
   --vault-text-soft: rgba(203, 189, 236, 0.5);
@@ -54,14 +59,14 @@
      well  — a recess inside a sheet, for artwork and inputs. Darker than the
              sheet, never lighter. */
   --vault-sheet-radius: 16px;
-  --vault-sheet-border: #2e1e4d;
-  --vault-sheet-surface: #1a1030;
+  --vault-sheet-border: #33235c;
+  --vault-sheet-surface: #221543;
   --vault-card-radius: 12px;
-  --vault-card-border: #33224f;
-  --vault-card-surface: #1a1030;
+  --vault-card-border: #3a2866;
+  --vault-card-surface: #221543;
   --vault-feature-radius: var(--vault-sheet-radius);
-  --vault-feature-border: #5a35a0;
-  --vault-feature-surface: #241640;
+  --vault-feature-border: #6b40bd;
+  --vault-feature-surface: #2c1b57;
   --vault-well-radius: 9px;
   --vault-well-surface: #120a24;
 
@@ -106,10 +111,9 @@
 
 html {
   min-height: 100%;
-  background:
-    radial-gradient(circle at top, rgba(108, 56, 255, 0.22), transparent 34%),
-    radial-gradient(circle at 82% 18%, rgba(34, 108, 255, 0.18), transparent 22%),
-    linear-gradient(180deg, #0e0820 0%, var(--vault-ink) 42%, #08040f 100%);
+  /* The one place the ground colour is decided. The app shell paints its own
+     wash on top of this; the marketing and information pages take it as it is. */
+  background: var(--vault-ink);
   color: var(--vault-text);
   scroll-behavior: smooth;
 }
@@ -118,9 +122,7 @@ body {
   min-height: 100vh;
   margin: 0;
   color: var(--vault-text);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 28%),
-    radial-gradient(circle at 50% 0%, rgba(106, 70, 255, 0.16), transparent 30%);
+  background: var(--vault-ink);
   font-family:
     "Inter",
     "Segoe UI",

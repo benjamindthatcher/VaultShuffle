@@ -8,14 +8,11 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* The ground is dark and stays dark, so the content sitting on it is the
-     lighter thing on the screen. It used to carry a white lift across the top
-     third, which forced every panel to be darker than the page to read as
-     raised — the inversion that made the app feel heavy. All that is left is
-     the wash of colour behind the page heading. */
+  /* One purple, the whole way down. The wash it used to carry only covered the
+     top of the viewport, so how purple a page looked depended on how much of
+     its width the content filled. */
   background:
-    radial-gradient(120% 74% at 50% -12%, rgba(147, 71, 255, 0.3), transparent 64%),
-    radial-gradient(70% 44% at 92% 2%, rgba(196, 105, 255, 0.1), transparent 72%),
+    radial-gradient(150% 90% at 50% -30%, rgba(124, 62, 214, 0.35), transparent 70%),
     var(--vault-ink);
   z-index: -2;
 }
