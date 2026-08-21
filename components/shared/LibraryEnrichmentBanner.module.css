@@ -1,5 +1,5 @@
 .banner {
-  width: var(--vault-list-width);
+  width: min(var(--vault-list-width), 100%);
   margin-inline: auto;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
