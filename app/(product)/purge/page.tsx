@@ -62,7 +62,10 @@ class PurgeRequestError extends Error {
 export default function PurgePage() {
   const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<PurgeCategory[]>(["untouched"]);
+  // Every flagged category is in scope. The three category filters that used to
+  // narrow this are gone: the queue is what needs a decision, and the counts
+  // above already say what kind of games are in it.
+  const selectedCategories = CATEGORIES.map((category) => category.id);
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -136,7 +139,6 @@ export default function PurgePage() {
     [standingReviews, gameById]
   );
 
-  const categoryCounts = useMemo(() => Object.fromEntries(CATEGORIES.map(({ id }) => [id, candidates.filter((item) => item.category === id).length])) as Record<PurgeCategory, number>, [candidates]);
   const purgeStats = useMemo(() => {
     const readyIds = new Set(candidates.map(({ game }) => game.id));
     const actionedIds = new Set(standingReviews.keys());
@@ -343,15 +345,6 @@ export default function PurgePage() {
     }
   }
 
-  function toggleCategory(category: PurgeCategory) {
-    setSelectedCategories((value) => {
-      if (!value.includes(category)) return [...value, category];
-      if (value.length === 1) return value;
-      return value.filter((item) => item !== category);
-    });
-    setSelectedOffset(0);
-    setError("");
-  }
 
   return <PurgePageFrame>
     <h1 className="visually-hidden">Purge</h1>
@@ -378,18 +371,6 @@ export default function PurgePage() {
           })}
         </div>
       </aside>
-      <div className={styles.setupPanel}>
-        <SectionHeading title="What to review" />
-        <div className={styles.categoryGrid}>
-          {CATEGORIES.map((category) => {
-            const selected = selectedCategories.includes(category.id);
-            return <button key={category.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => toggleCategory(category.id)}>
-              <PurgeCategoryIcon category={category.id} />
-              <span className={styles.categoryCopy}><strong>{category.label}</strong><b>{categoryCounts[category.id]}</b><small>{category.copy}</small></span>
-            </button>;
-          })}
-        </div>
-      </div>
     </section>
       {reviewView === "needs" ? <>
         <section className={styles.queuePanel}>
@@ -446,7 +427,7 @@ export default function PurgePage() {
               </ul>
             : <p className={styles.emptyNote}>Every active game has either been flagged or reviewed.</p>)}
       </section>}
-    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : isLive ? "Every decision saves and advances automatically." : "Every preview decision advances automatically and lasts for this visit."}</span></footer>
+    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : ""}</span></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
   </PurgePageFrame>;
@@ -456,15 +437,6 @@ function PurgePageFrame({ children }: { children: ReactNode }) {
   return <section className={styles.page}><div className={styles.content}>{children}</div></section>;
 }
 
-function PurgeCategoryIcon({ category }: { category: PurgeCategory }) {
-  const categoryIcons: Record<PurgeCategory, VaultIconName> = {
-    untouched: "the-rest",
-    stalled: "abandoned",
-    dormant: "likely-completed",
-  };
-
-  return <VaultIcon className={styles.categoryIcon} name={categoryIcons[category]} size={36} />;
-}
 
 type PurgeDecisionIconName = "keep-active" | "pin" | "sleep";
 
