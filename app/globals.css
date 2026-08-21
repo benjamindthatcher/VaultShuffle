@@ -4,9 +4,13 @@
      than as a lit patch of slate:
 
      ink      #0C0718  the ground
-     sheet    #1A1030  the container a section lives in
-     feature  #241640  the one thing on a page that leads
-     well     #120A24  a recess inside a sheet */
+     piece    #1A1030  a block that holds something: a stat, a game, a panel
+     feature  #241640  the one piece on a page that leads
+     well     #120A24  a recess inside a piece
+
+     Sections do not have a surface of their own. A section is a heading and the
+     pieces under it; painting a slab behind them turned a row of blocks into
+     one solid rectangle with content printed on it. */
   --vault-ink: #0c0718;
   --vault-bg: var(--vault-ink);
   --vault-surface: #1a1030;
@@ -47,9 +51,9 @@
   --vault-sheet-radius: 16px;
   --vault-sheet-border: #2e1e4d;
   --vault-sheet-surface: #1a1030;
-  --vault-card-radius: 11px;
+  --vault-card-radius: 12px;
   --vault-card-border: #33224f;
-  --vault-card-surface: transparent;
+  --vault-card-surface: #1a1030;
   --vault-feature-radius: var(--vault-sheet-radius);
   --vault-feature-border: #5a35a0;
   --vault-feature-surface: #241640;

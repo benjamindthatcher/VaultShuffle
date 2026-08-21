@@ -9,10 +9,6 @@
 .section {
   display: grid;
   gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--vault-sheet-border);
-  border-radius: var(--vault-sheet-radius);
-  background: var(--vault-sheet-surface);
 }
 .gamesSection { min-height: 0; }
 .gamesToolbar { width: 100%; }

@@ -48,10 +48,6 @@
 .collectionPanel {
   display: grid;
   gap: 12px;
-  padding: 14px;
-  border: 1px solid var(--vault-sheet-border);
-  border-radius: var(--vault-sheet-radius);
-  background: var(--vault-sheet-surface);
 }
 
 /* The composer only exists while it is open — it used to sit there permanently

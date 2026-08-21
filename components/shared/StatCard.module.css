@@ -1,11 +1,4 @@
 /* The stat row: one sheet, with the stats sitting on it. */
-.panel {
-  padding: 14px;
-  border: 1px solid var(--vault-sheet-border);
-  border-radius: var(--vault-sheet-radius);
-  background: var(--vault-sheet-surface);
-}
-
 .grid {
   display: grid;
   grid-template-columns: 1fr;
