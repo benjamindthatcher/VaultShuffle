@@ -297,7 +297,7 @@
 .tagRow span {
   padding: 3px 6px;
   border-radius: 5px;
-  border: 1px solid rgba(147, 103, 255, 0.3);
+  border: 1px solid var(--vault-card-border);
   color: #b7add6;
   font-size: 0.66rem;
 }

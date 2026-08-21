@@ -25,7 +25,7 @@
 .tick { position: absolute; top: 15px; left: 15px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(6, 9, 24, 0.72); backdrop-filter: blur(3px); }
 .tick input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
 
-.selectBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: rgba(20, 24, 48, 0.92); backdrop-filter: blur(12px); position: sticky; top: 8px; z-index: 2; }
+.selectBar { width: min(1180px, 100%); margin-inline: auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: rgba(20, 24, 48, 0.92); backdrop-filter: blur(12px); position: sticky; top: 8px; z-index: 2; }
 .selectAll { display: flex; align-items: center; gap: 9px; font-size: 0.86rem; font-weight: 650; cursor: pointer; }
 .selectAll input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
 .bulkActions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }

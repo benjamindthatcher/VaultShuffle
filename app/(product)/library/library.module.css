@@ -12,7 +12,6 @@
 }
 .gamesSection { min-height: 0; }
 .gamesToolbar { width: 100%; }
-.gamesToolbar > * { width: 100%; max-width: none; }
 /*
  * The list scrolls with the page rather than inside itself.
  *

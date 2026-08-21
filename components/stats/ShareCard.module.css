@@ -7,14 +7,16 @@
  * to post without it dominating everything above it.
  */
 .panel, .panelIdle {
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: grid;
   grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
   gap: 18px;
   align-items: center;
   padding: 16px;
-  border: 1px solid var(--vault-border);
-  border-radius: 16px;
-  background: var(--vault-surface-soft);
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-card-surface);
 }
 
 /* Before the card is made there is no preview, so the panel is a single column

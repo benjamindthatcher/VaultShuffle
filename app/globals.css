@@ -37,6 +37,11 @@
   --vault-radius-md: 16px;
   --vault-radius-sm: 12px;
   --vault-content-width: min(1480px, calc(100vw - 48px));
+  /* A list of single-line rows, a form, or a block of prose does not get wider
+     just because the window does. Grids of cards still use the full width; a
+     row of "thumbnail, title, one number" does not. */
+  --vault-list-width: min(860px, 100%);
+  --vault-prose-width: min(680px, 100%);
   /* One surface treatment for the whole app. The ground is dark; the sheet that
      holds a section is the lighter thing on it; what sits inside a sheet does
      not carry a fill of its own. Getting that the wrong way round — lifting

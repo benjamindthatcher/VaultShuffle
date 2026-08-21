@@ -1,4 +1,6 @@
 .banner {
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;

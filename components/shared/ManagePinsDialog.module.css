@@ -9,7 +9,7 @@
 .copy { margin: 0; color: var(--vault-text-muted); }
 .error { margin: 0; color: #ff9eb7; font-size: .9rem; font-weight: 650; }
 .slots { display: grid; gap: 8px; }
-.slot, .emptySlot { min-height: 72px; display: grid; grid-template-columns: 78px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 8px; border: 1px solid rgba(145,105,255,.2); border-radius: 11px; background: rgba(10,14,36,.8); color: inherit; text-align: left; }
+.slot, .emptySlot { min-height: 72px; display: grid; grid-template-columns: 78px minmax(0,1fr) auto; align-items: center; gap: 12px; padding: 8px; border: 1px solid var(--vault-card-border); border-radius: 11px; background: rgba(10,14,36,.8); color: inherit; text-align: left; }
 .slotSelected { border-color: rgba(205,105,255,.72); background: rgba(53,29,105,.72); }
 .art { position: relative; width: 78px; aspect-ratio: 460 / 215; overflow: hidden; border-radius: 7px; }
 .art img { object-fit: cover; }

@@ -75,7 +75,7 @@
 
 .metadataRow span {
   padding: 6px 10px;
-  border: 1px solid rgba(145, 105, 255, 0.18);
+  border: 1px solid var(--vault-card-border);
   border-radius: 999px;
   color: var(--vault-text-soft);
   font-size: 0.78rem;
@@ -95,7 +95,7 @@
   align-items: center;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(145, 105, 255, 0.2);
+  border: 1px solid var(--vault-card-border);
   background: rgba(14, 18, 44, 0.76);
   color: var(--vault-text);
 }
@@ -110,7 +110,7 @@
 .statGrid div {
   padding: 16px;
   border-radius: 18px;
-  border: 1px solid rgba(145, 105, 255, 0.18);
+  border: 1px solid var(--vault-card-border);
   background: rgba(12, 17, 40, 0.82);
 }
 
@@ -138,7 +138,7 @@
   align-items: center;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(145, 105, 255, 0.2);
+  border: 1px solid var(--vault-card-border);
   background: rgba(14, 18, 44, 0.76);
   cursor: pointer;
 }
@@ -175,7 +175,7 @@
   width: 100%;
   padding: 0 14px;
   border-radius: 16px;
-  border: 1px solid rgba(145, 105, 255, 0.18);
+  border: 1px solid var(--vault-card-border);
   background: rgba(15, 20, 46, 0.72);
   color: var(--vault-text);
 }
