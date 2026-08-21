@@ -10,6 +10,7 @@
 /* Six cards in one row on the ground. They used to be six tiles inside two
    panels inside the page, which is three levels of box to say "pick a filter". */
 .setupGrid {
+  --purge-card-height: 96px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
@@ -43,7 +44,7 @@
 .categoryGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: minmax(var(--vault-top-card-height), 1fr);
+  grid-auto-rows: var(--purge-card-height);
   gap: var(--vault-top-card-gap);
 }
 .category,
@@ -52,8 +53,8 @@
   grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
-  min-height: var(--vault-top-card-height);
-  padding: 15px 16px;
+  height: var(--purge-card-height);
+  padding: 0 16px;
   border: 1px solid var(--vault-card-border);
   border-radius: var(--vault-card-radius);
   background: var(--vault-card-surface);
@@ -91,7 +92,9 @@
 .category small,
 .categorySelected small {
   margin-top: 5px;
-  min-height: 2.7em;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
   color: var(--vault-text-soft);
   font-size: 0.75rem;
   line-height: 1.35;
@@ -296,6 +299,8 @@
   line-height: 1.35;
 }
 .reviewFooter {
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -342,10 +347,14 @@
     animation: none;
   }
 }
-@media (max-width: 1000px) {
+/* Six cards across needs real width. Below it the two groups stack, so every
+   card keeps a copy column wide enough to read rather than ellipsing. */
+@media (max-width: 1400px) {
   .setupGrid {
     grid-template-columns: 1fr;
   }
+}
+@media (max-width: 1000px) {
   .reviewPanel {
     grid-template-columns: 1fr 1fr;
   }
@@ -403,6 +412,8 @@
 /* Reviewed / no-review-needed lists. Deliberately lighter than the review queue
    cards: these are for reading back decisions, not for making them. */
 .outcomeList {
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: grid;
   gap: 8px;
   margin: 0;

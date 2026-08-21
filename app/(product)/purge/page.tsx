@@ -23,9 +23,9 @@ import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
 
 const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
-  { id: "untouched", label: "Never Opened", copy: "Bought and never launched, not once." },
-  { id: "stalled", label: "Stalled", copy: "Started, barely got anywhere, then stopped." },
-  { id: "dormant", label: "Drifted Away", copy: "Played properly once, untouched for a long time." }
+  { id: "untouched", label: "Never Opened", copy: "Never launched." },
+  { id: "stalled", label: "Stalled", copy: "Started, then stopped." },
+  { id: "dormant", label: "Drifted Away", copy: "Idle for a long time." }
 ];
 
 const OUTCOME_LABELS: Record<PurgeReviewAction, string> = {
@@ -377,9 +377,9 @@ export default function PurgePage() {
         <SectionHeading title="Where things stand" />
         <div className={styles.categoryGrid}>
           {([
-            { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: "Flagged and waiting on a decision.", count: purgeStats.ready },
-            { id: "reviewed", icon: "actioned", label: "Reviewed", copy: `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done.`, count: purgeStats.reviewed },
-            { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: "Active games nothing has flagged.", count: purgeStats.noReviewNeeded }
+            { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: "Waiting on a decision.", count: purgeStats.ready },
+            { id: "reviewed", icon: "actioned", label: "Reviewed", copy: `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done`, count: purgeStats.reviewed },
+            { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: "Nothing flagged.", count: purgeStats.noReviewNeeded }
           ] as const).map((view) => {
             const selected = reviewView === view.id;
             return <button key={view.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => setReviewView(view.id)}>
