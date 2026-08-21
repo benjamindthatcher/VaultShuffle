@@ -12,7 +12,6 @@ import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tr
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
-import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
@@ -69,17 +68,6 @@ export default function LibraryPage() {
     [libraryGames]
   );
 
-  const stats = useMemo(
-    () => ({
-      total: libraryGames.length,
-      sampled: libraryGames.filter((game) => game.hoursPlayed > 0 && game.completionPercent <= 20).length,
-      backlog: libraryGames.filter((game) => game.status === "Not Started").length,
-      completed: libraryGames.filter((game) => game.status === "Completed").length,
-      inProgress: libraryGames.filter((game) => game.status === "In Progress").length
-    }),
-    [libraryGames]
-  );
-
   const recentActivity = useMemo(
     () => [...libraryGames]
       .filter((game) => game.hoursPlayed > 0 && sortableLastPlayed(game) > 0)
@@ -90,12 +78,6 @@ export default function LibraryPage() {
       .slice(0, 4),
     [libraryGames]
   );
-
-  const guestSummary = useMemo(() => ({
-    genres: new Set(libraryGames.flatMap((game) => game.genres)).size,
-    timed: libraryGames.filter((game) => estimatedTimeToBeatMinutes(game.duration) !== null).length,
-    reviewed: libraryGames.filter((game) => Number(game.reviewTotal ?? 0) > 0).length
-  }), [libraryGames]);
 
   async function markCompleted(gameId: string) {
     const game = games.find((entry) => entry.id === gameId);
@@ -223,22 +205,6 @@ export default function LibraryPage() {
           onUndo={() => void restoreCompleted(celebratingGame.id)}
         />
       ) : null}
-
-      {isLive ? (
-        <StatPanel label="Library summary" columns={4}>
-          <StatCard icon="all-games" label="All Games" value={stats.total} note="Everything currently in your library." />
-          <StatCard icon="backlog" label="Backlog" value={stats.backlog} note="Untouched games waiting for their moment." />
-          <StatCard icon="completed" label="Completed" value={stats.completed} note="Wrapped up and archived with pride." />
-          <StatCard icon="in-progress" label="In Progress" value={stats.inProgress} note={`Mid-journey picks, ${stats.sampled} barely started.`} />
-        </StatPanel>
-      ) : (
-        <StatPanel label="Guest catalogue summary" columns={4}>
-          <StatCard icon="all-games" label="Catalogue Games" value={stats.total} note="Popular Steam games in this preview." />
-          <StatCard icon="genre" label="Genres" value={guestSummary.genres} note="Available to search and filter." />
-          <StatCard icon="clock" label="Time Estimates" value={guestSummary.timed} note="Games with known playthrough lengths." />
-          <StatCard icon="details" label="Review Signals" value={guestSummary.reviewed} note="Games with public Steam review data." />
-        </StatPanel>
-      )}
 
       <section className={styles.section}>
         <SectionHeading title={isLive ? "Recent activity" : "A few games in the preview"} />

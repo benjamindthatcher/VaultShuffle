@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
-import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
@@ -51,19 +50,6 @@ export default function CollectionsPage() {
 
   const selectedCollection = baseCollections.find((collection) => collection.id === selectedCollectionId) ?? null;
   const selectedGames = selectedCollection ? collectionGameMap.get(selectedCollection.id) ?? [] : [];
-
-  const stats = useMemo(
-    () => {
-      const collectedIds = new Set([...collectionGameMap.values()].flat().map((game) => game.id));
-      return {
-        total: baseCollections.length,
-        smart: baseCollections.filter((collection) => collection.kind === "smart").length,
-        custom: baseCollections.filter((collection) => collection.kind === "custom").length,
-        inCollections: collectedIds.size
-      };
-    },
-    [baseCollections, collectionGameMap]
-  );
 
   async function handleCreateCollection() {
     const trimmedName = nameDraft.trim();
@@ -173,13 +159,6 @@ export default function CollectionsPage() {
           Explore smart shelves built from catalogue metadata, or make a temporary collection of your own. Preview changes are not saved.
         </GuestPreviewNotice>
       ) : null}
-
-      <StatPanel label={isLive ? "Collections summary" : "Preview collections summary"} columns={4}>
-        <StatCard icon="all-collections" label={isLive ? "All Collections" : "Preview Collections"} value={stats.total} note={isLive ? "Every shelf currently in rotation." : "Smart and temporary shelves to explore."} />
-        <StatCard icon="smart-collections" label="Smart Collections" value={stats.smart} note="Automatically themed groupings." />
-        <StatCard icon="custom-collections" label="Custom Collections" value={stats.custom} note={isLive ? "Hand-shaped shelves with your own intent." : "Anything you create during this visit."} />
-        <StatCard icon="games-in-collections" label="Games in Collections" value={stats.inCollections} note={isLive ? "Owned games already sorted into groups." : "Guest catalogue games matched by preview rules."} />
-      </StatPanel>
 
       {composerOpen ? (
         <section ref={composerRef} className={styles.composerCard} aria-labelledby="collection-composer-title">

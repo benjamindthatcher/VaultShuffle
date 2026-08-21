@@ -9,12 +9,11 @@
   display: grid;
   gap: 18px;
 }
-/* Six cards in one row on the ground. They used to be six tiles inside two
-   panels inside the page, which is three levels of box to say "pick a filter". */
+/* Two sets of three, stacked. Side by side each set had half the column, and
+   the cards truncated their own labels — "Never laun…", "Started, th…". */
 .setupGrid {
   --purge-card-height: 96px;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
   gap: 18px;
 }
@@ -344,13 +343,6 @@
 @media (prefers-reduced-motion: reduce) {
   .reviewPanel {
     animation: none;
-  }
-}
-/* Six cards across needs real width. Below it the two groups stack, so every
-   card keeps a copy column wide enough to read rather than ellipsing. */
-@media (max-width: 1400px) {
-  .setupGrid {
-    grid-template-columns: 1fr;
   }
 }
 @media (max-width: 1000px) {
