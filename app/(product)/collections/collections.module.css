@@ -1,4 +1,6 @@
 .collectionsPage {
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: grid;
   gap: 18px;
 }
@@ -53,8 +55,6 @@
 /* The composer only exists while it is open — it used to sit there permanently
    as a large empty panel whose only job was to hold the button that opened it. */
 .composerCard {
-  width: var(--vault-list-width);
-  margin-inline: auto;
   display: grid;
   gap: 16px;
   scroll-margin-block: 24px;
@@ -128,7 +128,7 @@
 }
 
 .collectionGrid > * {
-  flex: 0 0 clamp(320px, 36vw, 520px);
+  flex: 0 0 clamp(240px, 30vw, 340px);
   scroll-snap-align: start;
 }
 

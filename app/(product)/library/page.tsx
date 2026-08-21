@@ -87,7 +87,7 @@ export default function LibraryPage() {
         const comparison = sortableLastPlayed(right) - sortableLastPlayed(left);
         return comparison || left.title.localeCompare(right.title);
       })
-      .slice(0, 4),
+      .slice(0, 3),
     [libraryGames]
   );
 

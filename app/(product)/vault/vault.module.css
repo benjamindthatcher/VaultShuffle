@@ -1,9 +1,14 @@
 .vaultPage {
   position: relative;
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: grid;
   gap: 18px;
 }
 
+/* One column. The genre filters used to sit in a second column beside the three
+   steps, which only worked at full width — and put an optional filter at the
+   same level as the three required choices. */
 .setupLayout {
   display: grid;
   gap: 12px;
@@ -101,7 +106,6 @@
 
 .optionalSetup {
   min-width: 0;
-  height: 100%;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
@@ -113,8 +117,7 @@
 }
 
 .optionalSetup[data-disabled="true"] {
-  border-color: rgba(144, 104, 255, 0.16);
-  background: var(--vault-surface-soft);
+  opacity: 0.6;
 }
 
 .optionalHeader {
@@ -156,8 +159,6 @@
 .drawActionBar {
   position: relative;
   z-index: 2;
-  width: min(1100px, 100%);
-  margin-inline: auto;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
   align-items: center;
@@ -413,7 +414,7 @@
 
 .resultHeading { display: flex; align-items: center; gap: 12px; color: #d17cff; }
 .reasonLabel { margin: 6px 0 -2px; color: #d392ff; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
-.resultContext { min-width: 0; display: grid; align-content: center; gap: 10px; padding: 28px 22px; border-left: 1px solid var(--vault-card-border); background: var(--vault-surface-soft); }
+.resultContext { grid-column: 1 / -1; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center; gap: 14px; padding: 16px 20px; border-top: 1px solid var(--vault-card-border); }
 
 .resultRevealed {
   box-shadow: 0 0 0 1px rgba(184, 92, 255, 0.16), 0 24px 64px rgba(1, 4, 18, 0.46), 0 0 34px rgba(117, 65, 224, 0.14);
@@ -652,10 +653,8 @@
 }
 
 @media (min-width: 1080px) {
-  .setupLayout { grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr); align-items: stretch; }
-
   .resultCard {
-    grid-template-columns: minmax(390px, 0.88fr) minmax(560px, 1.12fr) minmax(250px, 0.48fr);
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
     align-items: stretch;
   }
 

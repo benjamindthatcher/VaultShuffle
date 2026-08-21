@@ -4,6 +4,8 @@
   color: #f7f5ff;
 }
 .content {
+  width: var(--vault-list-width);
+  margin-inline: auto;
   display: grid;
   gap: 18px;
 }
@@ -122,7 +124,7 @@
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: minmax(210px, 1fr);
-  grid-template-columns: repeat(4, minmax(210px, 1fr));
+  grid-template-columns: repeat(3, minmax(210px, 1fr));
   gap: 10px;
   overflow-x: auto;
   padding: 1px 1px 8px;
@@ -184,11 +186,8 @@
 }
 .reviewPanel {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(360px, 1fr) minmax(
-      260px,
-      0.58fr
-    );
-  min-height: 410px;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  min-height: 340px;
   overflow: hidden;
   animation: reviewDecisionIn 140ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -243,13 +242,15 @@
   font-size: 0.75rem;
 }
 .decisions {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: stretch;
   gap: 8px;
-  padding: 20px;
-  border-left: 1px solid var(--vault-card-border);
+  padding: 16px;
+  border-top: 1px solid var(--vault-card-border);
 }
+.decisions > .eyebrow { grid-column: 1 / -1; }
 .decisions > button {
   display: grid;
   grid-template-columns: 40px 1fr;
@@ -299,8 +300,6 @@
   line-height: 1.35;
 }
 .reviewFooter {
-  width: var(--vault-list-width);
-  margin-inline: auto;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -355,21 +354,8 @@
   }
 }
 @media (max-width: 1000px) {
-  .reviewPanel {
-    grid-template-columns: 1fr 1fr;
-  }
   .reviewArtwork {
-    min-height: 270px;
-  }
-  .decisions {
-    grid-column: 1/-1;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border-top: 1px solid rgba(100, 77, 151, 0.24);
-    border-left: 0;
-  }
-  .decisions > .eyebrow {
-    grid-column: 1/-1;
+    min-height: 240px;
   }
 }
 @media (max-width: 760px) {
@@ -412,8 +398,6 @@
 /* Reviewed / no-review-needed lists. Deliberately lighter than the review queue
    cards: these are for reading back decisions, not for making them. */
 .outcomeList {
-  width: var(--vault-list-width);
-  margin-inline: auto;
   display: grid;
   gap: 8px;
   margin: 0;
