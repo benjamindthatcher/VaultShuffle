@@ -18,7 +18,10 @@
 
 .header h1 {
   margin: 0;
-  font-size: clamp(1.6rem, 3vw, 2.2rem);
+  /* A label for a page you arrived at from a link, not a poster. The app pages
+     that live in the nav do not show a title at all, so this should not shout
+     next to them. */
+  font-size: clamp(1.3rem, 2.2vw, 1.6rem);
   letter-spacing: -0.02em;
 }
 
