@@ -13,6 +13,7 @@ import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer"
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
@@ -257,7 +258,19 @@ export default function LibraryPage() {
         </div>
         <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>
           {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (
-            <div className={styles.emptyState}><h3>{statusTab === "slept" ? "No sleeping games" : statusTab === "completed" ? "Nothing completed yet" : "No active games match"}</h3><p>{statusTab === "slept" ? "Games you put to sleep will appear here and stay out of Vault draws." : statusTab === "completed" ? "Mark a finished game as completed and it will appear here." : "Try changing your search."}</p>{statusTab !== "active" ? <button type="button" onClick={() => setStatusTab("active")}>Browse Active Games</button> : null}</div>
+            <div className={styles.placeholderGrid}>
+              <PlaceholderSlots
+                count={4}
+                label={statusTab === "slept"
+                  ? "Games you put to sleep rest here, out of Vault draws."
+                  : statusTab === "completed"
+                    ? "Games you mark as finished collect here."
+                    : "No games match this search."}
+                action={statusTab !== "active"
+                  ? <button type="button" className={styles.placeholderAction} onClick={() => setStatusTab("active")}>Browse active games</button>
+                  : undefined}
+              />
+            </div>
           )}
         </div>
       </section>

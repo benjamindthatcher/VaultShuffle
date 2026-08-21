@@ -80,9 +80,10 @@
 }
 
 .genreActive {
-  border-color: rgba(182, 130, 255, 0.72);
-  background: rgba(44, 28, 92, 0.94);
-  color: #e7d6ff;
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+  box-shadow: var(--vault-tile-selected-shadow);
+  color: var(--vault-text);
   box-shadow: 0 0 18px rgba(122, 68, 255, 0.16);
 }
 

@@ -142,10 +142,9 @@
   scroll-snap-align: start;
 }
 .queueCardSelected {
-  border-color: #c567ff;
-  box-shadow:
-    0 0 0 1px rgba(197, 103, 255, 0.24),
-    0 0 24px rgba(156, 61, 255, 0.14);
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+  box-shadow: var(--vault-tile-selected-shadow);
 }
 .queueArtwork {
   position: relative;

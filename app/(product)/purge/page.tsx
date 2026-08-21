@@ -18,6 +18,7 @@ import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
@@ -361,18 +362,6 @@ export default function PurgePage() {
     ) : null}
     {isLive ? <CompletionClaimBanner /> : null}
     <section className={styles.setupGrid} aria-label="Purge setup">
-      <div className={styles.setupPanel}>
-        <SectionHeading title="What to review" />
-        <div className={styles.categoryGrid}>
-          {CATEGORIES.map((category) => {
-            const selected = selectedCategories.includes(category.id);
-            return <button key={category.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => toggleCategory(category.id)}>
-              <PurgeCategoryIcon category={category.id} />
-              <span className={styles.categoryCopy}><strong>{category.label}</strong><b>{categoryCounts[category.id]}</b><small>{category.copy}</small></span>
-            </button>;
-          })}
-        </div>
-      </div>
       <aside className={styles.snapshot} aria-label="Review status">
         <SectionHeading title="Where things stand" />
         <div className={styles.categoryGrid}>
@@ -389,6 +378,18 @@ export default function PurgePage() {
           })}
         </div>
       </aside>
+      <div className={styles.setupPanel}>
+        <SectionHeading title="What to review" />
+        <div className={styles.categoryGrid}>
+          {CATEGORIES.map((category) => {
+            const selected = selectedCategories.includes(category.id);
+            return <button key={category.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => toggleCategory(category.id)}>
+              <PurgeCategoryIcon category={category.id} />
+              <span className={styles.categoryCopy}><strong>{category.label}</strong><b>{categoryCounts[category.id]}</b><small>{category.copy}</small></span>
+            </button>;
+          })}
+        </div>
+      </div>
     </section>
       {reviewView === "needs" ? <>
         <section className={styles.queuePanel}>
@@ -401,7 +402,9 @@ export default function PurgePage() {
                 <span className={styles.queueCopy}><small>{CATEGORY_LABELS[candidate.category]}</small><strong>{candidate.game.title}</strong><em>{candidate.game.hoursPlayed ? `${candidate.game.hoursPlayed}h played` : "Never Played"}</em></span>
               </button>;
             })}
-          </div> : <div className={styles.empty}><h3>No games currently match this Purge setup.</h3><p>Adjust the categories or revisit after your Library has had more time to settle.</p></div>}
+          </div> : <div className={styles.queue}>
+            <PlaceholderSlots count={4} label="Nothing matches this setup. Try another category above." />
+          </div>}
         </section>
 
         {current ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>

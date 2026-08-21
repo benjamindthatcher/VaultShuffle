@@ -61,7 +61,7 @@
 .viewToggle { display: grid; grid-template-columns: repeat(2, auto); gap: 7px; }
 .toggleButton { width: 72px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: 1px solid var(--vault-card-border); background: var(--vault-well-surface); color: var(--vault-text-muted); font-size: 0.76rem; transition: border-color 160ms ease, background 160ms ease; }
 .toggleButton:hover { border-color: var(--vault-border-strong); }
-.toggleButtonActive { border-color: var(--vault-border-strong); background: var(--vault-accent-soft); color: var(--vault-text); }
+.toggleButtonActive { border-color: var(--vault-tile-selected-border); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); color: var(--vault-text); }
 .hiddenLabel { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 @media (max-width: 900px) {

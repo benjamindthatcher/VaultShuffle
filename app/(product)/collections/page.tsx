@@ -5,6 +5,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
@@ -230,6 +231,14 @@ export default function CollectionsPage() {
           </>}
         />
         <div ref={collectionRailRef} className={styles.collectionGrid} role="region" tabIndex={0} aria-label="Your collections">
+          {baseCollections.length ? null : (
+            <PlaceholderSlots
+              count={3}
+              size="wide"
+              label="No shelves yet. A collection is any group of your games — by mood, by series, by whatever you like."
+              action={<button type="button" className={styles.placeholderAction} onClick={openNewComposer}>New collection</button>}
+            />
+          )}
           {baseCollections.map((collection) => (
             <CollectionCard
               key={collection.id}
@@ -257,12 +266,12 @@ export default function CollectionsPage() {
             {selectedGames.length ? (
               selectedGames.map((game) => <GameCard key={game.id} game={game} />)
             ) : (
-              <div className={styles.emptyState}>
-                <h3 className={styles.emptyTitle}>No games in this collection yet.</h3>
-                <p className={styles.emptyCopy}>{selectedCollection.kind === "smart"
-                  ? (isLive ? "No owned games currently match this automatic rule." : "No guest catalogue games currently match this preview rule.")
-                  : `Open a game from Library and select this collection to add it here${isLive ? "." : " for this visit."}`}</p>
-              </div>
+              <PlaceholderSlots
+                count={4}
+                label={selectedCollection.kind === "smart"
+                  ? (isLive ? "Nothing matches this rule yet." : "No preview games match this rule yet.")
+                  : `Open a game from Library and add it to this shelf${isLive ? "." : " for this visit."}`}
+              />
             )}
           </div>
         </section>

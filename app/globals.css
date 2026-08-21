@@ -82,9 +82,12 @@
   --vault-tile-radius: var(--vault-card-radius);
   --vault-tile-border: var(--vault-card-border);
   --vault-tile-surface: var(--vault-card-surface);
-  --vault-tile-selected-border: var(--vault-border-strong);
-  --vault-tile-selected-surface: rgba(124, 92, 255, 0.14);
-  --vault-tile-selected-shadow: none;
+  /* Selected has to be obvious at a glance: the accent on the edge, the accent
+     in the fill, and a second inner line so it holds up against artwork. A
+     stronger border alone was invisible next to an unselected card. */
+  --vault-tile-selected-border: var(--vault-accent);
+  --vault-tile-selected-surface: rgba(168, 85, 247, 0.2);
+  --vault-tile-selected-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.45);
   --vault-header-height: 70px;
   /* Height and gap of the tiles in the Library and Collections top panels.
      88px/10px is the Purge setup tile, so all four pages open at the same

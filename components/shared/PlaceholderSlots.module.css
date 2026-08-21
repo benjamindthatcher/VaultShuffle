@@ -1,0 +1,38 @@
+/* What a grid looks like before it has anything in it. The section keeps its
+   shape — same heading, same grid, same card size — so an empty Library or a
+   fresh account reads as "nothing here yet" rather than as a page that failed
+   to load or a section that does not exist. */
+.slot {
+  display: grid;
+  place-items: center;
+  padding: 14px;
+  border: 1px dashed var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  color: var(--vault-text-soft);
+  text-align: center;
+}
+
+/* Matches a game card: artwork band plus two lines of copy. */
+.slotCard { min-height: 168px; }
+/* Matches a collection card, which carries a wider banner. */
+.slotWide { min-height: 190px; }
+/* Matches a row in a list. */
+.slotRow { min-height: 58px; }
+
+.label {
+  max-width: 24ch;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.action {
+  margin-top: 10px;
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--vault-accent);
+  color: #fff;
+  font-size: 0.82rem;
+  font-weight: 700;
+}

@@ -213,7 +213,7 @@
 .drawModeButton:hover,
 .drawModeButton:focus-visible { color: #e7d4f7; }
 .drawModeButton:focus-visible { outline: 2px solid rgba(222, 158, 255, 0.86); outline-offset: 2px; }
-.drawModeButton[data-active="true"] { background: linear-gradient(135deg, rgba(118, 51, 224, 0.68), rgba(62, 43, 145, 0.72)); color: #fff; box-shadow: 0 6px 18px rgba(90, 35, 176, 0.24); }
+.drawModeButton[data-active="true"] { border-color: var(--vault-tile-selected-border); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); color: #fff; }
 
 .drawActionControl { min-width: 0; display: grid; justify-items: stretch; gap: 8px; }
 .drawActionControl .ctaButton { width: 100%; max-width: none; }

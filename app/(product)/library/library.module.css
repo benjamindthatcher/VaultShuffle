@@ -27,8 +27,11 @@
 .statusTabs { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); justify-self: center; gap: 6px; padding: 6px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
 .statusTab, .statusTabActive { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px; color: var(--vault-text-muted); background: transparent; font-weight: 650; font-size: 0.88rem; }
 .statusTab strong, .statusTabActive strong { min-width: 25px; padding: 3px 7px; border-radius: 999px; background: rgba(144, 96, 255, 0.14); color: #d59eff; font-size: 0.8rem; }
-.statusTabActive { border-color: var(--vault-tile-selected-border); color: var(--vault-text); background: var(--vault-tile-selected-surface); }
+.statusTabActive { border-color: var(--vault-tile-selected-border); color: var(--vault-text); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); }
 .statusTab:focus-visible, .statusTabActive:focus-visible { outline: 2px solid #c08bff; outline-offset: 2px; }
+.placeholderGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 760px) { .placeholderGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.placeholderAction { min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--vault-accent); color: #fff; font-size: 0.82rem; font-weight: 700; }
 .emptyState { width: min(440px, 100%); margin-inline: auto; display: grid; justify-items: center; gap: 8px; padding: 40px 20px; color: var(--vault-text-muted); text-align: center; }
 .emptyState h3, .emptyState p { margin: 0; }
 .emptyState button { min-height: 40px; margin-top: 8px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
