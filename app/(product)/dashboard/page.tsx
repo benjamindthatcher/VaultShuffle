@@ -129,8 +129,7 @@ export default function DashboardPage() {
               <span className={styles.fill} style={{ width: `${Math.max(stats.valueCompletedPercent, 1.5)}%` }} />
             </div>
             <p className={styles.heroHint}>
-              {stats.valueCompletedPercent}% finished · {stats.completedGames} of {stats.totalGames} games ·
-              {" "}Steam prices today for {stats.pricedGames} of {stats.totalGames}
+              {stats.valueCompletedPercent}% finished · {stats.completedGames} of {stats.totalGames} games
             </p>
           </section>
 
