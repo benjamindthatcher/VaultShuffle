@@ -76,3 +76,6 @@ data/catalogue/popular-appids-*
 data/catalogue/steam-metadata-*.json
 data/catalogue/steamspy-*.json
 data/catalogue/steam-device-mode-*.json
+supabase/migrations/20260820124447_add_staged_steam_import_jobs.sql
+supabase/migrations/20260820124543_grant_staged_import_jobs_service_role.sql
+supabase/migrations/20260820130753_protect_api_from_abuse.sql
