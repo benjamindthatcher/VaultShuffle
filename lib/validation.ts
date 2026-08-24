@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 const prioritySchema = z.enum(["Low", "Medium", "High", "Must Play"]);
+export const purgeReviewPayloadSchema = z.object({
+  game_id: z.string().uuid(),
+  action: z.enum(["keep", "pin", "sleep"])
+}).strict();
+
 export const smartCollectionPresetSchema = z.enum([
   "nearly-finished",
   "quick-wins",

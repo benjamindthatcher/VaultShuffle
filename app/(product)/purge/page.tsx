@@ -9,7 +9,6 @@ import {
   isReviewSuperseded,
   type PurgeAction,
   type PurgeCandidate,
-  type PurgeCategory,
   type PurgeReview,
   type PurgeReviewAction
 } from "@/lib/purge";
@@ -23,12 +22,6 @@ import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
 
-const CATEGORIES: Array<{ id: PurgeCategory; label: string; copy: string }> = [
-  { id: "untouched", label: "Never Opened", copy: "Never launched." },
-  { id: "stalled", label: "Stalled", copy: "Started, then stopped." },
-  { id: "dormant", label: "Drifted Away", copy: "Idle for a long time." }
-];
-
 const OUTCOME_LABELS: Record<PurgeReviewAction, string> = {
   keep: "Kept active",
   pin: "Kept and pinned",
@@ -41,10 +34,6 @@ function decisionReversed(action: PurgeReviewAction, status: DemoGame["status"])
   if (action === "complete") return status !== "Completed";
   return status === "Slept" || status === "Completed";
 }
-
-const CATEGORY_LABELS = Object.fromEntries(
-  CATEGORIES.map(({ id, label }) => [id, label])
-) as Record<PurgeCategory, string>;
 
 type Undo = {
   candidate: PurgeCandidate;
@@ -62,10 +51,6 @@ class PurgeRequestError extends Error {
 export default function PurgePage() {
   const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
-  // Every flagged category is in scope. The three category filters that used to
-  // narrow this are gone: the queue is what needs a decision, and the counts
-  // above already say what kind of games are in it.
-  const selectedCategories = CATEGORIES.map((category) => category.id);
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
@@ -97,13 +82,9 @@ export default function PurgePage() {
     }),
     [games, likelyFinishedIds, reviews, vaultState.currentPickId, vaultState.pinnedIds, vaultState.snoozedIds]
   );
-  const filteredCandidates = useMemo(() => {
-    if (selectedCategories.length === CATEGORIES.length) return candidates;
-    return candidates.filter((candidate) => selectedCategories.includes(candidate.category));
-  }, [candidates, selectedCategories]);
-  const activeIndex = Math.min(selectedOffset, Math.max(0, filteredCandidates.length - 1));
-  const current = filteredCandidates[activeIndex] ?? null;
-  const queue = filteredCandidates.slice(0, 4);
+  const activeIndex = Math.min(selectedOffset, Math.max(0, candidates.length - 1));
+  const current = candidates[activeIndex] ?? null;
+  const queue = candidates.slice(0, 4);
   const effectivePinnedIds = new Set([...vaultState.pinnedIds, ...optimisticPinnedIds]);
   const pinsFull = effectivePinnedIds.size >= 3 && current ? !effectivePinnedIds.has(current.game.id) : false;
 
@@ -203,12 +184,12 @@ export default function PurgePage() {
 
   async function saveReview(candidate: PurgeCandidate, action: PurgeAction) {
     if (!isLive) {
-      return { id: crypto.randomUUID(), gameId: candidate.game.id, action, category: candidate.category, reviewedAt: new Date().toISOString() } satisfies PurgeReview;
+      return { id: crypto.randomUUID(), gameId: candidate.game.id, action, reviewedAt: new Date().toISOString() } satisfies PurgeReview;
     }
     const response = await fetch("/api/purge/reviews", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ game_id: candidate.game.id, action, category: candidate.category })
+      body: JSON.stringify({ game_id: candidate.game.id, action })
     });
     if (!response.ok) {
       const payload = await response.json().catch(() => null) as { error?: string } | null;
@@ -247,7 +228,6 @@ export default function PurgePage() {
       id: `pending-${crypto.randomUUID()}`,
       gameId: candidate.game.id,
       action,
-      category: candidate.category,
       reviewedAt: new Date().toISOString()
     };
 
@@ -265,7 +245,7 @@ export default function PurgePage() {
         const review = await saveReviewWithRetry(candidate, action);
         setReviews((value) => [review, ...value.filter((item) => item.id !== optimisticReview.id && item.id !== review.id)]);
         setUndo({ candidate, review, previousStatus });
-        trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: review.action, category: candidate.category });
+        trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: review.action });
       } catch (caught) {
         setReviews((value) => value.filter((item) => item.id !== optimisticReview.id));
         if (action === "pin") {
@@ -305,7 +285,6 @@ export default function PurgePage() {
       }
       trackEvent(ANALYTICS_EVENTS.purgeDecision, {
         action: committedAction,
-        category: candidate.category,
         preview_mode: true,
       });
       finishDecision(candidate, committedAction, previousStatus, review);
@@ -374,23 +353,23 @@ export default function PurgePage() {
     </section>
       {reviewView === "needs" ? <>
         <section className={styles.queuePanel}>
-          <SectionHeading title="Review queue" meta={`${filteredCandidates.length} to consider`} />
+          <SectionHeading title="Review queue" meta={`${candidates.length} to consider`} />
           {queue.length ? <div className={styles.queue}>
             {queue.map((candidate, offset) => {
               const selected = current?.game.id === candidate.game.id;
               return <button key={candidate.game.id} type="button" className={selected ? styles.queueCardSelected : styles.queueCard} onClick={() => setSelectedOffset(offset)}>
                 <span className={styles.queueArtwork}><Artwork src={candidate.game.bannerUrl} sizes="(max-width: 760px) 72vw, 18vw" /></span>
-                <span className={styles.queueCopy}><small>{CATEGORY_LABELS[candidate.category]}</small><strong>{candidate.game.title}</strong><em>{candidate.game.hoursPlayed ? `${candidate.game.hoursPlayed}h played` : "Never Played"}</em></span>
+                <span className={styles.queueCopy}><strong>{candidate.game.title}</strong><em>{candidate.game.hoursPlayed ? `${candidate.game.hoursPlayed}h played` : "Never Played"}</em></span>
               </button>;
             })}
           </div> : <div className={styles.queue}>
-            <PlaceholderSlots count={4} label="Nothing matches this setup. Try another category above." />
+            <PlaceholderSlots count={4} label="Your review queue is clear." />
           </div>}
         </section>
 
         {current ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
           <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
-          <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span><span>{CATEGORY_LABELS[current.category]}</span></div><p>{current.reason}</p>{current.signal ? <p className={current.signal.leaning === "cut" ? styles.signalCut : styles.signalKeep}><strong>{current.signal.label}</strong>{current.signal.detail}</p> : null}<div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
+          <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span></div><p>{current.reason}</p>{current.signal ? <p className={current.signal.leaning === "cut" ? styles.signalCut : styles.signalKeep}><strong>{current.signal.label}</strong>{current.signal.detail}</p> : null}<div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
           <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
             <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>{isLive ? "Leave active and review again in 180 days." : "Leave it active in this preview."}</small></span></button>
             <button type="button" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>{isLive ? "Remove it from active views and Vault draws." : "Remove it from this visit's active views and draws."}</small></span></button>

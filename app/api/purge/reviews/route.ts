@@ -3,12 +3,7 @@ import { z } from "zod";
 import { requireSession, requireWriteSession } from "@/lib/auth";
 import { HttpError, jsonError, readJsonBody } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
-
-const reviewSchema = z.object({
-  game_id: z.string().uuid(),
-  action: z.enum(["keep", "pin", "sleep", "complete"]),
-  category: z.enum(["untouched", "barely-started", "dormant"])
-});
+import { purgeReviewPayloadSchema } from "@/lib/validation";
 
 export async function GET() {
   try {
@@ -29,14 +24,13 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { user } = await requireWriteSession();
-    const input = reviewSchema.parse(await readJsonBody(request));
+    const input = purgeReviewPayloadSchema.parse(await readJsonBody(request));
     const supabase = getSupabaseAdmin();
     const { data, error } = await supabase
       .rpc("apply_user_purge_decision", {
         p_user_id: user.id,
         p_game_id: input.game_id,
-        p_action: input.action,
-        p_category: input.category
+        p_action: input.action
       });
 
     if (error?.message === "GAME_NOT_REVIEWABLE") {
@@ -71,7 +65,6 @@ function mapReview(review: Record<string, unknown>) {
     id: String(review.id),
     gameId: String(review.game_id),
     action: String(review.action),
-    category: String(review.category),
     reviewedAt: String(review.reviewed_at)
   };
 }

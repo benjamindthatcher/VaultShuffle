@@ -2,8 +2,6 @@ import type { DemoGame } from "./demo-data.ts";
 import { formatGameDuration } from "./game-duration.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 
-export type PurgeCategory = "untouched" | "stalled" | "dormant";
-
 /**
  * What Purge can do now. "complete" is deliberately absent: whether you finished
  * something is a fact you already know, not a judgement about your draw pool, and
@@ -18,7 +16,6 @@ export type PurgeReview = {
   id: string;
   gameId: string;
   action: PurgeReviewAction;
-  category: PurgeCategory;
   reviewedAt: string;
 };
 /**
@@ -34,7 +31,6 @@ export type PurgeSignal = {
 
 export type PurgeCandidate = {
   game: DemoGame;
-  category: PurgeCategory;
   reason: string;
   signal: PurgeSignal | null;
   /** Higher means an easier call to make. Drives queue order. */
@@ -122,31 +118,13 @@ export function buildPurgeCandidates({
     // Recently played, unfinished games remain active and do not need a Purge review.
     if (game.hoursPlayed > 0 && idle < 180) continue;
 
-    // "untouched" now means what it says. It previously labelled games at 85%+
-    // progress — the opposite of untouched — which is exactly the confusion that
-    // hid the completion question inside a pruning tool.
     const signal = purgeSignal(game);
     const confidence = purgeConfidence(game, idle, signal?.leaning ?? null);
+    const reason = game.hoursPlayed === 0
+      ? `Never opened.${duration}`
+      : `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`;
 
-    if (game.hoursPlayed === 0) {
-      result.push({ game, category: "untouched", reason: `Never opened.${duration}`, signal, confidence });
-    } else if (game.completionPercent <= 50) {
-      result.push({
-        game,
-        category: "stalled",
-        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`,
-        signal,
-        confidence
-      });
-    } else {
-      result.push({
-        game,
-        category: "dormant",
-        reason: `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`,
-        signal,
-        confidence
-      });
-    }
+    result.push({ game, reason, signal, confidence });
   }
 
   // Clearest decisions first. The queue was previously whatever order the library

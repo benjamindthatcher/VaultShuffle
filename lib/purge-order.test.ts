@@ -59,9 +59,8 @@ test("games already queued for the completion sweep are not asked about twice", 
   assert.deepEqual(candidates.map((candidate) => candidate.game.id), ["b"]);
 });
 
-test("never opened is now what untouched means", () => {
+test("never-opened games explain why they need review", () => {
   const [fresh] = buildPurgeCandidates({ ...base, games: [game({ id: "a", hoursPlayed: 0 })] });
-  assert.equal(fresh.category, "untouched");
   assert.match(fresh.reason, /Never opened/);
 });
 

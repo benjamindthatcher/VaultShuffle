@@ -118,18 +118,18 @@ const productCards = [
   },
   {
     title: "Purge",
-    text: "Work out what you have actually finished, what you quietly abandoned, and what deserves another look.",
-    bullets: ["Likely completed", "Abandoned", "Still worth reviewing"],
+    text: "Review the games that need a decision, see what you have already handled, and leave the rest alone.",
+    bullets: ["Needs Review", "Reviewed", "No Review Needed"],
     action: "Review your backlog",
     href: "/purge",
     icon: "ready-to-review",
     preview: "purge",
-    panelTitle: "Ready to Review",
+    panelTitle: "Purge Status",
     rows: [
-      { name: "Cyberpunk 2077", meta: "Likely Completed", appid: 1091500 },
-      { name: "Far Cry 5", meta: "Abandoned", appid: 552520 },
-      { name: "Prey", meta: "Abandoned", appid: 480490 },
-      { name: "Dishonored 2", meta: "The Rest", appid: 403640 }
+      { name: "Cyberpunk 2077", meta: "Reviewed", appid: 1091500 },
+      { name: "Far Cry 5", meta: "Needs Review", appid: 552520 },
+      { name: "Prey", meta: "Needs Review", appid: 480490 },
+      { name: "Dishonored 2", meta: "No Review Needed", appid: 403640 }
     ]
   },
   {

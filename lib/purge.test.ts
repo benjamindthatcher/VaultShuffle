@@ -28,7 +28,7 @@ function game(id: string): DemoGame {
 }
 
 function review(gameId: string, action: PurgeReview["action"], reviewedAt: string): PurgeReview {
-  return { id: `${gameId}-${action}`, gameId, action, category: "untouched", reviewedAt };
+  return { id: `${gameId}-${action}`, gameId, action, reviewedAt };
 }
 
 test("a just-committed non-keep decision leaves a stale Purge queue immediately", () => {

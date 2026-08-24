@@ -120,15 +120,9 @@ function glyph(name: string): ReactNode {
     case "feedback": return <><path d="M4 5h16v12H9l-5 4V5Z"/><path d="M8 9h8m-8 4h5"/></>;
     case "cookies": return <><path d="M19 13a7 7 0 1 1-8-8 4 4 0 0 0 4 4 4 4 0 0 0 4 4Z"/><circle cx="9" cy="12" r="1" fill="currentColor" stroke="none"/><circle cx="12" cy="16" r="1" fill="currentColor" stroke="none"/></>;
     case "keep-active": return <><circle cx="12" cy="12" r="8.5"/><path d="m8 12 2.5 2.5L16.5 8"/></>;
-    case "untouched": return <><path d="M5 19 19 5M7 5h12v12"/><circle cx="7" cy="17" r="2"/></>;
-    case "barely-started": return <><path d="M4 18h16M6 15h5l3-8h4"/><circle cx="16" cy="7" r="2"/></>;
-    case "dormant": return <><path d="M4 16c3-5 13-5 16 0-4 4-12 4-16 0Z"/><path d="M9 10c1-3 5-5 8-5-1 4-4 7-8 7"/></>;
     case "ready-to-review": return <><path d="M5 4h14v16H5V4Z"/><path d="M8 8h8m-8 4h5"/><circle cx="16" cy="16" r="4"/><path d="m19 19 2 2"/></>;
     case "actioned": return <><circle cx="12" cy="12" r="8.5"/><path d="m8 12 2.5 2.5L16.5 8"/><path d="M12 3.5v2m0 13v2"/></>;
     case "no-review-needed": return <><path d="M5 6h14v13H5V6Z"/><path d="M8 3v5m8-5v5M8 12h8"/><path d="m10 16 1.5 1.5L15 14"/></>;
-    case "likely-completed": return <><rect x="4" y="5" width="16" height="13" rx="2"/><path d="m8 11 2.3 2.3L16 8M8 21h8"/></>;
-    case "abandoned": return <><path d="M4 18h16M6 18c1-6 4-9 8-9 1.8 0 3.3.5 4.6 1.5"/><path d="m16.5 7.5 2.2 3-3.2 1.5"/></>;
-    case "the-rest": return <><path d="M4 17h16M5 17c2.5-6 6.5-9 12-9h2"/><path d="m16 5 3 3-3 3"/></>;
     case "current-pick": return <><path d="m11 3 1.4 4 4.1 1.5-4.1 1.5-1.4 4-1.4-4-4.1-1.5L9.6 7 11 3Z"/><path d="m18.5 13 .8 2.1 2.2.9-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.9.8-2.1Z"/></>;
     default: return <><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/></>;
   }
