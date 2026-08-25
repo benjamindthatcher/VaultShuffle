@@ -23,6 +23,9 @@ export const ANALYTICS_EVENTS = {
   landingViewed: "landing_viewed",
   landingChoiceMade: "landing_choice_made",
   signInStarted: "sign_in_started",
+  // The step between a finished first import and a first draw, which is where a
+  // new account either becomes a user or does not.
+  onboardingHandoffTaken: "onboarding_handoff_taken",
   signedOut: "user_signed_out",
   steamLibrarySynced: "steam_library_synced",
   steamImportFailed: "steam_import_failed",

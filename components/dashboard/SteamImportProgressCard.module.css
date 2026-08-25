@@ -87,3 +87,18 @@
   .card { grid-template-columns: 34px minmax(0, 1fr); }
   .progressBlock { grid-column: 1 / -1; }
 }
+
+/* The hand-off out of onboarding. Only shown on a first import, where the card
+   stays up until it is used rather than dismissing itself. */
+.handoff {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--vault-accent);
+  color: #fff;
+  font-size: 0.86rem;
+  font-weight: 700;
+  white-space: nowrap;
+}

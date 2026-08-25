@@ -2,7 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
+import Link from "next/link";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import styles from "./SteamImportProgressCard.module.css";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
@@ -18,6 +20,11 @@ export function SteamImportProgressCard() {
     syncSteamLibrary
   } = useAppData();
   const [markerChecked, setMarkerChecked] = useState(false);
+  // Whether the library was empty when this card started work. A first import is
+  // the one moment the product has someone's full attention and a finished
+  // library to point at, so it is the moment worth handing off from - and the
+  // four-second auto-dismiss threw it away.
+  const [wasFirstImport, setWasFirstImport] = useState(false);
   const [justFinished, setJustFinished] = useState(false);
   const [refreshRequested, setRefreshRequested] = useState(false);
   const [engaged, setEngaged] = useState(false);
@@ -55,17 +62,22 @@ export function SteamImportProgressCard() {
     const running = isSyncing || steamImport.status === "importing" || steamImport.status === "fetching";
     if (running) {
       runningRef.current = true;
+      if (games.length === 0) setWasFirstImport(true);
       return;
     }
     if (!runningRef.current || steamImport.status !== "complete") return;
     runningRef.current = false;
     setJustFinished(true);
+    // A returning user has seen this before and the dashboard underneath is the
+    // evidence it worked. A first-timer asked for a game recommendation and has
+    // been shown a dashboard, so their card waits until they choose to move on.
+    if (wasFirstImport) return;
     const timer = window.setTimeout(() => {
       setJustFinished(false);
       setEngaged(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [isSyncing, steamImport.status]);
+  }, [games.length, isSyncing, steamImport.status, wasFirstImport]);
 
   useEffect(() => {
     if (!markerChecked || !steamImportChecked || isLoading || !isLive || isSyncing) return;
@@ -110,14 +122,18 @@ export function SteamImportProgressCard() {
     : failed
       ? "Your import is paused"
       : complete
-        ? "Your Steam library is ready"
+        ? wasFirstImport
+          ? `${steamImport.total} games imported. Ready for your first pick?`
+          : "Your Steam library is ready"
         : "Building your dashboard";
   const detail = fetching
     ? "Steam sends the ownership list once, then we save it in small batches."
     : failed
       ? (steamImport.lastError || "The next batch was not saved. Everything shown in the bar is already safe.")
       : complete
-        ? `All ${steamImport.total} games saved. Artwork and length estimates continue below.`
+        ? wasFirstImport
+          ? "Tell the Vault how long you have and what you are in the mood for, and it will pick one."
+          : `All ${steamImport.total} games saved. Artwork and length estimates continue below.`
         : `${steamImport.imported} of ${steamImport.total} games saved to VaultShuffle.`;
 
   function retry() {
@@ -133,6 +149,19 @@ export function SteamImportProgressCard() {
         <h2>{title}</h2>
         <p>{detail}</p>
       </div>
+      {complete && wasFirstImport ? (
+        <Link
+          className={styles.handoff}
+          href="/vault"
+          onClick={() => {
+            setJustFinished(false);
+            trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, { games: steamImport.total });
+          }}
+        >
+          Choose what to play<VaultIcon name="chevron-right" size={16} />
+        </Link>
+      ) : null}
+
       <div className={styles.progressBlock}>
         <div
           className={`${styles.track}${fetching ? ` ${styles.indeterminate}` : ""}`}
