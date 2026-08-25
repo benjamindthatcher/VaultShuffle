@@ -14,6 +14,7 @@ import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer"
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { EMPTY_LIBRARY_FILTERS, availableGenres, matchesLibraryFilters, type LibraryFilters } from "@/lib/library-filters";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
@@ -34,6 +35,7 @@ const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
 export default function LibraryPage() {
   const { games, collections, vaultState, isLive, loadError, playHistoryMissing, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<LibraryFilters>(EMPTY_LIBRARY_FILTERS);
   const [sort, setSort] = useState("hours");
   const [sortReversed, setSortReversed] = useState(false);
   const [statusTab, setStatusTab] = useState<"active" | "slept" | "completed">("active");
@@ -121,7 +123,7 @@ export default function LibraryPage() {
           ? game.status !== "Slept" && game.status !== "Completed"
           : statusTab === "slept" ? game.status === "Slept" : game.status === "Completed";
 
-        return matchesQuery && matchesStatus;
+        return matchesQuery && matchesStatus && matchesLibraryFilters(game, filters);
       })
       .sort((left, right) => {
         let comparison: number;
@@ -139,7 +141,11 @@ export default function LibraryPage() {
 
         return sortReversed ? -comparison : comparison;
       });
-  }, [libraryGames, query, sort, sortReversed, statusTab]);
+  }, [filters, libraryGames, query, sort, sortReversed, statusTab]);
+
+  // Offered from the whole library rather than the current tab, so the list of
+  // genres does not shuffle every time the tab changes.
+  const filterGenres = useMemo(() => availableGenres(libraryGames), [libraryGames]);
 
   const selectedGame = filteredGames.find((game) => game.id === selectedGameId) ?? libraryGames.find((game) => game.id === selectedGameId) ?? null;
   const celebratingGame = celebratingId ? games.find((game) => game.id === celebratingId) ?? null : null;
@@ -267,6 +273,16 @@ export default function LibraryPage() {
             sortReversed={sortReversed}
             onToggleSortDirection={() => setSortReversed((current) => !current)}
             showDurationSort={hasDurationSort}
+            filters={filters}
+            filterGenres={filterGenres}
+            onFiltersChange={(next) => {
+              setFilters(next);
+              trackEvent(ANALYTICS_EVENTS.libraryFiltered, {
+                filter: "filters",
+                value: `${next.progress}|${next.length}|${next.genres.length}`,
+                preview_mode: !isLive
+              });
+            }}
             viewMode={viewMode}
             onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value, preview_mode: !isLive }); }}
           />

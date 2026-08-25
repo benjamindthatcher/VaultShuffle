@@ -1,0 +1,123 @@
+.container {
+  position: relative;
+}
+
+.trigger,
+.triggerActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 10px;
+  background: var(--vault-well-surface);
+  color: var(--vault-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.triggerActive {
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+  box-shadow: var(--vault-tile-selected-shadow);
+}
+
+.badge {
+  display: grid;
+  place-items: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--accent-bright, #a855f7);
+  color: #0b0f24;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.panel {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(340px, calc(100vw - 32px));
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 14px;
+  background: var(--vault-sheet-surface, #131a35);
+  box-shadow: 0 24px 60px rgb(4 6 20 / 55%);
+}
+
+.group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0 0 8px;
+  color: #d392ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.option,
+.optionOn {
+  padding: 6px 11px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--vault-text-soft, rgba(226, 232, 255, 0.78));
+  font-size: 0.82rem;
+}
+
+.optionOn {
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+  color: #fff;
+  font-weight: 600;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+  border-top: 1px solid var(--vault-card-border);
+}
+
+.clear {
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #d392ff;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.clear:disabled {
+  color: var(--vault-text-muted, rgba(226, 232, 255, 0.4));
+}
+
+@media (max-width: 620px) {
+  .trigger span,
+  .triggerActive span:first-of-type {
+    display: none;
+  }
+  .panel {
+    right: auto;
+    left: 0;
+  }
+}

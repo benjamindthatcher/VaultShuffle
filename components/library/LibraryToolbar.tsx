@@ -1,5 +1,7 @@
 import styles from "./LibraryToolbar.module.css";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { LibraryFilterMenu } from "./LibraryFilterMenu";
+import type { LibraryFilters } from "@/lib/library-filters";
 
 type LibraryToolbarProps = {
   query: string;
@@ -11,6 +13,9 @@ type LibraryToolbarProps = {
   showDurationSort: boolean;
   viewMode: "grid" | "list";
   onViewModeChange: (value: "grid" | "list") => void;
+  filters: LibraryFilters;
+  filterGenres: string[];
+  onFiltersChange: (filters: LibraryFilters) => void;
 };
 
 export function LibraryToolbar({
@@ -22,7 +27,10 @@ export function LibraryToolbar({
   onToggleSortDirection,
   showDurationSort,
   viewMode,
-  onViewModeChange
+  onViewModeChange,
+  filters,
+  filterGenres,
+  onFiltersChange
 }: LibraryToolbarProps) {
   return (
     <section className={styles.toolbar}>
@@ -37,6 +45,8 @@ export function LibraryToolbar({
       </label>
 
       <div className={styles.controlRow}>
+        <LibraryFilterMenu filters={filters} genres={filterGenres} onChange={onFiltersChange} />
+
         <div className={styles.selectField}>
           <span className={styles.controlLabel}>
             <button

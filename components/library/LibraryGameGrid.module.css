@@ -22,3 +22,12 @@
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+/* The sentinel that pulls in the next batch, doubling as an honest count so a
+   partly-rendered list never reads as a complete one. */
+.more {
+  padding: 20px 0 8px;
+  text-align: center;
+  color: var(--vault-text-muted, rgba(226, 232, 255, 0.6));
+  font-size: 0.82rem;
+}
