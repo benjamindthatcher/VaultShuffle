@@ -45,7 +45,8 @@ export default function DashboardPage() {
     genres: new Set(games.flatMap((game) => game.genres)).size,
     timed: games.filter((game) => formatGameDuration(game.duration)).length,
     reviewed: games.filter((game) => Number(game.reviewTotal ?? 0) > 0).length,
-    featured: games.slice(0, 8)
+    // Three across, four down.
+    featured: games.slice(0, 12)
   }), [games]);
 
   if (!isLive) {
@@ -72,18 +73,18 @@ export default function DashboardPage() {
 
         <section className={styles.section}>
           <SectionHeading title="A look inside the guest catalogue" />
-          <ol className={styles.cardGrid}>
+          <ol className={`${styles.cardGrid} ${styles.guestGrid}`}>
             {guestSummary.featured.map((game) => (
               <li key={game.id} className={styles.gameCard}>
                 <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                 <strong className={styles.cardTitle}>{game.title}</strong>
                 <small className={styles.cardMeta}>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
-                <span className={styles.cardValue}>{formatGameDuration(game.duration) ?? "Preview"}</span>
+                <span className={styles.cardValue}>{formatGameDuration(game.duration) ?? "Length unknown"}</span>
               </li>
             ))}
           </ol>
           <Link
-            className={styles.emptyAction}
+            className={styles.centredAction}
             href="/vault"
             onClick={() => trackEvent(ANALYTICS_EVENTS.guestPreviewAction, {
               feature: "dashboard",
@@ -91,7 +92,7 @@ export default function DashboardPage() {
               preview_mode: true,
             })}
           >
-            Try a Vault draw
+            Try a Vault draw<VaultIcon name="chevron-right" size={16} />
           </Link>
         </section>
       </div>

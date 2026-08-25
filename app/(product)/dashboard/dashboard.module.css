@@ -43,5 +43,27 @@
 .empty p { margin: 0; color: var(--vault-text-muted); }
 .emptyAction { padding: 9px 15px; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
 
+/* Centred and only as wide as its own words. As a block-level link inside the
+   section grid it stretched the full width of the page, which made a single
+   optional invitation look like the most important thing on it. */
+.centredAction {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  background: var(--vault-accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.88rem;
+}
+
+/* Twelve games read better as three across than four: a wider card leaves the
+   title room to sit on one line beside a duration. */
+.guestGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 760px) { .guestGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
 @media (max-width: 620px) {
 }
