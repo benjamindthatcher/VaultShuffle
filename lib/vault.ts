@@ -358,8 +358,14 @@ export function scoreVaultGame(
   }
 
   if (goal === "new") {
-    availablePoints += VAULT_SCORE_WEIGHTS.goal;
-    earnedPoints += newGamePoints(game);
+    // Eligibility only, deliberately scoring nothing. goalEligible already keeps
+    // this to Not Started with at most half an hour on it, and in practice all
+    // but a couple of those have exactly zero hours — so every survivor scored
+    // the full 30 and the term could not tell them apart. All it did was widen
+    // the denominator from 60 to 90, shrinking the same session and mood gap
+    // from 50 points to 33 and, through the softmax, roughly 28:1 odds to 9:1.
+    // Choosing Something New made session and mood matter less, which is the
+    // opposite of what picking a goal should do.
     reasons.push(game.hoursPlayed === 0 ? "Unplayed" : "Barely sampled");
   }
 
@@ -470,12 +476,6 @@ function sessionPoints(game: DemoGame, session: VaultSessionId) {
   if (remainingHours > 30) return VAULT_SCORE_WEIGHTS.session;
   if (remainingHours >= 15) return 26;
   return 21;
-}
-
-function newGamePoints(game: DemoGame) {
-  if (game.hoursPlayed === 0) return VAULT_SCORE_WEIGHTS.goal;
-  if (game.hoursPlayed <= 0.25) return 27;
-  return 24;
 }
 
 function finishPoints(game: DemoGame) {

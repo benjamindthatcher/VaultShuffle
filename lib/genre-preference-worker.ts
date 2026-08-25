@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { statesAnOpinion } from "@/lib/draw-signal-precedence";
 import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
 import type { VaultDrawEventType } from "@/lib/vault-history";
 import type { VaultMoodId } from "@/lib/demo-data";
@@ -39,13 +40,16 @@ const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
   pinned: { positive: 1, total: 1 },
 
   disliked: { positive: 0, total: 2 },
-  slept: { positive: 0, total: 2 },
+  // Sleeping a game is the most deliberate rejection the product offers: it is a
+  // decision about the game itself, not about tonight.
+  slept: { positive: 0, total: 3 },
   reroll_not_interested: { positive: 0, total: 2 },
   reroll_wrong_mood: { positive: 0, total: 1, moodOnly: true },
 
   // The bare reroll is the weakest signal there is: it is also just how the
-  // product is used. It applies only when the user gave no more specific reason.
-  drew_again: { positive: 0, total: 1 }
+  // product is used. It counts for something, but barely, and only when the draw
+  // carries no more explicit opinion — see statesAnOpinion.
+  drew_again: { positive: 0, total: 0.5 }
 };
 
 /**
@@ -74,7 +78,9 @@ type PurgeDecision = { userId: string; steamAppId: number; action: string; revie
  * retention rather than an endorsement, so it counts for half.
  */
 const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
-  sleep: { positive: 0, total: 2 },
+  // Matched to the draw-side weight: sleeping is the clearest rejection there is,
+  // reached deliberately through a review rather than in passing.
+  sleep: { positive: 0, total: 3 },
   keep: { positive: 1, total: 2 },
   pin: { positive: 2, total: 2 },
   complete: { positive: 2, total: 2 }
@@ -148,14 +154,14 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     const genres = genresByAppId.get(Number(draw.steam_appid));
     if (!genres?.length) continue;
 
-    // A reroll reason supersedes the bare reroll it belongs to. Both are written
-    // for the same draw, and counting them together would let one rejection be
-    // recorded twice while a rejection with no reason counted once.
-    const hasReason = drawEvents.some((event) => isRerollReason(event.event_type));
+    // A stated opinion supersedes the bare reroll on the same draw. Both are
+    // written for one action, and counting them together let a single rejection
+    // be recorded twice while a rejection with no reason counted once.
+    const hasStatedOpinion = statesAnOpinion(drawEvents.map((event) => event.event_type));
 
     for (const event of drawEvents) {
       const eventType = event.event_type as VaultDrawEventType;
-      if (eventType === "drew_again" && hasReason) continue;
+      if (eventType === "drew_again" && hasStatedOpinion) continue;
       const signal = EVENT_SIGNALS[eventType];
       if (!signal) continue;
 
@@ -230,9 +236,6 @@ function addTally(userTallies: Map<string, Tally>, key: string, positive: number
   userTallies.set(key, tally);
 }
 
-function isRerollReason(eventType: string) {
-  return eventType.startsWith("reroll_");
-}
 
 /**
  * Exponential decay rather than the flat window it replaces: a 179-day-old signal

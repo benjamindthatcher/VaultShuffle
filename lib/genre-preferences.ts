@@ -95,8 +95,22 @@ export function buildGenrePreferenceIndex(preferences: GenrePreference[]): Genre
  * genres actually accumulate. Both this and the nightly worker route through
  * topLevelGenresFor so the keys cannot drift apart.
  */
+/**
+ * Tags that describe how a game was funded or priced rather than how it plays.
+ * Both map onto Casual for display, which is a reasonable shelf to file them
+ * under, but it made the learner read "owns Hollow Knight" as evidence of a
+ * taste for Casual games. Indie is a funding model and Free to Play is a
+ * pricing one; neither says anything about what a session feels like.
+ *
+ * Excluded from learning only. The Vault filter still treats Indie as its own
+ * thing, and display genres are untouched — at these volumes one contaminated
+ * broad category is enough to move the whole model.
+ */
+const NON_GAMEPLAY_LEARNING_TAGS = new Set(["indie", "free to play", "free-to-play", "freetoplay"]);
+
 export function preferenceGenresFor(genres: string[], title = ""): string[] {
-  return topLevelGenresFor(genres.join(" / "), title).map(canonicalPreferenceGenre);
+  const gameplayOnly = genres.filter((genre) => !NON_GAMEPLAY_LEARNING_TAGS.has(genre.trim().toLowerCase()));
+  return topLevelGenresFor(gameplayOnly.join(" / "), title).map(canonicalPreferenceGenre);
 }
 
 export function canonicalPreferenceGenre(value: string) {

@@ -216,3 +216,18 @@ test("no population data leaves behaviour unchanged", () => {
   const withNone = genrePreferenceAdjustment(context(own), ["RPG"], "x", null);
   assert.ok(withNone.points > 0);
 });
+
+test("Indie is not learned as a taste for Casual games", () => {
+  // Indie is a funding model. Hollow Knight being indie is no evidence that its
+  // owner enjoys Casual games, but Indie maps to Casual for display.
+  assert.deepEqual(preferenceGenresFor(["Indie"], "Hollow Knight"), []);
+  assert.ok(!preferenceGenresFor(["Action", "Indie"], "Hollow Knight").includes("casual"));
+});
+
+test("Free to Play is not learned as a taste for Casual games", () => {
+  assert.ok(!preferenceGenresFor(["Free to Play", "Action"], "Warframe").includes("casual"));
+});
+
+test("a game genuinely tagged Casual still learns as Casual", () => {
+  assert.ok(preferenceGenresFor(["Casual", "Indie"], "A Short Hike").includes("casual"));
+});
