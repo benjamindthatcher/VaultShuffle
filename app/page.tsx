@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { Suspense } from "react";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import { SignInNotice } from "@/components/site/SignInNotice";
+import { LandingCtaRow } from "@/components/site/LandingCtaRow";
 import { siteConfig } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -99,61 +99,6 @@ const valueProps = [
   }
 ];
 
-const productCards = [
-  {
-    title: "Vault",
-    text: "Tell it how long you have, what headspace you're in and what you want from the session. It picks one game and shows its reasoning.",
-    bullets: ["Matched to your session", "Told why it picked", "Reroll, or just pick something"],
-    action: "Open the Vault",
-    href: "/vault",
-    icon: "open-vault",
-    preview: "vault",
-    panelTitle: "Tonight's Deck",
-    rows: [
-      { name: "Elden Ring", meta: "94% match", appid: 1245620 },
-      { name: "Hades", meta: "88% match", appid: 1145360 },
-      { name: "Hollow Knight", meta: "81% match", appid: 367520 },
-      { name: "Stardew Valley", meta: "76% match", appid: 413150 }
-    ]
-  },
-  {
-    title: "Purge",
-    text: "Review the games that need a decision, see what you have already handled, and leave the rest alone.",
-    bullets: ["Needs Review", "Reviewed", "No Review Needed"],
-    action: "Review your backlog",
-    href: "/purge",
-    icon: "ready-to-review",
-    preview: "purge",
-    panelTitle: "Purge Status",
-    rows: [
-      { name: "Cyberpunk 2077", meta: "Reviewed", appid: 1091500 },
-      { name: "Far Cry 5", meta: "Needs Review", appid: 552520 },
-      { name: "Prey", meta: "Needs Review", appid: 480490 },
-      { name: "Dishonored 2", meta: "No Review Needed", appid: 403640 }
-    ]
-  },
-  {
-    title: "Library",
-    text: "All your games in one clean, powerful view.",
-    bullets: ["Filter and sort", "Track playtime", "See what's next"],
-    action: "Explore Library",
-    href: "/library",
-    icon: "books",
-    preview: "library",
-    panelTitle: "All Games",
-    rows: [
-      { name: "Elden Ring", meta: "292h", appid: 1245620 },
-      { name: "Baldur's Gate 3", meta: "215h", appid: 1086940 },
-      { name: "Cyberpunk 2077", meta: "80h", appid: 1091500 },
-      { name: "Red Dead Redemption 2", meta: "43h", appid: 1174180 }
-    ]
-  }
-];
-
-function steamCapsule(appid: number) {
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/capsule_231x87.jpg`;
-}
-
 function LandingIcon({ name }: { name: string }) {
   return <SiteGlyph name={name} size={26} />;
 }
@@ -183,18 +128,7 @@ export default function HomePage() {
               It picks one game from the library you already own, and tells you why it chose it.
             </p>
 
-            <div className="vs-cta-row" role="group" aria-label="Get started">
-              <a className="vs-cta vs-cta-primary" href="/api/auth/steam">
-                <span className="vs-cta-icon"><LandingIcon name="steam" /></span>
-                <span className="vs-cta-label">Continue with Steam</span>
-                <span className="vs-cta-arrow" aria-hidden="true">&rarr;</span>
-              </a>
-
-              <Link className="vs-cta vs-cta-secondary" href="/vault">
-                <LandingIcon name="guest" />
-                Try Guest Mode
-              </Link>
-            </div>
+            <LandingCtaRow location="hero" />
 
             <Suspense fallback={null}><SignInNotice /></Suspense>
 
@@ -207,6 +141,11 @@ export default function HomePage() {
             </p>
 
             <div className="vs-trust-row" role="group" aria-label="Vault Shuffle promises">
+              <span>
+                <LandingIcon name="shield" />
+                Free forever
+              </span>
+
               <span>
                 <LandingIcon name="shield" />
                 No spam
@@ -278,52 +217,44 @@ export default function HomePage() {
           ))}
         </section>
 
-        <section className="vs-product-grid" aria-label="Vault Shuffle features">
-          {productCards.map((card) => (
-            <article className="vs-product-card" key={card.title}>
-              <div className="vs-product-copy">
-                <div className="vs-product-title">
-                  <LandingIcon name={card.icon} />
-                  <h2>{card.title}</h2>
-                </div>
+        {/* The hero already makes the case for the Vault, so repeating it in three
+            feature cards said the same thing twice at the bottom of the page. The
+            closing section answers what is actually left: what it costs, whether
+            you have to sign up to see it, and what happens to your Steam account. */}
+        <section className="vs-closing" aria-label="What it costs and how signing in works">
+          <h2 className="vs-closing-title">Free forever. No card, no trial, no upgrade.</h2>
+          <p className="vs-closing-text">
+            VaultShuffle does not charge for anything, and there is nothing to buy later. There is no paid tier
+            waiting behind the good features, because there is no paid tier.
+          </p>
 
-                <p>{card.text}</p>
-
-                <ul>
-                  {card.bullets.map((bullet) => (
-                    <li key={bullet}>{bullet}</li>
-                  ))}
-                </ul>
-
-                <Link href={card.href}>
-                  {card.action} <span aria-hidden="true">&rarr;</span>
-                </Link>
-              </div>
-
-              <div className={`vs-mini-panel vs-mini-${card.preview}`} aria-hidden="true">
-                <h3>{card.panelTitle}</h3>
-
-                {card.preview === "library" && <div className="vs-mini-search">Filter library...</div>}
-
-                {card.rows.map((row) => (
-                  <div className="vs-mini-row" key={row.name}>
-                    <Image
-                      src={steamCapsule(row.appid)}
-                      alt=""
-                      unoptimized
-                      width={231}
-                      height={87}
-                      sizes="46px"
-                    />
-
-                    <strong>{row.name}</strong>
-
-                    {row.meta && <small>{row.meta}</small>}
-                  </div>
-                ))}
-              </div>
+          <div className="vs-closing-points">
+            <article className="vs-closing-point">
+              <SiteGlyph name="shield" size={26} />
+              <h3>No payment, ever</h3>
+              <p>Every feature is available to everyone. No card details are asked for at any point.</p>
             </article>
-          ))}
+
+            <article className="vs-closing-point">
+              <SiteGlyph name="guest" size={26} />
+              <h3>Try it without an account</h3>
+              <p>
+                Guest mode runs the real thing on a catalogue of a thousand Steam games. Nothing to sign up for,
+                and nothing to undo if you decide it is not for you.
+              </p>
+            </article>
+
+            <article className="vs-closing-point">
+              <SiteGlyph name="lock" size={26} />
+              <h3>Steam handles the sign-in</h3>
+              <p>
+                You sign in on Steam&apos;s own page. VaultShuffle never sees your password &mdash; only your SteamID,
+                so it can read the games you own.
+              </p>
+            </article>
+          </div>
+
+          <LandingCtaRow location="footer" layout="centred" />
         </section>
       </main>
     </>

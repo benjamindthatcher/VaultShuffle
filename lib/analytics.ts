@@ -14,7 +14,14 @@ import { captureProductEvent, registerAnalyticsContext, type CaptureOptions } fr
  *     goal describe a draw; they are not separate kinds of draw.
  */
 export const ANALYTICS_EVENTS = {
-  // Acquisition and identity
+  // Acquisition and identity.
+  //
+  // The landing page had no product tracking at all, so the funnel began at the
+  // point someone was already inside the app: landing -> guest or Steam ->
+  // import -> first draw -> launched was missing its first two steps, which are
+  // the ones acquisition work actually moves.
+  landingViewed: "landing_viewed",
+  landingChoiceMade: "landing_choice_made",
   signInStarted: "sign_in_started",
   signedOut: "user_signed_out",
   steamLibrarySynced: "steam_library_synced",

@@ -6,7 +6,17 @@ import { COOLDOWN_EVENT, type CooldownNotice } from "@/lib/cooldown";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./CooldownProvider.module.css";
 
-type ActiveCooldown = CooldownNotice & { expiresAt: number };
+type ActiveCooldown = CooldownNotice & { expiresAt: number; hideAt: number };
+
+/**
+ * How long the notice stays up.
+ *
+ * The cooldown itself can run for minutes, and the toast used to sit there for
+ * all of it. Once someone has read "wait a moment" there is nothing more to say,
+ * and a permanent bar is worse than no bar. Each new attempt restarts this, so
+ * someone genuinely hammering refresh keeps being told.
+ */
+const NOTICE_VISIBLE_MS = 10_000;
 
 function formatRemaining(totalSeconds: number) {
   const seconds = Math.max(0, Math.ceil(totalSeconds));
@@ -34,7 +44,8 @@ export function CooldownProvider({ children }: { children: ReactNode }) {
       setCooldown({
         message: detail.message,
         retryAfterSeconds: detail.retryAfterSeconds,
-        expiresAt: currentTime + Math.max(1, detail.retryAfterSeconds) * 1000
+        expiresAt: currentTime + Math.max(1, detail.retryAfterSeconds) * 1000,
+        hideAt: currentTime + NOTICE_VISIBLE_MS
       });
     }
 
@@ -47,8 +58,10 @@ export function CooldownProvider({ children }: { children: ReactNode }) {
     const timer = window.setInterval(() => {
       const currentTime = Date.now();
       setNow(currentTime);
-      if (currentTime >= cooldown.expiresAt) setCooldown(null);
-    }, 1000);
+      // Whichever comes first: the cooldown ending, or the reader having had
+      // long enough to read it.
+      if (currentTime >= cooldown.expiresAt || currentTime >= cooldown.hideAt) setCooldown(null);
+    }, 250);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setCooldown(null);
     };

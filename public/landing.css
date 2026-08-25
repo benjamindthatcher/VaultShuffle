@@ -975,3 +975,78 @@ img {
   }
 
 }
+
+/* The closing section: what it costs, whether you can look without signing up,
+   and what happens to your Steam account. The hero has already made the case for
+   the product itself, so this answers what is left rather than restating it. */
+.vs-closing {
+  position: relative;
+  z-index: 3;
+  margin-top: 24px;
+  padding: 40px 32px;
+  border: 1px solid rgba(134, 91, 255, 0.26);
+  border-radius: 24px;
+  background: rgba(18, 25, 53, 0.72);
+  text-align: center;
+}
+
+.vs-closing-title {
+  margin: 0 auto;
+  max-width: 22ch;
+  font-size: clamp(1.5rem, 3vw, 2.1rem);
+  line-height: 1.2;
+  color: #f2f4ff;
+}
+
+.vs-closing-text {
+  margin: 14px auto 0;
+  max-width: 62ch;
+  color: rgba(226, 232, 255, 0.76);
+  line-height: 1.6;
+}
+
+.vs-closing-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 32px;
+  text-align: left;
+}
+
+.vs-closing-point {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+  padding: 20px;
+  border: 1px solid rgba(134, 91, 255, 0.2);
+  border-radius: 16px;
+  background: rgba(10, 15, 36, 0.5);
+}
+
+.vs-closing-point h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: #f2f4ff;
+}
+
+.vs-closing-point p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: rgba(226, 232, 255, 0.72);
+}
+
+.vs-closing-point svg {
+  color: #c75bff;
+}
+
+/* Centred under the closing copy rather than left-aligned against a hero. */
+.vs-cta-row-centred {
+  justify-content: center;
+  margin-top: 32px;
+}
+
+@media (max-width: 900px) {
+  .vs-closing { padding: 32px 20px; }
+  .vs-closing-points { grid-template-columns: minmax(0, 1fr); }
+}
