@@ -16,6 +16,10 @@ import styles from "./collections.module.css";
 export default function CollectionsPage() {
   const { collections, games, isLive, createCollection, updateCollection, removeCollection, addGamesToCollection } = useAppData();
   const baseCollections = useMemo(() => collections.filter((collection) => collection.id !== "all"), [collections]);
+  const suggestedPresets = useMemo(() => {
+    const taken = new Set(baseCollections.map((collection) => collection.smartPreset).filter(Boolean));
+    return smartCollectionPresets.filter((preset) => !taken.has(preset.id));
+  }, [baseCollections]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(baseCollections[0]?.id ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
@@ -54,6 +58,33 @@ export default function CollectionsPage() {
 
   const selectedCollection = baseCollections.find((collection) => collection.id === selectedCollectionId) ?? null;
   const selectedGames = selectedCollection ? collectionGameMap.get(selectedCollection.id) ?? [] : [];
+
+  /**
+   * Create a smart shelf from a preset in one press.
+   *
+   * The system already knows the rule, a sensible name and a description, so
+   * asking someone to walk a five-field form to restate them was work for its
+   * own sake. Editing afterwards still exists for anyone who wants it.
+   */
+  async function createPresetShelf(preset: typeof smartCollectionPresets[number]) {
+    if (saving) return;
+    setMutationError("");
+    setSaving(true);
+    try {
+      const collectionId = await createCollection({
+        name: preset.label,
+        description: preset.description,
+        kind: "smart",
+        rules: { preset: preset.id }
+      });
+      setSelectedCollectionId(collectionId);
+      requestAnimationFrame(() => collectionRailRef.current?.scrollTo({ left: 0, behavior: "smooth" }));
+    } catch (error) {
+      setMutationError(collectionMutationMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   async function handleCreateCollection() {
     const trimmedName = nameDraft.trim();
@@ -220,6 +251,25 @@ export default function CollectionsPage() {
         </section>
       ) : null}
 
+      {/* Only the shelves this library does not already have. A row of buttons
+          that mostly say "already made that" is not a shortcut. */}
+      {suggestedPresets.length ? (
+        <section className={styles.suggestedPanel} aria-label="Ready-made shelves">
+          <SectionHeading title="Ready-made shelves" meta="One click each" />
+          <div className={styles.suggestedGrid}>
+            {suggestedPresets.map((preset) => (
+              <div key={preset.id} className={styles.suggestedCard}>
+                <strong>{preset.label}</strong>
+                <small>{preset.description}</small>
+                <button type="button" disabled={saving} onClick={() => void createPresetShelf(preset)}>
+                  <VaultIcon name="add" size={15} />Create shelf
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
+
       <section className={styles.collectionPanel}>
         <SectionHeading
           title={isLive ? "Your collections" : "Preview collections"}
@@ -261,37 +311,48 @@ export default function CollectionsPage() {
         </div>
       </section>
 
-      {selectedCollection ? (
-        <section className={styles.selectedPanel}>
-          <SectionHeading
-            title="Selected collection"
-            meta={selectedCollection.name}
-            action={<div className={styles.selectedActions}>
-              {selectedCollection.kind === "smart" ? null : (
-                <button type="button" className={styles.primaryAction} onClick={() => setAddingGames(true)}>
-                  <VaultIcon name="add-game" size={18} />Add games
-                </button>
-              )}
-              <button type="button" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
-              <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
-            </div>}
-          />
-          {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
-          <div className={styles.selectedGames}>
-            {selectedGames.length ? (
-              selectedGames.map((game) => <GameCard key={game.id} game={game} />)
-            ) : (
-              <PlaceholderSlots
-                count={4}
-                label={selectedCollection.kind === "smart"
+      {/* Rendered whether or not anything is selected. The panel used to vanish
+          entirely with no collection, so the page below the rail collapsed and
+          there was nothing to show what a collection would even look like. The
+          shape stays; the slots are dotted until there is something to put in
+          them. */}
+      <section className={styles.selectedPanel}>
+        <SectionHeading
+          title={selectedCollection ? "Selected collection" : "No collection selected"}
+          meta={selectedCollection ? selectedCollection.name : undefined}
+          action={selectedCollection ? <div className={styles.selectedActions}>
+            {selectedCollection.kind === "smart" ? null : (
+              <button type="button" className={styles.primaryAction} onClick={() => setAddingGames(true)}>
+                <VaultIcon name="add-game" size={18} />Add games
+              </button>
+            )}
+            <button type="button" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
+            <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
+          </div> : undefined}
+        />
+        {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
+        <div className={styles.selectedGames}>
+          {selectedCollection && selectedGames.length ? (
+            selectedGames.map((game) => <GameCard key={game.id} game={game} />)
+          ) : (
+            <PlaceholderSlots
+              count={4}
+              label={!selectedCollection
+                ? (baseCollections.length
+                  ? "Pick a collection above to see what is on it."
+                  : "Make a collection and its games will show up here.")
+                : selectedCollection.kind === "smart"
                   ? (isLive ? "Nothing matches this rule yet." : "No preview games match this rule yet.")
                   : "Nothing on this shelf yet. Add games works from here."}
-                action={<button type="button" className={styles.placeholderAction} onClick={() => setAddingGames(true)}>Add games</button>}
-              />
-            )}
-          </div>
-        </section>
-      ) : null}
+              action={selectedCollection && selectedCollection.kind !== "smart"
+                ? <button type="button" className={styles.placeholderAction} onClick={() => setAddingGames(true)}>Add games</button>
+                : !selectedCollection && !baseCollections.length
+                  ? <button type="button" className={styles.placeholderAction} onClick={openNewComposer}>New collection</button>
+                  : undefined}
+            />
+          )}
+        </div>
+      </section>
 
       {addingGames && selectedCollection ? (
         <AddGamesDialog
