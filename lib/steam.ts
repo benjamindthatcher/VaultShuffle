@@ -2,6 +2,7 @@ import type { GamePayload, SteamPlayerSummary } from "@/lib/types";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import { steamOwnedGamesFromPayload } from "@/lib/steam-owned-games";
+import { recentlyPlayedAppIdsFromPayload } from "@/lib/steam-recent";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
@@ -167,6 +168,40 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
   const payload = await response.json();
   return steamOwnedGamesFromPayload(payload);
 }
+
+/**
+ * Steam's recently-played list: the appids played in roughly the last fortnight.
+ *
+ * This is the bootstrap for recency. GetOwnedGames will not tell a third-party
+ * app when a game was last played, but it will tell us which games were played
+ * lately, and that is enough to seed the model on the very first import rather
+ * than waiting for our own observations to accumulate.
+ *
+ * It reports membership of a window, not a moment. Callers must record it as
+ * such - see lib/recency.ts - and must not turn it into a date.
+ *
+ * Secondary to the library import, so a failure here returns nothing rather than
+ * throwing: an account whose recently-played list is private, empty, or briefly
+ * unavailable must still import its library.
+ */
+export { recentlyPlayedAppIdsFromPayload };
+
+export async function fetchRecentlyPlayedSteamAppIds(steamId: string, apiKey: string): Promise<number[]> {
+  const params = new URLSearchParams({ key: apiKey, steamid: steamId, format: "json" });
+
+  try {
+    const response = await fetch(
+      `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?${params.toString()}`,
+      { headers: { "User-Agent": "VaultShuffle/0.1" }, cache: "no-store" }
+    );
+    if (!response.ok) return [];
+    const payload = await response.json();
+    return recentlyPlayedAppIdsFromPayload(payload);
+  } catch {
+    return [];
+  }
+}
+
 
 export async function fetchSteamAppDetailsBatch(appids: string[], forceRefresh = false) {
   const uniqueAppIds = [...new Set(appids.map((appid) => String(appid || "").trim()).filter(Boolean))];

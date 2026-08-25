@@ -274,6 +274,11 @@ export async function recordSteamVisibility(
     .update({
       steam_library_visible: visibility.libraryVisible,
       steam_playtime_visible: visibility.playtimeVisible,
+      // Recorded for diagnostics only. It is NOT a setting the user should be
+      // asked to change: Steam withholds rtime_last_played from third-party apps
+      // regardless of the Game details privacy setting, so the banner that used
+      // to tell people to fix it was sending them to fix nothing. Recency is
+      // inferred instead - see lib/recency.ts.
       steam_last_played_visible: visibility.lastPlayedVisible,
       steam_games_seen: visibility.gamesSeen,
       steam_visibility_checked_at: new Date().toISOString()

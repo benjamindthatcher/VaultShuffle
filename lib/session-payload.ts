@@ -17,13 +17,12 @@ export async function getSessionPayload(): Promise<SessionPayload> {
   // the app needs it at session level rather than only after an import.
   type SteamVisibilityRow = {
     steam_playtime_visible: boolean | null;
-    steam_last_played_visible: boolean | null;
   };
   let visibility: SteamVisibilityRow | null = null;
   if (user) {
     const { data } = await getSupabaseAdmin()
       .from("app_users")
-      .select("steam_playtime_visible, steam_last_played_visible")
+      .select("steam_playtime_visible")
       .eq("id", user.id)
       .maybeSingle();
     visibility = (data as SteamVisibilityRow | null) ?? null;
@@ -32,7 +31,6 @@ export async function getSessionPayload(): Promise<SessionPayload> {
   return {
     logged_in: Boolean(session),
     steam_playtime_visible: visibility?.steam_playtime_visible ?? null,
-    steam_last_played_visible: visibility?.steam_last_played_visible ?? null,
     user_id: user?.id ?? "",
     steam_id: user?.steam_id ?? "",
     display_name: user?.display_name ?? "",

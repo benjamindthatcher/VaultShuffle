@@ -4,6 +4,7 @@ import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { fetchOwnedSteamGames } from "@/lib/steam";
+import { syncSteamRecentWindow } from "@/lib/recency-sync";
 import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
 import { processCatalogueQueue } from "@/lib/catalogue";
 import { getSteamImportProgress, processNextSteamImportBatch, stageSteamImport } from "@/lib/steam-import-jobs";
@@ -70,6 +71,20 @@ export async function POST(request: Request) {
 
     const importedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
     const progress = await stageSteamImport(user.id, importedGames);
+
+    // Bootstraps recency on the very first import, so a new account knows what
+    // its owner has been playing without waiting for our own observations to
+    // accumulate. Deliberately not awaited into the failure path: the library is
+    // what the user asked for, and this is a bonus on top of it.
+    const recentWindow = await syncSteamRecentWindow(user.id, user.steam_id, apiKey);
+    if (recentWindow.error) {
+      console.warn(JSON.stringify({
+        level: "warning",
+        message: "Could not apply Steam recently-played evidence",
+        route: "/api/steam/owned-games",
+        error: recentWindow.error
+      }));
+    }
 
     console.log(JSON.stringify({
       level: "info",

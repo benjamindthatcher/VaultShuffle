@@ -2,6 +2,7 @@ import { processDurationQueue } from "@/lib/duration-worker";
 import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames } from "@/lib/steam";
+import { syncSteamRecentWindow } from "@/lib/recency-sync";
 import { steamVisibilityFromGames } from "@/lib/steam-owned-games";
 import { capturePlaytimeSnapshot } from "@/lib/playtime-snapshots";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -43,6 +44,12 @@ export async function refreshNightlyMetadata() {
             stage: "catalogue-registration",
             error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
           });
+        }
+        // Runs before the upsert writes the new baseline, so window evidence is
+        // judged against what we knew going in rather than what we just learned.
+        const recentWindow = await syncSteamRecentWindow(user.id, user.steam_id, apiKey);
+        if (recentWindow.error) {
+          failures.push({ userId: user.id, stage: "recent-window", error: recentWindow.error });
         }
         const savedGames = await upsertSteamGames(user.id, ownedGames);
         // Recorded every night so a change in someone's Steam privacy settings
