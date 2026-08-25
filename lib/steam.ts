@@ -384,11 +384,6 @@ function cleanMinorUnits(value: unknown) {
   return Number.isFinite(amount) && amount >= 0 ? Math.round(amount) : undefined;
 }
 
-function steamLastPlayedDate(value: unknown) {
-  const seconds = Number(value || 0);
-  if (!Number.isFinite(seconds) || seconds <= 0) return null;
-  return new Date(seconds * 1000).toISOString();
-}
 
 function steamGenreLabel(item: Record<string, unknown>, title = "") {
   const genreList = Array.isArray(item.genres) ? item.genres : [];

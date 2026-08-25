@@ -7,10 +7,10 @@
     "dev": "next dev -p 8766",
     "build": "next build",
     "start": "next start -p 8766",
-    "lint": "tsc --noEmit",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run lint && npm test && npm run build",
-    "test": "node --experimental-strip-types --test lib/*.test.ts scripts/catalogue/*.test.mjs supabase/functions/_shared/igdb-duration-provider.test.ts",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "test": "node --experimental-strip-types --test lib/*.test.ts scripts/catalogue/*.test.mjs scripts/durations/*.test.mjs supabase/functions/_shared/igdb-duration-provider.test.ts",
     "catalogue:fetch-top": "node scripts/catalogue/fetch-steamspy-top.mjs",
     "catalogue:fetch-steamspy-owners": "node scripts/catalogue/fetch-steamspy-owners.mjs",
     "catalogue:fetch-igdb-popular": "node scripts/catalogue/fetch-igdb-popular.mjs",
@@ -33,9 +33,12 @@
     "zod": "^4.1.11"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.6",
     "@types/node": "^24.5.2",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.3",
     "typescript": "^5.9.2"
   },
   "overrides": {

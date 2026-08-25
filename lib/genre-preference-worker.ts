@@ -56,6 +56,7 @@ const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
  * Reasons that describe something other than genre. Present so they are visibly
  * considered and deliberately unused, rather than looking like an oversight.
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- documentation: see the comment above.
 const NON_GENRE_REASONS: VaultDrawEventType[] = [
   "reroll_too_long",
   "reroll_not_tonight",

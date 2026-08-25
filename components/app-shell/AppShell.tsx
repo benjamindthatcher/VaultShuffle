@@ -39,11 +39,9 @@ function AppShellContent({
   const router = useRouter();
   const {
     loadError,
-    isLive,
     isLoading,
     isSyncing,
     playHistoryMissing,
-    session,
     refresh,
     syncSteamLibrary
   } = useAppData();

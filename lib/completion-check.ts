@@ -52,7 +52,7 @@ function reaskThreshold(hoursAtDismissal: number) {
   return Math.max(REASK_MIN_EXTRA_HOURS, hoursAtDismissal * REASK_EXTRA_SHARE);
 }
 
-export function findCompletionCandidates(games: DemoGame[], now = new Date()): CompletionCandidate[] {
+export function findCompletionCandidates(games: DemoGame[], _now = new Date()): CompletionCandidate[] {
   const candidates: CompletionCandidate[] = [];
 
   for (const game of games) {

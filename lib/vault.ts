@@ -87,8 +87,10 @@ export function isCollectionDraw(selectedCollectionId: string | null) {
 
 export function getVaultEligibility({
   games,
-  session,
-  mood,
+  // Accepted so callers can pass one options object, but deliberately unused:
+  // goal is the only input that removes games. See the note on goalMatches.
+  session: _session,
+  mood: _mood,
   goal,
   selectedCollectionId,
   selectedCollectionName,

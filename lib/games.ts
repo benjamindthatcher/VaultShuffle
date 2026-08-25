@@ -251,7 +251,9 @@ function isGeneratedSteamNote(notes: string) {
   return /^(Imported from Steam account|Added from Steam search)\. AppID: \d+$/i.test(notes);
 }
 
-function normalizeOwnership(value: unknown): GamePayload["ownership"] {
+// Everything imported is owned; the argument is kept so the call sites read
+// the same as the other normalisers.
+function normalizeOwnership(_value: unknown): GamePayload["ownership"] {
   return "Owned";
 }
 

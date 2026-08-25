@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
-import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import {
   buildPurgeCandidates,
   isReviewSuperseded,

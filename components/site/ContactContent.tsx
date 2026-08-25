@@ -78,7 +78,7 @@ export function ContactContent() {
           <div className={styles.success} role="status">
             <span><VaultIcon name="check" size={27} /></span>
             <h3>Your message has been sent.</h3>
-            <p>We'll get back to you as soon as possible.</p>
+            <p>We&rsquo;ll get back to you as soon as possible.</p>
             <button type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
           </div>
         ) : (
