@@ -16,9 +16,7 @@
   display: grid;
   align-items: start;
   gap: 18px;
-}
-.setupPanel,
-.snapshot {
+}.snapshot{
   display: grid;
   gap: 12px;
 }
@@ -108,9 +106,7 @@
   font-weight: 700;
   line-height: 1;
 }
-/* The twin of .setupPanel, so it keeps the shared surface rather than the
-   darker radial fill and corner ring it used to carry, and stretches its tiles
-   to the shared panel height rather than centring them in it. */
+/* The one group left on the page: where things stand. */
 .snapshot {
   position: relative;
   display: grid;

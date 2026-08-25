@@ -14,72 +14,6 @@
   gap: 12px;
 }
 
-.setupLayout[data-paused="true"] .setupGuide {
-  border-color: rgba(144, 104, 255, 0.3);
-  background: var(--vault-feature-surface);
-}
-
-.guestPreviewBanner {
-  min-height: 74px;
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--vault-panel-feature-border);
-  border-radius: var(--vault-panel-radius);
-  background: var(--vault-panel-feature-surface);
-  box-shadow: var(--vault-panel-feature-shadow);
-}
-
-.guestPreviewBanner + .setupLayout {
-  margin-top: 0;
-}
-
-.guestPreviewIcon {
-  width: 42px;
-  height: 42px;
-  display: grid;
-  place-items: center;
-  border: 1px solid var(--vault-border-strong);
-  border-radius: 11px;
-  background: rgba(113, 48, 218, 0.28);
-  color: #dfa0ff;
-}
-
-.guestPreviewCopy {
-  min-width: 0;
-  display: grid;
-  gap: 4px;
-}
-
-.guestPreviewCopy strong {
-  color: #f5efff;
-  font-size: 0.92rem;
-}
-
-.guestPreviewCopy small {
-  color: var(--vault-text-muted);
-  font-size: 0.76rem;
-  line-height: 1.45;
-}
-
-.guestPreviewBanner > a {
-  min-height: 42px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 0 14px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, #7133fa, #9f42ff);
-  color: white;
-  font-size: 0.82rem;
-  font-weight: 800;
-  text-decoration: none;
-  white-space: nowrap;
-}
-
 @media (max-width: 720px) {
 
   .setupLayout {
@@ -236,18 +170,6 @@
   border: 1px solid var(--vault-sheet-border);
   background: var(--vault-sheet-surface);
 }
-
-/* The label on a region inside a card — "Now reviewing", "Decision". Sections on
-   the page ground use SectionHeading instead; this is for parts within a card. */
-.resultEyebrow {
-  margin: 0;
-  color: #d392ff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
 .resultCopy {
   margin: 0;
   color: var(--vault-text-muted);
@@ -372,13 +294,6 @@
 .deckToolButton:focus-visible .deckToolArrow {
   color: #e1b2ff;
   transform: translateX(2px);
-}
-.poolActionArea {
-  display: grid;
-  justify-items: center;
-  gap: 4px;
-  padding-top: 2px;
-  border-top: 1px solid rgba(143, 104, 255, 0.14);
 }
 
 .resultTitle,
@@ -513,12 +428,6 @@
   line-height: 1.6;
 }
 
-.resultSummary {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
 .summaryItem {
   min-width: 0;
   min-height: 74px;
@@ -640,22 +549,13 @@
 .pinToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 
 @media (max-width: 720px) {
-  .guestPreviewBanner {
-    grid-template-columns: 42px minmax(0, 1fr);
-    margin-top: 0;
-  }
-
-  .guestPreviewBanner > a {
-    grid-column: 1 / -1;
-    width: 100%;
-  }
   .deckTools { width: 100%; margin-left: 0; }
   .deckToolButton { width: 50%; min-width: 0; }
   .ctaButton { width: 100%; max-width: none; }
   .drawActionBar { position: relative; bottom: auto; grid-template-columns: 1fr; gap: 10px; padding: 10px; }
   .drawModeToggle { width: 100%; }
-        .drawActionControl .setupStatus { display: none; }
-  .resultSummary, .resultActions, .resultActions.guestResultActions { grid-template-columns: 1fr; }
+        .drawActionControl .setupStatus { display: none; }.resultActions,
+.resultActions.guestResultActions{ grid-template-columns: 1fr; }
   .resultBody { padding: 22px 18px; }
   .resultContext { padding: 18px; border-top: 1px solid var(--vault-card-border); border-left: 0; }
 
@@ -675,7 +575,6 @@
 }
 
 @media (max-width: 440px) {
-  .setupGuideCopy p { font-size: 0.72rem; }
   .optionalLabel { display: none; }
   .optionalHeader { grid-template-columns: 36px minmax(0, 1fr) 18px; }
 

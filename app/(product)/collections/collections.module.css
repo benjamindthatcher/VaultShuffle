@@ -64,13 +64,6 @@
   background: var(--vault-sheet-surface);
 }
 
-.composerHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 20px;
-}
-
 .composerBody {
   display: grid;
   gap: 16px;
@@ -80,12 +73,6 @@
   margin: 0;
   font-size: 1.02rem;
   font-weight: 700;
-}
-
-.composerCopy {
-  margin: 7px 0 0;
-  color: var(--vault-text-muted);
-  line-height: 1.55;
 }
 
 .railActions {
@@ -171,17 +158,9 @@
   border: 1px solid var(--vault-card-border);
   background: var(--vault-well-surface);
   color: var(--vault-text);
-}
-
-.field small,
-.ruleNote {
+}.field small{
   color: var(--vault-text-soft);
   line-height: 1.5;
-}
-
-.ruleNote {
-  margin: 8px 0 0;
-  font-size: 0.86rem;
 }
 
 .composerActions {
@@ -205,14 +184,6 @@
 .dangerAction {
   color: #ff9db1;
   border-color: rgba(255, 112, 143, 0.26);
-}
-
-.sectionCopy {
-  max-width: 66ch;
-  margin: 4px 0 0;
-  color: var(--vault-text-muted);
-  font-size: 0.86rem;
-  line-height: 1.55;
 }
 
 .placeholderAction {
@@ -245,17 +216,11 @@
   line-height: 1.65;
 }
 
-@media (max-width: 760px) {
-  .collectionsPage::after,
-
-  .composerHeader {
+@media (max-width: 760px) {.collectionsPage::after{
     align-items: stretch;
     flex-direction: column;
-  }
-
-  .composerHeader .primaryAction,
-  .composerActions > *,
-  .selectedActions {
+  }.composerActions > *,
+.selectedActions{
     width: 100%;
   }
 

@@ -60,9 +60,7 @@
 .emptyPin { min-height: 96px; display: grid; place-items: center; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); color: var(--vault-text-soft); }
 @media (max-width: 720px) { .pinnedGrid { display: flex; overflow-x: auto; } .pinnedGrid > * { flex: 0 0 78%; } }
 
-@media (max-width: 900px) {
-  .gamesHeader { align-items: stretch; flex-direction: column; }
-}
+@media (max-width: 900px) {}
 
 .recentRow {
   display: grid;
