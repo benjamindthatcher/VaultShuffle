@@ -123,16 +123,22 @@ export function buildPurgeCandidates({
     // nought hours whether or not Steam ever told us a date.
     const neverOpened = game.hoursPlayed === 0;
 
+    // Asked for by hand, which overrides the evidence rules below: the player has
+    // already decided this one is worth a look.
+    const requested = Boolean(game.reviewRequested);
+
     // For everything else, age is the whole basis of the review, so it needs
     // evidence. Missing recency used to score as infinitely old, which put every
     // game Steam declined to date at the very top of the queue and described it
     // as "untouched for 9 years". Unknown now means we say nothing and ask
     // nothing - the game simply is not a candidate on age grounds.
-    if (!neverOpened && !idleForAtLeast(recency, PURGE_IDLE_DAYS)) continue;
+    if (!requested && !neverOpened && !idleForAtLeast(recency, PURGE_IDLE_DAYS)) continue;
 
     const signal = purgeSignal(game);
     const confidence = purgeConfidence(game, recency, signal?.leaning ?? null);
-    const reason = neverOpened
+    const reason = requested && !neverOpened && !idleForAtLeast(recency, PURGE_IDLE_DAYS)
+      ? `You flagged this one for review.${duration}`
+      : neverOpened
       ? `Never opened.${duration}`
       : `${game.hoursPlayed}h played, ${game.completionPercent}% progress, ${idlePhrase(recency)}.${duration}`;
 

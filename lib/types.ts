@@ -35,6 +35,7 @@ export type Game = {
   recency_source?: string | null;
   recency_evidence_at?: string | null;
   observed_playtime_minutes?: number | null;
+  review_requested_at?: string | null;
   release_date?: string | null;
   completed_at?: string | null;
   previous_active_status?: "Not Started" | "Sampled" | "In Progress" | null;

@@ -37,6 +37,15 @@ export async function POST(request: Request) {
       throw new HttpError("This game has already changed. Refresh the Purge queue and try again.", 409);
     }
     if (error) throw error;
+
+    // A decision answers the question the flag was asking, so the flag goes with
+    // it. Left set, a game would rejoin the queue the moment a Keep expired.
+    await supabase
+      .from("user_games")
+      .update({ review_requested_at: null })
+      .eq("user_id", user.id)
+      .eq("id", input.game_id);
+
     return NextResponse.json(data, { status: 201 });
   } catch (error) {
     return jsonError(error, 500);

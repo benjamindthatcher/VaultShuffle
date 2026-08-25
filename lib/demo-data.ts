@@ -40,6 +40,8 @@ export type DemoGame = {
    * for most users. See lib/recency.ts.
    */
   recency: GameRecency;
+  /** The player asked for this one back in the Purge queue. */
+  reviewRequested?: boolean;
   addedLabel: string;
   dateAdded?: string | null;
   collectionIds: string[];

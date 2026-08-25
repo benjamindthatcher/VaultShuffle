@@ -426,6 +426,7 @@
   .outcomeGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 .outcomeCard {
+  position: relative;
   display: grid;
   grid-template-rows: auto auto auto;
   align-content: start;
@@ -505,3 +506,62 @@
 .signalCut { border-color: rgba(255, 138, 128, 0.36); background: rgba(255, 106, 96, 0.09); color: rgba(255, 190, 184, 0.92); }
 .signalKeep { border-color: rgba(124, 231, 178, 0.36); background: rgba(124, 231, 178, 0.09); color: rgba(178, 240, 210, 0.92); }
 .signalCut strong, .signalKeep strong { color: var(--vault-text); font-size: 0.88rem; }
+
+/* Bulk selection, matching the completion sweep: the same job done the same way
+   in both places. Reviewing 200 games one card at a time is not a workflow. */
+.bulkBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-well-surface);
+}
+.bulkCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--vault-text);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+.bulkCheck input,
+.outcomeCheck input {
+  width: 18px;
+  height: 18px;
+  accent-color: #a855f7;
+}
+.bulkAction {
+  padding: 8px 14px;
+  border: 1px solid var(--vault-tile-selected-border);
+  border-radius: 10px;
+  background: var(--vault-tile-selected-surface);
+  color: #fff;
+  font-size: 0.84rem;
+  font-weight: 600;
+}
+.bulkAction:disabled {
+  border-color: var(--vault-card-border);
+  background: transparent;
+  color: var(--vault-text-muted);
+}
+/* Over the artwork rather than in the card flow, so ticking one does not change
+   the height of the row it sits in. */
+.outcomeCheck {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 14px;
+  display: grid;
+  place-items: center;
+  padding: 4px;
+  border-radius: 7px;
+  background: rgb(6 9 24 / 72%);
+}
+.outcomeCard[data-selected] {
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+}

@@ -155,6 +155,7 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       lastPlayedLabel: recency.label ?? (game.last_played_at ? formatDateLabel(game.last_played_at) : ""),
       lastPlayedAt: game.last_played_at,
       recency,
+      reviewRequested: Boolean(game.review_requested_at),
       addedLabel: game.date_added ? `Added ${game.date_added}` : "Added recently",
       dateAdded: game.date_added,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],

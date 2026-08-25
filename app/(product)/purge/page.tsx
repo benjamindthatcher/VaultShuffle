@@ -41,6 +41,8 @@ export default function PurgePage() {
   const { games, vaultState, isLive, isLoading, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [flagging, setFlagging] = useState(false);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
   const savingRef = useRef(false);
@@ -320,6 +322,40 @@ export default function PurgePage() {
   // numbers then snapped once they did. Hold the panel until both exist.
   const dataReady = !isLoading && reviewsReady;
 
+  // The two review lists, as they are actually shown. Selection and "select all"
+  // both work from this so the buttons can never claim more than is on screen.
+  const listedGames = reviewView === "reviewed"
+    ? reviewedList.map(({ game }) => game)
+    : reviewView === "settled" ? settledList.slice(0, 24) : [];
+  const selected = new Set(selectedIds.filter((id) => listedGames.some((game) => game.id === id)));
+
+  function toggleSelected(gameId: string) {
+    setSelectedIds((current) => current.includes(gameId)
+      ? current.filter((id) => id !== gameId)
+      : [...current, gameId]);
+  }
+
+  async function flagSelected() {
+    if (!selected.size || flagging) return;
+    setFlagging(true);
+    setError("");
+    try {
+      const response = await fetch("/api/purge/flags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_ids: [...selected] })
+      });
+      if (!response.ok) throw new Error("Could not flag those games for review.");
+      setSelectedIds([]);
+      setReviewView("needs");
+      await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not flag those games for review.");
+    } finally {
+      setFlagging(false);
+    }
+  }
+
   return <PurgePageFrame>
     <h1 className="visually-hidden">Purge</h1>
     {!isLive ? (
@@ -337,8 +373,8 @@ export default function PurgePage() {
             { id: "reviewed", icon: "actioned", label: "Reviewed", copy: dataReady ? `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done` : "Checking your decisions.", count: dataReady ? purgeStats.reviewed : "—" },
             { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: dataReady ? "Nothing flagged." : "Checking your library.", count: dataReady ? purgeStats.noReviewNeeded : "—" }
           ] as const).map((view) => {
-            const selected = reviewView === view.id;
-            return <button key={view.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} disabled={!dataReady} onClick={() => setReviewView(view.id)}>
+            const active = reviewView === view.id;
+            return <button key={view.id} type="button" className={active ? styles.categorySelected : styles.category} aria-pressed={active} disabled={!dataReady} onClick={() => { setReviewView(view.id); setSelectedIds([]); }}>
               <span className={styles.categoryIcon} aria-hidden="true"><VaultIcon name={view.icon} size={36} /></span>
               <span className={styles.categoryCopy}><strong>{view.label}</strong><b>{view.count}</b><small>{view.copy}</small></span>
             </button>;
@@ -378,10 +414,32 @@ export default function PurgePage() {
           title={reviewView === "reviewed" ? "Already decided" : "Nothing flagged"}
           meta={!dataReady ? undefined : reviewView === "reviewed" ? `${reviewedList.length} reviewed` : `${settledList.length} need no review`}
         />
+        {listedGames.length ? <div className={styles.bulkBar}>
+          <label className={styles.bulkCheck}>
+            <input
+              type="checkbox"
+              checked={selected.size === listedGames.length && listedGames.length > 0}
+              ref={(node) => { if (node) node.indeterminate = selected.size > 0 && selected.size < listedGames.length; }}
+              onChange={(event) => setSelectedIds(event.target.checked ? listedGames.map((game) => game.id) : [])}
+            />
+            <span>{selected.size ? `${selected.size} selected` : `Select all ${listedGames.length}`}</span>
+          </label>
+          <button
+            type="button"
+            className={styles.bulkAction}
+            disabled={!selected.size || flagging}
+            onClick={() => void flagSelected()}
+          >{flagging ? "Flagging…" : `Flag ${selected.size || ""} for review`.replace("  ", " ")}</button>
+        </div> : null}
+
         {reviewView === "reviewed"
           ? (reviewedList.length
             ? <ul className={styles.outcomeGrid}>
-                {reviewedList.map(({ game }) => <li key={game.id} className={styles.outcomeCard}>
+                {reviewedList.map(({ game }) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
+                  <label className={styles.outcomeCheck}>
+                    <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
+                    <span className="visually-hidden">Select {game.title}</span>
+                  </label>
                   <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                   <span className={styles.outcomeName}>{game.title}</span>
                   <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : game.status === "Completed" ? "Completed" : "Active"}</span>
@@ -390,7 +448,11 @@ export default function PurgePage() {
             : <p className={styles.emptyNote}>You have not reviewed anything yet. Start with Needs Review.</p>)
           : (settledList.length
             ? <ul className={styles.outcomeGrid}>
-                {settledList.slice(0, 24).map((game) => <li key={game.id} className={styles.outcomeCard}>
+                {settledList.slice(0, 24).map((game) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
+                  <label className={styles.outcomeCheck}>
+                    <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
+                    <span className="visually-hidden">Select {game.title}</span>
+                  </label>
                   <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                   <span className={styles.outcomeName}>{game.title}</span>
                   <span className={styles.outcomeBadge} data-action="none">Active</span>

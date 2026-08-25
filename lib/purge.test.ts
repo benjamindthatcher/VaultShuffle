@@ -143,3 +143,25 @@ test("a game we have watched go quiet is still reviewable, and says so precisely
   assert.match(candidates[0].reason, /untouched for/);
   assert.doesNotMatch(candidates[0].reason, /about/);
 });
+
+test("a game flagged by hand joins the queue even with no evidence against it", () => {
+  const flagged = { ...game("flagged", UNKNOWN_RECENCY), hoursPlayed: 12, reviewRequested: true };
+  const candidates = buildPurgeCandidates({
+    games: [flagged], pinnedIds: [], currentPickId: null, snoozedIds: [], reviews: [], now
+  });
+
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["flagged"]);
+  assert.match(candidates[0].reason, /You flagged this one for review/);
+});
+
+test("flagging does not override a standing decision", () => {
+  const flagged = { ...game("flagged", UNKNOWN_RECENCY), hoursPlayed: 12, reviewRequested: true };
+  const candidates = buildPurgeCandidates({
+    games: [flagged],
+    pinnedIds: [], currentPickId: null, snoozedIds: [],
+    reviews: [review("flagged", "keep", "2026-08-13T14:00:00.000Z")],
+    now
+  });
+
+  assert.deepEqual(candidates, []);
+});
