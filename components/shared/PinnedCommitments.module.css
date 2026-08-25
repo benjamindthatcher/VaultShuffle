@@ -1,8 +1,11 @@
-.panel, .compact { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
-.compact { padding: 12px; }
-.header { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.label { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #d392ff; }
-.count { color: var(--vault-text-muted); font-size: 0.78rem; font-weight: 700; }
+.panel, .compact { display: grid; gap: 10px; }
+.header { display: flex; align-items: center; gap: 12px; }
+.label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--vault-text); font-size: 1.08rem; font-weight: 800; letter-spacing: -0.01em; }
+.count { color: #d58cff; font-size: 0.84rem; font-weight: 700; }
+.slotDots { display: flex; gap: 5px; margin-left: 4px; }
+.slotDots span { width: 8px; height: 8px; border: 1px solid #a871ff; border-radius: 50%; }
+.slotDots span[data-filled="true"] { background: #c15fff; }
+.emptySlot { min-height: 96px; display: grid; place-items: center; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); color: var(--vault-text-soft); font-size: 0.82rem; }
 .list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
 .item { position: relative; min-width: 0; }
 
@@ -24,9 +27,9 @@
 }
 .unpin:hover { border-color: rgba(255, 138, 128, 0.6); background: rgba(70, 14, 24, 0.8); color: #ffb4c2; }
 .unpin:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
-.card { display: grid; gap: 8px; width: 100%; padding: 8px; border: 1px solid transparent; border-radius: 12px; background: var(--vault-well-surface); text-align: left; }
+.card { display: grid; gap: 8px; width: 100%; padding: 8px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); text-align: left; }
 .card:hover:not(:disabled) { border-color: var(--vault-border-strong); }
-.art { position: relative; width: 100%; aspect-ratio: 92 / 43; border-radius: 8px; overflow: hidden; background: var(--vault-well-surface); }
+.art { position: relative; width: 100%; aspect-ratio: 460 / 215; border-radius: 7px; overflow: hidden; background: var(--vault-well-surface); }
 .body { display: grid; gap: 2px; min-width: 0; }
 .body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; color: var(--vault-text); }
 .body small { font-size: 0.74rem; color: var(--vault-text-muted); }

@@ -52,8 +52,10 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
   return (
     <section className={compact ? styles.compact : styles.panel} aria-label="Games you have committed to">
       <header className={styles.header}>
-        <p className={styles.label}><VaultIcon name="pin" size={15} />Playing next</p>
-        <span className={styles.count}>{pinned.length}/3</span>
+        <p className={styles.label}>Playing next <span className={styles.count}>{pinned.length}/3</span></p>
+        <span className={styles.slotDots} role="img" aria-label={`${pinned.length} of 3 pins used`}>
+          {[0, 1, 2].map((slot) => <span key={slot} data-filled={slot < pinned.length || undefined} />)}
+        </span>
       </header>
       <ul className={styles.list}>
         {pinned.map((game) => {
@@ -80,6 +82,9 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
             </li>
           );
         })}
+        {Array.from({ length: Math.max(0, 3 - pinned.length) }, (_, index) => (
+          <li key={`empty-${index}`} className={styles.emptySlot}>Empty slot</li>
+        ))}
       </ul>
     </section>
   );

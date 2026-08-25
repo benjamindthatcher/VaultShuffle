@@ -707,8 +707,8 @@
 /* Quick Draw sits beside the guided draw: no setup, one click, a game. */
 /* The escape hatch from the three-step setup. It sits beside the instruction to
    fill that setup in, because that is the moment the choice is actually made. */
-.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid var(--vault-card-border); border-radius: 10px; background: transparent; color: var(--vault-text-muted); font-size: .86rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
-.quickDrawButton:hover:not(:disabled) { border-color: var(--vault-border-strong); color: var(--vault-text); }
+.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid rgba(110, 231, 183, 0.45); border-radius: 10px; background: rgba(110, 231, 183, 0.12); color: #a7f3d0; font-size: .86rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.quickDrawButton:hover:not(:disabled) { border-color: rgba(110, 231, 183, 0.75); background: rgba(110, 231, 183, 0.2); color: #d1fae5; }
 .quickDrawButton:disabled { opacity: .45; }
 
 /* Pick feedback. Deliberately quiet: it is a question, not a call to action. */

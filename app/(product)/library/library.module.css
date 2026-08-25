@@ -45,7 +45,7 @@
 @media (prefers-reduced-motion: reduce) {
   .undoToast { animation-duration: 1ms; }
 }
-.pinnedShelf { display: grid; gap: 10px; padding-bottom: 16px; border-bottom: 1px solid var(--vault-card-border); }
+.pinnedShelf { display: grid; gap: 10px; }
 .pinnedHeader { display: flex; align-items: center; gap: 12px; }
 .pinnedHeader h2 { margin: 0; font-size: 1.02rem; font-weight: 700; }
 .pinnedHeader h2 span { color: #d58cff; }

@@ -176,6 +176,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.6em;
   font-size: 0.82rem;
   line-height: 1.3;
 }
@@ -184,10 +185,12 @@
   font-size: 0.65rem;
   font-style: normal;
 }
+/* Fixed, not minimum. A long title or a long reason used to make the panel taller
+   and move the three decisions down the screen between one game and the next. */
 .reviewPanel {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-  min-height: 340px;
+  grid-template-rows: 300px auto;
   overflow: hidden;
   animation: reviewDecisionIn 140ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
@@ -210,22 +213,32 @@
   background: var(--vault-well-surface);
 }
 .reviewCopy {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: clamp(20px, 2.2vw, 30px);
+  overflow: hidden;
+  padding: clamp(18px, 2vw, 26px);
 }
 .reviewCopy h2 {
-  margin: 7px 0 14px;
-  font-size: clamp(1.5rem, 2.4vw, 2.1rem);
-  line-height: 1.1;
+  margin: 7px 0 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: clamp(1.3rem, 2vw, 1.7rem);
+  line-height: 1.15;
   letter-spacing: -0.03em;
 }
 .reviewCopy > p:not(.eyebrow) {
-  margin: 20px 0;
+  margin: 12px 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   color: #aaaac0;
-  font-size: clamp(0.95rem, 1.15vw, 1.08rem);
-  line-height: 1.65;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 .facts,
 .tags {
@@ -390,42 +403,52 @@
 
 /* Reviewed / no-review-needed lists. Deliberately lighter than the review queue
    cards: these are for reading back decisions, not for making them. */
-.outcomeList {
+/* The same four-across card grid as the queue above it. These were full-width
+   rows, which put a one-word badge a long way from the game it belonged to. */
+.outcomeGrid {
   display: grid;
-  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
-.outcomeRow {
+@media (min-width: 760px) {
+  .outcomeGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.outcomeCard {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) auto auto;
-  align-items: center;
-  gap: 14px;
-  padding: 9px 12px;
+  grid-template-rows: auto auto auto;
+  align-content: start;
+  gap: 6px;
+  padding: 8px;
   border: 1px solid var(--vault-card-border);
-  border-radius: 12px;
+  border-radius: var(--vault-card-radius);
   background: var(--vault-card-surface);
 }
 .outcomeArt {
   position: relative;
-  width: 88px;
-  height: 40px;
+  display: block;
+  aspect-ratio: 460 / 215;
   overflow: hidden;
   border-radius: 7px;
-  background: var(--vault-surface-strong);
+  background: var(--vault-well-surface);
 }
+.outcomeArt img { width: 100%; height: 100%; object-fit: cover; }
 .outcomeName {
   min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   color: #fff;
   font-weight: 650;
-  font-size: 0.94rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.88rem;
+  line-height: 1.3;
 }
 .outcomeBadge {
-  padding: 5px 11px;
+  justify-self: start;
+  padding: 4px 10px;
   border: 1px solid var(--vault-card-border);
   border-radius: 999px;
   color: var(--vault-text-muted);
@@ -447,12 +470,6 @@
   border-color: rgba(224, 163, 74, 0.5);
   color: #e0a34a;
 }
-/* What you decided, kept subordinate to what is actually true now. */
-.outcomeDecision {
-  color: var(--vault-text-soft);
-  font-size: 0.72rem;
-  white-space: nowrap;
-}
 .emptyNote {
   margin: 0;
   color: var(--vault-text-soft);
@@ -460,10 +477,6 @@
 }
 
 /* A decision that no longer matches the game's state is history, not status. */
-.outcomeDecision[data-stale] {
-  color: var(--vault-text-soft);
-  font-style: italic;
-}
 
 /*
  * The evidence behind the call. Only the ends of the review spectrum appear here:
