@@ -458,14 +458,8 @@
 
 .resultActions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.resultActions.guestResultActions {
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: none;
-  grid-auto-flow: row;
+  gap: 10px;
 }
 
 .actionsLabel {
@@ -478,11 +472,11 @@
 
 .resultAction {
   min-width: 0;
-  min-height: 86px;
-  display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  min-height: 64px;
+  display: flex;
   align-items: center;
-  gap: 13px;
+  justify-content: center;
+  gap: 11px;
   padding: 14px 16px;
   border: 1px solid var(--vault-card-border);
   border-radius: 11px;
@@ -497,8 +491,9 @@
 .resultActionPrimary:hover { background: linear-gradient(145deg, rgba(119, 55, 238, 0.98), rgba(60, 45, 151, 0.98)); }
 
 .resultActionIcon {
-  width: 48px;
-  height: 48px;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 30px;
   display: grid;
   place-items: center;
   color: #d19aff;
@@ -512,8 +507,6 @@
 
 .resultActionCopy {
   min-width: 0;
-  display: grid;
-  gap: 4px;
 }
 
 .resultActionCopy strong {
@@ -559,23 +552,20 @@
   .ctaButton { width: 100%; max-width: none; }
   .drawActionBar { position: relative; bottom: auto; grid-template-columns: 1fr; gap: 10px; padding: 10px; }
   .drawModeToggle { width: 100%; }
-        .drawActionControl .setupStatus { display: none; }.resultActions,
-.resultActions.guestResultActions{ grid-template-columns: 1fr; }
+        .drawActionControl .setupStatus { display: none; }.resultActions { grid-template-columns: 1fr; }
   .resultBody { padding: 22px 18px; }
   .resultContext { padding: 18px; border-top: 1px solid var(--vault-card-border); border-left: 0; }
 
-  .resultAction { min-height: 82px; }
+  .resultAction { min-height: 58px; }
 }
 
+/* The card reads top to bottom: artwork across the full width, then the name,
+   the description, the reasoning, and the actions. Side by side, the artwork
+   column set the height of the whole card and left the reasoning squeezed into
+   half the width beside it. */
 @media (min-width: 1080px) {
-  .resultCard {
-    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
-    align-items: stretch;
-  }
-
   .resultArtwork {
-    aspect-ratio: auto;
-    min-height: 0;
+    max-height: 340px;
   }
 }
 
@@ -594,27 +584,22 @@
 }
 
 @media (min-width: 1080px) and (max-width: 1320px) {
-  .resultCard { grid-template-columns: minmax(340px, 0.82fr) minmax(0, 1.18fr); }
-  .resultContext { grid-column: 1 / -1; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 14px 0 0; border-top: 1px solid var(--vault-card-border); border-left: 0; }
+  .resultContext { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1080px) {
-  .resultActions {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(2, minmax(0, 1fr));
-    grid-auto-flow: column;
-  }
-
+  /* One row of three. This used to be two rows filled column-first, from when
+     there were six actions - which put the third button underneath the first
+     instead of beside the second. */
   .resultAction {
-    min-height: 82px;
-    grid-template-columns: 46px minmax(0, 1fr);
+    min-height: 62px;
     gap: 10px;
     padding: 12px 13px;
   }
 
   .resultActionIcon {
-    width: 44px;
-    height: 44px;
+    width: 28px;
+    height: 28px;
   }
 }
 

@@ -711,15 +711,15 @@ export default function VaultPage() {
                 six-button grid made every option look equally likely, when only
                 one of them is what the page is for. */}
             <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
-            <div className={`${styles.resultActions}${!isLive ? ` ${styles.guestResultActions}` : ""}`}>
+            <div className={styles.resultActions}>
               <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
-                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong><small>{isLive ? "Launch the game" : "Open the store page"}</small></span>
+                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong></span>
               </a>
-              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
-                <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
-              </button>
               <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
-                <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
+                <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Snooze</strong></span>
+              </button>
+              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
+                <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? "Pinned" : vaultState.pinnedIds.length >= 3 ? "Pins full" : "Pin"}</strong></span>
               </button>
             </div>
           </div>
