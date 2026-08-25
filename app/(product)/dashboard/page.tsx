@@ -12,6 +12,7 @@ import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBa
 import { WelcomeBack } from "@/components/shared/WelcomeBack";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { ValueDial } from "@/components/dashboard/ValueDial";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import { PageHeading } from "@/components/shared/PageHeading";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
@@ -118,19 +119,13 @@ export default function DashboardPage() {
           <CompletionClaimBanner />
           <LibraryEnrichmentBanner />
 
-          <section className={styles.hero}>
-            <p className={styles.heroLabel}>Library value completed</p>
-            <p className={styles.heroValue}>
-              {formatMoney(stats.completedValueCents, stats.currency)}
-              <span> of {formatMoney(stats.libraryValueCents, stats.currency)}</span>
-            </p>
-            <div className={styles.track} role="img" aria-label={`${stats.valueCompletedPercent}% completed`}>
-              <span className={styles.fill} style={{ width: `${Math.max(stats.valueCompletedPercent, 1.5)}%` }} />
-            </div>
-            <p className={styles.heroHint}>
-              {stats.valueCompletedPercent}% finished · {stats.completedGames} of {stats.totalGames} games
-            </p>
-          </section>
+          <ValueDial
+            percent={stats.valueCompletedPercent}
+            completedValue={formatMoney(stats.completedValueCents, stats.currency)}
+            libraryValue={formatMoney(stats.libraryValueCents, stats.currency)}
+            completedGames={stats.completedGames}
+            totalGames={stats.totalGames}
+          />
 
           <StatPanel label="Backlog summary" columns={5}>
             <StatCard label="Hours played" value={formatHours(stats.totalHours)} note="across the whole library" />
