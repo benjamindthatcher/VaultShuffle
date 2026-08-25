@@ -285,13 +285,26 @@
 .decisions > button:disabled span {
   opacity: 0.42;
 }
+/* Each decision takes the colour of the state it produces, matching the badges
+   the same games wear everywhere else: green for active, purple for asleep,
+   amber for pinned. Three identically purple buttons made the choice look
+   arbitrary when the outcomes are anything but. */
+.decisions > button[data-decision="keep"] { --decision-accent: #62d3af; }
+.decisions > button[data-decision="sleep"] { --decision-accent: #c79bff; }
+.decisions > button[data-decision="pin"] { --decision-accent: #e0a34a; }
+
+.decisions > button:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--decision-accent, #ce79ff) 55%, transparent);
+  background-color: color-mix(in srgb, var(--decision-accent, #ce79ff) 12%, transparent);
+}
+
 .decisionIcon {
   display: grid;
   width: 40px;
   height: 40px;
   place-items: center;
-  color: #ce79ff;
-  filter: drop-shadow(0 0 8px rgba(170, 75, 255, 0.22));
+  color: var(--decision-accent, #ce79ff);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--decision-accent, #ce79ff) 30%, transparent));
 }
 .decisions > button:disabled .decisionIcon {
   opacity: 0.72;
