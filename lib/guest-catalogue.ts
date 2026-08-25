@@ -199,7 +199,7 @@ const loadCachedGuestCatalogue = unstable_cache(
     }));
     return loadGuestGamesByAppId(await selectGuestCatalogueAppIds());
   },
-  ["guest-catalogue-v3"],
+  ["guest-catalogue-v4"],
   { revalidate: 60 * 60, tags: ["guest-catalogue"] }
 );
 
