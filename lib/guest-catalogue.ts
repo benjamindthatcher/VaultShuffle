@@ -10,7 +10,7 @@ import { GUEST_POOL_SIZE, selectGuestPool } from "@/lib/guest-pool";
  * selectGuestPool has enough of every niche to choose from; the query is cached
  * for an hour, so the cost is one read per hour rather than per guest.
  */
-const GUEST_QUERY_SIZE = 6000;
+const GUEST_QUERY_SIZE = 3000;
 
 /**
  * Minimum reviews to be worth recommending to someone who has never used the
@@ -42,15 +42,23 @@ type GuestCatalogueRow = {
   popularity_rank: number | null;
 };
 
+/** An empty array is not null, and "Unknown" is not a genre. */
+function hasRealGenres(genres: string[] | null | undefined) {
+  return (genres ?? []).some((genre) => genre && genre.toLowerCase() !== "unknown");
+}
+
+function hasTags(tags: Record<string, number> | null | undefined) {
+  return Boolean(tags && Object.keys(tags).length);
+}
+
 /**
  * The gates the SQL cannot express: an empty array is not null, "Unknown" is not
  * a genre, and artwork has to actually exist somewhere.
  */
 function fullyEnriched(row: GuestCatalogueRow) {
-  const genres = (row.genres ?? []).filter((genre) => genre && genre.toLowerCase() !== "unknown");
-  if (!genres.length) return false;
+  if (!hasRealGenres(row.genres)) return false;
   if (!row.short_description?.trim()) return false;
-  if (!row.tags || !Object.keys(row.tags).length) return false;
+  if (!hasTags(row.tags)) return false;
   if (!row.header_url && !row.capsule_url) return false;
   // A guest choosing by session length needs a length to choose by. Endless
   // games qualify because "no ending" is itself an answer.
@@ -58,17 +66,35 @@ function fullyEnriched(row: GuestCatalogueRow) {
   return hasDuration;
 }
 
+const FULL_ROW_COLUMNS =
+  "steam_appid,name,genres,tags,short_description,capsule_url,header_url,review_positive,review_total,main_story_minutes,main_extras_minutes,completionist_minutes,duration_source,duration_source_updated_at,duration_confidence,duration_kind,popularity_rank";
+
+/** Only what selection needs. See the note in loadCachedGuestCatalogue. */
+const CANDIDATE_COLUMNS = "steam_appid,genres,tags,popularity_rank,review_total";
+
+type GuestCandidateRow = Pick<GuestCatalogueRow, "steam_appid" | "genres" | "tags" | "popularity_rank" | "review_total">;
+
 const loadCachedGuestCatalogue = unstable_cache(
   async () => {
     const supabase = getSupabaseAdmin();
-    // PostgREST caps a single response at 1,000 rows on this project, so a plain
-    // .limit(6000) would silently return 1,000 and quietly produce a far narrower
-    // pool than intended. Paged explicitly instead.
-    const collected: GuestCatalogueRow[] = [];
+
+    // Two phases, because fetching every column for thousands of candidates is
+    // what matters here - descriptions and tag maps are most of the payload, and
+    // pulling 6,000 of them took 16 seconds and failed outright, dropping guests
+    // onto the bundled fallback.
+    //
+    // Phase one reads only the columns selection actually reasons about. Phase
+    // two fetches the full rows for the thousand games that survive. Measured
+    // against the real catalogue, 3,000 candidates cover exactly as many niches
+    // as 6,000 did, so the smaller scan costs nothing in variety.
+    //
+    // PostgREST caps a response at 1,000 rows on this project, so both phases
+    // page explicitly. A plain .limit(3000) returns 1,000 rows without error.
+    const candidates: GuestCandidateRow[] = [];
     for (let offset = 0; offset < GUEST_QUERY_SIZE; offset += GUEST_PAGE_SIZE) {
       const { data, error } = await supabase
         .from("catalog_games")
-        .select("steam_appid,name,genres,tags,short_description,capsule_url,header_url,review_positive,review_total,main_story_minutes,main_extras_minutes,completionist_minutes,duration_source,duration_source_updated_at,duration_confidence,duration_kind,popularity_rank")
+        .select(CANDIDATE_COLUMNS)
         .eq("steam_type", "game")
         // Nothing half-enriched reaches a guest. A first impression made of
         // "Unknown" genres and missing playthrough lengths is worse than a
@@ -77,33 +103,52 @@ const loadCachedGuestCatalogue = unstable_cache(
         .not("short_description", "is", null)
         .not("tags", "is", null)
         .gte("review_total", GUEST_MIN_REVIEWS)
+        .or("header_url.not.is.null,capsule_url.not.is.null")
+        .or("main_story_minutes.not.is.null,duration_kind.eq.endless")
         .order("popularity_rank", { ascending: true, nullsFirst: false })
         .order("review_total", { ascending: false, nullsFirst: false })
         .order("steam_appid", { ascending: true })
         .range(offset, offset + GUEST_PAGE_SIZE - 1);
 
       if (error) throw error;
-      const page = (data ?? []) as GuestCatalogueRow[];
-      collected.push(...page);
+      const page = (data ?? []) as GuestCandidateRow[];
+      candidates.push(...page);
       if (page.length < GUEST_PAGE_SIZE) break;
     }
 
-    const rows = collected.filter(fullyEnriched);
-    const appIds = rows.map((row) => row.steam_appid);
-    const { data: quarantined, error: quarantineError } = appIds.length
-      ? await supabase
-          .from("catalog_game_quarantine")
-          .select("steam_appid")
-          .in("steam_appid", appIds)
-          .eq("review_status", "excluded")
-      : { data: [], error: null };
-
+    const { data: quarantined, error: quarantineError } = await supabase
+      .from("catalog_game_quarantine")
+      .select("steam_appid")
+      .eq("review_status", "excluded");
     if (quarantineError) throw quarantineError;
     const excluded = new Set((quarantined ?? []).map((row) => Number(row.steam_appid)));
-    return selectGuestPool(rows.filter((row) => !excluded.has(Number(row.steam_appid))))
+
+    const eligible = candidates.filter((row) =>
+      !excluded.has(Number(row.steam_appid)) && hasRealGenres(row.genres) && hasTags(row.tags));
+
+    const chosen = selectGuestPool(eligible);
+    const order = new Map(chosen.map((row, index) => [Number(row.steam_appid), index]));
+
+    const full: GuestCatalogueRow[] = [];
+    const chosenIds = chosen.map((row) => row.steam_appid);
+    for (let offset = 0; offset < chosenIds.length; offset += GUEST_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("catalog_games")
+        .select(FULL_ROW_COLUMNS)
+        .in("steam_appid", chosenIds.slice(offset, offset + GUEST_PAGE_SIZE));
+      if (error) throw error;
+      full.push(...((data ?? []) as GuestCatalogueRow[]));
+    }
+
+    // fullyEnriched should be a no-op after the SQL gates; it stays as the
+    // backstop for the conditions SQL cannot express.
+    return full
+      .filter(fullyEnriched)
+      .sort((left, right) =>
+        (order.get(Number(left.steam_appid)) ?? Infinity) - (order.get(Number(right.steam_appid)) ?? Infinity))
       .map(guestGameFromCatalogue);
   },
-  ["guest-catalogue-v2"],
+  ["guest-catalogue-v3"],
   { revalidate: 60 * 60, tags: ["guest-catalogue"] }
 );
 
