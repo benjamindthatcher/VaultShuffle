@@ -1,5 +1,6 @@
 "use client";
 
+import { isEndlessProgress, progressLabel } from "@/lib/progress-display";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DemoGame } from "@/lib/demo-data";
@@ -92,9 +93,9 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
             <span className={styles.listState}>
               <span className={styles.status}>{game.status}</span>
               <span className={styles.stateSeparator} aria-hidden="true">·</span>
-              <span className={styles.progress}>{game.completionPercent}%</span>
+              <span className={styles.progress} data-endless={isEndlessProgress(game) || undefined}>{progressLabel(game)}</span>
             </span>
-          ) : showProgress ? <span className={styles.progress}>{game.completionPercent}%</span> : null}
+          ) : showProgress ? <span className={styles.progress} data-endless={isEndlessProgress(game) || undefined}>{progressLabel(game)}</span> : null}
         </div>
       </div>
     </>

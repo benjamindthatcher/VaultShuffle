@@ -251,12 +251,9 @@ export default function LibraryPage() {
       </div>
 
       <section className={`${styles.section} ${styles.gamesSection}`} role="tabpanel" aria-label={`${statusTab} games`}>
-        <SectionHeading
-          title={isLive
-            ? `${statusTab === "active" ? "Active" : statusTab === "slept" ? "Slept" : "Completed"} games`
-            : `${statusTab === "active" ? "Guest catalogue" : statusTab === "slept" ? "Sleeping in this preview" : "Completed in this preview"}`}
-          meta={`${filteredGames.length}`}
-        />
+        {/* No heading: the status tabs directly above already name this panel and
+            carry its count, so "Active games 208" underneath "Active 208" was the
+            same fact twice. The label stays for screen readers via aria-label. */}
         <div className={styles.gamesToolbar}>
           <LibraryToolbar
             query={query}

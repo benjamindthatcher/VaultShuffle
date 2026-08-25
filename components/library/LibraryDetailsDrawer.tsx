@@ -1,5 +1,6 @@
 "use client";
 
+import { progressLabel } from "@/lib/progress-display";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
@@ -109,7 +110,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
             </div>
             <div>
               <dt>Progress</dt>
-              <dd>{game.completionPercent}%</dd>
+              <dd>{progressLabel(game)}</dd>
             </div>
             <div>
               <dt>Playtime</dt>
