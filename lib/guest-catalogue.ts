@@ -89,7 +89,10 @@ function guestGameFromCatalogue(row: GuestCatalogueRow): Game {
     priority: "Medium",
     date_added: null,
     last_played_at: null,
-    notes: String(row.short_description || "").trim(),
+    // A guest has no private notes. The Steam synopsis now travels in its own
+    // field rather than borrowing this one.
+    notes: "",
+    short_description: String(row.short_description || "").trim(),
     steam_appid: String(appId),
     capsule_url: row.capsule_url,
     header_url: row.header_url,

@@ -128,8 +128,13 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       completionPercent: gameProgress(game),
       priority: normalisePriority(game.priority),
       genres,
+      // Steam's own synopsis, which the catalogue has always had for ~99% of
+      // owned games. Notes are the player's private annotation and are kept
+      // separate: using them here meant writing one note silently replaced the
+      // game's description everywhere it appeared, and the fallback line spent a
+      // whole paragraph on the result screen restating the genres shown beside it.
       description:
-        game.notes?.trim() ||
+        game.short_description?.trim() ||
         `${genres.slice(0, 2).join(" / ")} pick from your live VaultShuffle library.`,
       notes: game.notes || "",
       artworkUrl: game.steam_appid
@@ -195,7 +200,9 @@ export function mapGuestGames(games: Game[]): DemoGame[] {
     hoursPlayed: 0,
     completionPercent: 0,
     priority: "Medium",
-    description: games[index]?.notes?.trim() || `${game.genres.slice(0, 2).join(" / ") || "Steam"} pick from the VaultShuffle guest catalogue.`,
+    // Same reasoning as the live path: Steam's synopsis first, the generated
+    // line only when the catalogue genuinely has nothing.
+    description: games[index]?.short_description?.trim() || `${game.genres.slice(0, 2).join(" / ") || "Steam"} pick from the VaultShuffle guest catalogue.`,
     lastPlayedLabel: "Guest preview",
     addedLabel: "Popular on Steam",
     collectionIds: []
