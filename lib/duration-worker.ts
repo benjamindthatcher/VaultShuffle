@@ -48,34 +48,87 @@ export async function processDurationQueue(
           : catalogue?.release_date ? new Date(catalogue.release_date).getUTCFullYear() : null
       });
       const checkedAt = new Date();
-      const { error: estimateError } = await supabase.from("game_duration_estimates").upsert({
-        steam_app_id: result.steamAppId,
-        provider: result.provider,
-        provider_game_id: result.providerGameId,
-        main_story_minutes: result.mainStoryMinutes,
-        main_extra_minutes: result.mainExtraMinutes,
-        completionist_minutes: result.completionistMinutes,
-        submission_count: result.submissionCount,
-        match_status: result.status,
-        match_confidence: result.confidence,
-        provider_updated_at: result.providerUpdatedAt,
-        checked_at: checkedAt.toISOString(),
-        next_refresh_at: new Date(checkedAt.getTime() + (result.status === "matched" ? 365 : 150) * 86_400_000).toISOString(),
-        last_error_code: null,
-        updated_at: checkedAt.toISOString()
-      }, { onConflict: "steam_app_id,provider" });
-      if (estimateError) throw estimateError;
+      const { data: existingEstimate, error: existingEstimateError } = await supabase
+        .from("game_duration_estimates")
+        .select("provider_game_id,main_story_minutes,main_extra_minutes,completionist_minutes,match_status")
+        .eq("steam_app_id", result.steamAppId)
+        .eq("provider", result.provider)
+        .maybeSingle();
+      if (existingEstimateError) throw existingEstimateError;
+
+      // A new missing/changed provider identity is review evidence, not permission
+      // to erase an already matched row. The claimed job prevents normal worker
+      // races; this guard also makes retries non-destructive.
+      const identityConflict = existingEstimate != null && (
+        (existingEstimate.match_status === "matched" && result.status !== "matched") ||
+        (
+          existingEstimate.provider_game_id != null &&
+          result.providerGameId != null &&
+          Number(existingEstimate.provider_game_id) !== Number(result.providerGameId)
+        )
+      );
+
+      if (!identityConflict) {
+        const { error: estimateError } = await supabase.from("game_duration_estimates").upsert({
+          steam_app_id: result.steamAppId,
+          provider: result.provider,
+          provider_game_id: result.providerGameId,
+          main_story_minutes: result.mainStoryMinutes,
+          main_extra_minutes: result.mainExtraMinutes,
+          completionist_minutes: result.completionistMinutes,
+          submission_count: result.submissionCount,
+          match_status: result.status,
+          match_confidence: result.confidence,
+          provider_updated_at: result.providerUpdatedAt,
+          checked_at: checkedAt.toISOString(),
+          next_refresh_at: new Date(checkedAt.getTime() + (result.status === "matched" ? 365 : 150) * 86_400_000).toISOString(),
+          last_error_code: null,
+          updated_at: checkedAt.toISOString()
+        }, { onConflict: "steam_app_id,provider" });
+        if (estimateError) throw estimateError;
+      }
 
       if (result.status === "matched") summary.matched += 1;
       else if (result.status === "no_duration") summary.noDuration += 1;
       else if (result.status === "not_found") summary.notFound += 1;
       else summary.ambiguous += 1;
+
+      const { data: projected, error: projectedError } = await supabase
+        .from("catalog_games")
+        .select("duration_kind,duration_status,duration_manual_override")
+        .eq("steam_appid", job.steam_app_id)
+        .maybeSingle();
+      if (projectedError) throw projectedError;
+      const classificationConflict = Boolean(
+        !projected?.duration_manual_override &&
+        result.status === "matched" &&
+        ["endless", "not-applicable"].includes(projected?.duration_kind ?? "")
+      );
+      const acceptedAsReady = !identityConflict && !classificationConflict && Boolean(
+        projected?.duration_manual_override ||
+        (
+          projected?.duration_status === "ready" &&
+          ["finite", "endless", "not-applicable"].includes(projected?.duration_kind ?? "")
+        )
+      );
+      const reviewCode = identityConflict
+        ? "duration_provider_identity_conflict"
+        : classificationConflict
+          ? "duration_classification_conflict"
+        : result.status === "matched"
+          ? "duration_match_requires_review"
+          : result.status === "no_duration"
+            ? "known_title_no_provider_times"
+            : result.status === "not_found"
+              ? "duration_not_found"
+              : "duration_ambiguous";
       const { error: completedError } = await supabase.from("game_duration_jobs").update({
-        status: result.status === "ambiguous" ? "needs_review" : "completed",
+        status: acceptedAsReady ? "completed" : "needs_review",
         attempts: Number(job.attempts || 0) + 1,
+        next_attempt_at: null,
         locked_at: null,
         locked_by: null,
-        last_error_code: null,
+        last_error_code: acceptedAsReady ? null : reviewCode,
         last_error_message: null,
         updated_at: new Date().toISOString()
       }).eq("steam_app_id", job.steam_app_id).eq("locked_by", workerId);

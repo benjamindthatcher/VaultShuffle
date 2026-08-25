@@ -2,9 +2,11 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { gameArtworkFallback } from "@/lib/vaultshuffle-assets";
 
 type ArtworkProps = {
   src: string;
+  /** Overrides the derived placeholder — a collection banner, usually. */
   fallbackSrc?: string;
   alt?: string;
   className?: string;
@@ -13,7 +15,12 @@ type ArtworkProps = {
   fit?: "cover" | "contain";
 };
 
-const FALLBACK_ARTWORK = "/assets/vault/vault-stage-open.png";
+/**
+ * A game with no artwork gets one of the wide placeholder plates, picked from
+ * its own source string so it is the same one every time. It used to get the
+ * vault door, which is the brand's own image: on a shelf of Steam headers it
+ * read as "this is VaultShuffle" rather than as "no picture for this one".
+ */
 
 /**
  * Steam already serves these at the exact sizes we render — capsule_231x87,
@@ -29,18 +36,19 @@ function isSteamHosted(url: string) {
 
 export function Artwork({
   src,
-  fallbackSrc = FALLBACK_ARTWORK,
+  fallbackSrc,
   alt = "",
   className,
   sizes,
   priority = false,
   fit = "cover"
 }: ArtworkProps) {
-  const [resolvedSrc, setResolvedSrc] = useState(src || fallbackSrc);
+  const placeholder = fallbackSrc ?? gameArtworkFallback(src || alt);
+  const [resolvedSrc, setResolvedSrc] = useState(src || placeholder);
 
   useEffect(() => {
-    setResolvedSrc(src || fallbackSrc);
-  }, [fallbackSrc, src]);
+    setResolvedSrc(src || placeholder);
+  }, [placeholder, src]);
 
   return (
     <Image
@@ -52,7 +60,7 @@ export function Artwork({
       priority={priority}
       className={className}
       style={{ objectFit: fit, objectPosition: "center" }}
-      onError={() => setResolvedSrc(fallbackSrc)}
+      onError={() => setResolvedSrc(placeholder)}
     />
   );
 }

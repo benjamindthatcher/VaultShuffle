@@ -1,5 +1,6 @@
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
+import { collectionBanner, gameArtworkFallback } from "@/lib/vaultshuffle-assets";
 import styles from "./CollectionCard.module.css";
 
 type CollectionCardProps = {
@@ -18,7 +19,11 @@ export function CollectionCard({ collection, previewGames, selected = false, onS
       onClick={onSelect}
     >
       <div className={styles.banner}>
-        <Artwork src={collection.artworkUrl} sizes="(max-width: 720px) 100vw, 33vw" />
+        <Artwork
+          src={collection.artworkUrl}
+          fallbackSrc={collectionBanner(collection.name, collection.smartPreset)}
+          sizes="(max-width: 720px) 100vw, 33vw"
+        />
         <span className={styles.kindLabel}>{collection.kind === "smart" ? "Smart collection" : "Custom collection"}</span>
         <h3 className={styles.title}>{collection.name}</h3>
         <p className={styles.copy}>{collection.description}</p>
@@ -28,7 +33,7 @@ export function CollectionCard({ collection, previewGames, selected = false, onS
         <div className={styles.thumbRow}>
           {previewGames.slice(0, 4).map((game) => (
             <span key={game.id} className={styles.thumb}>
-              <Artwork src={game.bannerUrl} sizes="52px" />
+              <Artwork src={game.bannerUrl} fallbackSrc={gameArtworkFallback(game.title)} sizes="52px" />
             </span>
           ))}
         </div>
