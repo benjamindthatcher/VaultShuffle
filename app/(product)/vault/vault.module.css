@@ -103,6 +103,11 @@
 .drawActionBar {
   position: relative;
   z-index: 2;
+  /* Where the draw scrolls to. The gap left above it clears the sticky header
+     and leaves the pick sitting directly underneath, so the button that rerolls
+     and the thing it produced are on screen together. Declared here so the
+     offset lives with the element it describes. */
+  scroll-margin-top: 96px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
   align-items: center;

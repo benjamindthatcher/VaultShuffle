@@ -91,7 +91,6 @@ export default function VaultPage() {
   const drawingRef = useRef(false);
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
-  const resultRef = useRef<HTMLElement>(null);
   const drawStageRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
@@ -257,15 +256,6 @@ export default function VaultPage() {
           : "All three choices are ready. Open the Vault when you are ready.";
   const closeGuestSignInPrompt = useCallback(() => setGuestSignInOpen(false), []);
 
-  // The scroll to the result runs here rather than inside the draw, because the
-  // card now mounts with the reveal: measured from the draw's own tick there was
-  // nothing in the DOM to measure yet.
-  useEffect(() => {
-    if (drawState !== "revealed" || !revealedPickId) return;
-    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const frame = requestAnimationFrame(() => revealResultIfNeeded(resultRef.current, reducedMotion));
-    return () => cancelAnimationFrame(frame);
-  }, [drawState, revealedPickId]);
 
   useEffect(() => {
     const resetQueue = { setupKey, gameIds: [] };
@@ -666,7 +656,7 @@ export default function VaultPage() {
       <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
 
       {currentPick ? (
-        <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
+        <section className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
           <div className={styles.resultArtwork}>
             <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
             <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
@@ -875,14 +865,12 @@ function wait(duration: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, duration));
 }
 
-/** Just below the sticky header, leaving the pick directly underneath. */
-const DRAW_STAGE_OFFSET = 96;
-
 async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
   if (!element) return;
-  const target = Math.max(0, window.scrollY + element.getBoundingClientRect().top - DRAW_STAGE_OFFSET);
-  if (Math.abs(target - window.scrollY) < 8) return;
-  window.scrollTo({ top: target, behavior: reducedMotion ? "auto" : "smooth" });
+  // scrollIntoView rather than arithmetic: the gap under the sticky header is
+  // scroll-margin-top on the bar itself, so the offset lives with the thing it
+  // describes instead of being a number here that has to stay in sync.
+  element.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
   await waitForScrollEnd(reducedMotion);
 }
 
@@ -897,7 +885,8 @@ function waitForScrollEnd(reducedMotion: boolean): Promise<void> {
   return new Promise((resolve) => {
     let settled = false;
     let lastOffset = window.scrollY;
-    let stillFrames = 0;
+    let stillTicks = 0;
+    let hasMoved = false;
 
     const finish = () => {
       if (settled) return;
@@ -908,32 +897,24 @@ function waitForScrollEnd(reducedMotion: boolean): Promise<void> {
       resolve();
     };
 
-    const cap = setTimeout(finish, 900);
+    const cap = setTimeout(finish, 700);
     const poll = setInterval(() => {
-      if (Math.abs(window.scrollY - lastOffset) < 1) {
-        stillFrames += 1;
-        if (stillFrames >= 3) finish();
-      } else {
-        stillFrames = 0;
-        lastOffset = window.scrollY;
+      const offset = window.scrollY;
+      if (Math.abs(offset - lastOffset) >= 1) {
+        hasMoved = true;
+        stillTicks = 0;
+        lastOffset = offset;
+        return;
       }
+      stillTicks += 1;
+      // Once it has moved and then stopped, the scroll is done. If it never
+      // moves at all - already in place, or a page that cannot scroll - give it
+      // a short grace period and then get on with the draw rather than holding
+      // the animation for something that is not going to happen.
+      if (hasMoved ? stillTicks >= 3 : stillTicks >= 6) finish();
     }, 50);
 
     window.addEventListener("scrollend", finish, { once: true });
-  });
-}
-
-function revealResultIfNeeded(element: HTMLElement | null, reducedMotion: boolean) {
-  if (!element) return;
-  const bounds = element.getBoundingClientRect();
-  const isBelowViewport = bounds.top > window.innerHeight - 80;
-  if (!isBelowViewport) return;
-  // window.scrollTo rather than scrollIntoView: scrollIntoView walks every
-  // scrollable ancestor, so it also nudged the deck rail sideways while the rail
-  // was still running its own smooth scroll to the winner, and the two fought.
-  window.scrollTo({
-    top: window.scrollY + bounds.top - 24,
-    behavior: reducedMotion ? "auto" : "smooth"
   });
 }
 
