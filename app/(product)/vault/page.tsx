@@ -18,7 +18,9 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
-import { WelcomeBack } from "@/components/shared/WelcomeBack";
+import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
+import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
+import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useGenreLearning, type GenreLearningArm } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
@@ -39,7 +41,7 @@ import {
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
 import { matchesSmartPreset } from "@/lib/smart-collections";
-import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
+import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import styles from "./vault.module.css";
 
@@ -50,7 +52,7 @@ type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 const EMPTY_GAME_IDS: string[] = [];
 
 export default function VaultPage() {
-  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, loadError, playHistoryMissing, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
@@ -87,7 +89,10 @@ export default function VaultPage() {
   const [feedbackGiven, setFeedbackGiven] = useState<"liked" | "disliked" | null>(null);
   const [rerollReasonGiven, setRerollReasonGiven] = useState(false);
   const drawingRef = useRef(false);
+  const completionNotice = useCompletionClaimNotice();
+  const welcomeNotice = useWelcomeBackNotice();
   const resultRef = useRef<HTMLElement>(null);
+  const drawStageRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
@@ -334,6 +339,13 @@ export default function VaultPage() {
     setDrawWinnerId(nextPick.id);
     setHighlightedGameId(null);
     setDrawMessage("Opening the Vault.");
+
+    // Move to the pick before anything starts moving. Drawing from halfway up the
+    // setup meant the animation played somewhere off-screen and the result was
+    // simply there by the time you scrolled down to it. The draw bar is the
+    // anchor rather than the card itself, so the button that rerolls stays in
+    // view alongside whatever it just produced.
+    await scrollToDrawStage(drawStageRef.current, reducedMotion);
     setDrawState("focusing");
 
     // The pick is already decided, so the write does not have to finish before we
@@ -555,6 +567,17 @@ export default function VaultPage() {
     <section className={styles.vaultPage}>
       <h1 className="visually-hidden">Vault</h1>
 
+
+      {/* Same rule as Library: what the app is asking for comes before what the
+          player parked. See NoticeStack. */}
+      <NoticeStack
+        reserved={(loadError ? 1 : 0) + (playHistoryMissing ? 1 : 0)}
+        notices={[
+          { id: "completion", node: completionNotice },
+          { id: "welcome", node: welcomeNotice }
+        ]}
+      />
+
       {isLive ? (
         <PinnedCommitments
           games={ownedGames}
@@ -565,8 +588,6 @@ export default function VaultPage() {
           compact
         />
       ) : null}
-
-      <WelcomeBack />
 
       {!isLive ? (
         <GuestPreviewNotice feature="Vault" icon="current-pick" actionLabel="Shuffle my library" catalogueSize={ownedGames.length}>
@@ -608,7 +629,7 @@ export default function VaultPage() {
         </div>
       </section>
 
-      <section className={styles.drawActionBar} aria-label="Vault draw status" data-mode={drawMode}>
+      <section ref={drawStageRef} className={styles.drawActionBar} aria-label="Vault draw status" data-mode={drawMode}>
         <div className={styles.drawModePicker}>
           <div className={styles.drawModeToggle} role="tablist" aria-label="Draw type">
             <button type="button" role="tab" aria-selected={!collectionMode} className={styles.drawModeButton} data-active={!collectionMode || undefined} onClick={() => setDrawMode("vault")}><VaultIcon name="draw-from-vault" size={17} />Vault Draw</button>
@@ -641,6 +662,95 @@ export default function VaultPage() {
         </div>
       </section>
 
+
+      <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
+
+      {currentPick ? (
+        <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
+          <div className={styles.resultArtwork}>
+            <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
+            <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
+          </div>
+          <div className={styles.resultBody}>
+            <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
+            <p className={styles.resultCopy}>{currentPick.description}</p>
+            {currentPickExplanation ? <VaultMatchReasons explanation={currentPickExplanation} /> : (
+              <>
+                <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
+                <div className={styles.resultReasonRow}>
+                  {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
+                </div>
+              </>
+            )}
+            {currentDrawId ? <div className={styles.feedbackRow}>
+              <span className={styles.feedbackLabel}>Good pick?</span>
+              <button
+                type="button"
+                className={feedbackGiven === "liked" ? styles.feedbackOn : styles.feedbackButton}
+                aria-pressed={feedbackGiven === "liked"}
+                disabled={Boolean(feedbackGiven)}
+                onClick={() => { setFeedbackGiven("liked"); void recordDrawEvent(currentDrawId, "liked", drawEventAnalytics()); }}
+              >Yes</button>
+              <button
+                type="button"
+                className={feedbackGiven === "disliked" ? styles.feedbackOn : styles.feedbackButton}
+                aria-pressed={feedbackGiven === "disliked"}
+                disabled={Boolean(feedbackGiven)}
+                onClick={() => { setFeedbackGiven("disliked"); void recordDrawEvent(currentDrawId, "disliked", drawEventAnalytics()); }}
+              >Not really</button>
+              {feedbackGiven ? <span className={styles.feedbackThanks}>Noted.</span> : null}
+            </div> : null}
+
+            {currentDrawId && rerollCount >= 3 && !rerollReasonGiven ? <div className={styles.rerollAsk}>
+              <span className={styles.feedbackLabel}>Nothing landing. What&apos;s off?</span>
+              <div className={styles.rerollReasons}>
+                {VAULT_REROLL_REASONS.map((reason) => (
+                  <button
+                    key={reason.id}
+                    type="button"
+                    className={styles.feedbackButton}
+                    onClick={() => { setRerollReasonGiven(true); void recordDrawEvent(currentDrawId, reason.id, drawEventAnalytics()); }}
+                  >{reason.label}</button>
+                ))}
+              </div>
+            </div> : null}
+
+            {/* Three, deliberately. Draw Again lives in the bar directly above
+                this card, where it stays visible alongside the pick; completion
+                has its own sweep; details are a click away on any deck card. A
+                six-button grid made every option look equally likely, when only
+                one of them is what the page is for. */}
+            <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
+            <div className={`${styles.resultActions}${!isLive ? ` ${styles.guestResultActions}` : ""}`}>
+              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
+                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong><small>{isLive ? "Launch the game" : "Open the store page"}</small></span>
+              </a>
+              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
+                <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
+              </button>
+              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
+                <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
+              </button>
+            </div>
+          </div>
+          <aside className={styles.resultContext} aria-label="Selected setup">
+            {collectionDraw ? <>
+              <ResultSummary icon="collections" label="Collection Draw" value={selectedCollection?.name ?? "Collection"} />
+              <ResultSummary icon="genre" label="Filters" value="Collection only" />
+            </> : <>
+              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Not selected"} />
+              <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
+              <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
+              <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
+            </>}
+            {formatGameDuration(currentPick.duration) ? <ResultSummary icon="clock" label="Estimated playthrough" value={formatGameDuration(currentPick.duration)!} /> : null}
+          </aside>
+        </section>
+      ) : null}
+
+      {/* The deck sits at the very bottom: it is what the draw chose FROM, so it
+          reads as supporting evidence after the pick rather than a wall of
+          sixty-four games between the setup and the answer. */}
       <section className={styles.poolSection} id="vault-pool">
         <div className={styles.poolControls}>
           <SectionHeading
@@ -718,98 +828,6 @@ export default function VaultPage() {
 
       </section>
 
-      <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
-
-      {currentPick ? (
-        <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
-          <div className={styles.resultArtwork}>
-            <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
-            <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
-          </div>
-          <div className={styles.resultBody}>
-            <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
-            <p className={styles.resultCopy}>{currentPick.description}</p>
-            {currentPickExplanation ? <VaultMatchReasons explanation={currentPickExplanation} /> : (
-              <>
-                <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
-                <div className={styles.resultReasonRow}>
-                  {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
-                </div>
-              </>
-            )}
-            {currentDrawId ? <div className={styles.feedbackRow}>
-              <span className={styles.feedbackLabel}>Good pick?</span>
-              <button
-                type="button"
-                className={feedbackGiven === "liked" ? styles.feedbackOn : styles.feedbackButton}
-                aria-pressed={feedbackGiven === "liked"}
-                disabled={Boolean(feedbackGiven)}
-                onClick={() => { setFeedbackGiven("liked"); void recordDrawEvent(currentDrawId, "liked", drawEventAnalytics()); }}
-              >Yes</button>
-              <button
-                type="button"
-                className={feedbackGiven === "disliked" ? styles.feedbackOn : styles.feedbackButton}
-                aria-pressed={feedbackGiven === "disliked"}
-                disabled={Boolean(feedbackGiven)}
-                onClick={() => { setFeedbackGiven("disliked"); void recordDrawEvent(currentDrawId, "disliked", drawEventAnalytics()); }}
-              >Not really</button>
-              {feedbackGiven ? <span className={styles.feedbackThanks}>Noted.</span> : null}
-            </div> : null}
-
-            {currentDrawId && rerollCount >= 3 && !rerollReasonGiven ? <div className={styles.rerollAsk}>
-              <span className={styles.feedbackLabel}>Nothing landing. What&apos;s off?</span>
-              <div className={styles.rerollReasons}>
-                {VAULT_REROLL_REASONS.map((reason) => (
-                  <button
-                    key={reason.id}
-                    type="button"
-                    className={styles.feedbackButton}
-                    onClick={() => { setRerollReasonGiven(true); void recordDrawEvent(currentDrawId, reason.id, drawEventAnalytics()); }}
-                  >{reason.label}</button>
-                ))}
-              </div>
-            </div> : null}
-
-            <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
-            <div className={`${styles.resultActions}${!isLive ? ` ${styles.guestResultActions}` : ""}`}>
-              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
-                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong><small>{isLive ? "Launch the game" : "Open the store page"}</small></span>
-              </a>
-              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
-                <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? `Pinned · ${vaultState.pinnedIds.length}/3` : vaultState.pinnedIds.length >= 3 ? "Pins Full · 3/3" : `Pin This Pick · ${vaultState.pinnedIds.length}/3`}</strong><small>Pinned Library shelf</small></span>
-              </button>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "drew_again", drawEventAnalytics()); void handleOpenVault({ deferCurrentPick: true, quick: lastDrawWasQuick }); }}>
-                <VaultResultActionIcon name="draw-again" /><span className={styles.resultActionCopy}><strong>Draw Again</strong><small>Find something else</small></span>
-              </button>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
-                <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Not Now</strong><small>Snooze this pick</small></span>
-              </button>
-              <button type="button" className={styles.resultAction} onClick={() => setDetailsGameId(currentPick.id)}>
-                <VaultResultActionIcon name="view-details" /><span className={styles.resultActionCopy}><strong>View Details</strong><small>See progress, notes and collections</small></span>
-              </button>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "marked_completed", drawEventAnalytics()); void completeGame(currentPick); }}>
-                <VaultResultActionIcon name="mark-completed" /><span className={styles.resultActionCopy}><strong>Mark as Completed</strong><small>Archive this game</small></span>
-              </button>
-              {!isLive ? <a href="/api/auth/steam" className={styles.resultAction} onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, { location: "vault_result", preview_mode: true })}>
-                <VaultResultActionIcon name="all-games" /><span className={styles.resultActionCopy}><strong>Shuffle My Library</strong><small>Connect Steam for personal draws</small></span>
-              </a> : null}
-            </div>
-          </div>
-          <aside className={styles.resultContext} aria-label="Selected setup">
-            {collectionDraw ? <>
-              <ResultSummary icon="collections" label="Collection Draw" value={selectedCollection?.name ?? "Collection"} />
-              <ResultSummary icon="genre" label="Filters" value="Collection only" />
-            </> : <>
-              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Not selected"} />
-              <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
-              <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
-              <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
-            </>}
-            {formatGameDuration(currentPick.duration) ? <ResultSummary icon="clock" label="Estimated playthrough" value={formatGameDuration(currentPick.duration)!} /> : null}
-          </aside>
-        </section>
-      ) : null}
-
       <LibraryDetailsDrawer
         game={detailsGame}
         previewMode={!isLive}
@@ -855,6 +873,54 @@ export default function VaultPage() {
 
 function wait(duration: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, duration));
+}
+
+/** Just below the sticky header, leaving the pick directly underneath. */
+const DRAW_STAGE_OFFSET = 96;
+
+async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
+  if (!element) return;
+  const target = Math.max(0, window.scrollY + element.getBoundingClientRect().top - DRAW_STAGE_OFFSET);
+  if (Math.abs(target - window.scrollY) < 8) return;
+  window.scrollTo({ top: target, behavior: reducedMotion ? "auto" : "smooth" });
+  await waitForScrollEnd(reducedMotion);
+}
+
+/**
+ * Resolves once the page has actually stopped moving.
+ *
+ * scrollend is not available everywhere yet, so a poll backs it up, and a hard
+ * cap guarantees a draw can never hang waiting for a scroll that never settles.
+ */
+function waitForScrollEnd(reducedMotion: boolean): Promise<void> {
+  if (reducedMotion) return Promise.resolve();
+  return new Promise((resolve) => {
+    let settled = false;
+    let lastOffset = window.scrollY;
+    let stillFrames = 0;
+
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      window.removeEventListener("scrollend", finish);
+      clearTimeout(cap);
+      clearInterval(poll);
+      resolve();
+    };
+
+    const cap = setTimeout(finish, 900);
+    const poll = setInterval(() => {
+      if (Math.abs(window.scrollY - lastOffset) < 1) {
+        stillFrames += 1;
+        if (stillFrames >= 3) finish();
+      } else {
+        stillFrames = 0;
+        lastOffset = window.scrollY;
+      }
+    }, 50);
+
+    window.addEventListener("scrollend", finish, { once: true });
+  });
 }
 
 function revealResultIfNeeded(element: HTMLElement | null, reducedMotion: boolean) {
