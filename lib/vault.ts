@@ -257,15 +257,33 @@ export function drawQuickVaultGame(
  * independent labels, and it can only be reconstructed later if it is captured
  * at draw time.
  */
+/**
+ * How far below the best fit a game can score and still be considered a genuine
+ * contender. Interpretable in the same units as the 0-100 fit score.
+ */
+export const VAULT_FINALIST_SCORE_WINDOW = 15;
+
 export function vaultFinalists(pool: VaultPoolEntry[], previousWinnerId?: string | null) {
   if (!pool.length) return [];
   const eligible = pool.length > 1 && previousWinnerId
     ? pool.filter((entry) => entry.game.id !== previousWinnerId)
     : pool;
-  const finalistCount = eligible.length <= 5
-    ? eligible.length
-    : Math.min(20, Math.max(3, Math.ceil(eligible.length * 0.4)));
-  return eligible.slice(0, finalistCount);
+  if (eligible.length <= 5) return eligible;
+
+  // Everything genuinely competitive with the best fit, rather than an arbitrary
+  // twenty. The pool is sorted by fit, and fit is coarse — session, mood and goal
+  // each contribute a handful of discrete values and the total is rounded — so
+  // ties are routine. A fixed slice cut straight through them, admitting one
+  // game scoring 87 and excluding another scoring 87 purely because its title
+  // sorted later, and neither appeal nor learned preference could rescue it
+  // because both are applied after this cut.
+  const best = eligible[0].score;
+  const withinWindow = eligible.filter((entry) => entry.score >= best - VAULT_FINALIST_SCORE_WINDOW);
+  let count = Math.max(withinWindow.length, Math.min(eligible.length, 3));
+  // Whatever the count works out to, never split a tie at the boundary.
+  const boundaryScore = eligible[count - 1].score;
+  while (count < eligible.length && eligible[count].score === boundaryScore) count += 1;
+  return eligible.slice(0, count);
 }
 
 /**

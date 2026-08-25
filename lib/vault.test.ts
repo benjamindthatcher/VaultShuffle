@@ -7,6 +7,7 @@ import {
   buildVaultMatchExplanation,
   buildVaultPool,
   drawQuickVaultGame,
+  vaultFinalists,
   drawVaultGame,
   getVaultEligibility,
   scoreVaultGame,
@@ -384,4 +385,45 @@ test("a library with nothing actioned does not show an empty removal step", () =
 
   assert.equal(stages[0].id, "library");
   assert.ok(!stages.some((stage) => stage.id === "active"), "nothing was removed, so nothing to explain");
+});
+
+test("finalists keep every game tied at the cut, not the alphabetically early ones", () => {
+  // Thirty-five games all scoring 87: a fixed twenty-game slice admitted the first
+  // twenty by title and excluded fifteen equally good matches.
+  const pool = Array.from({ length: 35 }, (_, index) => ({
+    game: { ...makeGame(), id: `tied-${index}`, title: `Game ${String(index).padStart(2, "0")}` },
+    score: 87,
+    appealPoints: 0,
+    preferencePoints: 0,
+    reasons: []
+  })) as unknown as Parameters<typeof vaultFinalists>[0];
+
+  assert.equal(vaultFinalists(pool).length, 35);
+});
+
+test("finalists still exclude a genuinely worse fit", () => {
+  const pool = [
+    ...Array.from({ length: 6 }, (_, index) => ({
+      game: { ...makeGame(), id: `strong-${index}`, title: `Strong ${index}` },
+      score: 90, appealPoints: 0, preferencePoints: 0, reasons: []
+    })),
+    ...Array.from({ length: 6 }, (_, index) => ({
+      game: { ...makeGame(), id: `weak-${index}`, title: `Weak ${index}` },
+      score: 20, appealPoints: 0, preferencePoints: 0, reasons: []
+    }))
+  ] as unknown as Parameters<typeof vaultFinalists>[0];
+
+  const finalists = vaultFinalists(pool);
+  assert.equal(finalists.length, 6);
+  assert.ok(finalists.every((entry) => entry.game.id.startsWith("strong")));
+});
+
+test("an all-tied pool makes every game a finalist, which is what a collection draw is", () => {
+  // Collection Draw drops session, mood and goal, so every game scores zero.
+  const pool = Array.from({ length: 100 }, (_, index) => ({
+    game: { ...makeGame(), id: `c-${index}`, title: `Collection ${String(index).padStart(3, "0")}` },
+    score: 0, appealPoints: 0, preferencePoints: 0, reasons: []
+  })) as unknown as Parameters<typeof vaultFinalists>[0];
+
+  assert.equal(vaultFinalists(pool).length, 100);
 });

@@ -45,6 +45,7 @@ function glyph(name: string): ReactNode {
     case "completed": return <><circle cx="12" cy="12" r="8.5"/><path d="m8 12 2.5 2.5L16.5 8"/></>;
     case "mark-completed": return <><path d="M5 4h10l4 4v12H5V4Z"/><path d="M15 4v5h5m-11 5 2 2 4-5"/></>;
     case "surprise": case "surprise-me": return <><path d="M4 9h16v11H4V9Z"/><path d="M12 9v11M3 9h18M12 9c-4 0-5.5-1.1-5.5-3 0-1.4 1.1-2.5 2.5-2.5 2.2 0 3 2.7 3 5.5Zm0 0c4 0 5.5-1.1 5.5-3 0-1.4-1.1-2.5-2.5-2.5-2.2 0-3 2.7-3 5.5Z"/></>;
+    case "trophy": return <><path d="M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11"/><path d="M12 14v3M9 20h6M10 17h4l.6 3H9.4l.6-3Z"/></>;
     case "new": return <><path d="m12 3 1.5 5.5L19 10l-5.5 1.5L12 17l-1.5-5.5L5 10l5.5-1.5L12 3Z"/><path d="m18 16 .6 2.4L21 19l-2.4.6L18 22l-.6-2.4L15 19l2.4-.6L18 16Z"/></>;
     case "all-games": case "library": return <><path d="M4.5 10.5h15l-1.2 8a2 2 0 0 1-2 1.7H7.7a2 2 0 0 1-2-1.7l-1.2-8Z"/><path d="M7 10.5 8.5 6h7l1.5 4.5M8 15h3m-1.5-1.5v3M15.5 14.2h.01M17 16h.01"/></>;
     case "played": return <><circle cx="12" cy="12" r="8.5"/><path d="m10 8 6 4-6 4V8Z"/></>;

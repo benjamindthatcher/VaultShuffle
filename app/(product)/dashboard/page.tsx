@@ -11,6 +11,7 @@ import { ShareCard } from "@/components/stats/ShareCard";
 import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
 import { WelcomeBack } from "@/components/shared/WelcomeBack";
 import { Artwork } from "@/components/shared/Artwork";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import { PageHeading } from "@/components/shared/PageHeading";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
@@ -26,7 +27,7 @@ export default function DashboardPage() {
     () => games
       .filter((game) => game.status === "Completed" && game.completedAt)
       .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))
-      .slice(0, 6),
+      .slice(0, 8),
     [games]
   );
 
@@ -43,7 +44,7 @@ export default function DashboardPage() {
     genres: new Set(games.flatMap((game) => game.genres)).size,
     timed: games.filter((game) => formatGameDuration(game.duration)).length,
     reviewed: games.filter((game) => Number(game.reviewTotal ?? 0) > 0).length,
-    featured: games.slice(0, 6)
+    featured: games.slice(0, 8)
   }), [games]);
 
   if (!isLive) {
@@ -70,15 +71,13 @@ export default function DashboardPage() {
 
         <section className={styles.section}>
           <SectionHeading title="A look inside the guest catalogue" />
-          <ol className={styles.rankList}>
+          <ol className={styles.cardGrid}>
             {guestSummary.featured.map((game) => (
-              <li key={game.id}>
-                <span className={styles.rankArt}><Artwork src={game.bannerUrl} sizes="72px" /></span>
-                <span className={styles.rankBody}>
-                  <strong>{game.title}</strong>
-                  <small>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
-                </span>
-                <span className={styles.rankRate}>{formatGameDuration(game.duration) ?? "Preview"}</span>
+              <li key={game.id} className={styles.gameCard}>
+                <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                <strong className={styles.cardTitle}>{game.title}</strong>
+                <small className={styles.cardMeta}>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
+                <span className={styles.cardValue}>{formatGameDuration(game.duration) ?? "Preview"}</span>
               </li>
             ))}
           </ol>
@@ -156,15 +155,17 @@ export default function DashboardPage() {
           {bestValueGames.length ? (
             <section className={styles.section}>
               <SectionHeading title="Most value for money" />
-              <ol className={styles.rankList}>
-                {bestValueGames.map(({ game, centsPerHour }) => (
-                  <li key={game.id}>
-                    <span className={styles.rankArt}><Artwork src={game.bannerUrl} sizes="72px" /></span>
-                    <span className={styles.rankBody}>
-                      <strong>{game.title}</strong>
-                      <small>{Math.round(game.hoursPlayed)}h from {formatMoney(Number(game.priceInitial), stats.currency)}</small>
+              <ol className={styles.podium}>
+                {bestValueGames.slice(0, 3).map(({ game, centsPerHour }, index) => (
+                  <li key={game.id} className={styles.podiumCard} data-place={index + 1}>
+                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 300px" /></span>
+                    <span className={styles.place}>
+                      <VaultIcon name="trophy" size={18} />
+                      {index === 0 ? "1st" : index === 1 ? "2nd" : "3rd"}
                     </span>
-                    <span className={styles.rankRate}>{formatMoney(Math.round(centsPerHour), stats.currency)}<small>/hour</small></span>
+                    <strong className={styles.cardTitle}>{game.title}</strong>
+                    <small className={styles.cardMeta}>{Math.round(game.hoursPlayed)}h from {formatMoney(Number(game.priceInitial), stats.currency)}</small>
+                    <span className={styles.cardValue}>{formatMoney(Math.round(centsPerHour), stats.currency)}<small>/hour</small></span>
                   </li>
                 ))}
               </ol>
@@ -176,15 +177,13 @@ export default function DashboardPage() {
           <section className={styles.section}>
             <SectionHeading title="Recently finished" />
             {recentCompletions.length ? (
-              <ol className={styles.rankList}>
+              <ol className={styles.cardGrid}>
                 {recentCompletions.map((game) => (
-                  <li key={game.id}>
-                    <span className={styles.rankArt}><Artwork src={game.bannerUrl} sizes="72px" /></span>
-                    <span className={styles.rankBody}>
-                      <strong>{game.title}</strong>
-                      <small>{new Date(String(game.completedAt)).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</small>
-                    </span>
-                    <span className={styles.rankRate}>{formatMoney(Number(game.priceInitial ?? 0), stats.currency)}</span>
+                  <li key={game.id} className={styles.gameCard}>
+                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                    <strong className={styles.cardTitle}>{game.title}</strong>
+                    <small className={styles.cardMeta}>{new Date(String(game.completedAt)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small>
+                    <span className={styles.cardValue}>{formatMoney(Number(game.priceInitial ?? 0), stats.currency)}</span>
                   </li>
                 ))}
               </ol>

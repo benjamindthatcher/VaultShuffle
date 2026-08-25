@@ -5,9 +5,12 @@
   display: grid;
   place-items: center;
   overflow: hidden;
+  /* The page's own ground, not a near-black of its own. #02030C predates the
+     purple ramp, so signing in dropped you onto a black screen and then back
+     onto a purple one. */
   background:
-    radial-gradient(circle at center, rgba(35, 15, 78, 0.36), transparent 44%),
-    #02030c;
+    radial-gradient(150% 90% at 50% -30%, rgba(124, 62, 214, 0.35), transparent 70%),
+    var(--vault-ink);
   opacity: 0;
   pointer-events: none;
   transition: opacity 200ms ease;

@@ -291,7 +291,13 @@ export default function VaultPage() {
     const activeDraw = activeDrawRef.current + 1;
     activeDrawRef.current = activeDraw;
 
-    let activeDeck = quick ? quickPool : deck;
+    // A Collection Draw drops session, mood and goal, so every game in it scores
+    // zero and the pool is left in title order. Cutting that to a 64-game deck and
+    // then to a finalist slice meant only alphabetically-early titles could ever
+    // win. The collection IS the pool, drawn uniformly — the same reasoning that
+    // already gives Quick Draw its own uniform path.
+    const uniform = quick || collectionDraw;
+    let activeDeck = quick ? quickPool : collectionDraw ? fullPool : deck;
     if (!quick && deferCurrentPick && currentPick && fullPool.some((entry) => entry.game.id === currentPick.id)) {
       const currentDeferredIds = deferredQueueRef.current.setupKey === setupKey
         ? deferredQueueRef.current.gameIds
@@ -303,7 +309,9 @@ export default function VaultPage() {
       const nextQueue = { setupKey, gameIds: nextDeferredIds };
       deferredQueueRef.current = nextQueue;
       setDeferredQueue(nextQueue);
-      activeDeck = buildVaultDeck(fullPool, nextDeferredIds);
+      // Deferring reorders the deck; a uniform draw has no deck to reorder and must
+      // keep its whole pool, or the 64-game cut comes back in through this path.
+      if (!uniform) activeDeck = buildVaultDeck(fullPool, nextDeferredIds);
     }
 
     let availablePool = activeDeck.filter((entry) => !drawnCycleRef.current.has(entry.game.id));
@@ -311,9 +319,9 @@ export default function VaultPage() {
       drawnCycleRef.current.clear();
       availablePool = activeDeck;
     }
-    // Quick Draw is uniform by design and takes no part in the experiment.
-    const arm = quick ? "control" : nextArm();
-    const nextPick = quick
+    // A uniform draw ranks nothing, so it takes no part in the experiment.
+    const arm = uniform ? "control" : nextArm();
+    const nextPick = uniform
       ? drawQuickVaultGame(availablePool, currentPick?.id)
       : drawVaultGame(availablePool, currentPick?.id, Math.random, arm === "test");
     if (!nextPick) return;
@@ -340,7 +348,7 @@ export default function VaultPage() {
       rerollIndex: drawnCycleRef.current.size - 1,
       // Recorded even in the control arm: the choice set is training data for a
       // future model, not part of this experiment.
-      finalistAppIds: quick ? undefined : vaultFinalists(availablePool, currentPick?.id).map((entry) => entry.game.steamAppId).filter((appId): appId is number => typeof appId === "number" && appId > 0)
+      finalistAppIds: uniform ? undefined : vaultFinalists(availablePool, currentPick?.id).map((entry) => entry.game.steamAppId).filter((appId): appId is number => typeof appId === "number" && appId > 0)
     }).then(
       (value) => ({ ok: true as const, value }),
       (error) => ({ ok: false as const, error })
