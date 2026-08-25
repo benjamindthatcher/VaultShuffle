@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
-import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
-import { WelcomeBack } from "@/components/shared/WelcomeBack";
-import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
+import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
+import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
+import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
+import { NoticeStack } from "@/components/shared/NoticeStack";
 import { CompletionCelebration } from "@/components/library/CompletionCelebration";
 import { pinProgress, pinProgressLabel } from "@/components/shared/PinnedCommitments";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
@@ -31,7 +32,7 @@ const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
 };
 
 export default function LibraryPage() {
-  const { games, collections, vaultState, isLive, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
+  const { games, collections, vaultState, isLive, loadError, playHistoryMissing, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState("hours");
   const [sortReversed, setSortReversed] = useState(false);
@@ -146,6 +147,12 @@ export default function LibraryPage() {
     .map((id) => libraryGames.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game))
     .filter((game) => game.status !== "Slept" && game.status !== "Completed");
+  // Order here is priority: something is wrong with the import, then something
+  // is waiting to be actioned, then ambient news. See NoticeStack.
+  const enrichmentNotice = useLibraryEnrichmentNotice();
+  const completionNotice = useCompletionClaimNotice();
+  const welcomeNotice = useWelcomeBackNotice();
+
   const visiblePinnedGames = statusTab === "active" ? pinnedGames.filter((game) => filteredGames.some((item) => item.id === game.id)) : [];
   const ordinaryGames = filteredGames.filter((game) => !visiblePinnedGames.some((pinned) => pinned.id === game.id));
 
@@ -178,6 +185,22 @@ export default function LibraryPage() {
         </GuestPreviewNotice>
       ) : null}
 
+
+
+      {/* Above the pins, deliberately. A pinned game is something the player put
+          there on purpose and can find whenever they like; an import problem or
+          an unclaimed completion is the app asking for something and has to be
+          seen first. Capped so the top of the page cannot become a stack of
+          five strips before any actual library. */}
+      <NoticeStack
+        reserved={(loadError ? 1 : 0) + (playHistoryMissing ? 1 : 0)}
+        notices={[
+          { id: "enrichment", node: enrichmentNotice },
+          { id: "completion", node: completionNotice },
+          { id: "welcome", node: welcomeNotice }
+        ]}
+      />
+
       {pinnedGames.length ? <div className={styles.pinnedShelf}>
         <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div></div>
         <div className={styles.pinnedGrid} aria-label="Pinned games">{pinnedGames.map((game, index) => {
@@ -191,12 +214,6 @@ export default function LibraryPage() {
           </div>;
         })}{Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>)}</div>
       </div> : null}
-
-
-      {isLive ? <WelcomeBack /> : null}
-
-      {isLive ? <CompletionClaimBanner /> : null}
-      {isLive ? <LibraryEnrichmentBanner /> : null}
 
       {celebratingGame ? (
         <CompletionCelebration

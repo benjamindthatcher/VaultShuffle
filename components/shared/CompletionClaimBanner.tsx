@@ -16,7 +16,7 @@ import styles from "./CompletionClaimBanner.module.css";
  * player already is, and disappears the moment the queue is empty, so it works
  * like an inbox rather than another permanent destination.
  */
-export function CompletionClaimBanner() {
+export function useCompletionClaimNotice() {
   const { games, isLive } = useAppData();
   const candidates = useMemo(() => (isLive ? findCompletionCandidates(games) : []), [games, isLive]);
   if (!candidates.length) return null;
@@ -36,4 +36,8 @@ export function CompletionClaimBanner() {
       <span className={styles.cta}>Check them<VaultIcon name="chevron-right" size={16} /></span>
     </Link>
   );
+}
+
+export function CompletionClaimBanner() {
+  return useCompletionClaimNotice();
 }

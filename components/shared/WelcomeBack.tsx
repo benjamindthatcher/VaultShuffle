@@ -19,7 +19,7 @@ const LAST_VISIT_KEY = "vaultshuffle:last-visit";
  * It shows nothing at all rather than reporting a quiet week. A strip that says
  * "0h played" every time is worse than no strip.
  */
-export function WelcomeBack() {
+export function useWelcomeBackNotice() {
   const { games, playtime, isLive } = useAppData();
   const [lastVisit, setLastVisit] = useState<string | null | undefined>(undefined);
 
@@ -68,4 +68,8 @@ export function WelcomeBack() {
       ) : null}
     </section>
   );
+}
+
+export function WelcomeBack() {
+  return useWelcomeBackNotice();
 }

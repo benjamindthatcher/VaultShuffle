@@ -14,7 +14,7 @@ import styles from "./LibraryEnrichmentBanner.module.css";
  * covers. That number never went down, and there was nothing the player could do
  * about it. Now it appears after an import, counts down, and goes away.
  */
-export function LibraryEnrichmentBanner() {
+export function useLibraryEnrichmentNotice() {
   const { games, isLive } = useAppData();
   const measure = useMemo(() => measureLibraryEnrichment(games), [games]);
 
@@ -35,4 +35,8 @@ export function LibraryEnrichmentBanner() {
       </div>
     </section>
   );
+}
+
+export function LibraryEnrichmentBanner() {
+  return useLibraryEnrichmentNotice();
 }
