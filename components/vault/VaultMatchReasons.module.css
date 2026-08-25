@@ -1,7 +1,11 @@
 .panel {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   margin-top: 6px;
+  /* Sized against this panel's own column, not the window. The result card puts
+     the reasoning beside the artwork, so it can be half the page wide on a
+     desktop viewport - a viewport media query gets that backwards. */
+  container-type: inline-size;
 }
 
 .header {
@@ -29,8 +33,12 @@
 .score[data-strength="high"] { color: #7ce7b2; }
 .score[data-strength="mid"] { color: #d392ff; }
 
+/* Two across rather than six stacked. The reasoning is the best thing on this
+   screen, but as a full-width column it ran taller than the artwork beside it
+   and turned the case for one game into a page of its own. */
 .list {
   display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -40,12 +48,12 @@
 .item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 12px;
+  gap: 10px;
   align-items: start;
-  padding: 11px 14px;
+  padding: 9px 12px;
   border: 1px solid var(--vault-border, rgba(134, 91, 255, 0.26));
   border-left-width: 3px;
-  border-radius: 12px;
+  border-radius: 11px;
   background: var(--vault-surface-soft, rgba(18, 25, 53, 0.72));
 }
 
@@ -57,33 +65,45 @@
 .icon {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
   background: var(--vault-accent-soft, rgba(142, 77, 255, 0.2));
   color: #e6d6ff;
 }
 
 .copy {
   display: grid;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .headline {
-  font-size: 0.92rem;
+  font-size: 0.85rem;
   font-weight: 650;
+  line-height: 1.3;
   color: var(--vault-text, #f2f4ff);
 }
 
+/* Clamped so one wordy reason cannot set the height of the row it shares. */
 .detail {
-  font-size: 0.83rem;
-  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  font-size: 0.78rem;
+  line-height: 1.4;
   color: var(--vault-text-muted, rgba(226, 232, 255, 0.72));
 }
 
+/* Below the point where two columns would each be too narrow to read. */
+@container (max-width: 520px) {
+  .list { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (max-width: 620px) {
-  .item { padding: 10px 12px; gap: 10px; }
-  .headline { font-size: 0.88rem; }
-  .detail { font-size: 0.8rem; }
+  .item { padding: 8px 10px; gap: 9px; }
+  .headline { font-size: 0.82rem; }
+  .detail { font-size: 0.76rem; }
 }
