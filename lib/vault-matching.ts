@@ -1,3 +1,4 @@
+import { sessionLean } from "./sessionability.ts";
 import type { VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import type { GameDurationEstimate } from "./types.ts";
@@ -149,13 +150,23 @@ export function moodTagsFromScores(scores: VaultMoodScores): VaultMoodId[] {
 export function deriveSessionFits({
   duration,
   completionPercent,
-  endless
+  endless,
+  sessionability = 0
 }: {
   duration?: GameDurationEstimate | null;
   completionPercent: number;
   endless: boolean;
+  /** See lib/sessionability.ts. Zero when the tags say nothing. */
+  sessionability?: number;
 }): VaultSessionId[] {
   if (endless) return ["short", "evening", "weekend"];
+
+  const lean = sessionLean(sessionability);
+
+  // A game whose sessions stand on their own suits a short sitting however long
+  // it runs in total: a fifty-hour roguelike is a fine forty minutes, because a
+  // run is twenty and finishing one is a real ending.
+  if (lean === "pick-up") return ["short", "evening", "weekend"];
 
   // An unknown length is not evidence of a long game. Confining these to
   // "weekend" hid a third of a real library from every other session.
@@ -165,7 +176,10 @@ export function deriveSessionFits({
   const remainingRatio = Math.max(0.05, 1 - clamp(completionPercent, 0, 99) / 100);
   const remainingHours = (totalMinutes * remainingRatio) / 60;
 
-  if (remainingHours <= 10) return ["short", "evening", "weekend"];
+  // And a game that wants an uninterrupted run at it is a poor short sitting
+  // even when it is brief. Stopping a two-hour narrative game halfway is the
+  // worst way to play it.
+  if (remainingHours <= 10) return lean === "sit-down" ? ["evening", "weekend"] : ["short", "evening", "weekend"];
   if (remainingHours <= 30) return ["evening", "weekend"];
   return ["weekend"];
 }

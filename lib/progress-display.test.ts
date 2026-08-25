@@ -14,8 +14,8 @@ test("an endless game can still be completed, and then reads 100%", () => {
   assert.equal(isEndlessProgress(game), false);
 });
 
-test("inferred progress is marked as an estimate", () => {
-  assert.equal(progressLabel({ status: "In Progress", completionPercent: 76 }), "76% est");
+test("progress reads plainly, since the duration beside it already says estimated", () => {
+  assert.equal(progressLabel({ status: "In Progress", completionPercent: 76 }), "76%");
 });
 
 test("a finished game states its completion rather than estimating it", () => {
@@ -23,5 +23,5 @@ test("a finished game states its completion rather than estimating it", () => {
 });
 
 test("a game with no progress reads zero rather than blank", () => {
-  assert.equal(progressLabel({ status: "Not Started" }), "0% est");
+  assert.equal(progressLabel({ status: "Not Started" }), "0%");
 });

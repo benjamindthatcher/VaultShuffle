@@ -1,15 +1,17 @@
 "use client";
 
+import { featureAvailable } from "@/lib/steam-capabilities";
 import { useMemo } from "react";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { SteamImportProgressCard } from "@/components/dashboard/SteamImportProgressCard";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
-import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
+import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
 import { ShareCard } from "@/components/stats/ShareCard";
-import { LibraryEnrichmentBanner } from "@/components/shared/LibraryEnrichmentBanner";
-import { WelcomeBack } from "@/components/shared/WelcomeBack";
+import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
+import { NoticeStack } from "@/components/shared/NoticeStack";
+import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ValueDial } from "@/components/dashboard/ValueDial";
@@ -21,7 +23,11 @@ import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
-  const { games, isLive, isLoading, playtime, steamImport, steamImportChecked } = useAppData();
+  const { games, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities } = useAppData();
+  const enrichmentNotice = useLibraryEnrichmentNotice();
+  const completionNotice = useCompletionClaimNotice();
+  const welcomeNotice = useWelcomeBackNotice();
+
   const stats = useMemo(() => buildBacklogStats(games), [games]);
 
   const recentCompletions = useMemo(
@@ -116,9 +122,18 @@ export default function DashboardPage() {
 
       {awaitingFirstLibrary ? null : (
         <>
-          <WelcomeBack />
-          <CompletionClaimBanner />
-          <LibraryEnrichmentBanner />
+          {/* The only place in the app that carries these. Everywhere else is
+              for doing one thing, and a strip asking you to go and do something
+              else at the top of it was in the way. Still capped and ordered:
+              something wrong with the import, then something to action, then
+              ambient news. */}
+          <NoticeStack
+            notices={[
+              { id: "enrichment", node: enrichmentNotice },
+              { id: "completion", node: completionNotice },
+              { id: "welcome", node: welcomeNotice }
+            ]}
+          />
 
           <ValueDial
             percent={stats.valueCompletedPercent}
@@ -132,8 +147,8 @@ export default function DashboardPage() {
             <StatCard label="Hours played" value={formatHours(stats.totalHours)} note="across the whole library" />
             <StatCard
               label="Play streak"
-              value={playtime.daysTracked < 2 ? "—" : `${playtime.streakDays}d`}
-              note={playtime.daysTracked < 2
+              value={!featureAvailable("playStreak", capabilities) ? "—" : `${playtime.streakDays}d`}
+              note={!featureAvailable("playStreak", capabilities)
                 ? "Starts once we have a couple of nights of history"
                 : playtime.streakDays
                   ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { hasStrongReplayabilitySignals } from "@/lib/game-classification";
+import { hasCorroboratedOnlineLoop } from "@/lib/game-classification";
 
 const STEAMSPY_MIN_INTERVAL_MS = 1_100;
 const TAG_REFRESH_AFTER_MS = 30 * 24 * 60 * 60 * 1_000;
@@ -140,7 +140,7 @@ function shouldClassifyAsEndless(row: SteamTagQueueRow, tags: Record<string, num
   if (row.duration_kind && row.duration_kind !== "unknown") return false;
   if ([row.main_story_minutes, row.main_extras_minutes, row.completionist_minutes]
     .some((minutes) => Number(minutes) > 0)) return false;
-  return hasStrongReplayabilitySignals({ tags, genres: row.genres, categories: row.categories });
+  return hasCorroboratedOnlineLoop({ tags, genres: row.genres, categories: row.categories });
 }
 
 async function fetchSteamCommunityTags(steamAppId: number) {

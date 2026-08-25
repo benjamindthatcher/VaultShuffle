@@ -46,6 +46,11 @@ export type DemoGame = {
   dateAdded?: string | null;
   collectionIds: string[];
   sessionFit: VaultSessionId[];
+  /**
+   * How self-contained a sitting is, -1 to 1. Computed from tags where the tags
+   * are, since DemoGame does not carry them. See lib/sessionability.ts.
+   */
+  sessionability?: number;
   moodTags: VaultMoodId[];
   moodScores?: import("@/lib/vault-matching").VaultMoodScores;
   completedAt?: string | null;

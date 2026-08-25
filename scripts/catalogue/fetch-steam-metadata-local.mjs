@@ -8,6 +8,7 @@ const minRequestIntervalMs = integerArgument("--interval-ms", 1_100);
 const limit = integerArgument("--limit", Number.MAX_SAFE_INTEGER);
 const includeReviews = process.argv.includes("--include-reviews");
 const includeDeck = process.argv.includes("--include-deck");
+const explicitAppIds = String(stringArgument("--appids") ?? "").split(",").map(positiveInteger).filter(Boolean);
 
 class SteamHttpError extends Error {
   constructor(status) {
@@ -18,10 +19,15 @@ class SteamHttpError extends Error {
 }
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
-const sourceGames = manifest.games.slice(0, limit).map((game) => ({
-  steam_appid: positiveInteger(game.steam_appid),
-  source_name: cleanText(game.name)
-})).filter((game) => game.steam_appid && game.source_name);
+const sourceGames = explicitAppIds.length
+  ? [...new Set(explicitAppIds)].slice(0, limit).map((steamAppId) => ({
+      steam_appid: steamAppId,
+      source_name: `Steam App ${steamAppId}`
+    }))
+  : manifest.games.slice(0, limit).map((game) => ({
+      steam_appid: positiveInteger(game.steam_appid),
+      source_name: cleanText(game.name)
+    })).filter((game) => game.steam_appid && game.source_name);
 if (!sourceGames.length) throw new Error("The source manifest has no valid games.");
 
 await mkdir(path.dirname(outputPath), { recursive: true });

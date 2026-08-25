@@ -18,9 +18,6 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
-import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
-import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
-import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useGenreLearning, type GenreLearningArm } from "@/components/vault/useGenreLearning";
 import { VaultPoolPreview } from "@/components/vault/VaultPoolPreview";
 import { type DemoGame, type VaultGoalId, type VaultMoodId, type VaultSessionId } from "@/lib/demo-data";
@@ -52,7 +49,7 @@ type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 const EMPTY_GAME_IDS: string[] = [];
 
 export default function VaultPage() {
-  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, loadError, playHistoryMissing, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
@@ -89,8 +86,6 @@ export default function VaultPage() {
   const [feedbackGiven, setFeedbackGiven] = useState<"liked" | "disliked" | null>(null);
   const [rerollReasonGiven, setRerollReasonGiven] = useState(false);
   const drawingRef = useRef(false);
-  const completionNotice = useCompletionClaimNotice();
-  const welcomeNotice = useWelcomeBackNotice();
   const drawStageRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
@@ -558,16 +553,6 @@ export default function VaultPage() {
       <h1 className="visually-hidden">Vault</h1>
 
 
-      {/* Same rule as Library: what the app is asking for comes before what the
-          player parked. See NoticeStack. */}
-      <NoticeStack
-        reserved={(loadError ? 1 : 0) + (playHistoryMissing ? 1 : 0)}
-        notices={[
-          { id: "completion", node: completionNotice },
-          { id: "welcome", node: welcomeNotice }
-        ]}
-      />
-
       {isLive ? (
         <PinnedCommitments
           games={ownedGames}
@@ -712,13 +697,13 @@ export default function VaultPage() {
                 one of them is what the page is for. */}
             <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
             <div className={styles.resultActions}>
-              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
+              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong></span>
               </a>
-              <button type="button" className={styles.resultAction} onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
+              <button type="button" className={styles.resultAction} data-action="snooze" onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
                 <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Snooze</strong></span>
               </button>
-              <button type="button" className={styles.resultAction} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
+              <button type="button" className={styles.resultAction} data-action="pin" onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
                 <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? "Pinned" : vaultState.pinnedIds.length >= 3 ? "Pins full" : "Pin"}</strong></span>
               </button>
             </div>

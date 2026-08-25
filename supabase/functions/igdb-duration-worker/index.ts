@@ -38,15 +38,47 @@ Deno.serve(async (request) => {
           ? alias.release_year
           : catalogue?.release_date ? new Date(catalogue.release_date).getUTCFullYear() : null
       });
-      await persistResult(supabase, result);
+      const identityConflict = await persistResult(supabase, result);
       if (result.status === "matched") summary.matched += 1;
       else if (result.status === "no_duration") summary.no_duration += 1;
       else if (result.status === "not_found") summary.not_found += 1;
       else summary.needs_review += 1;
+
+      const { data: projected, error: projectedError } = await supabase
+        .from("catalog_games")
+        .select("duration_kind,duration_status,duration_manual_override")
+        .eq("steam_appid", job.steam_app_id)
+        .maybeSingle();
+      if (projectedError) throw new Error("Duration projection lookup failed");
+      const classificationConflict = Boolean(
+        !projected?.duration_manual_override &&
+        result.status === "matched" &&
+        ["endless", "not-applicable"].includes(projected?.duration_kind ?? "")
+      );
+      const acceptedAsReady = !identityConflict && !classificationConflict && Boolean(
+        projected?.duration_manual_override ||
+        (
+          projected?.duration_status === "ready" &&
+          ["finite", "endless", "not-applicable"].includes(projected?.duration_kind ?? "")
+        )
+      );
+      const reviewCode = identityConflict
+        ? "duration_provider_identity_conflict"
+        : classificationConflict
+          ? "duration_classification_conflict"
+          : result.status === "matched"
+            ? "duration_match_requires_review"
+            : result.status === "no_duration"
+              ? "known_title_no_provider_times"
+              : result.status === "not_found"
+                ? "duration_not_found"
+                : "duration_ambiguous";
       const { error: completedError } = await supabase.from("game_duration_jobs").update({
-        status: result.status === "ambiguous" || result.status === "needs_review" ? "needs_review" : "completed",
+        status: acceptedAsReady ? "completed" : "needs_review",
         attempts: Number(job.attempts || 0) + 1, locked_at: null, locked_by: null,
-        last_error_code: null, last_error_message: null, updated_at: new Date().toISOString()
+        next_attempt_at: null,
+        last_error_code: acceptedAsReady ? null : reviewCode,
+        last_error_message: null, updated_at: new Date().toISOString()
       }).eq("steam_app_id", job.steam_app_id).eq("locked_by", workerId);
       if (completedError) throw new Error("Duration job completion update failed");
     } catch (error) {
@@ -87,6 +119,22 @@ function timingSafeEqual(expected: string, supplied: string) {
 async function persistResult(supabase: ReturnType<typeof createClient>, result: GameDurationResult) {
   const checkedAt = new Date();
   const longCache = result.status === "matched" ? 365 : 150;
+  const { data: existing, error: existingError } = await supabase
+    .from("game_duration_estimates")
+    .select("provider_game_id,match_status")
+    .eq("steam_app_id", result.steamAppId)
+    .eq("provider", result.provider)
+    .maybeSingle();
+  if (existingError) throw new Error("Existing estimate lookup failed");
+  const identityConflict = existing != null && (
+    (existing.match_status === "matched" && result.status !== "matched") ||
+    (
+      existing.provider_game_id != null &&
+      result.providerGameId != null &&
+      Number(existing.provider_game_id) !== Number(result.providerGameId)
+    )
+  );
+  if (identityConflict) return true;
   const { error } = await supabase.from("game_duration_estimates").upsert({
     steam_app_id: result.steamAppId, provider: result.provider, provider_game_id: result.providerGameId,
     main_story_minutes: result.mainStoryMinutes, main_extra_minutes: result.mainExtraMinutes,
@@ -97,6 +145,7 @@ async function persistResult(supabase: ReturnType<typeof createClient>, result: 
     last_error_code: null, updated_at: checkedAt.toISOString()
   }, { onConflict: "steam_app_id,provider" });
   if (error) throw new Error("Estimate persistence failed");
+  return false;
 }
 
 async function safeBody(request: Request) { try { return await request.json() as { batchSize?: number }; } catch { return {}; } }

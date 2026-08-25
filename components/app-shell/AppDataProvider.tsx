@@ -1,5 +1,6 @@
 "use client";
 
+import { steamCapabilities, type SteamCapabilities } from "@/lib/steam-capabilities";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
@@ -61,6 +62,8 @@ type AppDataContextValue = {
   vaultHistory: VaultDraw[];
   isLive: boolean;
   playHistoryMissing: boolean;
+  /** What VaultShuffle can truthfully do for this account. See lib/steam-capabilities.ts. */
+  capabilities: SteamCapabilities;
   deviceMode: DeviceMode;
   setDeviceMode: (mode: DeviceMode) => void;
   isLoading: boolean;
@@ -598,19 +601,32 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     trackEvent(ANALYTICS_EVENTS.vaultHistoryCleared, { preview_mode: !isLive });
   }
 
+  const visibleGames = useMemo(
+    () => (isLive ? liveGames : guestGames).filter((game) => matchesDeviceMode(game, deviceMode)),
+    [deviceMode, guestGames, isLive, liveGames]
+  );
+  const activePlaytime = isLive ? livePlaytime : EMPTY_PLAYTIME;
+  const capabilities = useMemo(() => steamCapabilities({
+    isLive,
+    games: visibleGames,
+    playtimeVisible: session.steam_playtime_visible !== false,
+    daysTracked: activePlaytime.daysTracked
+  }), [activePlaytime.daysTracked, isLive, session.steam_playtime_visible, visibleGames]);
+
   const value = useMemo<AppDataContextValue>(
     () => ({
       session,
       playHistoryMissing,
+      capabilities,
       deviceMode,
       setDeviceMode,
-      games: (isLive ? liveGames : guestGames).filter((game) => matchesDeviceMode(game, deviceMode)),
+      games: visibleGames,
       collections: isLive ? liveCollections : guestCollections,
       vaultState: isLive ? liveVaultState : guestVaultState,
       // Guests have no history to learn from, so they always draw unweighted.
       genrePreferences: isLive ? liveGenrePreferences : EMPTY_GENRE_PREFERENCES,
       genrePreferenceGlobals: isLive ? liveGenrePreferenceGlobals : EMPTY_GENRE_PREFERENCES,
-      playtime: isLive ? livePlaytime : EMPTY_PLAYTIME,
+      playtime: activePlaytime,
       vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
       isLive,
       isLoading,
@@ -635,7 +651,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [capabilities, session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

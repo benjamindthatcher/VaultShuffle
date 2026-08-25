@@ -4,6 +4,7 @@ import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceC
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 import { approximateAge, describeRecency, type RecencyEvidence } from "./recency.ts";
+import { sessionLean, sessionabilityReason } from "./sessionability.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -341,6 +342,10 @@ export function scoreVaultGame(
     availablePoints += VAULT_SCORE_WEIGHTS.session;
     earnedPoints += sessionPoints(game, session);
     reasons.push(sessionReason(game, session));
+    // Only said when the tags actually support it, and only when it is the
+    // reason the game suits this sitting rather than a restatement of length.
+    const shape = sessionabilityReason(game.sessionability ?? 0);
+    if (shape && sessionShapePoints(game, session) > 0) reasons.push(shape);
   }
 
   if (mood) {
@@ -456,29 +461,60 @@ function matchesAnyGenre(game: DemoGame, selectedGenres: string[]) {
  * Without this a two-hour game would have scored a perfect Weekend match, because
  * the old thresholds only ever asked whether a game was short *enough*.
  */
+/**
+ * How much this suits the sitting the player says they have.
+ *
+ * Length alone answers "how big a commitment do I want", which is a different
+ * question. A game whose sessions stand on their own is a good short evening at
+ * any total length; one that wants an uninterrupted run is a poor one however
+ * brief. Length still matters - it is most of the score - but it is no longer
+ * the whole of it.
+ */
 function sessionPoints(game: DemoGame, session: VaultSessionId) {
   if (!game.sessionFit.includes(session)) return 0;
-  if (game.duration?.endless) return session === "weekend" ? 27 : 24;
+  const shaping = sessionShapePoints(game, session);
+  if (game.duration?.endless) return clamp(session === "weekend" ? 27 : 24, 0, VAULT_SCORE_WEIGHTS.session) + shaping;
 
   // Eligible everywhere, preferred nowhere: an unknown length should neither be
   // rewarded nor punished against games whose length is actually known.
   const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
-  if (!totalMinutes) return 20;
+  if (!totalMinutes) return 20 + shaping;
   const remainingHours = totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60;
 
-  if (session === "short") {
-    if (remainingHours <= 3) return VAULT_SCORE_WEIGHTS.session;
-    if (remainingHours <= 6) return 28;
-    return 26;
-  }
-  if (session === "evening") {
-    if (remainingHours >= 10 && remainingHours <= 30) return VAULT_SCORE_WEIGHTS.session;
-    if (remainingHours >= 6) return 26;
-    return 22;
-  }
-  if (remainingHours > 30) return VAULT_SCORE_WEIGHTS.session;
-  if (remainingHours >= 15) return 26;
-  return 21;
+  const lengthPoints = (() => {
+    if (session === "short") {
+      if (remainingHours <= 3) return VAULT_SCORE_WEIGHTS.session;
+      if (remainingHours <= 6) return 28;
+      return 26;
+    }
+    if (session === "evening") {
+      if (remainingHours >= 10 && remainingHours <= 30) return VAULT_SCORE_WEIGHTS.session;
+      if (remainingHours >= 6) return 26;
+      return 22;
+    }
+    if (remainingHours > 30) return VAULT_SCORE_WEIGHTS.session;
+    if (remainingHours >= 15) return 26;
+    return 21;
+  })();
+
+  // Capped at the session weight so shaping can reorder within the band without
+  // letting a well-tagged game outscore the whole term.
+  return clamp(lengthPoints + shaping, 0, VAULT_SCORE_WEIGHTS.session);
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+/** Worth a few points either way - enough to break ties, not to overturn fit. */
+const SESSION_SHAPE_POINTS = 4;
+
+function sessionShapePoints(game: DemoGame, session: VaultSessionId) {
+  const lean = sessionLean(game.sessionability ?? 0);
+  if (lean === "either") return 0;
+  if (session === "short") return lean === "pick-up" ? SESSION_SHAPE_POINTS : -SESSION_SHAPE_POINTS;
+  if (session === "weekend") return lean === "sit-down" ? SESSION_SHAPE_POINTS : -SESSION_SHAPE_POINTS;
+  return 0;
 }
 
 function finishPoints(game: DemoGame) {

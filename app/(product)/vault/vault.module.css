@@ -486,9 +486,37 @@
   transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
-.resultAction:hover { transform: translateY(-2px); border-color: var(--vault-control-hover-border); background-color: var(--vault-control-hover-bg); box-shadow: 0 12px 28px rgba(82, 39, 170, 0.24); }
-.resultActionPrimary { border-color: rgba(190, 104, 255, 0.68); background: linear-gradient(145deg, rgba(101, 47, 218, 0.96), rgba(50, 38, 132, 0.96)); box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 10px 26px rgba(79, 35, 163, 0.2); }
-.resultActionPrimary:hover { background: linear-gradient(145deg, rgba(119, 55, 238, 0.98), rgba(60, 45, 151, 0.98)); }
+/* Each action is filled in the colour of what it does, matching the badges the
+   same states wear in Purge and the Library: green to play it, purple to put it
+   away, amber to keep it to hand. Colouring only the icon left three near
+   identical buttons whose difference you had to read to see. */
+.resultAction[data-action="steam"] {
+  --action-fill: #2f9e6b;
+  --action-edge: #43c98c;
+}
+.resultAction[data-action="snooze"] {
+  --action-fill: #6d4bc7;
+  --action-edge: #9d7cff;
+}
+.resultAction[data-action="pin"] {
+  --action-fill: #b5762a;
+  --action-edge: #e0a34a;
+}
+
+.resultAction[data-action] {
+  border-color: var(--action-edge);
+  background: var(--action-fill);
+  color: #fff;
+}
+
+.resultAction[data-action] .resultActionIcon,
+.resultAction[data-action] strong {
+  color: #fff;
+}
+
+.resultAction:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(82, 39, 170, 0.24); }
+.resultAction[data-action]:hover { filter: brightness(1.12); }
+.resultActionPrimary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 26px rgba(0, 0, 0, 0.24); }
 
 .resultActionIcon {
   flex: 0 0 auto;

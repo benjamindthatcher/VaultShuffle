@@ -18,7 +18,6 @@ import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
-import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
 
@@ -363,7 +362,6 @@ export default function PurgePage() {
         Try the review flow with catalogue metadata. There is no personal play history here, and preview decisions reset when you leave.
       </GuestPreviewNotice>
     ) : null}
-    {isLive ? <CompletionClaimBanner /> : null}
     <section className={styles.setupGrid} aria-label="Purge setup">
       <aside className={styles.snapshot} aria-label="Review status">
         <SectionHeading title="Where things stand" />

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   gameProgress,
+  hasCorroboratedOnlineLoop,
   hasEndlessDurationShape,
   hasStrongReplayabilitySignals,
   isStoryDriven,
@@ -95,4 +96,43 @@ test("a persistent online world stays endless despite a story", () => {
   // Final Fantasy XI is story rich and an MMO.
   assert.equal(isStoryDriven({ "Story Rich": 500, "MMORPG": 900 }), false);
   assert.equal(isStoryDriven({ "Story Rich": 500, "Singleplayer": 900 }), true);
+});
+
+test("persisted endless classification requires official multiplayer corroboration", () => {
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "Battle Royale": 900, "Shooter": 1000 },
+    genres: ["Action"],
+    categories: ["Multi-player", "PvP"]
+  }), true);
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "Battle Royale": 900, "Shooter": 1000 },
+    genres: ["Action"],
+    categories: []
+  }), false);
+});
+
+test("official single-player and story signals veto persisted endless classification", () => {
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "MOBA": 900 },
+    genres: ["Action"],
+    categories: ["Single-player", "Multi-player"]
+  }), false);
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "Story Rich": 900, "Battle Royale": 1000 },
+    genres: ["Action"],
+    categories: ["Multi-player", "PvP"]
+  }), false);
+});
+
+test("generic competitive tags need meaningful vote share", () => {
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "FPS": 1000, "PvP": 360 },
+    genres: ["Action"],
+    categories: ["Multi-player"]
+  }), true);
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "FPS": 1000, "PvP": 340 },
+    genres: ["Action"],
+    categories: ["Multi-player"]
+  }), false);
 });

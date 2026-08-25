@@ -13,6 +13,7 @@ import {
   scoreVaultGame,
   vaultMatchLabel
 } from "./vault.ts";
+import { deriveSessionFits } from "./vault-matching.ts";
 import { UNKNOWN_RECENCY } from "./recency.ts";
 
 function makeGame(overrides: Partial<DemoGame> = {}): DemoGame {
@@ -428,4 +429,51 @@ test("an all-tied pool makes every game a finalist, which is what a collection d
   })) as unknown as Parameters<typeof vaultFinalists>[0];
 
   assert.equal(vaultFinalists(pool).length, 100);
+});
+
+test("a long roguelike is offered for a short session, and a short story game is not", () => {
+  // Session used to be answered purely from remaining length, so a fifty-hour
+  // roguelike was barred from a short evening and a two-hour narrative game was
+  // its best suggestion. Both are backwards.
+  const roguelike = deriveSessionFits({
+    duration: { mainStoryMinutes: 50 * 60 },
+    completionPercent: 0,
+    endless: false,
+    sessionability: 1
+  });
+  const narrative = deriveSessionFits({
+    duration: { mainStoryMinutes: 2 * 60 },
+    completionPercent: 0,
+    endless: false,
+    sessionability: -1
+  });
+
+  assert.ok(roguelike.includes("short"));
+  assert.ok(!narrative.includes("short"));
+  assert.ok(narrative.includes("evening"));
+});
+
+test("a game whose tags say nothing keeps the length-based answer", () => {
+  const unopinionated = deriveSessionFits({
+    duration: { mainStoryMinutes: 4 * 60 },
+    completionPercent: 0,
+    endless: false,
+    sessionability: 0
+  });
+  assert.deepEqual(unopinionated, ["short", "evening", "weekend"]);
+});
+
+test("shaping reorders within a session but cannot outrank the term", () => {
+  const base = { duration: { mainStoryMinutes: 5 * 60 }, completionPercent: 0 };
+  const pickUp = scoreVaultGame(
+    makeGame({ ...base, sessionability: 1, sessionFit: ["short", "evening", "weekend"] } as Partial<DemoGame>),
+    "short", null, null, [], Date.now()
+  );
+  const sitDown = scoreVaultGame(
+    makeGame({ ...base, sessionability: -1, sessionFit: ["short", "evening", "weekend"] } as Partial<DemoGame>),
+    "short", null, null, [], Date.now()
+  );
+
+  assert.ok(pickUp.score > sitDown.score, "a pick-up-and-play game should win a short session");
+  assert.ok(pickUp.score <= 100);
 });

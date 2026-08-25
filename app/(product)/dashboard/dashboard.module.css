@@ -30,14 +30,11 @@
    in the same grid area as everything else on the page. */
 .podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
 @media (max-width: 760px) { .podium { grid-template-columns: 1fr; } }
+/* One treatment for all three. Gold, silver and bronze borders made a row of
+   the same card look like three different components, and the ordinal already
+   says which is which. */
 .podiumCard { position: relative; display: grid; grid-template-rows: auto auto auto auto auto; align-content: start; gap: 4px; padding: 8px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); }
-.podiumCard[data-place="1"] { border-color: rgba(242, 193, 78, 0.55); }
-.podiumCard[data-place="2"] { border-color: rgba(203, 213, 225, 0.42); }
-.podiumCard[data-place="3"] { border-color: rgba(208, 139, 91, 0.45); }
 .place { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-.podiumCard[data-place="1"] .place { color: #f2c14e; }
-.podiumCard[data-place="2"] .place { color: #cbd5e1; }
-.podiumCard[data-place="3"] .place { color: #d08b5b; }
 
 .empty { width: min(440px, 100%); margin-inline: auto; display: grid; gap: 12px; justify-items: center; text-align: center; padding: 20px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); }
 .empty p { margin: 0; color: var(--vault-text-muted); }

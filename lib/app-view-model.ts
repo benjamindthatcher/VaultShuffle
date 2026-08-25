@@ -1,5 +1,6 @@
 import { gameProgress, isEndlessGame } from "@/lib/game-classification";
 import { describeRecency, UNKNOWN_RECENCY } from "@/lib/recency";
+import { sessionabilityScore } from "@/lib/sessionability";
 import { splitGenres, steamTagGenreLabels, steamTagLabels, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
@@ -119,6 +120,7 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       recencyEvidenceAt: game.recency_evidence_at
     });
     const sourceTags = steamTagLabels(game.steam_tags);
+    const sessionabilityValue = sessionabilityScore([...splitGenres(game.genre), ...sourceTags]);
     const moodScores = deriveMoodScores([
       ...splitGenres(game.genre),
       ...topLevelGenresFor(game.genre, game.title),
@@ -159,6 +161,7 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       addedLabel: game.date_added ? `Added ${game.date_added}` : "Added recently",
       dateAdded: game.date_added,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
+      sessionability: sessionabilityValue,
       sessionFit: deriveSessionFits({
         duration: {
           mainStoryMinutes: game.main_story_minutes,
@@ -167,7 +170,8 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
           endless: isEndlessGame(game)
         },
         completionPercent: gameProgress(game),
-        endless: isEndlessGame(game)
+        endless: isEndlessGame(game),
+        sessionability: sessionabilityValue
       }),
       priceInitial: game.price_initial ?? null,
       priceFinal: game.price_final ?? null,

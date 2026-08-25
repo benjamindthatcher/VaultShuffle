@@ -107,6 +107,32 @@ const REPLAY_LOOP_SIGNALS = new Set([
   "survival",
 ]);
 
+const OFFICIAL_MULTIPLAYER_SIGNALS = new Set([
+  "multi-player", "multiplayer", "mmo", "online pvp", "pvp",
+]);
+
+const OFFICIAL_MMO_SIGNALS = new Set([
+  "massively multiplayer", "mmo", "mmorpg",
+]);
+
+const STORY_OR_SINGLE_PLAYER_SIGNALS = new Set([
+  "campaign", "co-op campaign", "multiple endings", "single player",
+  "single-player", "singleplayer", "story rich", "visual novel",
+]);
+
+const DISTINCTIVE_ONLINE_LOOP_SIGNALS = new Set([
+  "auto battler", "battle royale", "hero shooter", "massively multiplayer",
+  "mmo", "mmorpg", "moba",
+]);
+
+const WEIGHTED_COMPETITIVE_SIGNALS = new Set([
+  "competitive", "e-sports", "esports", "online pvp", "pvp", "team-based",
+]);
+
+const DOMINANT_SANDBOX_SIGNALS = new Set([
+  "open world survival craft", "sandbox",
+]);
+
 export const LENGTH_LABELS = ["Bitesize", "Short", "Weekend", "Campaign", "Meaty", "Marathon", "Odyssey", "Endless"] as const;
 
 export const LENGTH_HELP_TEXT =
@@ -235,6 +261,57 @@ export function hasStrongReplayabilitySignals(metadata: ReplayabilityMetadata) {
   const persistent = [...PERSISTENT_ONLINE_SIGNALS].some((signal) => signals.has(signal));
   const replayLoop = [...REPLAY_LOOP_SIGNALS].some((signal) => signals.has(signal));
   return persistent && replayLoop;
+}
+
+/**
+ * Returns the stricter replay-loop signal used for persisted catalogue data.
+ * Community tags must be corroborated by an official multiplayer category,
+ * while official single-player and story/campaign signals always veto it.
+ */
+export function hasCorroboratedOnlineLoop(metadata: ReplayabilityMetadata) {
+  const categorySignals = new Set(normaliseSignals(metadata.categories));
+  const genreSignals = new Set(normaliseSignals(metadata.genres));
+  const tagSignals = new Set(normaliseSignals(metadata.tags));
+
+  if ([...STORY_OR_SINGLE_PLAYER_SIGNALS].some((signal) => tagSignals.has(signal))) {
+    return false;
+  }
+  if (categorySignals.has("single-player") || categorySignals.has("single player")) {
+    return false;
+  }
+  if (![...OFFICIAL_MULTIPLAYER_SIGNALS].some((signal) => categorySignals.has(signal))) {
+    return false;
+  }
+
+  const officialMmo = [...OFFICIAL_MMO_SIGNALS].some(
+    (signal) => categorySignals.has(signal) || genreSignals.has(signal),
+  );
+  const officialPvp = categorySignals.has("pvp") || categorySignals.has("online pvp");
+  const distinctiveLoop = [...DISTINCTIVE_ONLINE_LOOP_SIGNALS].some(
+    (signal) => tagSignals.has(signal),
+  );
+
+  const weightedTags = weightedTagSignals(metadata.tags);
+  const competitiveLoop = [...WEIGHTED_COMPETITIVE_SIGNALS].some(
+    (signal) => (weightedTags.get(signal) ?? 0) >= 0.35,
+  );
+  const sandboxLoop = [...DOMINANT_SANDBOX_SIGNALS].some(
+    (signal) => (weightedTags.get(signal) ?? 0) >= DOMINANT_TAG_SHARE,
+  );
+
+  return officialMmo || officialPvp || distinctiveLoop || competitiveLoop || sandboxLoop;
+}
+
+function weightedTagSignals(tags: ReplayabilityMetadata["tags"]) {
+  const weights = new Map<string, number>();
+  if (!tags || Array.isArray(tags) || typeof tags !== "object") return weights;
+  const entries = Object.entries(tags)
+    .map(([tag, votes]) => [tag.trim().toLowerCase(), Number(votes)] as const)
+    .filter(([, votes]) => Number.isFinite(votes) && votes > 0);
+  const top = Math.max(0, ...entries.map(([, votes]) => votes));
+  if (!top) return weights;
+  for (const [tag, votes] of entries) weights.set(tag, votes / top);
+  return weights;
 }
 
 function normaliseSignals(value: ReplayabilityMetadata["tags"] | string[] | null | undefined) {

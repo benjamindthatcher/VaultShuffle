@@ -1,5 +1,6 @@
 "use client";
 
+import { featureAvailable } from "@/lib/steam-capabilities";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
@@ -14,12 +15,18 @@ import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
 
 export default function CollectionsPage() {
-  const { collections, games, isLive, createCollection, updateCollection, removeCollection, addGamesToCollection } = useAppData();
+  const { collections, games, isLive, createCollection, updateCollection, removeCollection, addGamesToCollection, capabilities } = useAppData();
   const baseCollections = useMemo(() => collections.filter((collection) => collection.id !== "all"), [collections]);
   const suggestedPresets = useMemo(() => {
     const taken = new Set(baseCollections.map((collection) => collection.smartPreset).filter(Boolean));
-    return smartCollectionPresets.filter((preset) => !taken.has(preset.id));
-  }, [baseCollections]);
+    // Shelves built on recency are not offered to an account we have no recency
+    // evidence for: they could only ever come out empty, and a shelf that
+    // promises nothing is worse than one that was never suggested.
+    const recencyShelves = new Set(["recently-played", "fallen-off"]);
+    const hasRecency = featureAvailable("recentlyPlayedShelf", capabilities);
+    return smartCollectionPresets.filter((preset) =>
+      !taken.has(preset.id) && (hasRecency || !recencyShelves.has(preset.id)));
+  }, [baseCollections, capabilities]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(baseCollections[0]?.id ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");

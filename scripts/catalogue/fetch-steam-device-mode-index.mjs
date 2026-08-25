@@ -3,9 +3,9 @@ import path from "node:path";
 
 const manifestPath = path.resolve(stringArgument("--manifest") ?? "data/catalogue/popular-appids-expanded-2026-08-20.json");
 const outputPath = path.resolve(stringArgument("--output") ?? "data/catalogue/steam-device-mode-index-2026-08-20.json");
-const concurrency = integerArgument("--concurrency", 6);
+const concurrency = integerArgument("--concurrency", 1);
 const count = integerArgument("--page-size", 100);
-const minRequestIntervalMs = integerArgument("--interval-ms", 150);
+const minRequestIntervalMs = integerArgument("--interval-ms", 3_000);
 
 const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 const wanted = new Set((manifest.games ?? []).map((game) => positiveInteger(game.steam_appid)).filter(Boolean));
@@ -28,7 +28,8 @@ const playable = indexes.deck_playable.appids;
 const mac = indexes.mac.appids;
 const results = [];
 for (const steamAppId of [...wanted].sort((left, right) => left - right)) {
-  const deckCompatibility = verified.has(steamAppId) ? 3 : playable.has(steamAppId) ? 2 : null;
+  const deckCompatibility = verified.has(steamAppId) ? 3
+    : playable.has(steamAppId) ? 2 : null;
   const platformMac = mac.has(steamAppId) ? true : null;
   if (deckCompatibility === null && platformMac === null) continue;
   results.push({
@@ -41,7 +42,7 @@ for (const steamAppId of [...wanted].sort((left, right) => left - right)) {
 
 const output = {
   schema_version: 1,
-  source: "Steam Store official search filters",
+  source: "Steam Store official Mac and Deck compatibility filters",
   source_captured_at: new Date().toISOString(),
   manifest_path: manifestPath,
   manifest_rows: wanted.size,
@@ -49,6 +50,7 @@ const output = {
     reported_total: index.reportedTotal,
     fetched_unique_appids: index.appids.size,
     manifest_matches: [...index.appids].filter((appid) => wanted.has(appid)).length,
+    mac_appids: index.macAppIds.size,
   }])),
   results,
 };
@@ -64,27 +66,73 @@ console.log(JSON.stringify({
 }));
 
 async function fetchIndex(filter) {
-  const first = await fetchPage(filter.params, 0);
+  const checkpointPath = `${outputPath}.${filter.id}.checkpoint.json`;
+  const checkpoint = await readCheckpoint(checkpointPath, filter.id);
+  let reportedTotal;
+  let nextStart;
+  let appids;
+  let macAppIds;
+  if (checkpoint) {
+    reportedTotal = checkpoint.reported_total;
+    nextStart = checkpoint.next_start;
+    appids = new Set(checkpoint.appids);
+    macAppIds = new Set(checkpoint.mac_appids);
+  } else {
+    const first = await fetchPage(filter.params, 0);
+    reportedTotal = first.totalCount;
+    nextStart = count;
+    appids = new Set(first.appids);
+    macAppIds = new Set(first.macAppIds);
+    await writeCheckpoint(checkpointPath, filter.id, reportedTotal, nextStart, appids, macAppIds);
+  }
   const starts = [];
-  for (let start = count; start < first.totalCount; start += count) starts.push(start);
-  const appids = new Set(first.appids);
-  let completed = 1;
+  for (let start = nextStart; start < reportedTotal; start += count) starts.push(start);
+  let completed = Math.min(Math.ceil(nextStart / count), Math.ceil(reportedTotal / count));
   for (let offset = 0; offset < starts.length; offset += concurrency) {
     const chunk = starts.slice(offset, offset + concurrency);
     const pages = await Promise.all(chunk.map((start) => fetchPage(filter.params, start)));
-    for (const page of pages) for (const appid of page.appids) appids.add(appid);
+    for (const page of pages) {
+      for (const appid of page.appids) appids.add(appid);
+      for (const appid of page.macAppIds) macAppIds.add(appid);
+    }
     completed += chunk.length;
-    if (completed % 25 <= concurrency || completed === starts.length + 1) {
+    nextStart = chunk[chunk.length - 1] + count;
+    if (completed % 10 <= concurrency || nextStart >= reportedTotal) {
+      await writeCheckpoint(checkpointPath, filter.id, reportedTotal, nextStart, appids, macAppIds);
       console.log(JSON.stringify({
         stage: "steam_device_mode_index_progress",
         filter: filter.id,
         completed_pages: completed,
-        total_pages: starts.length + 1,
+        total_pages: Math.ceil(reportedTotal / count),
         unique_appids: appids.size,
       }));
     }
   }
-  return { reportedTotal: first.totalCount, appids };
+  return { reportedTotal, appids, macAppIds };
+}
+
+async function readCheckpoint(filePath, filterId) {
+  try {
+    const checkpoint = JSON.parse(await readFile(filePath, "utf8"));
+    if (checkpoint?.filter !== filterId || !Array.isArray(checkpoint.appids) || !Array.isArray(checkpoint.mac_appids)) return null;
+    if (!Number.isSafeInteger(checkpoint.reported_total) || !Number.isSafeInteger(checkpoint.next_start)) return null;
+    return checkpoint;
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+function writeCheckpoint(filePath, filterId, reportedTotal, nextStart, appids, macAppIds) {
+  return writeFile(filePath, `${JSON.stringify({
+    schema_version: 1,
+    filter: filterId,
+    reported_total: reportedTotal,
+    next_start: nextStart,
+    appids: [...appids],
+    mac_appids: [...macAppIds],
+    updated_at: new Date().toISOString(),
+  })}\n`, "utf8");
 }
 
 async function fetchPage(filterParams, start) {
@@ -106,17 +154,29 @@ async function fetchPage(filterParams, start) {
         headers: { Accept: "application/json", "User-Agent": "VaultShuffle local device-mode index/1.0" },
         signal: AbortSignal.timeout(30_000),
       });
-      if (!response.ok) throw new Error(`Steam search returned HTTP ${response.status}.`);
+      if (!response.ok) {
+        const error = new Error(`Steam search returned HTTP ${response.status}.`);
+        error.status = response.status;
+        error.retryAfter = nonNegativeInteger(response.headers.get("retry-after"));
+        throw error;
+      }
       const payload = await response.json();
       if (!payload?.success || typeof payload.results_html !== "string") throw new Error("Steam search returned an invalid payload.");
+      const rows = [...payload.results_html.matchAll(/<a\s+href="[^"]+"[\s\S]*?data-ds-appid="(\d+)"[\s\S]*?<\/a>/g)];
       return {
         totalCount: nonNegativeInteger(payload.total_count) ?? 0,
-        appids: [...payload.results_html.matchAll(/data-ds-appid="(\d+)"/g)]
+        appids: rows.map((match) => positiveInteger(match[1])).filter(Boolean),
+        macAppIds: rows.filter((match) => /platform_img mac/.test(match[0]))
           .map((match) => positiveInteger(match[1])).filter(Boolean),
       };
     } catch (error) {
       lastError = error;
-      if (attempt < 4) await delay(Math.min(30_000, 1_000 * 2 ** attempt));
+      if (attempt < 4) {
+        const retryMs = error?.status === 429
+          ? Math.max(60_000, (error.retryAfter ?? 0) * 1_000)
+          : Math.min(30_000, 1_000 * 2 ** attempt);
+        await delay(retryMs);
+      }
     }
   }
   throw lastError ?? new Error("Steam search request failed.");
