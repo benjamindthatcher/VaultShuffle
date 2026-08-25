@@ -167,11 +167,14 @@ export default function CollectionsPage() {
             {editing ? `Refine ${selectedCollection?.name}` : "Build your next shelf"}
           </h2>
           <div className={styles.composerBody}>
+            {/* The name is the thing you are actually deciding, so it gets the
+                full width and a size to match. The two choices sit side by side
+                under it, and the description — the optional part — goes last. */}
+            <label className={`${styles.field} ${styles.nameField}`}>
+              <span>Name</span>
+              <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Backlog Essentials" />
+            </label>
             <div className={styles.composerGrid}>
-              <label className={styles.field}>
-                <span>Name</span>
-                <input value={nameDraft} onChange={(event) => setNameDraft(event.target.value)} placeholder="Backlog Essentials" />
-              </label>
               <label className={styles.field}>
                 <span>Collection type</span>
                 <select value={kindDraft} onChange={(event) => setKindDraft(event.target.value as "custom" | "smart")}>
@@ -179,24 +182,28 @@ export default function CollectionsPage() {
                   <option value="smart">Automatic smart collection</option>
                 </select>
               </label>
-              {kindDraft === "smart" ? (
-                <label className={styles.field}>
-                  <span>Automatic rule</span>
-                  <select value={presetDraft} onChange={(event) => setPresetDraft(event.target.value as SmartCollectionPreset)}>
-                    {smartCollectionPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
-                  </select>
-                  <small>{smartCollectionPresets.find((preset) => preset.id === presetDraft)?.description}</small>
-                </label>
-              ) : null}
               <label className={styles.field}>
-                <span>Description</span>
-                <input
-                  value={descriptionDraft}
-                  onChange={(event) => setDescriptionDraft(event.target.value)}
-                  placeholder="Games you want to focus on next."
-                />
+                <span>Automatic rule</span>
+                <select
+                  value={presetDraft}
+                  disabled={kindDraft !== "smart"}
+                  onChange={(event) => setPresetDraft(event.target.value as SmartCollectionPreset)}
+                >
+                  {smartCollectionPresets.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+                </select>
+                <small>{kindDraft === "smart"
+                  ? smartCollectionPresets.find((preset) => preset.id === presetDraft)?.description
+                  : "Only used by automatic collections."}</small>
               </label>
             </div>
+            <label className={styles.field}>
+              <span>Description</span>
+              <input
+                value={descriptionDraft}
+                onChange={(event) => setDescriptionDraft(event.target.value)}
+                placeholder="Games you want to focus on next."
+              />
+            </label>
             <div className={styles.composerActions}>
               <button type="button" className={styles.secondaryAction} onClick={closeComposer}>
                 Cancel

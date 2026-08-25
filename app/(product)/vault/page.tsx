@@ -67,6 +67,7 @@ export default function VaultPage() {
   const [pinMessage, setPinMessage] = useState("");
   const [completionUndo, setCompletionUndo] = useState<{ id: string; title: string } | null>(null);
   const [drawState, setDrawState] = useState<VaultDrawState>("idle");
+  const [genresOpen, setGenresOpen] = useState(false);
   // What the rail focuses on, set when the draw starts so the animation knows
   // where it is heading.
   const [drawWinnerId, setDrawWinnerId] = useState<string | null>(null);
@@ -581,17 +582,28 @@ export default function VaultPage() {
         </div>
 
         <div className={styles.setupSidebar}>
+          {/* Collapsed by default: it is the optional step, and open it took as
+              much room as the three required ones together. */}
           <aside className={styles.optionalSetup} aria-label="Optional genre filters" data-disabled={collectionMode || undefined}>
-            <div className={styles.optionalHeader}>
+            <button
+              type="button"
+              className={styles.optionalHeader}
+              aria-expanded={genresOpen}
+              aria-controls="vault-genre-filters"
+              onClick={() => setGenresOpen((open) => !open)}
+            >
               <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
               <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{collectionMode ? "Vault Draw only · collection mode ignores filters" : selectedGenres.length ? `${selectedGenres.length} of 3 selected` : "Optional · no filters selected"}</small></span>
               <span className={styles.optionalLabel}>{collectionMode ? "Paused" : "Optional"}</span>
-            </div>
-            <div className={styles.optionalContent}>
-              <div className={styles.genreSetup}>
-                <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded disabled={collectionMode} />
+              <VaultIcon className={styles.optionalChevron} name="chevron-down" size={17} />
+            </button>
+            {genresOpen ? (
+              <div className={styles.optionalContent} id="vault-genre-filters">
+                <div className={styles.genreSetup}>
+                  <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded disabled={collectionMode} />
+                </div>
               </div>
-            </div>
+            ) : null}
           </aside>
         </div>
       </section>

@@ -104,7 +104,33 @@
   color: #dc8cff;
 }
 
-.composerGrid,
+.composerGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 620px) {
+  .composerGrid { grid-template-columns: 1fr; }
+}
+
+/* The name carries the card. */
+.nameField input {
+  min-height: 52px;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.field small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  min-height: 2.6em;
+}
+
+.field select:disabled { opacity: 0.5; }
+
 .selectedGames {
   display: grid;
   gap: 16px;
