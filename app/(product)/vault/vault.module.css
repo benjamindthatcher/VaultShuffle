@@ -344,7 +344,7 @@
 
 .resultHeading { display: flex; align-items: center; gap: 12px; color: #d17cff; }
 .reasonLabel { margin: 6px 0 -2px; color: #d392ff; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
-.resultContext { grid-column: 1 / -1; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center; gap: 14px; padding: 16px 20px; border-top: 1px solid var(--vault-card-border); }
+.resultContext { grid-column: 1 / -1; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 18px; border-top: 1px solid var(--vault-card-border); }
 
 .resultRevealed {
   box-shadow: 0 0 0 1px rgba(184, 92, 255, 0.16), 0 24px 64px rgba(1, 4, 18, 0.46), 0 0 34px rgba(117, 65, 224, 0.14);
@@ -366,16 +366,20 @@
   }
 }
 
+/* A banner across the top of the card, not a picture sitting in a box. Capping
+   the height while the image was still fitted by its own aspect ratio left it
+   floating in the middle of a much wider frame with the card showing either
+   side, which is what made it look pasted on. It fills the width and takes the
+   card's own top corners. */
 .resultArtwork {
   position: relative;
   overflow: hidden;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  min-height: 0;
+  height: clamp(110px, 10vw, 150px);
   align-self: stretch;
-  border-radius: 0;
-  aspect-ratio: 460 / 215;
+  border-radius: var(--vault-sheet-radius) var(--vault-sheet-radius) 0 0;
   background: var(--vault-well-surface);
 }
 
@@ -401,7 +405,10 @@
 .resultArtwork img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  /* Cover, so it reaches both edges. Steam header art is 460x215 and crops
+     from the centre without losing the title. */
+  object-fit: cover;
+  object-position: center;
 }
 
 .resultArtwork .currentPickBadge svg {
@@ -410,43 +417,52 @@
   height: 18px;
 }
 
+/* Sized so the draw bar, the pick and its reasoning are on screen together.
+   The point of the card is the case it makes; a title set at three rem and
+   forty pixels of padding pushed that case below the fold. */
 .resultBody {
   min-width: 0;
   display: grid;
-  gap: 16px;
-  align-content: center;
-  padding: clamp(24px, 2.2vw, 38px);
+  gap: 11px;
+  align-content: start;
+  padding: clamp(16px, 1.3vw, 22px);
 }
 
 .resultTitle {
   margin: 0;
-  font-size: clamp(2rem, 2.8vw, 3rem);
-  line-height: 1.05;
-  letter-spacing: -0.04em;
+  font-size: clamp(1.35rem, 1.7vw, 1.85rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .resultCopy {
-  max-width: 70ch;
+  max-width: 92ch;
   margin: 0;
+  /* Two lines of Steam's synopsis is enough to recognise a game by. */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
   color: var(--vault-text-muted);
-  font-size: clamp(0.98rem, 1.1vw, 1.16rem);
-  line-height: 1.6;
+  font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .summaryItem {
   min-width: 0;
-  min-height: 74px;
+  min-height: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px;
+  gap: 8px;
+  padding: 4px 8px;
   border: 0;
   border-radius: 9px;
   background: transparent;
   color: #bd7cff;
 }
 
-.summaryItem span { min-width: 0; display: grid; gap: 3px; }
+.summaryItem span { min-width: 0; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .summaryItem small { color: var(--vault-text-soft); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .summaryItem strong { overflow: hidden; color: #eef1ff; font-size: 0.88rem; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -591,11 +607,7 @@
    the description, the reasoning, and the actions. Side by side, the artwork
    column set the height of the whole card and left the reasoning squeezed into
    half the width beside it. */
-@media (min-width: 1080px) {
-  .resultArtwork {
-    max-height: 340px;
-  }
-}
+
 
 @media (max-width: 440px) {
   .optionalLabel { display: none; }
@@ -620,7 +632,7 @@
      there were six actions - which put the third button underneath the first
      instead of beside the second. */
   .resultAction {
-    min-height: 62px;
+    min-height: 54px;
     gap: 10px;
     padding: 12px 13px;
   }

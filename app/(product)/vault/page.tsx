@@ -251,6 +251,27 @@ export default function VaultPage() {
           : "All three choices are ready. Open the Vault when you are ready.";
   const closeGuestSignInPrompt = useCallback(() => setGuestSignInOpen(false), []);
 
+  // Settle the scroll once the pick is actually on the page.
+  //
+  // The draw scrolls before the animation so it does not play off-screen, but at
+  // that moment the result card does not exist yet - the page is shorter, so how
+  // far it can scroll is smaller, and the deck rail runs its own scroll during
+  // the reveal which can interrupt a smooth one that is still animating. Aiming
+  // at the same element again afterwards corrects both without fighting itself.
+  useEffect(() => {
+    if (drawState !== "revealed" || !revealedPickId) return;
+    const bar = drawStageRef.current;
+    if (!bar) return;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const frame = requestAnimationFrame(() => {
+      // Only if it is not already where it should be, so a draw made from the
+      // right place does not jiggle.
+      if (Math.abs(bar.getBoundingClientRect().top - DRAW_STAGE_OFFSET) < 24) return;
+      bar.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [drawState, revealedPickId]);
+
 
   useEffect(() => {
     const resetQueue = { setupKey, gameIds: [] };
@@ -690,12 +711,11 @@ export default function VaultPage() {
               </div>
             </div> : null}
 
-            {/* Three, deliberately. Draw Again lives in the bar directly above
-                this card, where it stays visible alongside the pick; completion
-                has its own sweep; details are a click away on any deck card. A
-                six-button grid made every option look equally likely, when only
-                one of them is what the page is for. */}
-            <p className={styles.actionsLabel}>{isLive ? "Vault actions" : "Preview actions"}</p>
+            {/* Three, deliberately, and unlabelled: filled in the colour of what
+                they do, they do not need a heading above them. Draw Again lives
+                in the bar directly above this card where it stays visible
+                alongside the pick, completion has its own sweep, and details are
+                a click away on any deck card. */}
             <div className={styles.resultActions}>
               <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong></span>
@@ -849,6 +869,9 @@ export default function VaultPage() {
 function wait(duration: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, duration));
 }
+
+/** Matches scroll-margin-top on the draw bar; used to tell "already there". */
+const DRAW_STAGE_OFFSET = 96;
 
 async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
   if (!element) return;

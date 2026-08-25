@@ -71,7 +71,10 @@ export default function LibraryPage() {
 
   const recentActivity = useMemo(
     () => [...libraryGames]
-      .filter((game) => game.hoursPlayed > 0 && sortableLastPlayed(game) > 0)
+      // Games we actually know were played. This used to test the sort key for
+      // being positive, back when it was a timestamp; the key is now a negated
+      // day count, so that test excluded everything and the row went empty.
+      .filter((game) => game.hoursPlayed > 0 && Boolean(game.recency?.known))
       .sort((left, right) => {
         const comparison = sortableLastPlayed(right) - sortableLastPlayed(left);
         return comparison || left.title.localeCompare(right.title);
