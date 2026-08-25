@@ -94,3 +94,27 @@ test("legacy saved rules map to current editable presets", () => {
   assert.equal(editableSmartCollectionPreset("short"), "quick-wins");
   assert.equal(editableSmartCollectionPreset("must-play"), "nearly-finished");
 });
+
+test("shelves work from inferred recency, not just exact Steam timestamps", () => {
+  const now = Date.now();
+  const observedRecently = makeGame({
+    last_played_at: null,
+    recency_source: "observed_playtime_change",
+    last_observed_played_at: new Date(now - 5 * 86_400_000).toISOString()
+  });
+  const observedLongAgo = makeGame({
+    last_played_at: null,
+    recency_source: "observed_playtime_change",
+    last_observed_played_at: new Date(now - 300 * 86_400_000).toISOString()
+  });
+
+  assert.equal(matchesSmartPreset(observedRecently, "recently-played"), true);
+  assert.equal(matchesSmartPreset(observedLongAgo, "fallen-off"), true);
+});
+
+test("a game with no recency evidence lands on neither shelf", () => {
+  // It has not fallen off. We have simply never watched it.
+  const unobserved = makeGame({ last_played_at: null });
+  assert.equal(matchesSmartPreset(unobserved, "recently-played"), false);
+  assert.equal(matchesSmartPreset(unobserved, "fallen-off"), false);
+});

@@ -3,6 +3,7 @@ import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
+import { approximateAge, describeRecency, type RecencyEvidence } from "./recency.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -548,13 +549,31 @@ function moodReason(game: DemoGame, mood: VaultMoodId) {
  * so it earns a place ahead of the genre echo. Anything played recently is not
  * worth mentioning, hence the three-week floor.
  */
-function lastPlayedReason(game: DemoGame, now: number) {
-  if (!game.lastPlayedAt) return null;
-  const playedAt = new Date(game.lastPlayedAt).getTime();
-  if (!Number.isFinite(playedAt)) return null;
+/**
+ * A DemoGame already carries a resolved recency; this keeps the raw exact
+ * timestamp working as one more source for anything built before the mapper ran.
+ */
+function recencyEvidenceOf(game: DemoGame): RecencyEvidence | null {
+  if (game.recency?.known) {
+    return {
+      lastObservedPlayedAt: game.lastPlayedAt,
+      recencySource: game.recency.source,
+      recencyEvidenceAt: game.lastPlayedAt
+    };
+  }
+  return game.lastPlayedAt ? { lastObservedPlayedAt: game.lastPlayedAt, recencySource: "steam_exact" } : null;
+}
 
-  const days = Math.floor((now - playedAt) / 86_400_000);
+function lastPlayedReason(game: DemoGame, now: number) {
+  // Only claimed where there is evidence. Most accounts never get an exact Steam
+  // timestamp, so reading one was both usually silent and, where the app filled
+  // the gap itself, sometimes wrong.
+  const recency = describeRecency(recencyEvidenceOf(game), new Date(now));
+  if (!recency.known || recency.daysSince === null) return null;
+
+  const days = Math.floor(recency.daysSince);
   if (days < 21) return null;
+  if (!recency.precise) return `Not played in about ${approximateAge(days)}`;
   if (days >= 365) return "Untouched for over a year";
   if (days >= 60) return `Not played in ${Math.round(days / 30)} months`;
   return `Not played in ${days} days`;
@@ -767,13 +786,19 @@ function sessionDetail(session: VaultSessionId, remaining: number) {
 }
 
 function dormancyDetail(game: DemoGame, now: number) {
-  if (!game.lastPlayedAt) return null;
-  const playedAt = new Date(game.lastPlayedAt).getTime();
-  if (!Number.isFinite(playedAt)) return null;
-  const days = Math.floor((now - playedAt) / 86_400_000);
+  const recency = describeRecency(recencyEvidenceOf(game), new Date(now));
+  if (!recency.known || recency.daysSince === null) return null;
+  const days = Math.floor(recency.daysSince);
   if (days < 21) return null;
 
-  const when = new Date(playedAt).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  // Only name a month when the evidence can support naming one.
+  if (!recency.precise) {
+    return {
+      headline: `Not played in about ${approximateAge(days)}`,
+      detail: "Steam last showed it as active around then, which is as precise as Steam gets."
+    };
+  }
+  const when = new Date(now - days * 86_400_000).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
   if (days >= 365) {
     const years = Math.floor(days / 365);
     return {

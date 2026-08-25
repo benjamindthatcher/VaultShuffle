@@ -1,4 +1,5 @@
 import { gameProgress, isEndlessGame } from "@/lib/game-classification";
+import { describeRecency, UNKNOWN_RECENCY } from "@/lib/recency";
 import { splitGenres, steamTagGenreLabels, steamTagLabels, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
@@ -112,6 +113,11 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
 
   return games.map((game) => {
     const genres = normaliseGenres(game);
+    const recency = describeRecency({
+      lastObservedPlayedAt: game.last_observed_played_at,
+      recencySource: game.recency_source,
+      recencyEvidenceAt: game.recency_evidence_at
+    });
     const sourceTags = steamTagLabels(game.steam_tags);
     const moodScores = deriveMoodScores([
       ...splitGenres(game.genre),
@@ -143,8 +149,12 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       bannerUrl: game.steam_appid
         ? steamHeaderImage(game.steam_appid)
         : game.header_url || "/assets/vault/vault-stage-open.png",
-      lastPlayedLabel: game.last_played_at ? formatDateLabel(game.last_played_at) : "Not played recently",
+      // "Not played recently" used to be printed whenever Steam withheld a
+      // timestamp, which is most accounts - stating as fact something we had no
+      // evidence for. An unknown game now says nothing at all.
+      lastPlayedLabel: recency.label ?? (game.last_played_at ? formatDateLabel(game.last_played_at) : ""),
       lastPlayedAt: game.last_played_at,
+      recency,
       addedLabel: game.date_added ? `Added ${game.date_added}` : "Added recently",
       dateAdded: game.date_added,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
@@ -204,6 +214,7 @@ export function mapGuestGames(games: Game[]): DemoGame[] {
     // line only when the catalogue genuinely has nothing.
     description: games[index]?.short_description?.trim() || `${game.genres.slice(0, 2).join(" / ") || "Steam"} pick from the VaultShuffle guest catalogue.`,
     lastPlayedLabel: "Guest preview",
+    recency: UNKNOWN_RECENCY,
     addedLabel: "Popular on Steam",
     collectionIds: []
   }));

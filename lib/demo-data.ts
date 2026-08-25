@@ -1,3 +1,4 @@
+import { UNKNOWN_RECENCY, type GameRecency } from "./recency.ts";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
 
@@ -33,6 +34,12 @@ export type DemoGame = {
   bannerUrl: string;
   lastPlayedLabel: string;
   lastPlayedAt?: string | null;
+  /**
+   * What we actually know about when this was last played. Read this rather than
+   * lastPlayedAt, which only ever holds an exact Steam timestamp and is absent
+   * for most users. See lib/recency.ts.
+   */
+  recency: GameRecency;
   addedLabel: string;
   dateAdded?: string | null;
   collectionIds: string[];
@@ -103,7 +110,7 @@ export const demoCollections: DemoCollection[] = [
   }
 ];
 
-export const demoGames: DemoGame[] = [
+const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   {
     id: "cyberpunk-2077",
     title: "Cyberpunk 2077",
@@ -371,3 +378,10 @@ export const demoGames: DemoGame[] = [
     moodTags: ["intense"]
   }
 ];
+
+/**
+ * Demo games are a fixture set with no Steam behind them, so they carry no
+ * recency evidence. Sample data must not look better-informed than a real
+ * account: unknown here means the same unknown it means everywhere else.
+ */
+export const demoGames: DemoGame[] = demoGameFixtures.map((game) => ({ ...game, recency: UNKNOWN_RECENCY }));

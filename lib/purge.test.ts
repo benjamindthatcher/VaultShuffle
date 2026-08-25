@@ -2,10 +2,23 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { DemoGame } from "./demo-data.ts";
 import { buildPurgeCandidates, isReviewSuperseded, type PurgeReview } from "./purge.ts";
+import { describeRecency, UNKNOWN_RECENCY } from "./recency.ts";
 
 const now = new Date("2026-08-13T14:30:00.000Z");
 
-function game(id: string): DemoGame {
+/** Evidence that a game genuinely has gone untouched, which is what most of
+ *  these tests mean when they queue one for review. */
+function playedLongAgo(days: number) {
+  return describeRecency(
+    {
+      lastObservedPlayedAt: new Date(now.getTime() - days * 86400000).toISOString(),
+      recencySource: "observed_playtime_change"
+    },
+    now
+  );
+}
+
+function game(id: string, recency = playedLongAgo(700)): DemoGame {
   return {
     id,
     title: id,
@@ -16,6 +29,7 @@ function game(id: string): DemoGame {
     completionPercent: 99,
     priority: "Medium",
     genres: ["Action"],
+    recency,
     description: "",
     artworkUrl: "",
     bannerUrl: "",
@@ -72,4 +86,60 @@ test("a decision reversed elsewhere is superseded", () => {
   assert.equal(isReviewSuperseded("complete", "In Progress"), true);
   assert.equal(isReviewSuperseded("keep", "Slept"), true);
   assert.equal(isReviewSuperseded("pin", "Completed"), true);
+});
+
+test("a played game with no recency evidence is not queued as abandoned", () => {
+  // The bug: a missing last-played date scored as infinitely old, so every game
+  // Steam declined to date went to the top of the review queue described as
+  // "untouched for 9 years". Steam withholds that date from most accounts.
+  const candidates = buildPurgeCandidates({
+    games: [game("undecember", UNKNOWN_RECENCY)],
+    pinnedIds: [],
+    currentPickId: null,
+    snoozedIds: [],
+    reviews: [],
+    now
+  });
+
+  assert.deepEqual(candidates, []);
+});
+
+test("a never-opened game still qualifies without any recency evidence", () => {
+  // Nought hours is nought hours. That is a fact about playtime, not recency.
+  const neverOpened = { ...game("fresh", UNKNOWN_RECENCY), hoursPlayed: 0, status: "Not Started" as const };
+  const candidates = buildPurgeCandidates({
+    games: [neverOpened],
+    pinnedIds: [],
+    currentPickId: null,
+    snoozedIds: [],
+    reviews: [],
+    now
+  });
+
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["fresh"]);
+  assert.match(candidates[0].reason, /^Never opened\./);
+});
+
+test("unknown recency does not make Purge surer about letting a game go", () => {
+  const withEvidence = buildPurgeCandidates({
+    games: [{ ...game("known", playedLongAgo(800)), hoursPlayed: 0 }],
+    pinnedIds: [], currentPickId: null, snoozedIds: [], reviews: [], now
+  });
+  const withoutEvidence = buildPurgeCandidates({
+    games: [{ ...game("unknown", UNKNOWN_RECENCY), hoursPlayed: 0 }],
+    pinnedIds: [], currentPickId: null, snoozedIds: [], reviews: [], now
+  });
+
+  assert.ok(withEvidence[0].confidence > withoutEvidence[0].confidence);
+});
+
+test("a game we have watched go quiet is still reviewable, and says so precisely", () => {
+  const candidates = buildPurgeCandidates({
+    games: [game("dormant", playedLongAgo(400))],
+    pinnedIds: [], currentPickId: null, snoozedIds: [], reviews: [], now
+  });
+
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["dormant"]);
+  assert.match(candidates[0].reason, /untouched for/);
+  assert.doesNotMatch(candidates[0].reason, /about/);
 });

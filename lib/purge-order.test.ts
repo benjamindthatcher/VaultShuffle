@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import type { DemoGame } from "./demo-data.ts";
 import { buildPurgeCandidates } from "./purge.ts";
+import { UNKNOWN_RECENCY } from "./recency.ts";
 
 function game(overrides: Partial<DemoGame> = {}): DemoGame {
   return {
     id: "g", title: "Game", ownership: "Owned", status: "Not Started",
     hoursPlayed: 0, completionPercent: 0, genres: [], collectionIds: [],
-    sessionFit: [], moodTags: [], lastPlayedAt: null, lastPlayedLabel: "Not played recently",
+    sessionFit: [], moodTags: [], lastPlayedAt: null, lastPlayedLabel: "",
+    // These are all never-opened games, which qualify on playtime alone.
+    recency: UNKNOWN_RECENCY,
     ...overrides
   } as unknown as DemoGame;
 }

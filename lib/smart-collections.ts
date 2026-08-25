@@ -1,3 +1,4 @@
+import { describeRecency, idleForAtLeast, playedWithin } from "./recency.ts";
 import type { DemoGame } from "./demo-data.ts";
 import { gameProgress } from "./game-classification.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
@@ -22,11 +23,24 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
   const active = status !== "Slept" && status !== "Completed";
   const progress = "steamAppId" in game ? Number(game.completionPercent || 0) : gameProgress(game);
   const duration = durationDetails(game);
-  const lastPlayedAt = "steamAppId" in game ? game.lastPlayedAt : game.last_played_at;
-  const parsedLastPlayedAt = lastPlayedAt ? new Date(lastPlayedAt).getTime() : Number.NaN;
-  const daysSincePlayed = Number.isFinite(parsedLastPlayedAt)
-    ? Math.max(0, Math.floor((Date.now() - parsedLastPlayedAt) / 86_400_000))
-    : null;
+  // Both shelves used to read the exact Steam timestamp, which most accounts
+  // never receive, so both sat empty for almost everyone. They now read whatever
+  // evidence VaultShuffle actually holds - see lib/recency.ts.
+  const recency = "steamAppId" in game
+    ? game.recency
+    : describeRecency(
+        game.recency_source
+          ? {
+              lastObservedPlayedAt: game.last_observed_played_at,
+              recencySource: game.recency_source,
+              recencyEvidenceAt: game.recency_evidence_at
+            }
+          // A row written before the inference existed still has its exact
+          // timestamp, and that remains perfectly good evidence.
+          : game.last_played_at
+            ? { lastObservedPlayedAt: game.last_played_at, recencySource: "steam_exact" }
+            : null
+      );
 
   if (preset === "nearly-finished") return active && !duration.endless && progress >= 65 && progress < 100;
   if (preset === "quick-wins") {
@@ -34,8 +48,10 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
     const remainingHours = Math.max(0, duration.hours - hours);
     return remainingHours > 0 && remainingHours <= 8;
   }
-  if (preset === "recently-played") return active && hours > 0 && daysSincePlayed !== null && daysSincePlayed <= 30;
-  if (preset === "fallen-off") return active && hours > 0 && daysSincePlayed !== null && daysSincePlayed >= 180;
+  if (preset === "recently-played") return active && hours > 0 && playedWithin(recency, 30);
+  // Requires evidence: a game we have never observed has not "fallen off", it is
+  // simply one we have not watched yet.
+  if (preset === "fallen-off") return active && hours > 0 && idleForAtLeast(recency, 180);
   if (preset === "long-haul") {
     return active && !duration.endless && progress < 65 && Boolean(duration.hours && duration.hours >= 40);
   }

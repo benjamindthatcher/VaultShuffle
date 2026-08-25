@@ -1,6 +1,7 @@
 import type { DemoGame } from "./demo-data.ts";
 import { formatGameDuration } from "./game-duration.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
+import { idleForAtLeast, type GameRecency } from "./recency.ts";
 
 /**
  * What Purge can do now. "complete" is deliberately absent: whether you finished
@@ -55,6 +56,9 @@ export function isReviewSuperseded(action: PurgeReviewAction, status: DemoGame["
   if (action === "complete") return status !== "Completed";
   return status === "Slept" || status === "Completed";
 }
+
+/** How long a started game must have gone untouched before it is worth reviewing. */
+const PURGE_IDLE_DAYS = 180;
 
 export function buildPurgeCandidates({
   games,
@@ -112,17 +116,25 @@ export function buildPurgeCandidates({
       continue;
     }
 
-    const idle = age(game.lastPlayedAt || game.lastPlayedLabel, now);
+    const recency = game.recency;
     const duration = context(game);
 
-    // Recently played, unfinished games remain active and do not need a Purge review.
-    if (game.hoursPlayed > 0 && idle < 180) continue;
+    // Never opened is a fact about playtime, not about recency: nought hours is
+    // nought hours whether or not Steam ever told us a date.
+    const neverOpened = game.hoursPlayed === 0;
+
+    // For everything else, age is the whole basis of the review, so it needs
+    // evidence. Missing recency used to score as infinitely old, which put every
+    // game Steam declined to date at the very top of the queue and described it
+    // as "untouched for 9 years". Unknown now means we say nothing and ask
+    // nothing - the game simply is not a candidate on age grounds.
+    if (!neverOpened && !idleForAtLeast(recency, PURGE_IDLE_DAYS)) continue;
 
     const signal = purgeSignal(game);
-    const confidence = purgeConfidence(game, idle, signal?.leaning ?? null);
-    const reason = game.hoursPlayed === 0
+    const confidence = purgeConfidence(game, recency, signal?.leaning ?? null);
+    const reason = neverOpened
       ? `Never opened.${duration}`
-      : `${game.hoursPlayed}h played, ${game.completionPercent}% progress, untouched for ${formatAge(idle)}.${duration}`;
+      : `${game.hoursPlayed}h played, ${game.completionPercent}% progress, ${idlePhrase(recency)}.${duration}`;
 
     result.push({ game, reason, signal, confidence });
   }
@@ -152,11 +164,13 @@ function shelfPrice(game: DemoGame) {
   return Number(game.priceInitial ?? 0) || 0;
 }
 
-function purgeConfidence(game: DemoGame, idleDays: number, signalLeaning: "cut" | "keep" | null) {
+function purgeConfidence(game: DemoGame, recency: GameRecency | null | undefined, signalLeaning: "cut" | "keep" | null) {
   let score = 0;
   if (game.hoursPlayed === 0) score += 2;
-  if (idleDays >= 730) score += 1.5;
-  else if (idleDays >= 365) score += 1;
+  // Age only adds confidence when we can show it. Not knowing how long ago
+  // something was played is not a reason to be surer about letting it go.
+  if (idleForAtLeast(recency, 730)) score += 1.5;
+  else if (idleForAtLeast(recency, 365)) score += 1;
   if (signalLeaning === "cut") score += 2;
   if (signalLeaning === "keep") score -= 2.5;
   return score;
@@ -183,17 +197,10 @@ function context(game: DemoGame) {
   return label ? ` Typical playthrough: ${label.toLowerCase()}.` : "";
 }
 
-function age(label: string, now: Date) {
-  if (!label || label === "Not played recently") return Number.POSITIVE_INFINITY;
-  const match = label.match(/(\d+)\s*([hdwmy])\s*ago/i);
-  if (match) {
-    const factors = { h: 1 / 24, d: 1, w: 7, m: 30, y: 365 };
-    return Number(match[1]) * factors[match[2].toLowerCase() as keyof typeof factors];
-  }
-  const timestamp = Date.parse(label.replace(/^Added\s+/i, ""));
-  return Number.isFinite(timestamp)
-    ? Math.max(0, (now.getTime() - timestamp) / 86400000)
-    : Number.POSITIVE_INFINITY;
+function idlePhrase(recency: GameRecency | null | undefined) {
+  if (!recency?.known || recency.daysSince === null) return "not played since we started watching";
+  const age = formatAge(recency.daysSince);
+  return recency.precise ? `untouched for ${age}` : `untouched for about ${age}`;
 }
 
 function formatAge(days: number) {

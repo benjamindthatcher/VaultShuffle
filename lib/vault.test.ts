@@ -13,11 +13,13 @@ import {
   scoreVaultGame,
   vaultMatchLabel
 } from "./vault.ts";
+import { UNKNOWN_RECENCY } from "./recency.ts";
 
 function makeGame(overrides: Partial<DemoGame> = {}): DemoGame {
   return {
     id: "game-1",
     title: "Test Game",
+    recency: UNKNOWN_RECENCY,
     steamAppId: 1,
     ownership: "Owned",
     status: "Not Started",
