@@ -9,21 +9,24 @@ import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
+import { AddGamesDialog } from "@/components/collections/AddGamesDialog";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
 
 export default function CollectionsPage() {
-  const { collections, games, isLive, createCollection, updateCollection, removeCollection } = useAppData();
+  const { collections, games, isLive, createCollection, updateCollection, removeCollection, addGamesToCollection } = useAppData();
   const baseCollections = useMemo(() => collections.filter((collection) => collection.id !== "all"), [collections]);
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(baseCollections[0]?.id ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
-  const [kindDraft, setKindDraft] = useState<"custom" | "smart">("custom");
+  const [kindDraft, setKindDraft] = useState<"custom" | "smart">("smart");
   const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("nearly-finished");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [mutationError, setMutationError] = useState("");
+  const [addingGames, setAddingGames] = useState(false);
+  const [addingSaving, setAddingSaving] = useState(false);
   const composerRef = useRef<HTMLElement>(null);
   const collectionRailRef = useRef<HTMLDivElement>(null);
 
@@ -68,7 +71,7 @@ export default function CollectionsPage() {
       setComposerOpen(false);
       setNameDraft("");
       setDescriptionDraft("");
-      setKindDraft("custom");
+      setKindDraft("smart");
       setPresetDraft("nearly-finished");
       requestAnimationFrame(() => collectionRailRef.current?.scrollTo({ left: 0, behavior: "smooth" }));
     } catch (error) {
@@ -86,7 +89,7 @@ export default function CollectionsPage() {
     setEditing(false);
     setNameDraft("");
     setDescriptionDraft("");
-    setKindDraft("custom");
+    setKindDraft("smart");
     setPresetDraft("nearly-finished");
     setMutationError("");
     setComposerOpen(true);
@@ -178,8 +181,8 @@ export default function CollectionsPage() {
               <label className={styles.field}>
                 <span>Collection type</span>
                 <select value={kindDraft} onChange={(event) => setKindDraft(event.target.value as "custom" | "smart")}>
-                  <option value="custom">Custom collection</option>
-                  <option value="smart">Automatic smart collection</option>
+                  <option value="smart">Smart collection, kept up to date</option>
+                  <option value="custom">Hand-picked collection</option>
                 </select>
               </label>
               <label className={styles.field}>
@@ -264,6 +267,11 @@ export default function CollectionsPage() {
             title="Selected collection"
             meta={selectedCollection.name}
             action={<div className={styles.selectedActions}>
+              {selectedCollection.kind === "smart" ? null : (
+                <button type="button" className={styles.primaryAction} onClick={() => setAddingGames(true)}>
+                  <VaultIcon name="add-game" size={18} />Add games
+                </button>
+              )}
               <button type="button" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
               <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
             </div>}
@@ -277,11 +285,33 @@ export default function CollectionsPage() {
                 count={4}
                 label={selectedCollection.kind === "smart"
                   ? (isLive ? "Nothing matches this rule yet." : "No preview games match this rule yet.")
-                  : `Open a game from Library and add it to this shelf${isLive ? "." : " for this visit."}`}
+                  : "Nothing on this shelf yet. Add games works from here."}
+                action={<button type="button" className={styles.placeholderAction} onClick={() => setAddingGames(true)}>Add games</button>}
               />
             )}
           </div>
         </section>
+      ) : null}
+
+      {addingGames && selectedCollection ? (
+        <AddGamesDialog
+          collectionName={selectedCollection.name}
+          games={ownedGames}
+          alreadyIn={new Set(selectedGames.map((game) => game.id))}
+          saving={addingSaving}
+          onClose={() => setAddingGames(false)}
+          onAdd={async (gameIds) => {
+            setAddingSaving(true);
+            try {
+              await addGamesToCollection(selectedCollection.id, gameIds);
+              setAddingGames(false);
+            } catch (error) {
+              setMutationError(collectionMutationMessage(error));
+            } finally {
+              setAddingSaving(false);
+            }
+          }}
+        />
       ) : null}
     </section>
   );

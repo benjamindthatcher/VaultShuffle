@@ -78,6 +78,7 @@ type AppDataContextValue = {
   updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }) => Promise<void>;
   restoreGame: (gameId: string) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
+  addGamesToCollection: (collectionId: string, gameIds: string[]) => Promise<void>;
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
   recordVaultDraw: (gameId: string, input: VaultDrawInput) => Promise<VaultDraw>;
   loadVaultHistory: () => Promise<void>;
@@ -471,6 +472,37 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }
 
+  /**
+   * Adding several games at once.
+   *
+   * setGameCollection reloads the whole app after every call, which is right for
+   * one tick in a drawer and completely wrong for forty from a picker: it would
+   * reload forty times. This writes them all, then reloads once.
+   */
+  async function addGamesToCollection(collectionId: string, gameIds: string[]) {
+    if (!gameIds.length) return;
+
+    if (isLive) {
+      // Serial rather than parallel: the writes take a per-user advisory lock, so
+      // firing forty at once queues them on the database instead of the client.
+      for (const gameId of gameIds) {
+        await api(`/api/collections/${collectionId}/games`, {
+          method: "POST",
+          body: JSON.stringify({ game_id: gameId })
+        });
+      }
+      await load();
+      trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: "added", count: gameIds.length });
+      return;
+    }
+
+    const adding = new Set(gameIds);
+    setGuestGames((current) => current.map((game) => adding.has(game.id) && !game.collectionIds.includes(collectionId)
+      ? { ...game, collectionIds: [...game.collectionIds, collectionId] }
+      : game));
+    trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: "added", count: gameIds.length, preview_mode: true });
+  }
+
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
     if (isLive) {
       await api(`/api/collections/${collectionId}/games${assigned ? "" : `/${gameId}`}`, {
@@ -596,6 +628,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       updateGame,
       restoreGame,
       setGameCollection,
+      addGamesToCollection,
       recordVaultAction,
       recordVaultDraw,
       loadVaultHistory,
