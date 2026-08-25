@@ -22,18 +22,7 @@ import { CompletionClaimBanner } from "@/components/shared/CompletionClaimBanner
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
 
-const OUTCOME_LABELS: Record<PurgeReviewAction, string> = {
-  keep: "Kept active",
-  pin: "Kept and pinned",
-  sleep: "Put to sleep",
-  complete: "Marked done"
-};
 
-function decisionReversed(action: PurgeReviewAction, status: DemoGame["status"]) {
-  if (action === "sleep") return status !== "Slept";
-  if (action === "complete") return status !== "Completed";
-  return status === "Slept" || status === "Completed";
-}
 
 type Undo = {
   candidate: PurgeCandidate;
@@ -49,7 +38,7 @@ class PurgeRequestError extends Error {
 }
 
 export default function PurgePage() {
-  const { games, vaultState, isLive, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
+  const { games, vaultState, isLive, isLoading, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
   const [selectedOffset, setSelectedOffset] = useState(0);
@@ -325,6 +314,12 @@ export default function PurgePage() {
   }
 
 
+  // Every count here derives from two independent async sources: the games list
+  // and the saved reviews. Rendering before both landed showed each flagged game
+  // as "needs review" — the reviews had not arrived to say otherwise — and the
+  // numbers then snapped once they did. Hold the panel until both exist.
+  const dataReady = !isLoading && reviewsReady;
+
   return <PurgePageFrame>
     <h1 className="visually-hidden">Purge</h1>
     {!isLive ? (
@@ -338,12 +333,12 @@ export default function PurgePage() {
         <SectionHeading title="Where things stand" />
         <div className={styles.categoryGrid}>
           {([
-            { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: "Waiting on a decision.", count: purgeStats.ready },
-            { id: "reviewed", icon: "actioned", label: "Reviewed", copy: `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done`, count: purgeStats.reviewed },
-            { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: "Nothing flagged.", count: purgeStats.noReviewNeeded }
+            { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: dataReady ? "Waiting on a decision." : "Checking your backlog.", count: dataReady ? purgeStats.ready : "—" },
+            { id: "reviewed", icon: "actioned", label: "Reviewed", copy: dataReady ? `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done` : "Checking your decisions.", count: dataReady ? purgeStats.reviewed : "—" },
+            { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: dataReady ? "Nothing flagged." : "Checking your library.", count: dataReady ? purgeStats.noReviewNeeded : "—" }
           ] as const).map((view) => {
             const selected = reviewView === view.id;
-            return <button key={view.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} onClick={() => setReviewView(view.id)}>
+            return <button key={view.id} type="button" className={selected ? styles.categorySelected : styles.category} aria-pressed={selected} disabled={!dataReady} onClick={() => setReviewView(view.id)}>
               <span className={styles.categoryIcon} aria-hidden="true"><VaultIcon name={view.icon} size={36} /></span>
               <span className={styles.categoryCopy}><strong>{view.label}</strong><b>{view.count}</b><small>{view.copy}</small></span>
             </button>;
@@ -353,8 +348,10 @@ export default function PurgePage() {
     </section>
       {reviewView === "needs" ? <>
         <section className={styles.queuePanel}>
-          <SectionHeading title="Review queue" meta={`${candidates.length} to consider`} />
-          {queue.length ? <div className={styles.queue}>
+          <SectionHeading title="Review queue" meta={dataReady ? `${candidates.length} to consider` : undefined} />
+          {!dataReady ? <div className={styles.queue}>
+            <PlaceholderSlots count={4} label="Loading your review queue." />
+          </div> : queue.length ? <div className={styles.queue}>
             {queue.map((candidate, offset) => {
               const selected = current?.game.id === candidate.game.id;
               return <button key={candidate.game.id} type="button" className={selected ? styles.queueCardSelected : styles.queueCard} onClick={() => setSelectedOffset(offset)}>
@@ -367,7 +364,7 @@ export default function PurgePage() {
           </div>}
         </section>
 
-        {current ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
+        {current && dataReady ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
           <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
           <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}<span>{current.game.lastPlayedLabel}</span></div><p>{current.reason}</p>{current.signal ? <p className={current.signal.leaning === "cut" ? styles.signalCut : styles.signalKeep}><strong>{current.signal.label}</strong>{current.signal.detail}</p> : null}<div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
           <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
@@ -379,27 +376,22 @@ export default function PurgePage() {
       </> : <section className={styles.queuePanel}>
         <SectionHeading
           title={reviewView === "reviewed" ? "Already decided" : "Nothing flagged"}
-          meta={reviewView === "reviewed" ? `${reviewedList.length} reviewed` : `${settledList.length} need no review`}
+          meta={!dataReady ? undefined : reviewView === "reviewed" ? `${reviewedList.length} reviewed` : `${settledList.length} need no review`}
         />
         {reviewView === "reviewed"
           ? (reviewedList.length
-            ? <ul className={styles.outcomeList}>
-                {reviewedList.map(({ review, game }) => <li key={game.id} className={styles.outcomeRow}>
-                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="88px" /></span>
+            ? <ul className={styles.outcomeGrid}>
+                {reviewedList.map(({ game }) => <li key={game.id} className={styles.outcomeCard}>
+                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                   <span className={styles.outcomeName}>{game.title}</span>
                   <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : game.status === "Completed" ? "Completed" : "Active"}</span>
-                  <span className={styles.outcomeDecision} data-stale={decisionReversed(review.action, game.status) || undefined}>
-                    {decisionReversed(review.action, game.status)
-                      ? `was ${OUTCOME_LABELS[review.action].toLowerCase()}, changed since`
-                      : `decided: ${OUTCOME_LABELS[review.action]}`}
-                  </span>
                 </li>)}
               </ul>
             : <p className={styles.emptyNote}>You have not reviewed anything yet. Start with Needs Review.</p>)
           : (settledList.length
-            ? <ul className={styles.outcomeList}>
-                {settledList.slice(0, 24).map((game) => <li key={game.id} className={styles.outcomeRow}>
-                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="88px" /></span>
+            ? <ul className={styles.outcomeGrid}>
+                {settledList.slice(0, 24).map((game) => <li key={game.id} className={styles.outcomeCard}>
+                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                   <span className={styles.outcomeName}>{game.title}</span>
                   <span className={styles.outcomeBadge} data-action="none">Active</span>
                 </li>)}
