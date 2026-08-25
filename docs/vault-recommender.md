@@ -200,10 +200,14 @@ Carried forward, not touched by this feature:
   message was replaced with "Unknown catalogue ingestion error" every time. The
   queue recorded eighty failures without once saying what went wrong.
 
-  **Resolved 2026-08-19: all seven are quarantined.** `steam_type` is now a
-  classifier rule, so a non-game takes the same path as every other exclusion and
-  any future one is caught on import rather than retried. Nine ownership rows are
-  hidden across the affected users:
+  **Resolved 2026-08-19; review policy corrected 2026-08-25.** The seven original
+  rows were quarantined to stop their retry loop. Provider types and labels are
+  now only candidate signals: new matches receive `review_status = 'pending'`
+  and remain visible until a person confirms `excluded`. This matters because
+  Steam sometimes reports playable games as `advertising`, DLC, software, or
+  utilities. Confirmed false positives are recorded as `allowed` so a later
+  refresh cannot hide them again. Nine ownership rows were affected by the
+  original exclusion:
 
   | AppID | Title | Type | Owners |
   |---|---|---|---|

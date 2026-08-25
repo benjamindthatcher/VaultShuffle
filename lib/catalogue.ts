@@ -3,7 +3,7 @@ import { fetchSteamAppDetails, SteamAppRequestError, SteamAppUnavailableError, f
 import type { GamePayload } from "@/lib/types";
 import { catalogueGameStubRows } from "@/lib/catalogue-stubs";
 
-const AUTOMATIC_EXCLUSION_LABELS = new Set(["software", "utilities"]);
+const AUTOMATIC_REVIEW_LABELS = new Set(["software", "utilities"]);
 const AUTOMATIC_RELEASE_CHANNEL_RULES = [
   { matchedRule: "release_channel:playtest", pattern: /\bplaytest\b/i },
   { matchedRule: "release_channel:public_test", pattern: /\bpublic[\s-]+test\b/i },
@@ -25,13 +25,15 @@ export async function recordAutomaticSteamQuarantine(games: GamePayload[]) {
   const supabase = getSupabaseAdmin();
   const detectedCandidates = games.flatMap((game) => {
     const appid = Number(game.steam_appid);
-    const matchedRule = automaticCatalogueExclusionRule(game.title, splitLabels(game.genre));
+    const matchedRule = automaticCatalogueReviewRule(game.title, splitLabels(game.genre));
     return Number.isSafeInteger(appid) && appid > 0 && matchedRule
       ? [{
           steam_appid: appid,
           name: game.title,
           matched_rule: matchedRule,
-          reason: automaticExclusionReason(matchedRule),
+          reason: automaticReviewReason(matchedRule),
+          review_status: "pending",
+          source: "automatic",
           last_detected_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }]
@@ -44,7 +46,12 @@ export async function recordAutomaticSteamQuarantine(games: GamePayload[]) {
   );
   const candidates = detectedCandidates.filter((candidate) => !manualDecisions.has(candidate.steam_appid));
   if (candidates.length) {
-    const { error } = await supabase.from("catalog_game_quarantine").upsert(candidates, { onConflict: "steam_appid" });
+    // A fresh automatic signal is only a review flag. Ignore an existing row so
+    // a previously reviewed/excluded record cannot be silently downgraded.
+    const { error } = await supabase.from("catalog_game_quarantine").upsert(candidates, {
+      onConflict: "steam_appid",
+      ignoreDuplicates: true
+    });
     if (error) throw error;
   }
 
@@ -169,8 +176,9 @@ export async function processCatalogueQueue(
       // per entry, forever.
       //
       // The shared write is skipped rather than attempted; classification below
-      // then quarantines the entry through the same path as every other
-      // non-game, so it settles instead of churning.
+      // then stages the entry for manual review through the same path as every
+      // other possible non-game, so it settles instead of churning. The review
+      // flag stays visible until a person explicitly excludes it.
       const storable = String(details.steam_type || "").trim().toLowerCase() === "game";
 
       // Preserve the complete shared Steam record before deciding whether it
@@ -182,6 +190,23 @@ export async function processCatalogueQueue(
       const classification = manualDecision
         ? classificationFromManualDecision(manualDecision)
         : classifySteamCatalogueEntry(details);
+      if (classification.reviewRequired && !manualDecision) {
+        const now = new Date().toISOString();
+        const { error: reviewError } = await supabase.from("catalog_game_quarantine").upsert({
+          steam_appid: row.steam_appid,
+          name: details?.title || null,
+          steam_type: details?.steam_type || null,
+          matched_rule: classification.matchedRule,
+          reason: classification.reason || "This AppID needs manual catalogue review.",
+          genres: details?.genres ?? [],
+          categories: details?.categories ?? [],
+          review_status: "pending",
+          source: "automatic",
+          last_detected_at: now,
+          updated_at: now
+        }, { onConflict: "steam_appid", ignoreDuplicates: true });
+        if (reviewError) throw reviewError;
+      }
       if (!classification.accepted) {
         if (!classification.excluded) {
           throw new Error(classification.reason || "Steam metadata was unavailable.");
@@ -372,11 +397,12 @@ async function loadManualQuarantineDecisions(
 
 function classificationFromManualDecision(decision: ManualQuarantineDecision) {
   if (decision.review_status === "allowed") {
-    return { accepted: true, excluded: false, reason: null, matchedRule: "manual:allowed" };
+    return { accepted: true, excluded: false, reviewRequired: false, reason: null, matchedRule: "manual:allowed" };
   }
   return {
     accepted: false,
     excluded: true,
+    reviewRequired: false,
     reason: decision.reason || "This AppID was manually excluded from the game catalogue.",
     matchedRule: decision.matched_rule || "manual:excluded"
   };
@@ -387,34 +413,38 @@ function classifySteamCatalogueEntry(details: Awaited<ReturnType<typeof fetchSte
     return {
       accepted: false,
       excluded: false,
+      reviewRequired: false,
       reason: "Steam metadata was unavailable.",
       matchedRule: "metadata_unavailable"
     };
   }
-  // Steam's own classification is the most reliable signal there is, and the
-  // shared catalogue physically cannot hold anything else.
+  // Steam type is useful evidence, but it is not a verdict: some playable games
+  // are historically/mysteriously returned as advertising, DLC, or another
+  // non-game type. Keep the entry visible until a person confirms it.
   const steamType = String(details.steam_type || "").trim().toLowerCase();
   if (steamType && steamType !== "game") {
     return {
-      accepted: false,
-      excluded: true,
-      reason: `Steam classifies this AppID as ${steamType}, not a game.`,
+      accepted: true,
+      excluded: false,
+      reviewRequired: true,
+      reason: `Steam reports this AppID as ${steamType}; manual review is required before exclusion.`,
       matchedRule: `steam_type:${steamType}`
     };
   }
 
   const normalizedLabels = [...(details.genres ?? []), ...(details.categories ?? [])]
     .map((label) => String(label).trim().toLowerCase());
-  const matchedRule = automaticCatalogueExclusionRule(String(details.title || ""), normalizedLabels);
+  const matchedRule = automaticCatalogueReviewRule(String(details.title || ""), normalizedLabels);
   if (matchedRule) {
     return {
-      accepted: false,
-      excluded: true,
-      reason: automaticExclusionReason(matchedRule),
+      accepted: true,
+      excluded: false,
+      reviewRequired: true,
+      reason: automaticReviewReason(matchedRule),
       matchedRule
     };
   }
-  return { accepted: true, excluded: false, reason: null, matchedRule: null };
+  return { accepted: true, excluded: false, reviewRequired: false, reason: null, matchedRule: null };
 }
 
 /**
@@ -444,17 +474,17 @@ function splitLabels(labels?: string | null) {
     .filter(Boolean);
 }
 
-function automaticCatalogueExclusionRule(title: string, normalizedLabels: string[]) {
-  const blockedGenre = normalizedLabels.find((label) => AUTOMATIC_EXCLUSION_LABELS.has(label));
-  if (blockedGenre) return `steam_label:${blockedGenre}`;
+function automaticCatalogueReviewRule(title: string, normalizedLabels: string[]) {
+  const reviewLabel = normalizedLabels.find((label) => AUTOMATIC_REVIEW_LABELS.has(label));
+  if (reviewLabel) return `steam_label:${reviewLabel}`;
   return AUTOMATIC_RELEASE_CHANNEL_RULES.find((rule) => rule.pattern.test(title))?.matchedRule ?? null;
 }
 
-function automaticExclusionReason(matchedRule: string) {
+function automaticReviewReason(matchedRule: string) {
   if (matchedRule.startsWith("steam_label:")) {
-    return `Steam classified this AppID as ${matchedRule.slice("steam_label:".length)}, not a game.`;
+    return `Steam applies the ${matchedRule.slice("steam_label:".length)} label; manual review is required before exclusion.`;
   }
-  return "The Steam title identifies this AppID as a beta, PTR, playtest, or other test environment.";
+  return "The title resembles a beta, PTR, playtest, or other test environment; manual review is required before exclusion.";
 }
 
 function uniqueNumericAppIds(appIds: Array<string | number>) {
