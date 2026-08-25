@@ -2,6 +2,7 @@ import { processDurationQueue } from "@/lib/duration-worker";
 import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames } from "@/lib/steam";
+import { buildGuestCataloguePool } from "@/lib/guest-catalogue";
 import { syncSteamRecentWindow } from "@/lib/recency-sync";
 import { steamVisibilityFromGames } from "@/lib/steam-owned-games";
 import { capturePlaytimeSnapshot } from "@/lib/playtime-snapshots";
@@ -85,8 +86,22 @@ export async function refreshNightlyMetadata() {
     });
   }
 
+  // Recomputed here so no guest ever pays for it. Selection scans and sorts the
+  // whole catalogue, which took 32 seconds behind an hourly cache - one very
+  // slow first impression an hour for whoever arrived first.
+  let guestPoolSize = 0;
+  try {
+    guestPoolSize = await buildGuestCataloguePool();
+  } catch (error) {
+    failures.push({
+      stage: "guest-pool",
+      error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
+    });
+  }
+
   return {
     users: users.length,
+    guestPoolSize,
     librariesRefreshed,
     librariesDeferred,
     gamesRefreshed,
