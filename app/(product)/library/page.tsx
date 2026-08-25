@@ -18,6 +18,7 @@ import { Artwork } from "@/components/shared/Artwork";
 import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
+import { recencySortKey } from "@/lib/recency";
 import type { DemoGame } from "@/lib/demo-data";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import styles from "./library.module.css";
@@ -217,7 +218,7 @@ export default function LibraryPage() {
               </span>
               <div className={styles.recentBody}>
                 <strong>{game.title}</strong>
-                <span>{isLive ? game.lastPlayedLabel : game.genres.slice(0, 2).join(" · ") || "Guest catalogue"}</span>
+                {(() => { const meta = isLive ? game.lastPlayedLabel : game.genres.slice(0, 2).join(" · ") || "Guest catalogue"; return meta ? <span>{meta}</span> : null; })()}
               </div>
             </button>
           ))}
@@ -308,16 +309,13 @@ export default function LibraryPage() {
   );
 }
 
+/**
+ * Sorted from the recency model rather than by re-parsing a display string.
+ * Games we know nothing about sort last, which is neither a claim that they are
+ * ancient nor that they are fresh - just that we cannot place them.
+ */
 function sortableLastPlayed(game: DemoGame) {
-  const timestamp = Date.parse(game.lastPlayedAt || "");
-  if (Number.isFinite(timestamp)) return timestamp;
-
-  const relative = game.lastPlayedLabel.match(/^(\d+)\s*([hdw])\s+ago$/i);
-  if (!relative) return 0;
-  const amount = Number(relative[1]);
-  const unit = relative[2].toLowerCase();
-  const hours = unit === "h" ? amount : unit === "d" ? amount * 24 : amount * 24 * 7;
-  return Date.now() - hours * 60 * 60 * 1000;
+  return -recencySortKey(game.recency);
 }
 
 function sortableAddedDate(game: DemoGame) {
