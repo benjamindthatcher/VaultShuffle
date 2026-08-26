@@ -570,7 +570,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    setGuestVaultState((current) => reduceGuestVaultState(current, action, gameId, context));
+    // Through the same predictor as a live pin. The bare reducer rebuilt every
+    // pin from the id list, which stamped null over the playtime the older pins
+    // were made at - so a guest's second pin erased the first one's progress,
+    // and no guest pin ever had a figure to measure "since you pinned it" from.
+    const guestGame = guestGames.find((game) => game.id === gameId);
+    setGuestVaultState((current) => predictVaultState(current, action, gameId, context, guestGame?.hoursPlayed ?? 0));
     const guestEvent = VAULT_ACTION_EVENT_NAMES[action];
     if (guestEvent) trackEvent(guestEvent, { action, preview_mode: true });
   }

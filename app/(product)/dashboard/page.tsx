@@ -132,23 +132,23 @@ export default function DashboardPage() {
             ]}
           />
 
-          <ValueDial
-            percent={stats.valueCompletedPercent}
-            completedValue={formatMoney(stats.completedValueCents, stats.currency)}
-            libraryValue={formatMoney(stats.libraryValueCents, stats.currency)}
-            completedGames={stats.completedGames}
-            totalGames={stats.totalGames}
-          />
-
-          {/* Straight under the banner, above the numbers. What you said you
-              would play next is the one thing here you might act on; the rest
-              is the state of the library, which keeps. */}
+          {/* Above everything but the notices. What you said you would play next
+              is the one thing here you might act on tonight; the library's value
+              and its stats are a standing report that keeps. */}
           <PinnedCommitments
             games={games}
             pins={vaultState.pins ?? []}
             pinnedIds={vaultState.pinnedIds}
             onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
             compact
+          />
+
+          <ValueDial
+            percent={stats.valueCompletedPercent}
+            completedValue={formatMoney(stats.completedValueCents, stats.currency)}
+            libraryValue={formatMoney(stats.libraryValueCents, stats.currency)}
+            completedGames={stats.completedGames}
+            totalGames={stats.totalGames}
           />
 
           <StatPanel label="Backlog summary" columns={5}>

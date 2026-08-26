@@ -4,7 +4,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import type { VaultPin } from "@/lib/vault-state";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { pinProgressHours } from "@/lib/completion-celebration";
+import { pinProgressBar, pinProgressHours } from "@/lib/completion-celebration";
 import styles from "./PinnedCommitments.module.css";
 
 /**
@@ -61,6 +61,7 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
         {pinned.map((game) => {
           const label = pinProgressLabel(game, pinFor(game.id));
           const progress = pinProgress(game, pinFor(game.id));
+          const bar = pinProgressBar(game, pinFor(game.id));
           return (
             <li key={game.id} className={styles.item} data-started={progress?.started ? "yes" : "no"}>
               {onUnpin ? (
@@ -77,6 +78,20 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
                 <span className={styles.body}>
                   <strong>{game.title}</strong>
                   <small>{label ?? `${Math.round(game.hoursPlayed)}h played`}</small>
+                  {bar ? (
+                    <span
+                      className={styles.track}
+                      role="img"
+                      aria-label={bar.atPin === null
+                        ? `${bar.percent}% through`
+                        : `${bar.percent}% through, ${bar.percent - bar.atPin}% of it since pinning`}
+                    >
+                      <span className={styles.trackBefore} style={{ width: `${bar.atPin ?? bar.percent}%` }} />
+                      {bar.atPin === null ? null : (
+                        <span className={styles.trackSince} style={{ left: `${bar.atPin}%`, width: `${bar.percent - bar.atPin}%` }} />
+                      )}
+                    </span>
+                  ) : null}
                 </span>
               </button>
             </li>

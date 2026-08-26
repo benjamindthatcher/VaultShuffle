@@ -33,6 +33,28 @@
 .body { display: grid; gap: 2px; min-width: 0; }
 .body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; color: var(--vault-text); }
 .body small { font-size: 0.74rem; color: var(--vault-text-muted); }
+
+/* Two segments, not one: what was already played when you pinned it, then what
+   you have done since. The second is the part that says whether the pin meant
+   anything, so it is the part that is lit. */
+.track {
+  position: relative;
+  height: 4px;
+  margin-top: 5px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(122, 96, 189, 0.26);
+}
+
+.trackBefore,
+.trackSince {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.trackBefore { left: 0; background: rgba(170, 138, 240, 0.55); }
+.trackSince { background: linear-gradient(90deg, #57d6a0, #7ce7b2); }
 /* Progress since pinning is the payoff, so it reads as a win once it exists. */
 .item[data-started="yes"] .body small { color: #7ce7b2; font-weight: 650; }
 

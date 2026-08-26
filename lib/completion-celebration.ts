@@ -1,5 +1,7 @@
 import type { DemoGame } from "./demo-data.ts";
 import type { VaultPin } from "./vault-state.ts";
+import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
+import { isEndlessProgress } from "./progress-display.ts";
 
 export type CompletionMilestone = {
   headline: string;
@@ -10,6 +12,31 @@ export type CompletionMilestone = {
 export function pinProgressHours(game: DemoGame, pin: VaultPin | undefined) {
   if (!pin || pin.hoursAtPin === null || pin.hoursAtPin === undefined) return null;
   return Math.max(0, Number(game.hoursPlayed ?? 0) - pin.hoursAtPin);
+}
+
+/**
+ * The bar under a pin: how far through the game you are, and how much of that
+ * you did after pinning it.
+ *
+ * The split is the whole point. A pin says "this is what I'm playing next", and
+ * the part of the bar earned since making that promise is the only part that
+ * says whether you kept it. Without it a well-worn game looks like progress you
+ * have just made.
+ *
+ * Endless games get no bar. There are no credits to measure against, and a
+ * percentage of a game that never ends is a number about nothing.
+ */
+export function pinProgressBar(game: DemoGame, pin: VaultPin | undefined) {
+  if (game.status !== "Completed" && isEndlessProgress(game)) return null;
+  const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
+  if (!totalMinutes) return null;
+
+  const percent = Math.max(0, Math.min(100, Math.round(Number(game.completionPercent ?? 0))));
+  const hoursAtPin = pin?.hoursAtPin;
+  if (hoursAtPin === null || hoursAtPin === undefined) return { percent, atPin: null };
+
+  const atPin = Math.max(0, Math.min(percent, Math.round((hoursAtPin / (totalMinutes / 60)) * 100)));
+  return { percent, atPin };
 }
 
 /**
