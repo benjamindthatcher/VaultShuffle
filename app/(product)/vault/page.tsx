@@ -902,14 +902,14 @@ function wait(duration: number) {
 }
 
 /**
- * The gap left above the pick, and what "already there" means.
+ * The gap left above the pick, and what "already there" means. Matches
+ * scroll-margin-top on the result card.
  *
- * The pick is the anchor rather than the draw bar: anchoring the bar left the
- * card starting most of a bar-height down the screen, which was not far enough.
- * The gap is roughly the height of the bar's second row, so the button that
- * rerolls stays visible directly above the thing it produced.
+ * The pick is the anchor rather than the draw bar. Anchoring the bar, at any
+ * offset, left the card starting a whole bar-height down the screen - which is
+ * why tuning the number never fixed it.
  */
-const DRAW_STAGE_OFFSET = 76;
+const DRAW_STAGE_OFFSET = 20;
 
 async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
   if (!element) return;

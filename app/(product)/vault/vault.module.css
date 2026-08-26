@@ -333,9 +333,10 @@
   display: grid;
   gap: 0;
   overflow: hidden;
-  /* Where a draw scrolls to. Leaves the draw bar's reroll button visible
-     directly above the pick it produced. */
-  scroll-margin-top: 76px;
+  /* Where a draw scrolls to. Tight to the top: the card is what the draw
+     produced and the point is to see all of it, so the bar above gives up its
+     room rather than the reasoning below giving up theirs. */
+  scroll-margin-top: 20px;
   padding: 0;
   border-color: rgba(155, 106, 255, 0.3);
   background: linear-gradient(135deg, rgba(9, 13, 34, 0.98), rgba(6, 10, 27, 0.95));

@@ -512,3 +512,19 @@ test("no draw shows more than the two rows the card reserves", () => {
   assert.ok(explanation.insights.length <= MAX_MATCH_INSIGHTS);
   assert.equal(MAX_MATCH_INSIGHTS, 4);
 });
+
+test("no term earns more than it offers, so the score never passes 100", () => {
+  // An endless game in a weekend session scored 27 + 4 of a possible 30, and the
+  // card read "Perfect match · 102/100".
+  const endless = makeGame({
+    duration: { endless: true },
+    sessionability: 1,
+    sessionFit: ["short", "evening", "weekend"]
+  } as Partial<DemoGame>);
+
+  for (const session of ["short", "evening", "weekend"] as const) {
+    const entry = scoreVaultGame(endless, session, null, null, [], Date.now());
+    assert.ok(entry.score <= 100, `${session} scored ${entry.score}`);
+    assert.ok(entry.score >= 0);
+  }
+});

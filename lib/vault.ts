@@ -393,7 +393,11 @@ export function scoreVaultGame(
   if (dormancy) reasons.push(dormancy);
   if (genreReason) reasons.push(genreReason);
 
-  const score = availablePoints > 0 ? Math.round((earnedPoints / availablePoints) * 100) : 0;
+  // Clamped as a backstop: no term should ever earn more than it offers, and a
+  // score over 100 is a bug report the player should not have to file.
+  const score = availablePoints > 0
+    ? clamp(Math.round((earnedPoints / availablePoints) * 100), 0, 100)
+    : 0;
 
   // Reported alongside the score rather than inside it. The explanation still
   // reaches the UI, so the user sees why a game was favoured even though the match
@@ -473,12 +477,17 @@ function matchesAnyGenre(game: DemoGame, selectedGenres: string[]) {
 function sessionPoints(game: DemoGame, session: VaultSessionId) {
   if (!game.sessionFit.includes(session)) return 0;
   const shaping = sessionShapePoints(game, session);
-  if (game.duration?.endless) return clamp(session === "weekend" ? 27 : 24, 0, VAULT_SCORE_WEIGHTS.session) + shaping;
+  // Clamped after the shaping, not before it. Clamping the base and then adding
+  // meant an endless game in a weekend session scored 27 + 4 of a possible 30,
+  // and a card came back reading "Perfect match - 102/100".
+  if (game.duration?.endless) {
+    return clamp((session === "weekend" ? 27 : 24) + shaping, 0, VAULT_SCORE_WEIGHTS.session);
+  }
 
   // Eligible everywhere, preferred nowhere: an unknown length should neither be
   // rewarded nor punished against games whose length is actually known.
   const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
-  if (!totalMinutes) return 20 + shaping;
+  if (!totalMinutes) return clamp(20 + shaping, 0, VAULT_SCORE_WEIGHTS.session);
   const remainingHours = totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60;
 
   const lengthPoints = (() => {
