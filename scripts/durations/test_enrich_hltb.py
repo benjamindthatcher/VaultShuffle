@@ -114,6 +114,27 @@ class DurationMatcherTests(TestCase):
         self.assertIn("Payday 3", variants)
         self.assertIn("payday 3", variants)
 
+    def test_sequel_numerals_are_searched_in_arabic_and_roman_forms(self):
+        self.assertIn("Hearts of Iron II", MODULE.title_variants("Hearts of Iron 2 Complete"))
+        self.assertIn("Raiden 3", MODULE.title_variants("Raiden III Digital Edition"))
+        self.assertIn(
+            "Hearts of Iron II",
+            MODULE.normalized_retry_variants("Hearts of Iron 2 Complete"),
+        )
+
+    def test_irrelevant_fuzzy_results_do_not_trigger_detail_page_fetches(self):
+        unrelated = entry(9000, "Completely Different", similarity=0.2)
+        errors = []
+
+        with patch.object(MODULE, "load_hltb_detail") as load:
+            hydrated = MODULE.hydrated_candidates(
+                [unrelated], "Wanted Game", errors, steam_app_id=42
+            )
+
+        self.assertEqual(hydrated, [])
+        self.assertEqual(errors, [])
+        load.assert_not_called()
+
     def test_direct_profile_steam_match_is_highest_confidence_identity(self):
         candidate = entry(
             131658,

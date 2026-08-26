@@ -676,22 +676,21 @@ export default function VaultPage() {
               selectionActive={collectionDraw}
               allowEntireVault={false}
             />
-          ) : (
-            <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
-          )}
-        </div>
-        <div className={styles.drawActionControl}>
-          <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={isDrawing || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={isDrawing} aria-describedby="vault-setup-status">
-            <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
-          </button>
-          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={isDrawing || !quickPool.length}>
-            <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
-          </button>
+          ) : null}
+          {/* The visible copy of this said "Start by choosing how much time you
+              have" directly beneath a button reading "Choose a session". It is
+              still here for the button's aria-describedby, where it is the only
+              wording a screen reader gets. */}
+          <p className="visually-hidden" id="vault-setup-status">{setupStatusMessage}</p>
         </div>
         {/* The bar had a wide empty middle while these sat in a band of their
             own further down the page. Neither is part of setting a draw up, so
-            they take the end of the bar rather than a row of their own. */}
-        <div className={styles.deckTools}>
+            they take the middle rather than a row of their own. */}
+        {/* The wrapper is what the tools are measured against. A container
+            cannot query itself, so the slot holds the width and the grid inside
+            reacts to it. */}
+        <div className={styles.deckToolsSlot}>
+          <div className={styles.deckTools}>
           <button
             type="button"
             className={styles.deckToolButton}
@@ -715,6 +714,15 @@ export default function VaultPage() {
             <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
             <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
             <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
+          </button>
+          </div>
+        </div>
+        <div className={styles.drawActionControl}>
+          <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={isDrawing || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={isDrawing} aria-describedby="vault-setup-status">
+            <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
+          </button>
+          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={isDrawing || !quickPool.length}>
+            <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
           </button>
         </div>
       </section>

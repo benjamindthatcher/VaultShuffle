@@ -27,7 +27,7 @@ from fake_useragent import UserAgent
 EDITION_SUFFIX = re.compile(
     r"(?:\s+|[-:|]\s*)(?:(?:the\s+)?(?:definitive|anniversary|gold|complete|"
     r"game of the year|goty|ultimate|steam|legacy|apocalypse|maximum|deluxe|"
-    r"collector(?:'s|s)?|special|enhanced|extended|premium|digital deluxe)\s+edition|"
+    r"collector(?:'s|s)?|special|enhanced|extended|premium|digital|digital deluxe)\s+edition|"
     r"(?:deluxe|gold|complete|ultimate|enhanced|anniversary|collector(?:'s|s)?|special)\s*|"
     r"hd|remaster(?:ed)?|remake|redux|director(?:'s|s)?\s+cut)$",
     re.IGNORECASE,
@@ -35,7 +35,7 @@ EDITION_SUFFIX = re.compile(
 BRACKETED_EDITION = re.compile(
     r"\s*[\[(](?:(?:the\s+)?(?:definitive|anniversary|gold|complete|game of the year|"
     r"goty|ultimate|steam|legacy|apocalypse|maximum|deluxe|collector(?:'s|s)?|special|"
-    r"enhanced|extended|premium|digital deluxe)\s+edition|remaster(?:ed)?|remake|redux|"
+    r"enhanced|extended|premium|digital|digital deluxe)\s+edition|remaster(?:ed)?|remake|redux|"
     r"director(?:'s|s)?\s+cut)[\])]\s*$",
     re.IGNORECASE,
 )
@@ -47,6 +47,11 @@ ROMAN_NUMERALS = {
     "vi": "6", "vii": "7", "viii": "8", "ix": "9", "x": "10",
     "xi": "11", "xii": "12", "xiii": "13", "xiv": "14", "xv": "15",
     "xvi": "16", "xvii": "17", "xviii": "18", "xix": "19", "xx": "20",
+}
+ARABIC_NUMERALS = {
+    value: token.upper()
+    for token, value in ROMAN_NUMERALS.items()
+    if token != "i"
 }
 UNSAFE_HLTB_TYPES = ("dlc", "expansion", "mod", "compilation", "bundle")
 REVIEW_SIMILARITY = 0.8
@@ -331,9 +336,40 @@ def title_variants(value):
     for candidate in list(candidates):
         candidates.append(strip_special_characters(candidate))
         candidates.append(strip_special_characters(candidate.replace("&", " and ")))
+        candidates.extend(sequel_number_variants(candidate))
     return list(dict.fromkeys(
         candidate.strip(" -:|") for candidate in candidates if candidate.strip(" -:|")
     ))
+
+
+def sequel_number_variants(value):
+    """Try equivalent separated sequel numerals without changing identity rules."""
+    text = str(value)
+    variants = []
+
+    arabic = re.sub(
+        r"(?<![A-Za-z0-9])(?:[2-9]|1[0-9]|20)(?![A-Za-z0-9])",
+        lambda match: ARABIC_NUMERALS.get(match.group(), match.group()),
+        text,
+    )
+    if arabic != text:
+        variants.append(arabic)
+
+    roman_pattern = r"(?<![A-Za-z0-9])(?:" + "|".join(
+        sorted(
+            (token.upper() for token in ROMAN_NUMERALS if token != "i"),
+            key=len,
+            reverse=True,
+        )
+    ) + r")(?![A-Za-z0-9])"
+    numeric = re.sub(
+        roman_pattern,
+        lambda match: ROMAN_NUMERALS[match.group().casefold()],
+        text,
+    )
+    if numeric != text:
+        variants.append(numeric)
+    return variants
 
 
 def variants(title, alias=None):
@@ -363,6 +399,8 @@ def normalized_retry_variants(title, alias=None):
             strip_special_characters(without_year.replace("&", " and ")),
             strip_special_characters(without_edition.replace("&", " and ")),
         ]
+        for candidate in list(transformed):
+            transformed.extend(sequel_number_variants(candidate))
         values.extend(candidate for candidate in transformed if candidate and candidate != original)
     return list(dict.fromkeys(value.strip(" -:|") for value in values if value.strip(" -:|")))
 
@@ -617,7 +655,7 @@ def estimate_confidence(identity_tier, basis, submission_count, populated_fields
     return lower_confidence(identity_confidence, value_confidence)
 
 
-def hydrated_candidates(results, search_title, errors):
+def hydrated_candidates(results, search_title, errors, steam_app_id=None):
     exact = [
         result for result in results
         if any(
@@ -626,10 +664,17 @@ def hydrated_candidates(results, search_title, errors):
         )
     ]
     ranked = sorted(results, key=lambda result: result.similarity, reverse=True)
+    target_appid = positive_integer(steam_app_id)
     selected = [
-        *[result for result in results if result.profile_steam],
+        *[
+            result for result in results
+            if target_appid and positive_integer(result.profile_steam) == target_appid
+        ],
         *exact,
-        *ranked[:MAX_FUZZY_DETAILS_PER_QUERY],
+        *[
+            result for result in ranked
+            if result.similarity >= REVIEW_SIMILARITY
+        ][:MAX_FUZZY_DETAILS_PER_QUERY],
     ]
     hydrated = []
     seen = set()
@@ -693,7 +738,12 @@ def best_match(title_variants, steam_app_id=None, release_year=None, trusted_tit
         if not results:
             continue
         accepted = []
-        for candidate in hydrated_candidates(results, search_title, errors):
+        for candidate in hydrated_candidates(
+            results,
+            search_title,
+            errors,
+            steam_app_id=steam_app_id,
+        ):
             identity_tier, rejection = identity_evidence(
                 candidate,
                 search_title,
