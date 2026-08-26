@@ -362,6 +362,36 @@ test("a partial genre match is credited as partial", () => {
   assert.match(genre.detail, /1 of the 2/);
 });
 
+test("the strongest reasons are read first, and survive the trim", () => {
+  // Build order used to decide both the reading order and what got cut, so a
+  // weak session fit could lead the grid and a perfect reason could be dropped
+  // to keep a merely good one pushed before it.
+  const game = {
+    ...makeGame(),
+    genres: ["Action", "Adventure"],
+    duration: { mainStoryMinutes: 60 * 60 },
+    hoursPlayed: 0
+  };
+  const selected = ["Action", "Adventure"];
+  const pool = buildVaultPool({
+    games: [game], session: "short", mood: "intense", goal: "new",
+    selectedCollectionId: null, selectedGenres: selected, snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: "short", mood: "intense", goal: "new", selectedGenres: selected
+  });
+
+  const ranks = explanation.insights.map((insight) =>
+    insight.strength === "perfect" ? 2 : insight.strength === "strong" ? 1 : 0);
+  const sorted = [...ranks].sort((a, b) => b - a);
+  assert.deepEqual(ranks, sorted, "reasons should be read strongest first");
+
+  // A 60h game against a short session is the weakest thing here, so it must not
+  // be leading, and the perfect genre match must not have been trimmed away.
+  assert.notEqual(explanation.insights[0]?.kind, "session");
+  assert.ok(explanation.insights.some((insight) => insight.kind === "genre"));
+});
+
 test("an explanation claims nothing the draw did not use", () => {
   // Quick Draw and Collection Draw ignore session, mood and goal, so crediting
   // them would be inventing reasoning.

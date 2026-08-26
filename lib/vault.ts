@@ -824,10 +824,20 @@ export function buildVaultMatchExplanation({
     });
   }
 
-  // The four strongest, in the order they were built: what you asked for first,
-  // then what the game brings to it. Never trimmed below what is there, since a
-  // lone tile sits in space that is reserved anyway.
-  const shown = insights.slice(0, MAX_MATCH_INSIGHTS);
+  // Strongest first, so the grid is read in the order that matters rather than
+  // the order the reasons happened to be built in. Two things were wrong with
+  // build order: a "Workable short length" could sit above a perfect genre
+  // match, and the trim took whatever came last - so a perfect reason could be
+  // cut to keep a merely good one that had been pushed earlier.
+  //
+  // Sorted before the trim for that second reason, and stable, so reasons of
+  // equal strength keep the order they were built in: what you asked for, then
+  // what the game brings to it.
+  const shown = insights
+    .map((insight, order) => ({ insight, order }))
+    .sort((a, b) => insightRank(b.insight) - insightRank(a.insight) || a.order - b.order)
+    .slice(0, MAX_MATCH_INSIGHTS)
+    .map((entry) => entry.insight);
 
   return {
     score: entry.score,
@@ -836,6 +846,13 @@ export function buildVaultMatchExplanation({
     poolSize: pool.length,
     insights: shown
   };
+}
+
+/** The same three levels the accent colour uses, as something sortable. */
+function insightRank(insight: VaultMatchInsight) {
+  if (insight.strength === "perfect") return 2;
+  if (insight.strength === "strong") return 1;
+  return 0;
 }
 
 function totalPlaythroughHours(game: DemoGame) {
