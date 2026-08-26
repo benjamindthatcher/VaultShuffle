@@ -120,6 +120,7 @@ export const demoCollections: DemoCollection[] = [
 const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   {
     id: "cyberpunk-2077",
+    duration: { mainStoryMinutes: 1500, mainExtrasMinutes: 3660 },
     title: "Cyberpunk 2077",
     steamAppId: 1091500,
     ownership: "Owned",
@@ -139,6 +140,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "disco-elysium",
+    duration: { mainStoryMinutes: 1260, mainExtrasMinutes: 1740 },
     title: "Disco Elysium",
     steamAppId: 632470,
     ownership: "Owned",
@@ -158,6 +160,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "hades",
+    duration: { mainStoryMinutes: 1260, mainExtrasMinutes: 2700 },
     title: "Hades",
     steamAppId: 1145360,
     ownership: "Owned",
@@ -177,6 +180,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "stardew-valley",
+    duration: { endless: true },
     title: "Stardew Valley",
     steamAppId: 413150,
     ownership: "Owned",
@@ -196,6 +200,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "outer-wilds",
+    duration: { mainStoryMinutes: 900, mainExtrasMinutes: 1320 },
     title: "Outer Wilds",
     steamAppId: 753640,
     ownership: "Owned",
@@ -215,6 +220,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "control",
+    duration: { mainStoryMinutes: 690, mainExtrasMinutes: 1170 },
     title: "Control Ultimate Edition",
     steamAppId: 870780,
     ownership: "Owned",
@@ -234,6 +240,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "firewatch",
+    duration: { mainStoryMinutes: 240, mainExtrasMinutes: 300 },
     title: "Firewatch",
     steamAppId: 383870,
     ownership: "Owned",
@@ -253,6 +260,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "ori-will-of-the-wisps",
+    duration: { mainStoryMinutes: 690, mainExtrasMinutes: 900 },
     title: "Ori and the Will of the Wisps",
     steamAppId: 1057090,
     ownership: "Owned",
@@ -272,6 +280,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "hollow-knight",
+    duration: { mainStoryMinutes: 1500, mainExtrasMinutes: 2400 },
     title: "Hollow Knight",
     steamAppId: 367520,
     ownership: "Owned",
@@ -291,6 +300,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "baldurs-gate-3",
+    duration: { mainStoryMinutes: 4200, mainExtrasMinutes: 5700 },
     title: "Baldur's Gate 3",
     steamAppId: 1086940,
     ownership: "Owned",
@@ -310,6 +320,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "dead-cells",
+    duration: { endless: true },
     title: "Dead Cells",
     steamAppId: 588650,
     ownership: "Owned",
@@ -329,6 +340,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "dave-the-diver",
+    duration: { mainStoryMinutes: 1380, mainExtrasMinutes: 1980 },
     title: "Dave the Diver",
     steamAppId: 1868140,
     ownership: "Owned",
@@ -348,6 +360,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "mass-effect-legendary",
+    duration: { mainStoryMinutes: 4200, mainExtrasMinutes: 6600 },
     title: "Mass Effect Legendary Edition",
     steamAppId: 1328670,
     ownership: "Owned",
@@ -367,6 +380,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
   },
   {
     id: "returnal",
+    duration: { mainStoryMinutes: 1560, mainExtrasMinutes: 2100 },
     title: "Returnal",
     steamAppId: 1649240,
     ownership: "Owned",
