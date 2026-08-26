@@ -212,17 +212,28 @@
   outline-offset: -2px;
 }
 
-/* The card the draw landed on, in a rail of a dozen others. The pulse below
-   fades out, so this is what is left holding your eye afterwards - and at a
-   fifth of an alpha it was losing to the artwork it sits on. A crisp ring plus
-   a near halo and a wide one: the ring says which card, the halo carries far
-   enough to catch you scanning past. */
+/* The card the draw landed on, in a rail of a dozen others.
+   
+   Making its glow brighter was not enough on its own: every neighbour is the
+   same purple card at the same brightness, so a lit edge competes with a dozen
+   lit edges. What makes it findable is the rail going quiet around it - the
+   others drop back, this one lifts off the surface, and the difference between
+   them is what your eye catches rather than the absolute brightness of any of
+   it. The dim clears the moment you scroll the rail, because by then you are
+   looking rather than being shown. */
 .cardHighlighted {
-  border-color: rgba(219, 163, 255, 0.96);
+  border-color: rgba(236, 192, 255, 0.98);
+  background:
+    linear-gradient(165deg, rgba(181, 108, 255, 0.34), rgba(94, 44, 190, 0.12) 62%),
+    var(--vault-card-surface);
   box-shadow:
-    0 0 0 1px rgba(219, 163, 255, 0.55),
-    0 0 20px rgba(173, 99, 255, 0.5),
-    0 0 52px rgba(142, 76, 255, 0.36);
+    0 0 0 2px rgba(236, 192, 255, 0.85),
+    0 0 26px rgba(188, 114, 255, 0.62),
+    0 14px 36px rgba(0, 0, 0, 0.5);
+}
+
+.grid:has(.cardHighlighted) .card:not(.cardHighlighted) {
+  opacity: 0.42;
 }
 
 .cardHighlighted::after {
