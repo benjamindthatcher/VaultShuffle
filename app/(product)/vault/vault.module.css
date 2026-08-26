@@ -744,6 +744,14 @@
   gap: 8px;
   margin: 0 0 12px;
 }
+/* A Quick Draw explains nothing, so there is no reasoning panel above this and
+   it landed 4px under the artwork. The panel is a bordered box and can sit
+   close; a bare line of text reads as attached to the picture. */
+.resultBody > .feedbackRow:first-child,
+.resultBody > .rerollAsk:first-child {
+  margin-top: 20px;
+}
+
 .rerollAsk { flex-direction: column; align-items: flex-start; }
 .rerollReasons { display: flex; flex-wrap: wrap; gap: 6px; }
 .feedbackLabel { color: var(--vault-text-soft); font-size: 0.78rem; font-weight: 600; }
