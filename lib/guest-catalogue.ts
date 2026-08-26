@@ -263,6 +263,14 @@ function guestGameFromCatalogue(row: GuestCatalogueRow): Game {
     duration_confidence: row.duration_confidence,
     duration_kind: row.duration_kind,
     steam_tags: row.tags,
+    // Carried through, not just folded into the rating above. The reasoning
+    // panel judges how a game is regarded from the raw counts - "Hidden gem",
+    // "Everyone has played this" - and a rounded 0-10 cannot tell it whether 92%
+    // came from four hundred people or four hundred thousand. Dropping these
+    // silently cost guests one of the few reasons their session can produce.
+    review_positive: Number(row.review_positive || 0),
+    review_negative: Math.max(0, reviewTotal - Number(row.review_positive || 0)),
+    review_total: reviewTotal,
     is_quarantined: false
   };
 }
