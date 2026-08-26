@@ -40,9 +40,6 @@
   font-weight: 500;
 }
 
-/* Two across rather than six stacked. The reasoning is the best thing on this
-   screen, but as a full-width column it ran taller than the artwork beside it
-   and turned the case for one game into a page of its own. */
 /* Two across, and always tall enough for two rows - which is as many as a draw
    realistically fills. The panel used to grow and shrink with the number of
    reasons, moving the buttons underneath between one draw and the next, so the
