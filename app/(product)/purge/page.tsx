@@ -422,17 +422,30 @@ export default function PurgePage() {
     ) : null}
     <section className={styles.setupGrid} aria-label="Purge setup">
       <aside className={styles.snapshot} aria-label="Review status">
-        <div className={styles.categoryGrid}>
+        {/* The same control the Library uses for Active / Slept / Completed:
+            the label with its count beside it, and nothing else. As three tall
+            cards with a line of copy each they took the top of the page to say
+            what three words and a number say. */}
+        <div className={styles.categoryTabs} role="tablist" aria-label="Purge review status">
           {([
-            { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: dataReady ? "Waiting on a decision." : "Checking your backlog.", count: dataReady ? purgeStats.ready : "—" },
-            { id: "reviewed", icon: "actioned", label: "Reviewed", copy: dataReady ? `${purgeStats.kept} kept · ${purgeStats.slept} slept · ${purgeStats.completed} done` : "Checking your decisions.", count: dataReady ? purgeStats.reviewed : "—" },
-            { id: "settled", icon: "no-review-needed", label: "No Review Needed", copy: dataReady ? "Nothing flagged." : "Checking your library.", count: dataReady ? purgeStats.noReviewNeeded : "—" }
+            { id: "needs", label: "Needs Review", count: dataReady ? purgeStats.ready : "—" },
+            { id: "reviewed", label: "Reviewed", count: dataReady ? purgeStats.reviewed : "—" },
+            { id: "settled", label: "No Review Needed", count: dataReady ? purgeStats.noReviewNeeded : "—" }
           ] as const).map((view) => {
             const active = reviewView === view.id;
-            return <button key={view.id} type="button" className={active ? styles.categorySelected : styles.category} aria-pressed={active} disabled={!dataReady} onClick={() => { setReviewView(view.id); setSelectedIds([]); }}>
-              <span className={styles.categoryIcon} aria-hidden="true"><VaultIcon name={view.icon} size={36} /></span>
-              <span className={styles.categoryCopy}><strong>{view.label}</strong><b>{view.count}</b><small>{view.copy}</small></span>
-            </button>;
+            return (
+              <button
+                key={view.id}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                className={active ? styles.statusTabActive : styles.statusTab}
+                disabled={!dataReady}
+                onClick={() => { setReviewView(view.id); setSelectedIds([]); }}
+              >
+                <span>{view.label}</span><strong>{view.count}</strong>
+              </button>
+            );
           })}
         </div>
       </aside>

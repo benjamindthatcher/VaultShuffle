@@ -12,7 +12,6 @@
 /* Two sets of three, stacked. Side by side each set had half the column, and
    the cards truncated their own labels — "Never laun…", "Started, th…". */
 .setupGrid {
-  --purge-card-height: 96px;
   display: grid;
   align-items: start;
   gap: 18px;
@@ -40,108 +39,20 @@
   font-size: 0.7rem;
   font-weight: 700;
 }
-.categoryGrid {
+/* Three across, using the same tab styling as the Active / Slept control
+   further down the page - these are the same kind of choice, so they are the
+   same control. They were three tall cards with a line of copy each, taking the
+   top of the page to say what three words and a number say. */
+.categoryTabs {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-auto-rows: var(--purge-card-height);
-  gap: var(--vault-top-card-gap);
-}
-/* These switch the list below them, and read as three stat panels - flat, with
-   nothing to say they could be pressed. The same raised treatment the Vault's
-   deck tools use: an inset top edge, a shadow under it, and a lift on hover. */
-.category,
-.categorySelected {
-  display: grid;
-  grid-template-columns: 44px minmax(0, 1fr);
-  align-items: center;
-  gap: 12px;
-  height: var(--purge-card-height);
-  padding: 0 16px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: var(--vault-card-radius);
-  background: var(--vault-card-surface);
-  color: #fff;
-  text-align: left;
-  cursor: pointer;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.16);
-  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
 }
 
-.category:hover:not(:disabled),
-.categorySelected:hover:not(:disabled) {
-  border-color: rgba(215, 142, 255, 0.72);
-  background: var(--vault-control-hover-bg);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 28px rgba(111, 45, 211, 0.22);
-  transform: translateY(-1px);
-}
-
-.category:focus-visible,
-.categorySelected:focus-visible {
-  outline: 2px solid rgba(222, 158, 255, 0.86);
-  outline-offset: 3px;
-}
-
-/* Pressed rather than lifted, so the click has somewhere to land. */
-.category:active:not(:disabled),
-.categorySelected:active:not(:disabled) {
-  transform: translateY(1px);
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
-}
-
-.category:disabled,
-.categorySelected:disabled {
-  cursor: default;
-  opacity: 0.6;
-  box-shadow: none;
-  transform: none;
-}
-
-.categorySelected {
-  border-color: var(--vault-tile-selected-border);
-  background: var(--vault-tile-selected-surface);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), var(--vault-tile-selected-shadow);
-}
-.categoryIcon {
-  display: grid;
-  place-items: center;
-  width: 48px;
-  height: 48px;
-  flex: 0 0 48px;
-  color: var(--accent-bright);
-  filter: drop-shadow(0 0 9px rgb(199 91 255 / 32%));
-}
-/* Label, count, note stacked in one column, which is how the Library and
-   Collections stat tiles read. The count used to be a third column competing
-   with the copy for a width neither had. */
-.categoryCopy {
-  min-width: 0;
-  display: grid;
-}
-.category strong,
-.categorySelected strong {
-  margin-bottom: 5px;
-  color: var(--vault-text-muted);
-  font-size: 0.72rem;
-  font-weight: 650;
-}
-.category small,
-.categorySelected small {
-  margin-top: 5px;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  color: var(--vault-text-soft);
-  font-size: 0.75rem;
-  line-height: 1.35;
-}
-/* The count, as the stat tiles show it: its own line, not a column. */
-.category b,
-.categorySelected b {
-  color: #f7f8ff;
-  font-size: clamp(1.3rem, 2.2vw, 1.62rem);
-  font-weight: 700;
-  line-height: 1;
-}
 /* The one group left on the page: where things stand. */
 .snapshot {
   position: relative;
