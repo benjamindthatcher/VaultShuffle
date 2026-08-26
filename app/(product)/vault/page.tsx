@@ -45,6 +45,15 @@ import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
 type VaultSetupStep = "session" | "mood" | "goal";
+/**
+ * The four panels of the setup, of which one is open at a time.
+ *
+ * Genres used to keep its own open flag, so it could sit open behind a question
+ * you had gone back to change. It is the same kind of thing as the other three -
+ * a question about the draw - and it behaves like them now: opening any one
+ * closes the rest.
+ */
+type VaultSetupPanel = VaultSetupStep | "genres";
 type VaultDrawMode = "vault" | "collection";
 type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
 
@@ -76,7 +85,7 @@ export default function VaultPage() {
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
-  const [openSetupStep, setOpenSetupStep] = useState<VaultSetupStep>("session");
+  const [openSetupStep, setOpenSetupStep] = useState<VaultSetupPanel | null>("session");
   const [drawMode, setDrawMode] = useState<VaultDrawMode>("vault");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -112,7 +121,6 @@ export default function VaultPage() {
     return () => window.clearTimeout(timer);
   }, [completionUndo]);
   const [drawState, setDrawState] = useState<VaultDrawState>("idle");
-  const [genresOpen, setGenresOpen] = useState(false);
   // What the rail focuses on, set when the draw starts so the animation knows
   // where it is heading.
   const [drawWinnerId, setDrawWinnerId] = useState<string | null>(null);
@@ -570,8 +578,32 @@ export default function VaultPage() {
       nextStep = !session ? "session" : !mood ? "mood" : null;
     }
 
-    setOpenSetupStep(nextStep ?? step);
-    if (nextStep) revealSetupStep(nextStep);
+    if (nextStep) {
+      setOpenSetupStep(nextStep);
+      revealSetupStep(nextStep);
+      return;
+    }
+
+    // All three answered. The questions fold away and the one choice still open
+    // to you takes their place, which is the same handover the setup already
+    // does between the three - it just used to stop at the last one and leave it
+    // sitting open with nothing left to answer.
+    setOpenSetupStep(selectedGenres.length ? null : "genres");
+    if (!selectedGenres.length) revealGenreFilters();
+  }
+
+  /* Matches revealSetupStep: only moves the page if the panel is not already
+     where you can see it, so finishing the setup from the right spot does not
+     jump. No focus steal - nothing here has to be answered. */
+  function revealGenreFilters() {
+    window.requestAnimationFrame(() => {
+      const element = document.getElementById("vault-genre-filters")?.closest("aside");
+      if (!element) return;
+      const bounds = element.getBoundingClientRect();
+      if (bounds.top < 96 || bounds.bottom > window.innerHeight - 96) {
+        element.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "center" });
+      }
+    });
   }
 
   function activateCollectionDraw() {
@@ -724,16 +756,16 @@ export default function VaultPage() {
             <button
               type="button"
               className={styles.optionalHeader}
-              aria-expanded={genresOpen}
+              aria-expanded={openSetupStep === "genres"}
               aria-controls="vault-genre-filters"
-              onClick={() => setGenresOpen((open) => !open)}
+              onClick={() => setOpenSetupStep((current) => (current === "genres" ? null : "genres"))}
             >
               <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
               <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{collectionMode ? "Vault Draw only · collection mode ignores filters" : selectedGenres.length ? `${selectedGenres.length} of 3 selected` : !nextSetupStep ? "Optional · narrow the deck by genre" : "Optional · no filters selected"}</small></span>
               <span className={styles.optionalLabel}>{collectionMode ? "Paused" : "Optional"}</span>
               <VaultIcon className={styles.optionalChevron} name="chevron-down" size={17} />
             </button>
-            {genresOpen ? (
+            {openSetupStep === "genres" ? (
               <div className={styles.optionalContent} id="vault-genre-filters">
                 <div className={styles.genreSetup}>
                   <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded disabled={collectionMode} />
