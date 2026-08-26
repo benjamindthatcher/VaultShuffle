@@ -1,12 +1,20 @@
 /* Only what is particular to the history. Its panel, heading and footer row
    come from DeckPanel.module.css, shared with Vault Lens. */
 
+/* Three across and three down at most, then it scrolls. A history of a few
+   hundred draws would otherwise push the pick you just drew off the bottom of
+   the screen, and nine is enough to see the shape of a session without the
+   panel becoming the page. */
 .groups {
+  /* An entry is a fixed 65px - the thumbnail's height plus its padding, with
+     every line inside it clamped to one - so three rows and the day heading
+     above them come to a height that can be stated rather than guessed at. */
+  --history-row: 65px;
+  --history-gap: 8px;
+  --history-heading: 22px;
   display: grid;
   gap: 14px;
-  /* Long histories scroll inside the panel rather than pushing the pick you
-     just drew off the bottom of the screen. */
-  max-height: 340px;
+  max-height: calc(3 * var(--history-row) + 2 * var(--history-gap) + var(--history-heading));
   overflow-y: auto;
 }
 
@@ -21,8 +29,8 @@
 
 .list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--history-gap);
   margin: 0;
   padding: 0;
   list-style: none;
@@ -117,7 +125,13 @@
   font-size: 0.86rem;
 }
 
+/* Below these, three across leaves no card wide enough to read a title in. */
+@media (max-width: 1020px) {
+  .list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 @media (max-width: 700px) {
+  .list { grid-template-columns: minmax(0, 1fr); }
   .detail { grid-template-columns: minmax(0, 1fr); }
   .entry { grid-template-columns: 72px minmax(0, 1fr) auto; }
   .thumb { width: 72px; }
