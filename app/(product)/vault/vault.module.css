@@ -432,19 +432,59 @@
   border-top: 1px solid var(--vault-card-border);
 }
 
-.resultRevealed {
-  box-shadow: 0 0 0 1px rgba(184, 92, 255, 0.16), 0 24px 64px rgba(1, 4, 18, 0.46), 0 0 34px rgba(117, 65, 224, 0.14);
-  animation: vaultResultReveal 300ms ease-out both;
+/* The card on its way out. A draw runs for the best part of a second before the
+   new pick lands, and the old one used to sit there at full strength for all of
+   it and then simply become a different game on one frame. Fading it back is
+   the only warning there is that it is about to be replaced, and it gives the
+   arrival something to arrive from. */
+.resultCard[data-drawing="true"] {
+  opacity: 0.36;
+  transform: scale(0.994);
+  transition: opacity 280ms ease, transform 280ms ease;
 }
 
+.resultRevealed {
+  box-shadow: 0 0 0 1px rgba(184, 92, 255, 0.16), 0 24px 64px rgba(1, 4, 18, 0.46), 0 0 34px rgba(117, 65, 224, 0.14);
+  animation: vaultResultReveal 260ms ease-out both;
+}
+
+/* The card fades, its contents lift - and in reading order, so the pick
+   assembles rather than appearing all at once. The card no longer moves itself:
+   with the pieces travelling too it read as two separate animations of the same
+   thing.
+
+   "both" rather than "forwards" because these are delayed. forwards would leave
+   each piece at full opacity through its delay and then blank it the instant the
+   animation started, which is a flicker - the exact thing this is here to
+   remove. */
+.resultRevealed .resultTop { animation: vaultPieceIn 400ms cubic-bezier(0.22, 1, 0.36, 1) 40ms both; }
+.resultRevealed .resultBody { animation: vaultPieceIn 400ms cubic-bezier(0.22, 1, 0.36, 1) 110ms both; }
+.resultRevealed .resultContext { animation: vaultPieceIn 400ms cubic-bezier(0.22, 1, 0.36, 1) 180ms both; }
+
 @keyframes vaultResultReveal {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes vaultPieceIn {
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .resultCard {
     transform: none;
+  }
+
+  .resultCard[data-drawing="true"] {
+    transform: none;
+    transition: opacity 280ms ease;
+  }
+
+  .resultRevealed .resultTop,
+  .resultRevealed .resultBody,
+  .resultRevealed .resultContext {
+    animation: none;
   }
 
   .resultRevealed {

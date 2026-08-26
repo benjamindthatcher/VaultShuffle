@@ -865,7 +865,16 @@ export default function VaultPage() {
       <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
 
       {currentPick ? (
-        <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
+        // Keyed on the pick, so a re-draw replaces the card rather than editing
+        // it in place. Editing meant every line changed on the same frame with
+        // nothing to carry the eye across, which is the flash.
+        <section
+          key={currentPick.id}
+          ref={resultRef}
+          className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`}
+          data-visible={drawState === "revealed"}
+          data-drawing={isDrawing || undefined}
+        >
           {/* Artwork and the name sit side by side rather than stacked, so the
               description fills the room beside the image instead of the card
               spending a whole band on each in turn. */}
