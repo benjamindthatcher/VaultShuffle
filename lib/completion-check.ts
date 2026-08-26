@@ -33,7 +33,16 @@ export type CompletionCandidate = {
 const MIN_CREDIBLE_ESTIMATE_MINUTES = 120;
 
 /** Enough of the estimate to be worth asking about. */
-const FINISHED_RATIO = 0.9;
+/**
+ * How much of the estimated playthrough counts as having seen it through.
+ *
+ * Loosened from 0.9 alongside making the percentage literal. Estimates are an
+ * average of other people's playthroughs, so someone who skips side content
+ * legitimately reaches the credits under the estimate - and being asked "did
+ * you finish this?" about a game you did finish is a much cheaper mistake than
+ * never being asked at all.
+ */
+const FINISHED_RATIO = 0.8;
 
 /**
  * Re-asking after a dismissal needs new evidence, not merely a new day. Time

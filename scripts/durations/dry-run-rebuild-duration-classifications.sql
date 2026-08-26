@@ -102,7 +102,7 @@ with scoped as (
       maximum.top_votes > 0
       and row.votes >= maximum.top_votes * 0.35
       and row.tag in (
-        'competitive', 'esports', 'e-sports', 'online pvp', 'pvp', 'team-based'
+        'competitive', 'esports', 'e-sports', 'online pvp', 'pvp'
       )
     ), false) as has_weighted_competitive_loop_tag,
     coalesce(bool_or(

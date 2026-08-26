@@ -16,7 +16,6 @@ import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
-import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
@@ -326,6 +325,35 @@ export default function PurgePage() {
   const listedGames = reviewView === "reviewed"
     ? reviewedList.map(({ game }) => game)
     : reviewView === "settled" ? settledList.slice(0, 24) : [];
+
+  // Completed is not a Purge outcome any more, so it is filtered out rather than
+  // shown with a badge nothing here can act on.
+  const reviewGroups = reviewView === "reviewed"
+    ? [
+        {
+          id: "active",
+          label: "Active",
+          status: "Active",
+          games: listedGames.filter((game) => game.status !== "Slept" && game.status !== "Completed"),
+          empty: "Nothing you have reviewed is still active."
+        },
+        {
+          id: "slept",
+          label: "Slept",
+          status: "Slept",
+          games: listedGames.filter((game) => game.status === "Slept"),
+          empty: "You have not put anything to sleep yet."
+        }
+      ]
+    : [
+        {
+          id: "settled",
+          label: "Active",
+          status: "Active",
+          games: listedGames,
+          empty: "Every active game has either been flagged or reviewed."
+        }
+      ];
   const selected = new Set(selectedIds.filter((id) => listedGames.some((game) => game.id === id)));
 
   function toggleSelected(gameId: string) {
@@ -364,7 +392,6 @@ export default function PurgePage() {
     ) : null}
     <section className={styles.setupGrid} aria-label="Purge setup">
       <aside className={styles.snapshot} aria-label="Review status">
-        <SectionHeading title="Where things stand" />
         <div className={styles.categoryGrid}>
           {([
             { id: "needs", icon: "ready-to-review", label: "Needs Review", copy: dataReady ? "Waiting on a decision." : "Checking your backlog.", count: dataReady ? purgeStats.ready : "—" },
@@ -382,7 +409,6 @@ export default function PurgePage() {
     </section>
       {reviewView === "needs" ? <>
         <section className={styles.queuePanel}>
-          <SectionHeading title="Review queue" meta={dataReady ? `${candidates.length} to consider` : undefined} />
           {!dataReady ? <div className={styles.queue}>
             <PlaceholderSlots count={4} label="Loading your review queue." />
           </div> : queue.length ? <div className={styles.queue}>
@@ -408,55 +434,59 @@ export default function PurgePage() {
           </div>
         </section> : null}
       </> : <section className={styles.queuePanel}>
-        <SectionHeading
-          title={reviewView === "reviewed" ? "Already decided" : "Nothing flagged"}
-          meta={!dataReady ? undefined : reviewView === "reviewed" ? `${reviewedList.length} reviewed` : `${settledList.length} need no review`}
-        />
-        {listedGames.length ? <div className={styles.bulkBar}>
-          <label className={styles.bulkCheck}>
-            <input
-              type="checkbox"
-              checked={selected.size === listedGames.length && listedGames.length > 0}
-              ref={(node) => { if (node) node.indeterminate = selected.size > 0 && selected.size < listedGames.length; }}
-              onChange={(event) => setSelectedIds(event.target.checked ? listedGames.map((game) => game.id) : [])}
-            />
-            <span>{selected.size ? `${selected.size} selected` : `Select all ${listedGames.length}`}</span>
-          </label>
+        {/* Reviewed splits into what is still active and what is asleep, each with
+            its own select-all. As one list of 200 they were indistinguishable
+            apart from a badge, and "select all" meant both at once. Completed is
+            deliberately absent: finishing a game is not a Purge decision, and it
+            has had its own sweep since it left this page. */}
+        {reviewGroups.map((group) => (
+          <div key={group.id} className={styles.reviewGroup}>
+            <div className={styles.groupHeader}>
+              <span className={styles.groupChip} data-status={group.status}>{group.label}<b>{group.games.length}</b></span>
+              {group.games.length ? (
+                <label className={styles.bulkCheck}>
+                  <input
+                    type="checkbox"
+                    checked={group.games.every((game) => selected.has(game.id))}
+                    ref={(node) => {
+                      if (!node) return;
+                      const chosen = group.games.filter((game) => selected.has(game.id)).length;
+                      node.indeterminate = chosen > 0 && chosen < group.games.length;
+                    }}
+                    onChange={(event) => setSelectedIds((current) => event.target.checked
+                      ? [...new Set([...current, ...group.games.map((game) => game.id)])]
+                      : current.filter((id) => !group.games.some((game) => game.id === id)))}
+                  />
+                  <span>Select all {group.games.length}</span>
+                </label>
+              ) : null}
+            </div>
+
+            {group.games.length ? (
+              <ul className={styles.outcomeGrid}>
+                {group.games.map((game) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
+                  <label className={styles.outcomeCheck}>
+                    <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
+                    <span className="visually-hidden">Select {game.title}</span>
+                  </label>
+                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                  <span className={styles.outcomeName}>{game.title}</span>
+                  <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : "Active"}</span>
+                </li>)}
+              </ul>
+            ) : <p className={styles.emptyNote}>{group.empty}</p>}
+          </div>
+        ))}
+
+        {selected.size ? <div className={styles.bulkBar}>
+          <span className={styles.bulkCheck}>{selected.size} selected</span>
           <button
             type="button"
             className={styles.bulkAction}
-            disabled={!selected.size || flagging}
+            disabled={flagging}
             onClick={() => void flagSelected()}
-          >{flagging ? "Flagging…" : `Flag ${selected.size || ""} for review`.replace("  ", " ")}</button>
+          >{flagging ? "Flagging…" : `Flag ${selected.size} for review`}</button>
         </div> : null}
-
-        {reviewView === "reviewed"
-          ? (reviewedList.length
-            ? <ul className={styles.outcomeGrid}>
-                {reviewedList.map(({ game }) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
-                  <label className={styles.outcomeCheck}>
-                    <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
-                    <span className="visually-hidden">Select {game.title}</span>
-                  </label>
-                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
-                  <span className={styles.outcomeName}>{game.title}</span>
-                  <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : game.status === "Completed" ? "Completed" : "Active"}</span>
-                </li>)}
-              </ul>
-            : <p className={styles.emptyNote}>You have not reviewed anything yet. Start with Needs Review.</p>)
-          : (settledList.length
-            ? <ul className={styles.outcomeGrid}>
-                {settledList.slice(0, 24).map((game) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
-                  <label className={styles.outcomeCheck}>
-                    <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
-                    <span className="visually-hidden">Select {game.title}</span>
-                  </label>
-                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
-                  <span className={styles.outcomeName}>{game.title}</span>
-                  <span className={styles.outcomeBadge} data-action="none">Active</span>
-                </li>)}
-              </ul>
-            : <p className={styles.emptyNote}>Every active game has either been flagged or reviewed.</p>)}
       </section>}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : ""}</span></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}

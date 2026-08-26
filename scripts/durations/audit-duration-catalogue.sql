@@ -7,9 +7,11 @@
 -- Prerequisite: 20260825143500_harden_duration_evidence.sql has been applied.
 -- Keep the policy_acceptable predicate and winner ordering synchronized with
 -- public.reconcile_catalogue_duration(bigint, boolean). The accepted policy is:
---   * a coherent medium/high matched estimate with a provider game ID; and
---   * either HLTB evidence with an accepted validation method/tier pair; or
---   * conservative direct IGDB evidence (5+ submissions, 2+ values, no
+--   * a coherent matched estimate with a provider game ID;
+--   * medium/high confidence, or exact-Steam low-confidence HLTB evidence with
+--     clean completion times and either two submissions or two populated tiers;
+--   * HLTB evidence with an accepted validation method/tier pair, or
+--     conservative direct IGDB evidence (5+ submissions, 2+ values, no
 --     derivative-product title, and no reused provider ID unless that estimate
 --     carries an explicit duplicate-provider validation override).
 -- IGDB parent/title matches remain review evidence and cannot become winners.
@@ -291,7 +293,24 @@ select
   count(*) as matched_rows,
   count(*) filter (where missing_catalogue_game) as orphan_estimates,
   count(*) filter (where provider_game_id is null) as missing_provider_game_id,
-  count(*) filter (where match_confidence not in ('medium', 'high') or match_confidence is null)
+  count(*) filter (
+    where not (
+      match_confidence in ('medium', 'high')
+      or (
+        provider = 'hltb'
+        and match_confidence = 'low'
+        and evidence @> '{"identity_validated": true}'::jsonb
+        and evidence ->> 'verification_method' = 'profile_steam_exact'
+        and evidence ->> 'verification_tier' = 'steam_appid'
+        and evidence ->> 'duration_basis' = 'completion_times'
+        and evidence -> 'duration_issues' = '[]'::jsonb
+        and (
+          coalesce(submission_count, 0) >= 2
+          or value_count >= 2
+        )
+      )
+    )
+  )
     as confidence_not_auto_eligible,
   count(*) filter (where not coalesce(valid_shape, false)) as malformed_shape,
   count(*) filter (where value_count = 0) as all_values_null,
@@ -361,8 +380,26 @@ with matched as (
       case when game.steam_appid is null then 'missing_catalogue_game' end,
       case when estimate.provider_game_id is null then 'missing_provider_game_id' end,
       case
-        when estimate.match_confidence not in ('medium', 'high')
-          or estimate.match_confidence is null
+        when not (
+          estimate.match_confidence in ('medium', 'high')
+          or (
+            estimate.provider = 'hltb'
+            and estimate.match_confidence = 'low'
+            and estimate.evidence @> '{"identity_validated": true}'::jsonb
+            and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
+            and estimate.evidence ->> 'verification_tier' = 'steam_appid'
+            and estimate.evidence ->> 'duration_basis' = 'completion_times'
+            and estimate.evidence -> 'duration_issues' = '[]'::jsonb
+            and (
+              coalesce(estimate.submission_count, 0) >= 2
+              or (
+                (estimate.main_story_minutes is not null)::int
+                + (estimate.main_extra_minutes is not null)::int
+                + (estimate.completionist_minutes is not null)::int
+              ) >= 2
+            )
+          )
+        )
         then 'confidence_not_auto_eligible'
       end,
       case
@@ -799,6 +836,7 @@ with ready_hltb as (
     estimate.provider_game_id as estimate_provider_game_id,
     estimate.match_status,
     estimate.match_confidence,
+    estimate.submission_count as estimate_submission_count,
     estimate.main_story_minutes as estimate_main_story_minutes,
     estimate.main_extra_minutes as estimate_main_extra_minutes,
     estimate.completionist_minutes as estimate_completionist_minutes,
@@ -856,7 +894,25 @@ with ready_hltb as (
         then 'identity_evidence_not_accepted'
       end,
       case
-        when match_confidence not in ('medium', 'high') or match_confidence is null
+        when not (
+          match_confidence in ('medium', 'high')
+          or (
+            match_confidence = 'low'
+            and evidence @> '{"identity_validated": true}'::jsonb
+            and evidence ->> 'verification_method' = 'profile_steam_exact'
+            and evidence ->> 'verification_tier' = 'steam_appid'
+            and evidence ->> 'duration_basis' = 'completion_times'
+            and evidence -> 'duration_issues' = '[]'::jsonb
+            and (
+              coalesce(estimate_submission_count, 0) >= 2
+              or (
+                (estimate_main_story_minutes is not null)::int
+                + (estimate_main_extra_minutes is not null)::int
+                + (estimate_completionist_minutes is not null)::int
+              ) >= 2
+            )
+          )
+        )
         then 'confidence_not_auto_eligible'
       end,
       case
@@ -1113,32 +1169,15 @@ order by issue_code;
 -- 07. Stale or internally inconsistent automatic nonfinite classifications.
 -- These are review candidates, not automatic quarantine decisions. Advertising
 -- is deliberately not used as a non-game signal.
+-- Exact-Steam low-sample HLTB times do not override an affirmative nonfinite
+-- classification; section 03 reports those deliberate protected divergences.
 with acceptable_estimates as (
   select estimate.*
   from public.game_duration_estimates as estimate
   join public.catalog_games as game
     on game.steam_appid = estimate.steam_app_id
   where estimate.match_status = 'matched'
-    and (
-      estimate.match_confidence in ('medium', 'high')
-      or (
-        estimate.provider = 'hltb'
-        and estimate.match_confidence = 'low'
-        and estimate.evidence @> '{"identity_validated": true}'::jsonb
-        and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
-        and estimate.evidence ->> 'verification_tier' = 'steam_appid'
-        and estimate.evidence ->> 'duration_basis' = 'completion_times'
-        and estimate.evidence -> 'duration_issues' = '[]'::jsonb
-        and (
-          coalesce(estimate.submission_count, 0) >= 2
-          or (
-            (estimate.main_story_minutes is not null)::int
-            + (estimate.main_extra_minutes is not null)::int
-            + (estimate.completionist_minutes is not null)::int
-          ) >= 2
-        )
-      )
-    )
+    and estimate.match_confidence in ('medium', 'high')
     and estimate.provider_game_id is not null
     and (
       estimate.main_story_minutes > 0
@@ -1307,7 +1346,7 @@ with acceptable_estimates as (
       maximum.top_votes > 0
       and row.votes >= maximum.top_votes * 0.35
       and row.tag in (
-        'competitive', 'esports', 'e-sports', 'online pvp', 'pvp', 'team-based'
+        'competitive', 'esports', 'e-sports', 'online pvp', 'pvp'
       )
     ), false) as has_weighted_competitive_loop_tag,
     coalesce(bool_or(

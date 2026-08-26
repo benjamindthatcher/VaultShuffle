@@ -126,7 +126,7 @@ const DISTINCTIVE_ONLINE_LOOP_SIGNALS = new Set([
 ]);
 
 const WEIGHTED_COMPETITIVE_SIGNALS = new Set([
-  "competitive", "e-sports", "esports", "online pvp", "pvp", "team-based",
+  "competitive", "e-sports", "esports", "online pvp", "pvp",
 ]);
 
 const DOMINANT_SANDBOX_SIGNALS = new Set([
@@ -184,8 +184,8 @@ export function inferredProgressFromHours(game: GameLike, hours: number) {
   const estimate = estimatedGameHours(game);
   const played = Number(hours || 0);
   if (!played || !estimate) return 0;
-  if (played >= estimate) return 99;
-  return clamp(Math.round((played / estimate) * 100), 0, 99);
+  if (played >= estimate) return 100;
+  return clamp(Math.round((played / estimate) * 100), 0, 100);
 }
 
 export function statusFromGameProgress(game: GameLike, completion: number): GamePayload["status"] {

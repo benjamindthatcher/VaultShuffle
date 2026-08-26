@@ -285,17 +285,25 @@
 .decisions > button:disabled span {
   opacity: 0.42;
 }
-/* Each decision takes the colour of the state it produces, matching the badges
-   the same games wear everywhere else: green for active, purple for asleep,
-   amber for pinned. Three identically purple buttons made the choice look
-   arbitrary when the outcomes are anything but. */
-.decisions > button[data-decision="keep"] { --decision-accent: #62d3af; }
-.decisions > button[data-decision="sleep"] { --decision-accent: #c79bff; }
-.decisions > button[data-decision="pin"] { --decision-accent: #e0a34a; }
+/* The same three fills as the Vault's actions, because they are the same three
+   decisions: green to keep it in play, purple to put it away, amber to keep it
+   to hand. Colouring only the icon left three near-identical buttons whose
+   difference you had to read to see. */
+.decisions > button[data-decision="keep"] { --decision-fill: #2f9e6b; --decision-edge: #43c98c; }
+.decisions > button[data-decision="sleep"] { --decision-fill: #6d4bc7; --decision-edge: #9d7cff; }
+.decisions > button[data-decision="pin"] { --decision-fill: #b5762a; --decision-edge: #e0a34a; }
 
-.decisions > button:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--decision-accent, #ce79ff) 55%, transparent);
-  background-color: color-mix(in srgb, var(--decision-accent, #ce79ff) 12%, transparent);
+.decisions > button[data-decision] {
+  border-color: var(--decision-edge);
+  background: var(--decision-fill);
+  color: #fff;
+}
+
+.decisions > button[data-decision] small { color: rgb(255 255 255 / 78%); }
+
+.decisions > button[data-decision]:hover:not(:disabled) {
+  filter: brightness(1.12);
+  background: var(--decision-fill);
 }
 
 .decisionIcon {
@@ -303,8 +311,7 @@
   width: 40px;
   height: 40px;
   place-items: center;
-  color: var(--decision-accent, #ce79ff);
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--decision-accent, #ce79ff) 30%, transparent));
+  color: #fff;
 }
 .decisions > button:disabled .decisionIcon {
   opacity: 0.72;
@@ -564,4 +571,45 @@
 .outcomeCard[data-selected] {
   border-color: var(--vault-tile-selected-border);
   background: var(--vault-tile-selected-surface);
+}
+
+/* Reviewed, split by what the games are now. Chips match the Library's status
+   tabs, since they name the same three states. */
+.reviewGroup {
+  display: grid;
+  gap: 10px;
+}
+.groupHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.groupChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 14px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 999px;
+  background: var(--vault-well-surface);
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.groupChip b {
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgb(168 85 247 / 22%);
+  font-size: 0.82rem;
+}
+.groupChip[data-status="Active"] { border-color: rgba(98, 211, 175, 0.5); color: #62d3af; }
+.groupChip[data-status="Slept"] { border-color: rgba(157, 111, 255, 0.5); color: #c79bff; }
+
+/* Sticks to the bottom of the viewport: with two groups the action would
+   otherwise be far from whichever one you were ticking. */
+.bulkBar {
+  position: sticky;
+  bottom: 16px;
+  z-index: 5;
 }

@@ -11,7 +11,8 @@ import {
   drawVaultGame,
   getVaultEligibility,
   scoreVaultGame,
-  vaultMatchLabel
+  vaultMatchLabel,
+  MAX_MATCH_INSIGHTS
 } from "./vault.ts";
 import { deriveSessionFits } from "./vault-matching.ts";
 import { UNKNOWN_RECENCY } from "./recency.ts";
@@ -351,11 +352,30 @@ test("every explanation line carries the evidence behind it", () => {
     entry: pool[0], pool, session: "short", mood: "intense", goal: "finish"
   });
 
-  assert.ok(explanation.insights.length >= 3, "a guided draw should give a real case, not one line");
+  assert.ok(explanation.insights.length >= 2, "a guided draw should give a real case, not one line");
+  // Whole rows only: the grid is two across, so an odd count leaves a tile alone.
+  assert.equal(explanation.insights.length % 2, 0);
+  assert.ok(explanation.insights.length <= MAX_MATCH_INSIGHTS);
   for (const insight of explanation.insights) {
     assert.ok(insight.headline.length > 0 && insight.detail.length > 0, "an insight without a detail is just a label again");
     assert.notEqual(insight.headline, insight.detail);
   }
+});
+
+test("rank is not spent on a tile, since the header already carries it", () => {
+  const pool = buildVaultPool({
+    games: [{ ...makeGame(), completionPercent: 40, hoursPlayed: 5 }, makeGame({ id: "other" })],
+    session: "short", mood: "intense", goal: "finish",
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: "short", mood: "intense", goal: "finish"
+  });
+
+  assert.ok(!explanation.insights.some((insight) => insight.kind === "selection"));
+  // Still reported, just in the header rather than as a tile.
+  assert.ok(explanation.rank >= 1);
+  assert.ok(explanation.poolSize >= 1);
 });
 
 test("the lens starts at the whole library and names what was actioned away", () => {

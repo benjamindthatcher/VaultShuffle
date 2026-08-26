@@ -25,3 +25,12 @@ test("a finished game states its completion rather than estimating it", () => {
 test("a game with no progress reads zero rather than blank", () => {
   assert.equal(progressLabel({ status: "Not Started" }), "0%");
 });
+
+test("playing past the estimate reads as complete, not nearly there", () => {
+  // 250 hours into a 27-hour game used to say "99% - the ending is in reach".
+  assert.equal(progressLabel({ status: "In Progress", completionPercent: 100 }), "100%");
+});
+
+test("a game barely started still reads low", () => {
+  assert.equal(progressLabel({ status: "In Progress", completionPercent: 4 }), "4%");
+});

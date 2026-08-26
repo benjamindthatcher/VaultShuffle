@@ -24,11 +24,20 @@ export function getPreferredDurationMinutes(duration?: GameDurationEstimate | nu
   return estimatedTimeToBeatMinutes(duration);
 }
 
+/**
+ * Hours played against the estimated playthrough, taken literally.
+ *
+ * It used to clamp at 99, so someone 250 hours into a 27-hour game was told
+ * they were "99% through - the ending is genuinely in reach". Reaching the
+ * estimate now reads as 100%, which is what the numbers actually say. Whether
+ * the game is finished is a separate question, and a more forgiving one: see
+ * FINISHED_RATIO in lib/completion-check.ts.
+ */
 export function completionFromDuration(hoursPlayed: number, duration?: GameDurationEstimate | null) {
   if (duration?.endless) return 99;
   const estimate = estimatedTimeToBeatMinutes(duration);
   if (!estimate || hoursPlayed <= 0) return 0;
-  return Math.min(99, Math.max(0, Math.round((hoursPlayed * 60 * 100) / estimate)));
+  return Math.min(100, Math.max(0, Math.round((hoursPlayed * 60 * 100) / estimate)));
 }
 
 export function formatDurationEstimate(minutes: number | null) {

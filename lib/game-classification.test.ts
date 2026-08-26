@@ -136,3 +136,16 @@ test("generic competitive tags need meaningful vote share", () => {
     categories: ["Multi-player"]
   }), false);
 });
+
+test("team-based co-op alone is not persisted as endless", () => {
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "Tactical RPG": 1000, "Team-Based": 900, "Co-op": 850 },
+    genres: ["RPG", "Strategy"],
+    categories: ["Multi-player", "Co-op"]
+  }), false);
+  assert.equal(hasCorroboratedOnlineLoop({
+    tags: { "Tactical RPG": 1000, "Team-Based": 900, "Co-op": 850 },
+    genres: ["RPG", "Strategy"],
+    categories: ["Multi-player", "PvP"]
+  }), true);
+});
