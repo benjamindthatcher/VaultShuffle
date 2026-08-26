@@ -71,7 +71,7 @@ type AppDataContextValue = {
   steamImport: SteamImportProgress;
   steamImportChecked: boolean;
   loadError: string | null;
-  refresh: () => Promise<boolean>;
+  refresh: (options?: { quiet?: boolean }) => Promise<boolean>;
   checkSteamImport: () => Promise<SteamImportProgress>;
   syncSteamLibrary: (options?: { restart?: boolean }) => Promise<number>;
   signOut: () => Promise<void>;
@@ -148,8 +148,16 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  async function load() {
-    setIsLoading(true);
+  /**
+   * Re-read everything.
+   *
+   * `quiet` re-reads without announcing it. A page that refreshes after an
+   * action it has already applied locally has nothing to wait for, and raising
+   * isLoading drops it back to its skeletons - so making a Purge decision
+   * blanked the whole page for the length of a round trip and then rebuilt it.
+   */
+  async function load({ quiet = false }: { quiet?: boolean } = {}) {
+    if (!quiet) setIsLoading(true);
     setLoadError(null);
     try {
       const bootstrap = await api<AppBootstrapPayload>("/api/app-data");
@@ -199,7 +207,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } finally {
-      setIsLoading(false);
+      if (!quiet) setIsLoading(false);
     }
   }
 

@@ -154,6 +154,26 @@ test("a game flagged by hand joins the queue even with no evidence against it", 
   assert.match(candidates[0].reason, /You flagged this one for review/);
 });
 
+test("a keep holds for a season, then the game comes round again", () => {
+  const kept = game("kept");
+
+  const stillHeld = buildPurgeCandidates({
+    games: [kept], pinnedIds: [], currentPickId: null, snoozedIds: [],
+    // 60 days before "now".
+    reviews: [review("kept", "keep", "2026-06-14T14:00:00.000Z")],
+    now
+  });
+  assert.deepEqual(stillHeld, [], "a decision two months old should still stand");
+
+  const backAround = buildPurgeCandidates({
+    games: [kept], pinnedIds: [], currentPickId: null, snoozedIds: [],
+    // 120 days before "now".
+    reviews: [review("kept", "keep", "2026-04-15T14:00:00.000Z")],
+    now
+  });
+  assert.deepEqual(backAround.map(({ game }) => game.id), ["kept"], "four months on it is worth asking again");
+});
+
 test("a game waiting on a completion answer is still an active game", () => {
   // Games the completion sweep was about to ask about used to be held out of
   // this queue so the two could not ask about the same game. But "did you finish

@@ -662,9 +662,44 @@
   align-items: center;
   gap: 12px;
 }
-.groupHeader > :first-child { grid-column: 2; }
-.groupHeader > :last-child { grid-column: 3; justify-self: end; }
-.groupHeader > :only-child { grid-column: 2; }
+/* Rows pinned as well as columns: the select-all comes last in the DOM but sits
+   first across, and without a row it wrapped underneath everything else. */
+.groupHeader > :first-child { grid-column: 2; grid-row: 1; }
+.groupHeader > :only-child { grid-column: 2; grid-row: 1; }
+.groupHeader > .bulkCheck { grid-column: 1; grid-row: 1; justify-self: start; }
+.groupHeader > .reviewedSearch { grid-column: 3; grid-row: 1; justify-self: end; width: min(240px, 100%); }
+
+/* Sits in the header row with the tabs and the select-all, and is the reason
+   that row is a three-column grid rather than space-between. */
+.reviewedSearch {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  height: 38px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 999px;
+  background: var(--vault-well-surface);
+  color: var(--vault-text-soft);
+}
+
+.reviewedSearch:focus-within {
+  border-color: var(--vault-control-hover-border);
+}
+
+.reviewedSearch input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--vault-text);
+  font-size: 0.84rem;
+}
+
+.reviewedSearch input::placeholder { color: var(--vault-text-muted); }
+.reviewedSearch input:focus { outline: none; }
+.reviewedSearch svg { flex: 0 0 auto; }
 
 /* The Library's status tabs, to the pixel. Active and Slept name the same
    states in both places and should not be two different controls. */

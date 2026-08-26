@@ -41,6 +41,7 @@ export default function PurgePage() {
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
   const [reviewedTab, setReviewedTab] = useState<"active" | "slept">("active");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [reviewedQuery, setReviewedQuery] = useState("");
   const [flagging, setFlagging] = useState(false);
   const [flaggingId, setFlaggingId] = useState<string | null>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
@@ -243,7 +244,9 @@ export default function PurgePage() {
         pendingGameIdsRef.current.delete(candidate.game.id);
         setQueuedCount((value) => Math.max(0, value - 1));
         if (pendingGameIdsRef.current.size === 0) {
-          await refresh();
+          // Quiet: the decision is already applied locally, so there is nothing
+          // to wait for and no reason to drop the page back to its skeletons.
+          await refresh({ quiet: true });
           setOptimisticPinnedIds([]);
         }
       }
@@ -292,7 +295,7 @@ export default function PurgePage() {
       if (isLive) {
         // The server reverses the action and removes its review atomically.
         await deleteReview(undo.review.id);
-        await refresh();
+        await refresh({ quiet: true });
       } else {
         if (undo.review.action === "pin") {
           await recordVaultAction("unpinned", undo.candidate.game.id);
@@ -355,7 +358,20 @@ export default function PurgePage() {
   // One list at a time, behind the same tabs the Library uses, rather than the
   // two stacked sections this used to be. Reviewed can run to hundreds of games,
   // and stacking meant scrolling past every active one to reach the slept.
-  const activeGroup = reviewGroups.find((group) => group.id === reviewedTab) ?? reviewGroups[0];
+  const foundGroup = reviewGroups.find((group) => group.id === reviewedTab) ?? reviewGroups[0];
+
+  // Searched within the tab, not across both. Two hundred reviewed games is a
+  // lot to scroll for the one you are second-guessing, and the tabs are the
+  // thing that says which list you are looking at.
+  const reviewedSearch = reviewedQuery.trim().toLowerCase();
+  const activeGroup = foundGroup && reviewedSearch
+    ? {
+        ...foundGroup,
+        games: foundGroup.games.filter((game) =>
+          game.title.toLowerCase().includes(reviewedSearch) ||
+          game.genres.join(" ").toLowerCase().includes(reviewedSearch))
+      }
+    : foundGroup;
 
   // Selection is read from the list actually on screen, so the bulk buttons can
   // never claim more than you can see.
@@ -378,7 +394,7 @@ export default function PurgePage() {
       });
       if (!response.ok) throw new Error("Could not flag those games for review.");
       setSelectedIds((current) => current.filter((id) => !gameIds.includes(id)));
-      await refresh();
+      await refresh({ quiet: true });
       return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not flag those games for review.");
@@ -535,6 +551,16 @@ export default function PurgePage() {
               ) : (
                 <span className={styles.groupChip} data-status={activeGroup.status}>{activeGroup.label}<b>{activeGroup.games.length}</b></span>
               )}
+              <label className={styles.reviewedSearch}>
+                <VaultIcon name="search" size={15} />
+                <input
+                  type="search"
+                  value={reviewedQuery}
+                  onChange={(event) => setReviewedQuery(event.target.value)}
+                  placeholder={`Search ${foundGroup?.label.toLowerCase() ?? ""}…`}
+                  aria-label={`Search ${foundGroup?.label ?? ""} games`}
+                />
+              </label>
               {activeGroup.games.length ? (
                 <label className={styles.bulkCheck}>
                   <input
@@ -643,7 +669,7 @@ export default function PurgePage() {
                     </span>
                   </li>)}
                 </ul>
-              ) : <p className={styles.emptyNote}>{activeGroup.empty}</p>}
+              ) : <p className={styles.emptyNote}>{reviewedSearch ? `Nothing in ${foundGroup?.label.toLowerCase() ?? "this list"} matches "${reviewedQuery.trim()}".` : activeGroup.empty}</p>}
             </div>
           </div>
         ) : null}

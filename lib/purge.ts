@@ -60,6 +60,21 @@ export function isReviewSuperseded(action: PurgeReviewAction, status: DemoGame["
 /** How long a started game must have gone untouched before it is worth reviewing. */
 const PURGE_IDLE_DAYS = 180;
 
+/**
+ * How long a "keep" holds before the game can come back round.
+ *
+ * Was the same 180 days as the idle gate, which is longer than it needs to be:
+ * the point is only that the queue should not re-ask about something you have
+ * just answered, and half a year of silence means a game you keep once is a
+ * game you are asked about roughly once a year. Ninety days is long enough that
+ * the queue never feels repetitive, and short enough that a decision you have
+ * changed your mind about comes back within a season.
+ *
+ * It is not the only way back either - flagging one by hand overrides this
+ * entirely.
+ */
+const PURGE_KEEP_COOLDOWN_DAYS = 90;
+
 export function buildPurgeCandidates({
   games,
   pinnedIds,
@@ -86,7 +101,7 @@ export function buildPurgeCandidates({
       .filter(
         (review) =>
           review.action === "keep" &&
-          now.getTime() - Date.parse(review.reviewedAt) < 180 * 86400000
+          now.getTime() - Date.parse(review.reviewedAt) < PURGE_KEEP_COOLDOWN_DAYS * 86400000
       )
       .map((review) => review.gameId)
   );
@@ -107,7 +122,7 @@ export function buildPurgeCandidates({
     //
     // The flag was read further down, to word the reason - but the exclusions
     // above ran first, so a game you had kept was dropped by its own keep before
-    // the flag was ever consulted, for the 180 days that keep stands. Which is
+    // the flag was ever consulted, for the whole time that keep stands. Which is
     // the whole set of games the Reviewed tab offers to flag.
     //
     // It overrides the cooldowns, which exist to stop the queue nagging you
