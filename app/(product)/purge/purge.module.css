@@ -46,6 +46,9 @@
   grid-auto-rows: var(--purge-card-height);
   gap: var(--vault-top-card-gap);
 }
+/* These switch the list below them, and read as three stat panels - flat, with
+   nothing to say they could be pressed. The same raised treatment the Vault's
+   deck tools use: an inset top edge, a shadow under it, and a lift on hover. */
 .category,
 .categorySelected {
   display: grid;
@@ -59,11 +62,44 @@
   background: var(--vault-card-surface);
   color: #fff;
   text-align: left;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.16);
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
+
+.category:hover:not(:disabled),
+.categorySelected:hover:not(:disabled) {
+  border-color: rgba(215, 142, 255, 0.72);
+  background: var(--vault-control-hover-bg);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 12px 28px rgba(111, 45, 211, 0.22);
+  transform: translateY(-1px);
+}
+
+.category:focus-visible,
+.categorySelected:focus-visible {
+  outline: 2px solid rgba(222, 158, 255, 0.86);
+  outline-offset: 3px;
+}
+
+/* Pressed rather than lifted, so the click has somewhere to land. */
+.category:active:not(:disabled),
+.categorySelected:active:not(:disabled) {
+  transform: translateY(1px);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.category:disabled,
+.categorySelected:disabled {
+  cursor: default;
+  opacity: 0.6;
+  box-shadow: none;
+  transform: none;
+}
+
 .categorySelected {
   border-color: var(--vault-tile-selected-border);
   background: var(--vault-tile-selected-surface);
-  box-shadow: var(--vault-tile-selected-shadow);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), var(--vault-tile-selected-shadow);
 }
 .categoryIcon {
   display: grid;
@@ -490,10 +526,13 @@
   align-items: center;
   gap: 6px;
   padding: 4px 9px;
-  border: 1px solid var(--vault-card-border);
+  /* Red, against the green of Active and the purple of Asleep. It is the only
+     thing on the card that changes anything, and as another grey outline beside
+     the status badge it read as a second label rather than a button. */
+  border: 1px solid rgba(255, 122, 122, 0.42);
   border-radius: 999px;
-  background: var(--vault-well-surface);
-  color: var(--vault-text-soft);
+  background: rgba(214, 68, 68, 0.16);
+  color: #ff9d9d;
   font-size: 0.72rem;
   font-weight: 700;
   white-space: nowrap;
@@ -501,12 +540,19 @@
 
 .outcomeFlag:hover:not(:disabled),
 .outcomeFlag:focus-visible:not(:disabled) {
-  border-color: var(--vault-control-hover-border);
-  background: var(--vault-control-hover-bg);
-  color: #fff;
+  border-color: rgba(255, 138, 138, 0.85);
+  background: rgba(226, 74, 74, 0.32);
+  color: #ffe2e2;
 }
 
-.outcomeFlag:disabled { opacity: 0.5; }
+/* Locked for guests, so it drops back to grey. A red control you cannot press
+   is an alarm about nothing. */
+.outcomeFlag:disabled {
+  border-color: var(--vault-card-border);
+  background: transparent;
+  color: var(--vault-text-muted);
+  opacity: 0.75;
+}
 
 .outcomeFlag svg { flex: 0 0 auto; }
 
