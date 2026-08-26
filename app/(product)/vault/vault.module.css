@@ -333,10 +333,6 @@
   display: grid;
   gap: 0;
   overflow: hidden;
-  /* Where a draw scrolls to. Tight to the top: the card is what the draw
-     produced and the point is to see all of it, so the bar above gives up its
-     room rather than the reasoning below giving up theirs. */
-  scroll-margin-top: 20px;
   padding: 0;
   border-color: rgba(155, 106, 255, 0.3);
   background: linear-gradient(135deg, rgba(9, 13, 34, 0.98), rgba(6, 10, 27, 0.95));
@@ -372,8 +368,13 @@
 .resultTop {
   display: grid;
   grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
-  align-items: stretch;
+  /* Centred rather than stretched. Stretching made the artwork as tall as
+     whatever the description happened to be, and since the image keeps its own
+     proportions the extra height was taken out of the picture - which is why
+     Xotic lost the top of its character. */
+  align-items: center;
   gap: 0;
+  padding: 14px 0 4px;
 }
 
 .resultIntro {
@@ -390,10 +391,13 @@
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: 100%;
-  min-height: clamp(150px, 13vw, 200px);
-  align-self: stretch;
-  border-radius: var(--vault-sheet-radius) 0 0 0;
+  /* Steam header art is exactly 460x215, so matching that means the whole image
+     is shown and nothing is cropped. */
+  aspect-ratio: 460 / 215;
+  height: auto;
+  align-self: center;
+  margin: 0 4px 0 14px;
+  border-radius: 12px;
   background: var(--vault-well-surface);
 }
 
