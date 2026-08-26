@@ -33,7 +33,8 @@ import {
   MAX_VAULT_GENRES,
   vaultGoalOptions,
   vaultMoodOptions,
-  vaultSessionOptions
+  vaultSessionOptions,
+  type VaultMatchExplanation
 } from "@/lib/vault";
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -46,6 +47,28 @@ type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
 type VaultSetupStep = "session" | "mood" | "goal";
 type VaultDrawMode = "vault" | "collection";
 type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
+
+/**
+ * The draw that produced the pick on screen, frozen at the moment it landed.
+ *
+ * The result card used to describe the setup as it stood right now, not the one
+ * the draw actually ran with. Editing the genre filters afterwards therefore
+ * rewrote the card underneath you - and usually emptied it, because the pick
+ * would fall out of the newly filtered pool and there was no entry left to
+ * explain. Nothing you change after a draw belongs on the card for that draw;
+ * it belongs on the next one.
+ */
+type DrawSnapshot = {
+  pickId: string;
+  explanation: VaultMatchExplanation | null;
+  reasons: string[];
+  collectionDraw: boolean;
+  collectionName: string | null;
+  session: VaultSessionId | null;
+  mood: VaultMoodId | null;
+  goal: VaultGoalId | null;
+  genres: string[];
+};
 const EMPTY_GAME_IDS: string[] = [];
 
 export default function VaultPage() {
@@ -89,7 +112,7 @@ export default function VaultPage() {
   const [deckPanel, setDeckPanel] = useState<"lens" | "history" | null>(null);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
-  const [lastDrawWasQuick, setLastDrawWasQuick] = useState(false);
+  const [drawSnapshot, setDrawSnapshot] = useState<DrawSnapshot | null>(null);
   const [rerollCount, setRerollCount] = useState(0);
   const [drawArm, setDrawArm] = useState<GenreLearningArm>("control");
   const drawRerollIndexRef = useRef(0);
@@ -199,26 +222,12 @@ export default function VaultPage() {
     game.status !== "Slept" &&
     !snoozedIds.has(game.id)
   ) ?? null;
-  // Explained against the pool the pick actually came from, and only for the
-  // inputs that actually shaped it: a Quick Draw ignores the setup entirely and a
-  // Collection Draw drops session, mood and goal, so claiming credit for them
-  // would be inventing reasoning the draw never used.
-  const currentPickExplanation = useMemo(() => {
-    if (!currentPick) return null;
-    const pool = lastDrawWasQuick ? quickPool : fullPool;
-    const entry = pool.find((candidate) => candidate.game.id === currentPick.id);
-    if (!entry) return null;
-
-    const guided = !lastDrawWasQuick && !collectionMode;
-    return buildVaultMatchExplanation({
-      entry,
-      pool,
-      session: guided ? activeSession : null,
-      mood: guided ? activeMood : null,
-      goal: guided ? activeGoal : null,
-      selectedGenres: guided ? activeGenres : []
-    });
-  }, [activeGenres, activeGoal, activeMood, activeSession, collectionMode, currentPick, fullPool, lastDrawWasQuick, quickPool]);
+  // Taken from the draw that produced this pick rather than recomputed, so the
+  // card keeps describing the draw it belongs to however the setup is edited
+  // afterwards. The id guard covers the pick changing out from under it - being
+  // slept or snoozed - which leaves the snapshot describing a game that is no
+  // longer on screen.
+  const pickDraw = drawSnapshot && currentPick && drawSnapshot.pickId === currentPick.id ? drawSnapshot : null;
 
   const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
   const canDraw = collectionMode
@@ -324,7 +333,6 @@ export default function VaultPage() {
     // has not filled anything in and wants a game anyway.
     if (drawingRef.current || (!quick && !canDraw)) return;
     if (quick && !quickPool.length) return;
-    setLastDrawWasQuick(quick);
     setFeedbackGiven(null);
     if (deferCurrentPick) setRerollCount((count) => count + 1);
     else { setRerollCount(0); setRerollReasonGiven(false); }
@@ -367,6 +375,38 @@ export default function VaultPage() {
     if (!nextPick) return;
     setDrawArm(arm);
     drawnCycleRef.current.add(nextPick.id);
+
+    // Built from the inputs this draw is running with, captured here rather than
+    // read again at render time, when they may have moved on.
+    const describeDraw = (pickId: string): DrawSnapshot => {
+      const explanationPool = quick ? quickPool : fullPool;
+      const entry = explanationPool.find((candidate) => candidate.game.id === pickId) ?? null;
+      // Explained only for the inputs that actually shaped it: a Quick Draw
+      // ignores the setup entirely and a Collection Draw drops session, mood and
+      // goal, so claiming credit for them would be inventing reasoning the draw
+      // never used.
+      const guided = !quick && !collectionMode;
+      return {
+        pickId,
+        explanation: entry
+          ? buildVaultMatchExplanation({
+              entry,
+              pool: explanationPool,
+              session: guided ? activeSession : null,
+              mood: guided ? activeMood : null,
+              goal: guided ? activeGoal : null,
+              selectedGenres: guided ? activeGenres : []
+            })
+          : null,
+        reasons: entry?.reasons ?? [],
+        collectionDraw,
+        collectionName: selectedCollection?.name ?? null,
+        session,
+        mood,
+        goal,
+        genres: selectedGenres
+      };
+    };
 
     drawingRef.current = true;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -416,6 +456,7 @@ export default function VaultPage() {
       setCurrentDrawId(draw.id);
       setHighlightedGameId(nextPick.id);
       setRevealedPickId(nextPick.id);
+      setDrawSnapshot(describeDraw(nextPick.id));
       setDrawState("revealed");
       setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
       trackEvent(ANALYTICS_EVENTS.vaultDrawRequested, {
@@ -780,12 +821,12 @@ export default function VaultPage() {
           </div>
           <div className={styles.resultBody}>
             {(() => {
-              if (currentPickExplanation) return <VaultMatchReasons explanation={currentPickExplanation} />;
+              if (pickDraw?.explanation) return <VaultMatchReasons explanation={pickDraw.explanation} />;
               // A Collection Draw has no session, mood or goal to reason from, so
               // there is nothing to explain - and a heading over an empty row was
               // asking a question the card could not answer. The buttons move up
               // to fill the space, which is right when there is genuinely none.
-              const reasons = fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? [];
+              const reasons = pickDraw?.reasons ?? [];
               if (!reasons.length) return null;
               return (
                 <>
@@ -847,14 +888,14 @@ export default function VaultPage() {
             </div>
           </div>
           <aside className={styles.resultContext} aria-label="Selected setup">
-            {collectionDraw ? <>
-              <ResultSummary icon="collections" label="Collection Draw" value={selectedCollection?.name ?? "Collection"} />
+            {pickDraw?.collectionDraw ? <>
+              <ResultSummary icon="collections" label="Collection Draw" value={pickDraw.collectionName ?? "Collection"} />
               <ResultSummary icon="genre" label="Filters" value="Collection only" />
             </> : <>
-              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.shortLabel ?? "Not selected"} />
-              <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
-              <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
-              <ResultSummary icon="genre" label="Genres" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
+              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === pickDraw?.session)?.shortLabel ?? "Not selected"} />
+              <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === pickDraw?.mood)?.label ?? "Not selected"} />
+              <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === pickDraw?.goal)?.label ?? "Not selected"} />
+              <ResultSummary icon="genre" label="Genres" value={pickDraw?.genres.length ? pickDraw.genres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
             </>}
           </aside>
         </section>
