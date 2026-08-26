@@ -552,12 +552,18 @@ export default function PurgePage() {
               {activeGroup.games.length ? (
                 <ul className={styles.outcomeGrid}>
                   {activeGroup.games.map((game) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
-                    <label className={styles.outcomeCheck}>
-                      <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
-                      <span className="visually-hidden">Select {game.title}</span>
+                    {/* The artwork and the title tick the box. Hitting an 18px
+                        square exactly is a poor way to work down a grid of
+                        thirty, and everything in here that is not the flag
+                        button means the same thing: this one. */}
+                    <label className={styles.outcomeHit}>
+                      <span className={styles.outcomeCheck}>
+                        <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
+                        <span className="visually-hidden">Select {game.title}</span>
+                      </span>
+                      <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                      <span className={styles.outcomeName}>{game.title}</span>
                     </label>
-                    <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
-                    <span className={styles.outcomeName}>{game.title}</span>
                     {/* Flagging one game needed a tick and then a trip to the bar
                         at the bottom of the page. The checkbox is still there for
                         doing several at once; this is for the common case of

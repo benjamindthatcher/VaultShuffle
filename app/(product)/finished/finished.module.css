@@ -24,6 +24,11 @@
 }
 .rowSelected { border-color: rgba(110, 231, 183, 0.5); background: rgba(110, 231, 183, 0.06); }
 /* Sits over the artwork so the whole card reads as one tappable unit. */
+/* display: contents, so the row's artwork, title and price become the tick's hit
+   area without adding a box to the row's own grid. */
+.rowHit { display: contents; cursor: pointer; }
+.row:hover .art, .rowSelected:hover .art { filter: brightness(1.06); }
+
 .tick { position: absolute; top: 14px; left: 14px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(8, 11, 28, 0.72); backdrop-filter: blur(4px); }
 .tick input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
 

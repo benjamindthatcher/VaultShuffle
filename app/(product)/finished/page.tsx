@@ -178,23 +178,28 @@ export default function FinishedPage() {
         <ul className={styles.list}>
           {pending.map((candidate) => (
             <li key={candidate.game.id} className={selected[candidate.game.id] ? styles.rowSelected : styles.row}>
-              <label className={styles.tick}>
-                <input
-                  type="checkbox"
-                  checked={Boolean(selected[candidate.game.id])}
-                  onChange={() => toggle(candidate.game.id)}
-                  disabled={bulkRunning}
-                  aria-label={`Select ${candidate.game.title}`}
-                />
+              {/* Everything but the two buttons ticks the box. Aiming at the
+                  checkbox itself is a poor way to work down a list, and the rest
+                  of the row means the same thing: this one. */}
+              <label className={styles.rowHit}>
+                <span className={styles.tick}>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(selected[candidate.game.id])}
+                    onChange={() => toggle(candidate.game.id)}
+                    disabled={bulkRunning}
+                    aria-label={`Select ${candidate.game.title}`}
+                  />
+                </span>
+                <span className={styles.art}><Artwork src={candidate.game.bannerUrl} sizes="104px" /></span>
+                <span className={styles.body}>
+                  <strong>{candidate.game.title}</strong>
+                  <small>{candidate.reason}</small>
+                </span>
+                <span className={styles.price}>
+                  {candidate.game.isFree || !candidate.game.priceInitial ? "" : formatMoney(Number(candidate.game.priceInitial))}
+                </span>
               </label>
-              <span className={styles.art}><Artwork src={candidate.game.bannerUrl} sizes="104px" /></span>
-              <span className={styles.body}>
-                <strong>{candidate.game.title}</strong>
-                <small>{candidate.reason}</small>
-              </span>
-              <span className={styles.price}>
-                {candidate.game.isFree || !candidate.game.priceInitial ? "" : formatMoney(Number(candidate.game.priceInitial))}
-              </span>
               <span className={styles.actions}>
                 <button
                   type="button"

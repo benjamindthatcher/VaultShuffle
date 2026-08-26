@@ -572,6 +572,15 @@
 }
 /* Over the artwork rather than in the card flow, so ticking one does not change
    the height of the row it sits in. */
+/* display: contents, so it takes the whole card's artwork and title as its hit
+   area without becoming a box in the card's own grid. */
+.outcomeHit {
+  display: contents;
+  cursor: pointer;
+}
+
+.outcomeCard:hover .outcomeArt { filter: brightness(1.06); }
+
 .outcomeCheck {
   position: absolute;
   z-index: 2;
