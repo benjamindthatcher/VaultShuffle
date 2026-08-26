@@ -199,7 +199,11 @@ const loadCachedGuestCatalogue = unstable_cache(
     }));
     return loadGuestGamesByAppId(await selectGuestCatalogueAppIds());
   },
-  ["guest-catalogue-v4"],
+  // What is cached is the mapped games, not the rows, so the key has to move
+  // whenever their shape does - otherwise a deploy that adds a field serves the
+  // old shape for up to an hour and looks like it did not work. v5 adds the
+  // review counts the reasoning panel needs.
+  ["guest-catalogue-v5"],
   { revalidate: 60 * 60, tags: ["guest-catalogue"] }
 );
 
