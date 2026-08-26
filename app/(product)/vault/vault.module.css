@@ -103,6 +103,11 @@
 .drawActionBar {
   position: relative;
   z-index: 2;
+  /* Where a draw scrolls to. The bar is a fixed height and always sits directly
+     above the pick, so aligning it lands the card in the same place every time -
+     which centring on the card cannot, since its height varies with how much
+     reasoning it has. */
+  scroll-margin-top: 30px;
 
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);

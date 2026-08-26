@@ -96,7 +96,6 @@ export default function VaultPage() {
   const drawingRef = useRef(false);
   const drawStageRef = useRef<HTMLElement>(null);
   const resultRef = useRef<HTMLElement>(null);
-  const resultActionsRef = useRef<HTMLDivElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
@@ -276,16 +275,14 @@ export default function VaultPage() {
   // at the same element again afterwards corrects both without fighting itself.
   useEffect(() => {
     if (drawState !== "revealed" || !revealedPickId) return;
-    const target = resultActionsRef.current ?? resultRef.current ?? drawStageRef.current;
+    const target = drawStageRef.current;
     if (!target) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const frame = requestAnimationFrame(() => {
-      // Only if it is not already roughly centred, so a draw made from the right
-      // place does not jiggle.
-      const bounds = target.getBoundingClientRect();
-      const middle = bounds.top + bounds.height / 2;
-      if (Math.abs(middle - window.innerHeight / 2) < 60) return;
-      target.scrollIntoView({ block: "center", behavior: reducedMotion ? "auto" : "smooth" });
+      // Only if it is not already in place, so a draw made from the right spot
+      // does not jiggle.
+      if (Math.abs(target.getBoundingClientRect().top - DRAW_STAGE_OFFSET) < 24) return;
+      target.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
     });
     return () => cancelAnimationFrame(frame);
   }, [drawState, revealedPickId]);
@@ -369,7 +366,7 @@ export default function VaultPage() {
     // simply there by the time you scrolled down to it. The draw bar is the
     // anchor rather than the card itself, so the button that rerolls stays in
     // view alongside whatever it just produced.
-    await scrollToDrawStage(resultActionsRef.current ?? resultRef.current ?? drawStageRef.current, reducedMotion);
+    await scrollToDrawStage(drawStageRef.current, reducedMotion);
     setDrawState("focusing");
 
     // The pick is already decided, so the write does not have to finish before we
@@ -750,7 +747,7 @@ export default function VaultPage() {
                 in the bar directly above this card where it stays visible
                 alongside the pick, completion has its own sweep, and details are
                 a click away on any deck card. */}
-            <div ref={resultActionsRef} className={styles.resultActions}>
+            <div className={styles.resultActions}>
               <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong></span>
               </a>
@@ -910,12 +907,23 @@ function wait(duration: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, duration));
 }
 
+/** The gap left above the draw bar. Matches scroll-margin-top on it. */
+const DRAW_STAGE_OFFSET = 30;
+
+/**
+ * Put the draw bar just under the top of the window; the pick follows directly
+ * beneath it.
+ *
+ * Anchoring the bar rather than centring on the card or its buttons, because
+ * this has to land in the same place every time. Centring is measured from the
+ * middle of the target, so the further the card grows or shrinks - two reasons
+ * or four, a one-line description or two - the further the page scrolls. The
+ * bar is a fixed height and always directly above the pick, so aligning it puts
+ * everything else where it was last time.
+ */
 async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
   if (!element) return;
-  // Centred on the actions row, so the reasoning sits above it and the deck
-  // below. Aligning the top of anything - the bar or the card - put whichever
-  // element was chosen against the ceiling and pushed the rest off the bottom.
-  element.scrollIntoView({ block: "center", behavior: reducedMotion ? "auto" : "smooth" });
+  element.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
   await waitForScrollEnd(reducedMotion);
 }
 
