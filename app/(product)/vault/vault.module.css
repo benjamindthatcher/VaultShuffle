@@ -110,7 +110,9 @@
   scroll-margin-top: 30px;
 
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
+  /* Mode picker, then the deck tools in what used to be dead space, then the
+     draw itself. */
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(270px, 320px);
   align-items: center;
   gap: 14px;
   padding: 14px;
@@ -119,12 +121,21 @@
   background: var(--vault-feature-surface);
 }
 
+/* Two fixed rows, so the toggle sits in the same place whichever mode is on.
+   The second row holds the collection picker in one mode and a line of status
+   text in the other, and letting it size to its contents moved the toggle - and
+   the whole bar - every time you switched. */
 .drawModePicker {
   min-width: 0;
   display: grid;
+  grid-template-rows: auto minmax(52px, auto);
   align-content: center;
   justify-items: start;
   gap: 10px;
+}
+
+.drawModePicker > :last-child {
+  align-self: center;
 }
 
 .drawModePicker .setupStatus {
@@ -220,15 +231,13 @@
   margin-bottom: -6px;
 }
 
-/* The Lens and the history, after the deck rather than before it. */
-.deckFooter {
-  display: grid;
-  gap: 10px;
-  margin-top: 2px;
-}
+
+/* Centred in the bar's middle column. Side by side where there is room, stacked
+   where there is not, so neither has to be squashed to fit. */
 .deckTools {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 10px;
 }
 
