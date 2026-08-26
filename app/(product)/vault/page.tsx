@@ -801,7 +801,7 @@ export default function VaultPage() {
                 onClick={() => setLensOpen((value) => !value)}
               >
                 <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Vault Lens</strong></span>
+                <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
                 <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
               </button>
               <button
@@ -816,7 +816,7 @@ export default function VaultPage() {
                 }}
               >
                 <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Draw History</strong></span>
+                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
                 <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
               </button>
             </div>}

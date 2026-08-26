@@ -222,16 +222,14 @@
   gap: 10px;
 }
 
-/* One line, on the deck heading's own row. As two-line cards they formed a
-   band of their own between the pick and the deck, which is most of what stopped
-   the draw, the pick and the deck sharing a screen. */
 .deckToolButton {
-  min-width: 0;
-  min-height: 38px;
-  display: inline-flex;
+  min-width: 202px;
+  min-height: 58px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 18px;
   align-items: center;
-  gap: 8px;
-  padding: 0 12px;
+  gap: 10px;
+  padding: 8px 11px;
   border: 1px solid var(--vault-card-border);
   border-radius: 11px;
   background: var(--vault-well-surface);
