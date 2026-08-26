@@ -547,10 +547,12 @@
 .resultCopy {
   max-width: 92ch;
   margin: 0;
-  /* Two lines of Steam's synopsis is enough to recognise a game by. */
+  /* Three lines of Steam's synopsis. Two cut most of them mid-sentence, and the
+     artwork beside it is taller than two lines anyway - the room was already
+     there, sitting empty. What follows just moves down with it. */
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   color: var(--vault-text-muted);
