@@ -36,14 +36,24 @@
 
 /* Two segments, not one: what was already played when you pinned it, then what
    you have done since. The second is the part that says whether the pin meant
-   anything, so it is the part that is lit. */
+   anything, so it is the part that is lit - and the notch between them marks
+   where you were standing when you made the promise. */
 .track {
   position: relative;
-  height: 4px;
-  margin-top: 5px;
-  overflow: hidden;
+  height: 7px;
+  margin-top: 7px;
   border-radius: 999px;
-  background: rgba(122, 96, 189, 0.26);
+  background: rgba(12, 9, 30, 0.72);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(150, 120, 235, 0.18);
+}
+
+/* The fills are clipped to the track; the notch is not, so it can stand a little
+   proud of it. */
+.fill {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
 }
 
 .trackBefore,
@@ -51,12 +61,44 @@
   position: absolute;
   top: 0;
   bottom: 0;
+  border-radius: 999px;
+  transform-origin: left center;
+  animation: pinBarGrow 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.trackBefore { left: 0; background: rgba(170, 138, 240, 0.55); }
-.trackSince { background: linear-gradient(90deg, #57d6a0, #7ce7b2); }
-/* Progress since pinning is the payoff, so it reads as a win once it exists. */
-.item[data-started="yes"] .body small { color: #7ce7b2; font-weight: 650; }
+.trackBefore {
+  left: 0;
+  background: linear-gradient(90deg, rgba(126, 96, 205, 0.72), rgba(163, 130, 245, 0.82));
+}
+
+/* Lit, and glowing a little, because this is the part you earned. */
+.trackSince {
+  background: linear-gradient(90deg, #4ecf97, #8bf0bd);
+  box-shadow: 0 0 9px rgba(124, 231, 178, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  animation-delay: 120ms;
+}
+
+/* Where the bar was when the pin was made. */
+.notch {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 999px;
+  background: rgba(236, 220, 255, 0.9);
+  box-shadow: 0 0 6px rgba(190, 150, 255, 0.7);
+}
+
+@keyframes pinBarGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trackBefore,
+  .trackSince { animation: none; }
+}
 
 @media (max-width: 720px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 460px) { .list { grid-template-columns: 1fr; } }

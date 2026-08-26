@@ -86,10 +86,17 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
                         ? `${bar.percent}% through`
                         : `${bar.percent}% through, ${bar.percent - bar.atPin}% of it since pinning`}
                     >
-                      <span className={styles.trackBefore} style={{ width: `${bar.atPin ?? bar.percent}%` }} />
-                      {bar.atPin === null ? null : (
-                        <span className={styles.trackSince} style={{ left: `${bar.atPin}%`, width: `${bar.percent - bar.atPin}%` }} />
-                      )}
+                      <span className={styles.fill}>
+                        <span className={styles.trackBefore} style={{ width: `${bar.atPin ?? bar.percent}%` }} />
+                        {bar.atPin === null ? null : (
+                          <span className={styles.trackSince} style={{ left: `${bar.atPin}%`, width: `${bar.percent - bar.atPin}%` }} />
+                        )}
+                      </span>
+                      {/* Only worth marking once there is something on each side
+                          of it. At 0% it is a tick against an empty bar. */}
+                      {bar.atPin !== null && bar.atPin > 0 && bar.percent > bar.atPin ? (
+                        <span className={styles.notch} style={{ left: `${bar.atPin}%` }} />
+                      ) : null}
                     </span>
                   ) : null}
                 </span>
