@@ -702,3 +702,17 @@
 .feedbackOn { border-color: transparent; background: var(--vault-success); color: #06231e; }
 .feedbackButton:disabled { opacity: 0.4; }
 .feedbackThanks { color: var(--vault-success); font-size: 0.76rem; font-weight: 700; }
+
+/* The playthrough estimate, beside the game rather than squeezed onto the end
+   of the summary bar where it truncated to "ESTIMATED PLAYTHROUG". */
+.resultDuration {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 0;
+  color: var(--vault-text-muted);
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+.resultDuration svg { color: var(--accent-bright, #a855f7); }
+.resultDuration span { font-weight: 500; opacity: 0.8; }

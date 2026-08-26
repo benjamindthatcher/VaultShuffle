@@ -689,6 +689,16 @@ export default function VaultPage() {
             <div className={styles.resultIntro}>
               <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
               <p className={styles.resultCopy}>{currentPick.description}</p>
+              {/* Sat on the summary bar until it ran out of room and truncated
+                  to "ESTIMATED PLAYTHROUG". It reads better next to the game it
+                  describes, in space that was going spare. */}
+              {formatGameDuration(currentPick.duration) ? (
+                <p className={styles.resultDuration}>
+                  <VaultIcon name="clock" size={15} />
+                  {formatGameDuration(currentPick.duration)}
+                  {currentPick.hoursPlayed > 0 ? <span>· {currentPick.hoursPlayed}h played</span> : null}
+                </p>
+              ) : null}
             </div>
           </div>
           <div className={styles.resultBody}>
@@ -769,7 +779,6 @@ export default function VaultPage() {
               <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
               <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
             </>}
-            {formatGameDuration(currentPick.duration) ? <ResultSummary icon="clock" label="Estimated playthrough" value={formatGameDuration(currentPick.duration)!} /> : null}
           </aside>
         </section>
       ) : null}
