@@ -389,7 +389,7 @@
   background: linear-gradient(135deg, rgba(9, 13, 34, 0.98), rgba(6, 10, 27, 0.95));
 }
 
-.resultHeading { display: flex; align-items: center; gap: 12px; color: #d17cff; }
+.resultHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: #d17cff; }
 .reasonLabel { margin: 6px 0 -2px; color: #d392ff; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
 /* Content-sized rather than four equal columns. Equal columns gave "Mood
    Intense" the same width as a list of three genres, so the short ones sat in
@@ -467,22 +467,20 @@
 }
 
 .currentPickBadge {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  z-index: 2;
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  padding: 7px 10px;
+  gap: 6px;
+  padding: 5px 9px;
   border: 1px solid var(--vault-border-strong);
   border-radius: 6px;
   background: rgba(51, 24, 88, 0.88);
   color: #e7a4ff;
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 750;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .resultArtwork img {
@@ -494,10 +492,10 @@
   object-position: center;
 }
 
-.resultArtwork .currentPickBadge svg {
+.currentPickBadge svg {
   flex: 0 0 auto;
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 
 /* Sized so the draw bar, the pick and its reasoning are on screen together.

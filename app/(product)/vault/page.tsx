@@ -802,10 +802,15 @@ export default function VaultPage() {
           <div className={styles.resultTop}>
             <div className={styles.resultArtwork}>
               <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 36vw" priority fit="cover" />
-              <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
             </div>
             <div className={styles.resultIntro}>
-              <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
+              {/* Beside the name rather than over the artwork, where it was covering the
+                  part of the header art the game chose to put its title on. */}
+              <div className={styles.resultHeading}>
+                <h2 className={styles.resultTitle}>{currentPick.title}</h2>
+                <VaultIcon name="new" size={22} />
+                <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={16} />Current pick</span>
+              </div>
               <p className={styles.resultCopy}>{currentPick.description}</p>
               {/* Sat on the summary bar until it ran out of room and truncated
                   to "ESTIMATED PLAYTHROUG". It reads better next to the game it
