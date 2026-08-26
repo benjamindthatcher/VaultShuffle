@@ -96,6 +96,21 @@ export default function VaultPage() {
     return () => window.clearTimeout(timer);
   }, [pinMessage]);
   const [completionUndo, setCompletionUndo] = useState<{ id: string; title: string } | null>(null);
+
+  // The undo toasts had no timer at all, so they sat on the corner of the screen
+  // until you dismissed them by hand. Longer than the pin message because there
+  // is something to decide here, but still a window rather than a fixture.
+  useEffect(() => {
+    if (!sleepUndo) return;
+    const timer = window.setTimeout(() => setSleepUndo(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [sleepUndo]);
+
+  useEffect(() => {
+    if (!completionUndo) return;
+    const timer = window.setTimeout(() => setCompletionUndo(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [completionUndo]);
   const [drawState, setDrawState] = useState<VaultDrawState>("idle");
   const [genresOpen, setGenresOpen] = useState(false);
   // What the rail focuses on, set when the draw starts so the animation knows

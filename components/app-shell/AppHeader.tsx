@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
@@ -22,7 +22,6 @@ type AppHeaderProps = {
 
 export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const { session, isLive, isLoading, isSyncing, syncSteamLibrary, signOut, deviceMode, setDeviceMode } = useAppData();
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
@@ -49,9 +48,10 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
     };
   }, []);
 
+  // Stays on the page you asked from. The import card reports progress from the
+  // shell now, so there is nothing on the Dashboard that you had to be taken to.
   function handleSync() {
     if (profileMenuRef.current) profileMenuRef.current.open = false;
-    router.push("/dashboard");
     void syncSteamLibrary().catch(() => undefined);
   }
 

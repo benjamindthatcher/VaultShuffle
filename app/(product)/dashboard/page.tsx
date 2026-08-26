@@ -4,11 +4,9 @@ import { featureAvailable } from "@/lib/steam-capabilities";
 import { useMemo } from "react";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
-import { SteamImportProgressCard } from "@/components/dashboard/SteamImportProgressCard";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
-import { ShareCard } from "@/components/stats/ShareCard";
 import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
 import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
@@ -19,11 +17,12 @@ import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/
 import { PageHeading } from "@/components/shared/PageHeading";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
-  const { games, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities } = useAppData();
+  const { games, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction } = useAppData();
   const enrichmentNotice = useLibraryEnrichmentNotice();
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
@@ -118,8 +117,6 @@ export default function DashboardPage() {
     <div className={styles.page}>
       <h1 className="visually-hidden">Dashboard</h1>
 
-      <SteamImportProgressCard />
-
       {awaitingFirstLibrary ? null : (
         <>
           {/* The only place in the app that carries these. Everywhere else is
@@ -141,6 +138,17 @@ export default function DashboardPage() {
             libraryValue={formatMoney(stats.libraryValueCents, stats.currency)}
             completedGames={stats.completedGames}
             totalGames={stats.totalGames}
+          />
+
+          {/* Straight under the banner, above the numbers. What you said you
+              would play next is the one thing here you might act on; the rest
+              is the state of the library, which keeps. */}
+          <PinnedCommitments
+            games={games}
+            pins={vaultState.pins ?? []}
+            pinnedIds={vaultState.pinnedIds}
+            onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
+            compact
           />
 
           <StatPanel label="Backlog summary" columns={5}>
@@ -182,8 +190,6 @@ export default function DashboardPage() {
               </ol>
             </section>
           ) : null}
-
-          <ShareCard />
 
           <section className={styles.section}>
             <SectionHeading title="Recently finished" />

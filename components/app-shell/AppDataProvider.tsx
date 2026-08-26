@@ -132,6 +132,22 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [loadError, setLoadError] = useState<string | null>(null);
   const syncPromiseRef = useRef<Promise<number> | null>(null);
 
+  /**
+   * Send a write that the screen has already acted on.
+   *
+   * Every one of these is applied locally first, so the caller does not wait and
+   * neither does the person who pressed the button. What the caller gives up is
+   * being told it worked - so if it did not, the page is put back to whatever
+   * the server actually holds rather than left showing a change that never
+   * happened.
+   */
+  function queueWrite(request: Promise<unknown>) {
+    void request.catch(() => {
+      setLoadError("That change could not be saved. Your library has been put back to what is stored.");
+      void load();
+    });
+  }
+
   async function load() {
     setIsLoading(true);
     setLoadError(null);
@@ -412,7 +428,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }
   ) {
     if (isLive) {
-      await api(`/api/games/${gameId}`, {
+      // The change lands before the request goes out. Sleeping a game used to
+      // wait on a round trip to Supabase, which is a quarter of a second of a
+      // menu sitting there doing nothing after you pressed it - and the local
+      // transform is the same one that was going to be applied afterwards
+      // anyway, so applying it first costs nothing and changes nothing.
+      setLiveGames((current) => current.map((game) => game.id === gameId
+        ? applyGamePatch(game, patch, liveGameSummary(game))
+        : game));
+      if (patch.status === "Completed" || patch.status === "Slept") {
+        setLiveVaultState((current) => ({
+          ...current,
+          pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
+          currentPickId: current.currentPickId === gameId ? null : current.currentPickId
+        }));
+      }
+      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status });
+
+      queueWrite(api(`/api/games/${gameId}`, {
         method: "PATCH",
         body: JSON.stringify({
           status: patch.status,
@@ -425,18 +458,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           completion_suggestion_dismissed_at: patch.completionSuggestionDismissedAt,
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
-      });
-      setLiveGames((current) => current.map((game) => game.id === gameId
-        ? applyGamePatch(game, patch, liveGameSummary(game))
-        : game));
-      if (patch.status === "Completed" || patch.status === "Slept") {
-        setLiveVaultState((current) => ({
-          ...current,
-          pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
-          currentPickId: current.currentPickId === gameId ? null : current.currentPickId
-        }));
-      }
-      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status });
+      }));
       return;
     }
 
@@ -531,13 +553,20 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
     if (isLive) {
-      const nextState = await api<VaultState>("/api/vault/state", {
-        method: "POST",
-        body: JSON.stringify({ action, game_id: gameId, context })
-      });
-      setLiveVaultState(nextState);
+      // Predicted locally so the pin appears under the cursor, then replaced by
+      // the server's own answer when it arrives. The two agree in every ordinary
+      // case; where they do not, the server wins.
+      const pinnedGame = liveGames.find((game) => game.id === gameId);
+      setLiveVaultState((current) => predictVaultState(current, action, gameId, context, pinnedGame?.hoursPlayed ?? null));
       const liveEvent = VAULT_ACTION_EVENT_NAMES[action];
       if (liveEvent) trackEvent(liveEvent, { action });
+
+      queueWrite(
+        api<VaultState>("/api/vault/state", {
+          method: "POST",
+          body: JSON.stringify({ action, game_id: gameId, context })
+        }).then(setLiveVaultState)
+      );
       return;
     }
 
@@ -712,6 +741,34 @@ function restoreActiveGame(game: DemoGame): DemoGame {
     completedAt: null,
     sleptAt: null,
     previousActiveStatus: null
+  };
+}
+
+/**
+ * What the vault state will be once the server agrees, applied before asking it.
+ *
+ * Pins that already existed keep their pinnedAt and hoursAtPin: those are what
+ * "3.2h played since you pinned it" is measured from, and rebuilding them from
+ * the id list alone would blank that line for the length of the round trip. A
+ * new pin is stamped with the playtime it has now, which is what the server
+ * records too, so the label reads "Not started yet" from the first frame.
+ */
+function predictVaultState(
+  state: VaultState,
+  action: VaultAction,
+  gameId: string,
+  context: Record<string, unknown>,
+  hoursNow: number | null
+): VaultState {
+  const next = reduceGuestVaultState(state, action, gameId, context);
+  const existing = new Map((state.pins ?? []).map((pin) => [pin.gameId, pin]));
+  return {
+    ...next,
+    pins: next.pinnedIds.map((id) => existing.get(id) ?? {
+      gameId: id,
+      pinnedAt: new Date().toISOString(),
+      hoursAtPin: id === gameId ? hoursNow : null
+    })
   };
 }
 

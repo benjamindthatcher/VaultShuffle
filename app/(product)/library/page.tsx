@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CompletionCelebration } from "@/components/library/CompletionCelebration";
-import { pinProgress, pinProgressLabel } from "@/components/shared/PinnedCommitments";
+import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
@@ -13,7 +13,6 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { EMPTY_LIBRARY_FILTERS, availableGenres, matchesLibraryFilters, type LibraryFilters } from "@/lib/library-filters";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { Artwork } from "@/components/shared/Artwork";
-import { GameCard } from "@/components/shared/GameCard";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { recencySortKey } from "@/lib/recency";
@@ -187,19 +186,21 @@ export default function LibraryPage() {
 
 
 
-      {pinnedGames.length ? <div className={styles.pinnedShelf}>
-        <div className={styles.pinnedHeader}><h2>Pinned Games <span>{pinnedGames.length}/3</span></h2><div className={styles.slotDots} role="img" aria-label={`${pinnedGames.length} of 3 pins used`}>{[0,1,2].map((slot) => <span key={slot} data-filled={slot < pinnedGames.length} />)}</div></div>
-        <div className={styles.pinnedGrid} aria-label="Pinned games">{pinnedGames.map((game, index) => {
-          const pin = (vaultState.pins ?? []).find((entry) => entry.gameId === game.id);
-          const progress = pinProgress(game, pin);
-          const sincePinned = progress?.started ? pinProgressLabel(game, pin) : null;
-          return <div key={game.id} className={styles.pinnedCard}>
-            <GameCard game={game} onClick={() => openGame(game.id, "pinned")} onUnpin={() => void togglePin(game)} pinned showProgress />
-            <span className={styles.pinBadge}>⌖ {index + 1}</span>
-            {sincePinned ? <span className={styles.pinProgress}>{sincePinned}</span> : null}
-          </div>;
-        })}{Array.from({ length: Math.max(0, 3 - pinnedGames.length) }, (_, index) => <div key={`empty-${index}`} className={styles.emptyPin}>Empty slot</div>)}</div>
-      </div> : null}
+      {/* The same shelf the Vault and the Dashboard use. This page had its own,
+          built from the full library card, which stretched to the height of the
+          empty slots beside it and left a hole between the title and the stats
+          line. */}
+      <PinnedCommitments
+        games={games}
+        pins={vaultState.pins ?? []}
+        pinnedIds={vaultState.pinnedIds}
+        onSelect={(gameId) => openGame(gameId, "pinned")}
+        onUnpin={(gameId) => {
+          const game = games.find((entry) => entry.id === gameId);
+          if (game) void togglePin(game);
+        }}
+        compact
+      />
 
       {celebratingGame ? (
         <CompletionCelebration

@@ -2,9 +2,9 @@
 
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { AppDataProvider, useAppData } from "@/components/app-shell/AppDataProvider";
 import { AppHeader } from "@/components/app-shell/AppHeader";
+import { SteamImportProgressCard } from "@/components/dashboard/SteamImportProgressCard";
 import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import styles from "@/app/(product)/shell.module.css";
 
@@ -36,7 +36,6 @@ function AppShellContent({
   headerVariant,
   waitForAppData
 }: Required<AppShellProps>) {
-  const router = useRouter();
   const {
     loadError,
     isLoading,
@@ -55,8 +54,9 @@ function AppShellContent({
     if (!isLoading) setBootComplete(true);
   }, [isLoading]);
 
+  // No navigation. Progress is reported wherever you are now, so being moved to
+  // the Dashboard to watch it was taking the page away for no reason.
   function retrySteamImport() {
-    router.push("/dashboard");
     void syncSteamLibrary().catch(() => undefined);
   }
 
@@ -90,6 +90,10 @@ function AppShellContent({
         </div>
       ) : null}
       <main className={styles.appContent}>
+        {/* Inside the content column so it keeps the width it had on the
+            Dashboard, and on every page so a sync can be watched from wherever
+            it was started. It renders nothing unless an import is running. */}
+        {holdInitialContent ? null : <SteamImportProgressCard />}
         {holdInitialContent ? null : children}
       </main>
     </div>
