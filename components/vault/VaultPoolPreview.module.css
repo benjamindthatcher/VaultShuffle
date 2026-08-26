@@ -1,11 +1,14 @@
-/* Pulled back by exactly the room the rail now leaves for the drawn card's
-   ring, so the deck still starts where it did under the heading and the gap
-   above the progress track is unchanged. */
+/* Pulled back by the room the rail leaves for the drawn card's ring, plus the
+   transparent border below, so the cards and the track sit flush with the draw
+   bar above rather than a pixel inside it. */
 .railWrap {
   position: relative;
   min-width: 0;
-  margin: -12px -4px 0;
-  padding-bottom: 10px;
+  margin: -12px -5px 0;
+  /* The rail's own bottom padding already stands the cards 12px clear, so this
+     only has to clear the track itself - it used to add a second gap on top of
+     that and left the track floating well below the deck. */
+  padding-bottom: 2px;
   isolation: isolate;
   overflow: hidden;
   border: 1px solid transparent;
@@ -359,11 +362,14 @@
 .arrowLeft { left: -12px; }
 .arrowRight { right: -12px; }
 
+/* Inset by the room the rail leaves for the drawn card's ring, so the track
+   starts and ends level with the cards rather than 4px proud of them at each
+   end. */
 .progressTrack {
   position: absolute;
-  right: 0;
+  right: 4px;
   bottom: 2px;
-  left: 0;
+  left: 4px;
   height: 4px;
   overflow: hidden;
   border-radius: 999px;
