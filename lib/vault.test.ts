@@ -144,6 +144,33 @@ test("caps the deck and rotates a rerolled game behind replacements", () => {
   assert.ok(rotated.some((entry) => entry.game.id === `game-${MAX_VAULT_DECK_SIZE}`));
 });
 
+test("rerolling keeps feeding fresh games into the deck", () => {
+  // The deck is a window on the pool, not the pool. Rerolling has to push the
+  // game you rejected behind everything else, or the window never moves and the
+  // same 64 come round again while a few hundred eligible games never get a
+  // turn.
+  const pool = Array.from({ length: MAX_VAULT_DECK_SIZE * 3 }, (_, index) => ({
+    game: makeGame({ id: `game-${index}`, title: `Game ${String(index).padStart(3, "0")}` }),
+    score: 1000 - index,
+    preferencePoints: 0,
+    appealPoints: 0,
+    reasons: []
+  }));
+
+  const rejected: string[] = [];
+  const seen = new Set<string>();
+  const draws = MAX_VAULT_DECK_SIZE + 40;
+
+  for (let draw = 0; draw < draws; draw += 1) {
+    const top = buildVaultDeck(pool, rejected)[0].game.id;
+    seen.add(top);
+    rejected.push(top);
+  }
+
+  assert.equal(seen.size, draws, "a reroll should never resurface a game already rejected");
+  assert.ok(seen.has(`game-${MAX_VAULT_DECK_SIZE + 10}`), "games from beyond the first deck should get a turn");
+});
+
 test("quick draw can reach every game in the pool, not just the top slice", () => {
   const pool = ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"].map((id) => ({
     game: { ...makeGame(), id, title: id },

@@ -622,7 +622,12 @@ export default function VaultPage() {
 
   function handlePrimaryDrawAction() {
     if (canDraw) {
-      void handleOpenVault();
+      // Drawing over a pick is a reroll, and a rerolled pick goes to the back of
+      // the whole pool rather than staying in the deck. Nothing passed this, so
+      // the deck was the same top 64 every time: once all 64 had been drawn the
+      // cycle reset and the first ones came straight back, with the other few
+      // hundred eligible games never getting a turn.
+      void handleOpenVault({ deferCurrentPick: Boolean(currentPick) });
       return;
     }
     if (collectionMode) {
