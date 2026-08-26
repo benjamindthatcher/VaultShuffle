@@ -550,12 +550,20 @@
   align-items: center;
   gap: 7px;
   padding: 8px 14px;
-  border: 1px solid var(--vault-tile-selected-border);
+  /* The same red as the per-card flag. It is the same action, on more games. */
+  border: 1px solid rgba(255, 122, 122, 0.5);
   border-radius: 10px;
-  background: var(--vault-tile-selected-surface);
-  color: #fff;
+  background: rgba(214, 68, 68, 0.24);
+  color: #ffdcdc;
   font-size: 0.84rem;
-  font-weight: 600;
+  font-weight: 700;
+}
+
+.bulkAction:hover:not(:disabled),
+.bulkAction:focus-visible:not(:disabled) {
+  border-color: rgba(255, 138, 138, 0.9);
+  background: rgba(226, 74, 74, 0.4);
+  color: #fff;
 }
 .bulkAction:disabled {
   border-color: var(--vault-card-border);
@@ -669,10 +677,12 @@
 .groupChip[data-status="Active"] { border-color: rgba(98, 211, 175, 0.5); color: #62d3af; }
 .groupChip[data-status="Slept"] { border-color: rgba(157, 111, 255, 0.5); color: #c79bff; }
 
-/* Sticks to the bottom of the viewport: with two groups the action would
-   otherwise be far from whichever one you were ticking. */
+/* Sticks to the top, under the header it belongs to, so it stays reachable
+   while you scroll the grid picking things out. It used to stick to the bottom,
+   from when there were two groups stacked on the page and neither end was
+   nearer than the other. */
 .bulkBar {
   position: sticky;
-  bottom: 16px;
+  top: 12px;
   z-index: 5;
 }

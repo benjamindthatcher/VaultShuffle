@@ -531,6 +531,23 @@ export default function PurgePage() {
               <SignInLock feature="purge_flag">Flagging a game back into the review queue keeps it there between visits, so it needs a library to keep it in.</SignInLock>
             ) : null}
 
+            {/* Directly under the select-all that fills it. At the foot of the
+                grid it meant ticking "select all 31" at the top and then
+                scrolling past all 31 to find the button that acts on them. */}
+            {selected.size ? <div className={styles.bulkBar}>
+              <span className={styles.bulkCheck}>{selected.size} selected</span>
+              <button
+                type="button"
+                className={styles.bulkAction}
+                disabled={!isLive || flagging}
+                title={isLive ? undefined : "Flagging needs a signed-in library."}
+                onClick={() => void flagSelected()}
+              >
+                {!isLive ? <VaultIcon name="lock" size={15} /> : null}
+                {flagging ? "Flagging…" : `Flag ${selected.size} for review`}
+              </button>
+            </div> : null}
+
             <div role="tabpanel" aria-label={`${activeGroup.label} games`}>
               {activeGroup.games.length ? (
                 <ul className={styles.outcomeGrid}>
@@ -566,19 +583,6 @@ export default function PurgePage() {
           </div>
         ) : null}
 
-        {selected.size ? <div className={styles.bulkBar}>
-          <span className={styles.bulkCheck}>{selected.size} selected</span>
-          <button
-            type="button"
-            className={styles.bulkAction}
-            disabled={!isLive || flagging}
-            title={isLive ? undefined : "Flagging needs a signed-in library."}
-            onClick={() => void flagSelected()}
-          >
-            {!isLive ? <VaultIcon name="lock" size={15} /> : null}
-            {flagging ? "Flagging…" : `Flag ${selected.size} for review`}
-          </button>
-        </div> : null}
       </section>}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : ""}</span></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
