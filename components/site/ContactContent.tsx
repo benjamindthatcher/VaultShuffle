@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useFeedback } from "@/components/feedback/FeedbackProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
@@ -17,7 +17,13 @@ const enquiryTypes = [
 ] as const;
 
 export function ContactContent() {
-  const formStartedAt = useRef(Date.now());
+  // Stamped on mount rather than during render. Date.now() in a render body is
+  // a side effect, and it ran on every render even though only the first was
+  // ever used.
+  const formStartedAt = useRef(0);
+  useEffect(() => {
+    formStartedAt.current = Date.now();
+  }, []);
   const { openFeedback } = useFeedback();
   const [enquiryType, setEnquiryType] = useState("account");
   const [email, setEmail] = useState("");

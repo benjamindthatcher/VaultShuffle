@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMounted } from "@/components/shared/useIsMounted";
 import { progressLabel } from "@/lib/progress-display";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -29,17 +30,19 @@ type LibraryDetailsDrawerProps = {
 };
 
 export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore, onSleep, previewMode = false }: LibraryDetailsDrawerProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   const [notes, setNotes] = useState("");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
   const drawerRef = useRef<HTMLElement>(null);
 
-  useEffect(() => {
-    if (!game) return;
+  // Adjusted during render rather than in an effect, so opening a second game
+  // never paints the previous game's notes for a frame first.
+  const [notesFor, setNotesFor] = useState(game?.id ?? null);
+  if (game && game.id !== notesFor) {
+    setNotesFor(game.id);
     setNotes(game.notes || "");
-  }, [game]);
+  }
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!game) return;

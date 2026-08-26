@@ -216,6 +216,10 @@ test("job completion requires a hardened post-trigger catalogue resolution", () 
   assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) >= 2/);
   assert.match(jobSection, /estimate\.provider = 'igdb'[\s\S]*estimate\.match_confidence = 'low'/);
   assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) between 2 and 4/);
+  assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) = 1/);
+  assert.match(jobSection, /coalesce\(game\.review_total, 0\) >= 100/);
+  assert.match(jobSection, /'story rich', 'campaign', 'visual novel'/);
+  assert.match(jobSection, /'sandbox', 'open world survival craft', 'colony sim'/);
   assert.doesNotMatch(jobSection, /'igdb-parent'|'igdb-title'/);
   assert.match(jobSection, /game\.duration_manual_override/);
   assert.match(jobSection, /hardened\.steam_app_id is not null/);

@@ -11,7 +11,10 @@
 --   * medium/high confidence, or exact-Steam low-confidence HLTB evidence with
 --     clean completion times and either two submissions or two populated tiers;
 --   * direct low-confidence IGDB evidence only with 2-4 submissions, at least
---     two coherent tiers, a primary title and no reused provider identity;
+--     two coherent tiers, a primary title and no reused provider identity, or
+--     one submission only when all three tightly bounded tiers describe a
+--     popular, Steam-corroborated single-player story with no multiplayer or
+--     sandbox signals;
 --   * HLTB evidence with an accepted validation method/tier pair, or
 --     conservative direct IGDB evidence (5+ submissions, 2+ values, no
 --     derivative-product title, and no reused provider ID unless that estimate
@@ -215,6 +218,60 @@ with matched as (
         '(^|[^a-z0-9])(demo|playtest|prologue|alpha|beta|soundtrack|server|content[ -]?pack)([^a-z0-9]|$)',
       false
     ) as derivative_product_title,
+    coalesce(
+      estimate.provider = 'igdb'
+      and estimate.match_confidence = 'low'
+      and coalesce(estimate.submission_count, 0) = 1
+      and estimate.main_story_minutes between 30 and 30000
+      and estimate.main_extra_minutes
+        between estimate.main_story_minutes and 30000
+      and estimate.completionist_minutes
+        between estimate.main_extra_minutes and 30000
+      and estimate.main_extra_minutes::bigint
+        <= estimate.main_story_minutes::bigint * 4
+      and estimate.completionist_minutes::bigint
+        <= estimate.main_extra_minutes::bigint * 3
+      and estimate.completionist_minutes::bigint
+        <= estimate.main_story_minutes::bigint * 6
+      and lower(btrim(coalesce(game.steam_type, ''))) = 'game'
+      and coalesce(game.review_total, 0) >= 100
+      and exists (
+        select 1
+        from unnest(coalesce(game.categories, array[]::text[]))
+          as category(value)
+        where lower(btrim(category.value)) in (
+          'single-player', 'single player'
+        )
+      )
+      and not exists (
+        select 1
+        from unnest(coalesce(game.categories, array[]::text[]))
+          as category(value)
+        where lower(btrim(category.value)) in (
+          'multi-player', 'multiplayer', 'online co-op', 'co-op',
+          'mmo', 'pvp', 'online pvp'
+        )
+      )
+      and exists (
+        select 1
+        from pg_catalog.jsonb_object_keys(coalesce(game.tags, '{}'::jsonb))
+          as tag(value)
+        where lower(btrim(tag.value)) in (
+          'story rich', 'campaign', 'visual novel', 'multiple endings',
+          'choices matter', 'narrative', 'linear'
+        )
+      )
+      and not exists (
+        select 1
+        from pg_catalog.jsonb_object_keys(coalesce(game.tags, '{}'::jsonb))
+          as tag(value)
+        where lower(btrim(tag.value)) in (
+          'sandbox', 'open world survival craft', 'colony sim', 'life sim',
+          'city builder', 'god game', 'automation'
+        )
+      ),
+      false
+    ) as strict_story_igdb,
     estimate.provider = 'igdb'
       and not (
         estimate.evidence @>
@@ -275,6 +332,7 @@ with matched as (
             )::bigint * 12
           )
         )
+        or matched.strict_story_igdb
       )
       and matched.provider_game_id is not null
       and matched.valid_shape
@@ -354,6 +412,7 @@ select
             < coalesce(main_story_minutes, main_extra_minutes)::bigint * 12
         )
       )
+      or strict_story_igdb
     )
   )
     as confidence_not_auto_eligible,
@@ -420,6 +479,7 @@ select
           or completionist_minutes::bigint
             < coalesce(main_story_minutes, main_extra_minutes)::bigint * 12
         )
+        or strict_story_igdb
       )
   ) as igdb_below_five_submissions,
   count(*) filter (
@@ -487,6 +547,7 @@ with matched as (
               )::bigint * 12
             )
           )
+          or policy.strict_story_igdb
         )
         then 'confidence_not_auto_eligible'
       end,
@@ -572,6 +633,7 @@ with matched as (
                 estimate.main_extra_minutes
               )::bigint * 12
             )
+            or policy.strict_story_igdb
           )
         then 'igdb_below_five_submissions'
       end,
@@ -618,6 +680,62 @@ with matched as (
   from public.game_duration_estimates as estimate
   left join public.catalog_games as game
     on game.steam_appid = estimate.steam_app_id
+  cross join lateral (
+    select coalesce(
+      estimate.provider = 'igdb'
+      and estimate.match_confidence = 'low'
+      and coalesce(estimate.submission_count, 0) = 1
+      and estimate.main_story_minutes between 30 and 30000
+      and estimate.main_extra_minutes
+        between estimate.main_story_minutes and 30000
+      and estimate.completionist_minutes
+        between estimate.main_extra_minutes and 30000
+      and estimate.main_extra_minutes::bigint
+        <= estimate.main_story_minutes::bigint * 4
+      and estimate.completionist_minutes::bigint
+        <= estimate.main_extra_minutes::bigint * 3
+      and estimate.completionist_minutes::bigint
+        <= estimate.main_story_minutes::bigint * 6
+      and lower(btrim(coalesce(game.steam_type, ''))) = 'game'
+      and coalesce(game.review_total, 0) >= 100
+      and exists (
+        select 1
+        from unnest(coalesce(game.categories, array[]::text[]))
+          as category(value)
+        where lower(btrim(category.value)) in (
+          'single-player', 'single player'
+        )
+      )
+      and not exists (
+        select 1
+        from unnest(coalesce(game.categories, array[]::text[]))
+          as category(value)
+        where lower(btrim(category.value)) in (
+          'multi-player', 'multiplayer', 'online co-op', 'co-op',
+          'mmo', 'pvp', 'online pvp'
+        )
+      )
+      and exists (
+        select 1
+        from pg_catalog.jsonb_object_keys(coalesce(game.tags, '{}'::jsonb))
+          as tag(value)
+        where lower(btrim(tag.value)) in (
+          'story rich', 'campaign', 'visual novel', 'multiple endings',
+          'choices matter', 'narrative', 'linear'
+        )
+      )
+      and not exists (
+        select 1
+        from pg_catalog.jsonb_object_keys(coalesce(game.tags, '{}'::jsonb))
+          as tag(value)
+        where lower(btrim(tag.value)) in (
+          'sandbox', 'open world survival craft', 'colony sim', 'life sim',
+          'city builder', 'god game', 'automation'
+        )
+      ),
+      false
+    ) as strict_story_igdb
+  ) as policy
   where estimate.match_status = 'matched'
 )
 select
@@ -692,6 +810,59 @@ with acceptable_estimates as (
             estimate.main_story_minutes,
             estimate.main_extra_minutes
           )::bigint * 12
+        )
+      )
+      or (
+        estimate.provider = 'igdb'
+        and estimate.match_confidence = 'low'
+        and coalesce(estimate.submission_count, 0) = 1
+        and estimate.main_story_minutes between 30 and 30000
+        and estimate.main_extra_minutes
+          between estimate.main_story_minutes and 30000
+        and estimate.completionist_minutes
+          between estimate.main_extra_minutes and 30000
+        and estimate.main_extra_minutes::bigint
+          <= estimate.main_story_minutes::bigint * 4
+        and estimate.completionist_minutes::bigint
+          <= estimate.main_extra_minutes::bigint * 3
+        and estimate.completionist_minutes::bigint
+          <= estimate.main_story_minutes::bigint * 6
+        and lower(btrim(coalesce(game.steam_type, ''))) = 'game'
+        and coalesce(game.review_total, 0) >= 100
+        and exists (
+          select 1
+          from unnest(coalesce(game.categories, array[]::text[]))
+            as category(value)
+          where lower(btrim(category.value)) in (
+            'single-player', 'single player'
+          )
+        )
+        and not exists (
+          select 1
+          from unnest(coalesce(game.categories, array[]::text[]))
+            as category(value)
+          where lower(btrim(category.value)) in (
+            'multi-player', 'multiplayer', 'online co-op', 'co-op',
+            'mmo', 'pvp', 'online pvp'
+          )
+        )
+        and exists (
+          select 1
+          from pg_catalog.jsonb_object_keys(coalesce(game.tags, '{}'::jsonb))
+            as tag(value)
+          where lower(btrim(tag.value)) in (
+            'story rich', 'campaign', 'visual novel', 'multiple endings',
+            'choices matter', 'narrative', 'linear'
+          )
+        )
+        and not exists (
+          select 1
+          from pg_catalog.jsonb_object_keys(coalesce(game.tags, '{}'::jsonb))
+            as tag(value)
+          where lower(btrim(tag.value)) in (
+            'sandbox', 'open world survival craft', 'colony sim', 'life sim',
+            'city builder', 'god game', 'automation'
+          )
         )
       )
     )

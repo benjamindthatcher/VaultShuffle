@@ -60,7 +60,13 @@ export function FeedbackProvider({ children }: { children: ReactNode }) {
 }
 
 function FeedbackModal({ initialType, source, route, onClose }: { initialType: FeedbackType; source: string; route: string; onClose: () => void }) {
-  const formStartedAt = useRef(Date.now());
+  // Stamped on mount rather than during render. Date.now() in a render body is
+  // a side effect, and it ran on every render even though only the first was
+  // ever used.
+  const formStartedAt = useRef(0);
+  useEffect(() => {
+    formStartedAt.current = Date.now();
+  }, []);
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);

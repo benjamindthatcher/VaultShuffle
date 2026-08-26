@@ -258,6 +258,12 @@ export default function VaultPage() {
         : !deck.length
           ? "No games match this setup. Try loosening the optional filters."
           : "All three choices are ready. Open the Vault when you are ready.";
+  // Derived from state, not from drawingRef. A ref read during render does not
+  // re-render when it changes, so the buttons only happened to disable because
+  // setDrawState fired at roughly the same moment. drawingRef stays as the
+  // re-entrancy guard inside the handler, which is what it is for.
+  const isDrawing = drawState === "focusing" || drawState === "revealing";
+
   const closeGuestSignInPrompt = useCallback(() => setGuestSignInOpen(false), []);
 
   // Settle the scroll once the pick is actually on the page.
@@ -658,10 +664,10 @@ export default function VaultPage() {
           )}
         </div>
         <div className={styles.drawActionControl}>
-          <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={drawingRef.current || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={drawingRef.current} aria-describedby="vault-setup-status">
+          <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={isDrawing || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={isDrawing} aria-describedby="vault-setup-status">
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
           </button>
-          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={drawingRef.current || !quickPool.length}>
+          <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={isDrawing || !quickPool.length}>
             <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
           </button>
         </div>

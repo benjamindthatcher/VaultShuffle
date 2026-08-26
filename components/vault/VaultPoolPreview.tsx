@@ -32,7 +32,6 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
   const progressThumbRef = useRef<HTMLSpanElement>(null);
   const programmaticScrollRef = useRef(false);
   const onUserScrollRef = useRef(onUserScroll);
-  onUserScrollRef.current = onUserScroll;
   const isDrawing = drawState === "focusing" || drawState === "revealing";
 
   useEffect(() => {
@@ -127,10 +126,23 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
   // animation, which is where the dropped frames came from. The card is memoised
   // and takes only primitives and these stable callbacks, so a phase change now
   // re-renders the one or two cards whose own state actually changed.
-  const onSelectRef = useRef(onSelect); onSelectRef.current = onSelect;
-  const onPinRef = useRef(onPin); onPinRef.current = onPin;
-  const onSleepRef = useRef(onSleep); onSleepRef.current = onSleep;
-  const onCompleteRef = useRef(onComplete); onCompleteRef.current = onComplete;
+  const onSelectRef = useRef(onSelect);
+  const onPinRef = useRef(onPin);
+  const onSleepRef = useRef(onSleep);
+  const onCompleteRef = useRef(onComplete);
+
+  // Assigned after the render rather than during it. Writing a ref while
+  // rendering is a side effect: React may render a component without committing
+  // it, which would leave these pointing at callbacks from a render that never
+  // reached the screen. Every one of them is only ever called from an event
+  // handler, so the commit is always in place first.
+  useEffect(() => {
+    onUserScrollRef.current = onUserScroll;
+    onSelectRef.current = onSelect;
+    onPinRef.current = onPin;
+    onSleepRef.current = onSleep;
+    onCompleteRef.current = onComplete;
+  });
 
   const handleSelect = useCallback((gameId: string) => onSelectRef.current?.(gameId), []);
   const handlePin = useCallback((gameId: string) => onPinRef.current?.(gameId), []);

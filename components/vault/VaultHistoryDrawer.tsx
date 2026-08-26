@@ -1,4 +1,5 @@
 "use client";
+import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
@@ -17,8 +18,8 @@ type Props = {
 };
 
 export function VaultHistoryDrawer({ open, draws, games, onClose, onClear, onViewDetails }: Props) {
-  const [mounted, setMounted] = useState(false); const [selected, setSelected] = useState<VaultDraw | null>(null); const panelRef = useRef<HTMLElement>(null);
-  useEffect(() => setMounted(true), []);
+  const mounted = useIsMounted();
+  const [selected, setSelected] = useState<VaultDraw | null>(null); const panelRef = useRef<HTMLElement>(null);
   useEffect(() => { if (!open) { setSelected(null); return; } const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null; const overflow = document.body.style.overflow; document.body.style.overflow = "hidden"; requestAnimationFrame(() => panelRef.current?.focus()); const key = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); if (event.key === "Tab" && panelRef.current) { const focusable = [...panelRef.current.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),select,input,[tabindex]:not([tabindex="-1"])')]; if (!focusable.length) { event.preventDefault(); return; } const first = focusable[0], last = focusable.at(-1)!; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); } } }; document.addEventListener("keydown", key); return () => { document.removeEventListener("keydown", key); document.body.style.overflow = overflow; previous?.focus(); }; }, [onClose, open]);
   if (!mounted || !open) return null;
   const game = selected ? games.find((item) => item.steamAppId === selected.steamAppId) ?? null : null;

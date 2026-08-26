@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { gameArtworkFallback } from "@/lib/vaultshuffle-assets";
 
 type ArtworkProps = {
@@ -44,11 +44,16 @@ export function Artwork({
   fit = "cover"
 }: ArtworkProps) {
   const placeholder = fallbackSrc ?? gameArtworkFallback(src || alt);
-  const [resolvedSrc, setResolvedSrc] = useState(src || placeholder);
-
-  useEffect(() => {
-    setResolvedSrc(src || placeholder);
-  }, [placeholder, src]);
+  // Tracked during render rather than in an effect. Through an effect the
+  // component painted the previous game's artwork for a frame before swapping,
+  // which is exactly the flicker you notice on a fast reroll.
+  const wanted = src || placeholder;
+  const [resolvedSrc, setResolvedSrc] = useState(wanted);
+  const [lastWanted, setLastWanted] = useState(wanted);
+  if (wanted !== lastWanted) {
+    setLastWanted(wanted);
+    setResolvedSrc(wanted);
+  }
 
   return (
     <Image

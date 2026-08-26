@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useIsMounted } from "@/components/shared/useIsMounted";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
@@ -14,10 +15,9 @@ type GuestSignInPromptProps = {
 };
 
 export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "personal_progress" }: GuestSignInPromptProps) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   const shownTrackedRef = useRef(false);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted || !open) return;

@@ -512,6 +512,61 @@ function hardenedFiniteCatalogueCte() {
           )::bigint * 12
         )
       )
+      or (
+        estimate.provider = 'igdb'
+        and estimate.match_confidence = 'low'
+        and coalesce(estimate.submission_count, 0) = 1
+        and estimate.main_story_minutes between 30 and 30000
+        and estimate.main_extra_minutes
+          between estimate.main_story_minutes and 30000
+        and estimate.completionist_minutes
+          between estimate.main_extra_minutes and 30000
+        and estimate.main_extra_minutes::bigint
+          <= estimate.main_story_minutes::bigint * 4
+        and estimate.completionist_minutes::bigint
+          <= estimate.main_extra_minutes::bigint * 3
+        and estimate.completionist_minutes::bigint
+          <= estimate.main_story_minutes::bigint * 6
+        and lower(btrim(coalesce(game.steam_type, ''))) = 'game'
+        and coalesce(game.review_total, 0) >= 100
+        and exists (
+          select 1
+          from unnest(coalesce(game.categories, array[]::text[]))
+            as category(value)
+          where lower(btrim(category.value)) in (
+            'single-player', 'single player'
+          )
+        )
+        and not exists (
+          select 1
+          from unnest(coalesce(game.categories, array[]::text[]))
+            as category(value)
+          where lower(btrim(category.value)) in (
+            'multi-player', 'multiplayer', 'online co-op', 'co-op',
+            'mmo', 'pvp', 'online pvp'
+          )
+        )
+        and exists (
+          select 1
+          from pg_catalog.jsonb_object_keys(
+            coalesce(game.tags, '{}'::jsonb)
+          ) as tag(value)
+          where lower(btrim(tag.value)) in (
+            'story rich', 'campaign', 'visual novel', 'multiple endings',
+            'choices matter', 'narrative', 'linear'
+          )
+        )
+        and not exists (
+          select 1
+          from pg_catalog.jsonb_object_keys(
+            coalesce(game.tags, '{}'::jsonb)
+          ) as tag(value)
+          where lower(btrim(tag.value)) in (
+            'sandbox', 'open world survival craft', 'colony sim',
+            'life sim', 'city builder', 'god game', 'automation'
+          )
+        )
+      )
     )
     and estimate.provider_game_id is not null
     and (estimate.main_story_minutes > 0 or estimate.main_extra_minutes > 0 or estimate.completionist_minutes > 0)

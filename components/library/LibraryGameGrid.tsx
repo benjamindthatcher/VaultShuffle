@@ -36,10 +36,16 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
 
   // A new filter or sort is a new list, so start from the top again rather than
   // keeping however far the previous one had been scrolled through.
+  //
+  // Adjusted during render rather than in an effect: React re-runs this pass
+  // immediately with the new value, so the grid never paints the old count and
+  // there is no flash of the previous list's length.
   const signature = useMemo(() => `${games.length}:${games[0]?.id ?? ""}:${viewMode}`, [games, viewMode]);
-  useEffect(() => {
+  const [lastSignature, setLastSignature] = useState(signature);
+  if (signature !== lastSignature) {
+    setLastSignature(signature);
     setRenderCount(INITIAL_RENDER_COUNT);
-  }, [signature]);
+  }
 
   const visible = games.length <= renderCount ? games : games.slice(0, renderCount);
   const hasMore = visible.length < games.length;

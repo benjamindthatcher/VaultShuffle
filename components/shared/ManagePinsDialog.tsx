@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DemoGame } from "@/lib/demo-data";
@@ -18,13 +19,12 @@ type Props = {
 };
 
 export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "Library", shelfDescription = "Pinned Active games stay at the front of your Library.", onRemove, onReplace, onClose }: Props) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!mounted) return;

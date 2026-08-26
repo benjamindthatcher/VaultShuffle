@@ -1,5 +1,6 @@
 "use client";
 
+import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useEffect, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { COOLDOWN_EVENT, type CooldownNotice } from "@/lib/cooldown";
@@ -29,11 +30,10 @@ function formatRemaining(totalSeconds: number) {
 }
 
 export function CooldownProvider({ children }: { children: ReactNode }) {
-  const [mounted, setMounted] = useState(false);
+  const mounted = useIsMounted();
   const [cooldown, setCooldown] = useState<ActiveCooldown | null>(null);
   const [now, setNow] = useState(0);
 
-  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     function onCooldown(event: Event) {

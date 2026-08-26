@@ -1,7 +1,7 @@
 "use client";
 
 import { featureAvailable } from "@/lib/steam-capabilities";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
@@ -43,12 +43,13 @@ export default function CollectionsPage() {
 
   const ownedGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
 
-  useEffect(() => {
-    if (!baseCollections.length) return;
-    if (!selectedCollectionId || !baseCollections.some((collection) => collection.id === selectedCollectionId)) {
-      setSelectedCollectionId(baseCollections[0].id);
-    }
-  }, [baseCollections, selectedCollectionId]);
+  // Falling back to the first shelf is a derivation, not an effect: through an
+  // effect the page rendered once with nothing selected before correcting
+  // itself, which is a visible flash of the empty state.
+  if (baseCollections.length
+    && (!selectedCollectionId || !baseCollections.some((collection) => collection.id === selectedCollectionId))) {
+    setSelectedCollectionId(baseCollections[0].id);
+  }
 
   const collectionGameMap = useMemo(
     () =>
