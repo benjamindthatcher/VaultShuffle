@@ -353,9 +353,10 @@ test("every explanation line carries the evidence behind it", () => {
   });
 
   assert.ok(explanation.insights.length >= 2, "a guided draw should give a real case, not one line");
-  // Whole rows only: the grid is two across, so an odd count leaves a tile alone.
-  assert.equal(explanation.insights.length % 2, 0);
+  // Six or four where the evidence allows, and never trimmed below four - a
+  // full row is worth having, a lost reason is not worth paying for it.
   assert.ok(explanation.insights.length <= MAX_MATCH_INSIGHTS);
+  assert.ok([2, 3, 4, MAX_MATCH_INSIGHTS].includes(explanation.insights.length));
   for (const insight of explanation.insights) {
     assert.ok(insight.headline.length > 0 && insight.detail.length > 0, "an insight without a detail is just a label again");
     assert.notEqual(insight.headline, insight.detail);
@@ -496,4 +497,18 @@ test("shaping reorders within a session but cannot outrank the term", () => {
 
   assert.ok(pickUp.score > sitDown.score, "a pick-up-and-play game should win a short session");
   assert.ok(pickUp.score <= 100);
+});
+
+test("reasons land on four or six where the evidence allows, and are never cut below four", () => {
+  const shape = (count: number) => {
+    const insights = Array.from({ length: count }, (_, i) => ({ kind: "session", strength: "good", headline: `h${i}`, detail: `d${i}` }));
+    // Mirrors the trimming rule in buildVaultMatchExplanation.
+    return count >= MAX_MATCH_INSIGHTS ? MAX_MATCH_INSIGHTS : count >= 4 ? 4 : insights.length;
+  };
+  assert.equal(shape(7), 6);
+  assert.equal(shape(6), 6);
+  assert.equal(shape(5), 4);
+  assert.equal(shape(4), 4);
+  assert.equal(shape(3), 3, "three good reasons are better than two tidy ones");
+  assert.equal(shape(2), 2);
 });

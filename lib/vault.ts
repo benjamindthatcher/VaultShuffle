@@ -788,11 +788,14 @@ export function buildVaultMatchExplanation({
     });
   }
 
-  // Whole rows only, six at most. The grid is two across, so an odd count left a
-  // single tile alone on the last row looking like something had failed to load,
-  // and the weakest reason is worth less than losing that.
+  // Six or four, whichever the evidence supports. The grid is two across, so an
+  // odd count leaves a tile alone on the last row - but only trim down to a full
+  // row, never below four. Cutting three good reasons to two buys tidiness with
+  // something the player would actually have wanted to read.
   const shown = insights.slice(0, MAX_MATCH_INSIGHTS);
-  const wholeRows = shown.length >= 2 ? shown.length - (shown.length % 2) : shown.length;
+  const wholeRows = shown.length >= MAX_MATCH_INSIGHTS
+    ? MAX_MATCH_INSIGHTS
+    : shown.length >= 4 ? 4 : shown.length;
 
   return {
     score: entry.score,
