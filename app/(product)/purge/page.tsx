@@ -39,6 +39,7 @@ export default function PurgePage() {
   const { games, vaultState, isLive, isLoading, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
+  const [reviewedTab, setReviewedTab] = useState<"active" | "slept">("active");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [flagging, setFlagging] = useState(false);
   const [selectedOffset, setSelectedOffset] = useState(0);
@@ -354,7 +355,14 @@ export default function PurgePage() {
           empty: "Every active game has either been flagged or reviewed."
         }
       ];
-  const selected = new Set(selectedIds.filter((id) => listedGames.some((game) => game.id === id)));
+  // One list at a time, behind the same tabs the Library uses, rather than the
+  // two stacked sections this used to be. Reviewed can run to hundreds of games,
+  // and stacking meant scrolling past every active one to reach the slept.
+  const activeGroup = reviewGroups.find((group) => group.id === reviewedTab) ?? reviewGroups[0];
+
+  // Selection is read from the list actually on screen, so the bulk buttons can
+  // never claim more than you can see.
+  const selected = new Set(selectedIds.filter((id) => activeGroup?.games.some((game) => game.id === id)));
 
   function toggleSelected(gameId: string) {
     setSelectedIds((current) => current.includes(gameId)
@@ -434,49 +442,69 @@ export default function PurgePage() {
           </div>
         </section> : null}
       </> : <section className={styles.queuePanel}>
-        {/* Reviewed splits into what is still active and what is asleep, each with
-            its own select-all. As one list of 200 they were indistinguishable
-            apart from a badge, and "select all" meant both at once. Completed is
+        {/* Reviewed splits into what is still active and what is asleep, behind
+            the same tabs the Library uses. As one list of 200 they were
+            indistinguishable apart from a badge, and stacked as two sections you
+            scrolled past every active game to reach the slept. Completed is
             deliberately absent: finishing a game is not a Purge decision, and it
             has had its own sweep since it left this page. */}
-        {reviewGroups.map((group) => (
-          <div key={group.id} className={styles.reviewGroup}>
+        {activeGroup ? (
+          <div className={styles.reviewGroup}>
             <div className={styles.groupHeader}>
-              <span className={styles.groupChip} data-status={group.status}>{group.label}<b>{group.games.length}</b></span>
-              {group.games.length ? (
+              {reviewGroups.length > 1 ? (
+                <div className={styles.statusTabs} role="tablist" aria-label="Reviewed games">
+                  {reviewGroups.map((group) => (
+                    <button
+                      key={group.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={group.id === activeGroup.id}
+                      className={group.id === activeGroup.id ? styles.statusTabActive : styles.statusTab}
+                      onClick={() => setReviewedTab(group.id as "active" | "slept")}
+                    >
+                      <span>{group.label}</span><strong>{group.games.length}</strong>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <span className={styles.groupChip} data-status={activeGroup.status}>{activeGroup.label}<b>{activeGroup.games.length}</b></span>
+              )}
+              {activeGroup.games.length ? (
                 <label className={styles.bulkCheck}>
                   <input
                     type="checkbox"
-                    checked={group.games.every((game) => selected.has(game.id))}
+                    checked={activeGroup.games.every((game) => selected.has(game.id))}
                     ref={(node) => {
                       if (!node) return;
-                      const chosen = group.games.filter((game) => selected.has(game.id)).length;
-                      node.indeterminate = chosen > 0 && chosen < group.games.length;
+                      const chosen = activeGroup.games.filter((game) => selected.has(game.id)).length;
+                      node.indeterminate = chosen > 0 && chosen < activeGroup.games.length;
                     }}
                     onChange={(event) => setSelectedIds((current) => event.target.checked
-                      ? [...new Set([...current, ...group.games.map((game) => game.id)])]
-                      : current.filter((id) => !group.games.some((game) => game.id === id)))}
+                      ? [...new Set([...current, ...activeGroup.games.map((game) => game.id)])]
+                      : current.filter((id) => !activeGroup.games.some((game) => game.id === id)))}
                   />
-                  <span>Select all {group.games.length}</span>
+                  <span>Select all {activeGroup.games.length}</span>
                 </label>
               ) : null}
             </div>
 
-            {group.games.length ? (
-              <ul className={styles.outcomeGrid}>
-                {group.games.map((game) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
-                  <label className={styles.outcomeCheck}>
-                    <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
-                    <span className="visually-hidden">Select {game.title}</span>
-                  </label>
-                  <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
-                  <span className={styles.outcomeName}>{game.title}</span>
-                  <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : "Active"}</span>
-                </li>)}
-              </ul>
-            ) : <p className={styles.emptyNote}>{group.empty}</p>}
+            <div role="tabpanel" aria-label={`${activeGroup.label} games`}>
+              {activeGroup.games.length ? (
+                <ul className={styles.outcomeGrid}>
+                  {activeGroup.games.map((game) => <li key={game.id} className={styles.outcomeCard} data-selected={selected.has(game.id) || undefined}>
+                    <label className={styles.outcomeCheck}>
+                      <input type="checkbox" checked={selected.has(game.id)} onChange={() => toggleSelected(game.id)} />
+                      <span className="visually-hidden">Select {game.title}</span>
+                    </label>
+                    <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                    <span className={styles.outcomeName}>{game.title}</span>
+                    <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : "Active"}</span>
+                  </li>)}
+                </ul>
+              ) : <p className={styles.emptyNote}>{activeGroup.empty}</p>}
+            </div>
           </div>
-        ))}
+        ) : null}
 
         {selected.size ? <div className={styles.bulkBar}>
           <span className={styles.bulkCheck}>{selected.size} selected</span>

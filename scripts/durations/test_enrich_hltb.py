@@ -2,6 +2,7 @@
 
 import importlib.util
 from io import StringIO
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import TestCase, main
