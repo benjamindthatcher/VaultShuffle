@@ -211,14 +211,24 @@
   gap: 12px;
 }
 
+/* The heading sits right on top of the deck it names. With the tools gone from
+   this row there is nothing between the two, so the gap that used to hold them
+   apart was just distance. */
 .poolControls {
   display: grid;
-  grid-template-rows: auto auto;
-  gap: 8px;
+  gap: 4px;
+  margin-bottom: -6px;
+}
+
+/* The Lens and the history, after the deck rather than before it. */
+.deckFooter {
+  display: grid;
+  gap: 10px;
+  margin-top: 2px;
 }
 .deckTools {
-  margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
 }
 

@@ -791,38 +791,8 @@ export default function VaultPage() {
           <SectionHeading
             title="Vault deck"
             meta={`${deck.length}${fullPool.length > deck.length ? ` of ${fullPool.length}` : ""} matches`}
-            action={<div className={styles.deckTools}>
-              <button
-                type="button"
-                className={styles.deckToolButton}
-                data-active={lensOpen || undefined}
-                aria-expanded={lensOpen}
-                aria-controls="vault-lens-panel"
-                onClick={() => setLensOpen((value) => !value)}
-              >
-                <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
-                <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
-              </button>
-              <button
-                type="button"
-                className={styles.deckToolButton}
-                aria-expanded={historyOpen}
-                aria-haspopup="dialog"
-                onClick={() => {
-                  setHistoryOpen(true);
-                  void loadVaultHistory();
-                  trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened, { preview_mode: !isLive });
-                }}
-              >
-                <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
-                <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
-              </button>
-            </div>}
           />
 
-          {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
 
           {/* The setup pills that used to sit here restated session, mood and goal,
               which the pick's own summary bar shows directly above. What is worth
@@ -856,6 +826,41 @@ export default function VaultPage() {
           </div>
         )}
 
+        {/* Below the deck, not above it: these explain and revisit a deck the
+            player has already been shown, so they belong after it rather than
+            between the pick and the games. */}
+        <div className={styles.deckFooter}>
+          <div className={styles.deckTools}>
+              <button
+                type="button"
+                className={styles.deckToolButton}
+                data-active={lensOpen || undefined}
+                aria-expanded={lensOpen}
+                aria-controls="vault-lens-panel"
+                onClick={() => setLensOpen((value) => !value)}
+              >
+                <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
+                <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
+                <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
+              </button>
+              <button
+                type="button"
+                className={styles.deckToolButton}
+                aria-expanded={historyOpen}
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setHistoryOpen(true);
+                  void loadVaultHistory();
+                  trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened, { preview_mode: !isLive });
+                }}
+              >
+                <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
+                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
+                <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
+              </button>
+          </div>
+          {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
+        </div>
       </section>
 
       {/* Pin props matter here: without them the drawer's pin button renders
