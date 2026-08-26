@@ -326,6 +326,42 @@ test("the finish goal explains progress instead of contradicting the estimate", 
   assert.match(goal.detail, /17h/);
 });
 
+test("filtering by genre is credited as a reason", () => {
+  // The picker hands back the label it shows - "Action" - while a game's genres
+  // are normalised to "action" on the way in. The explanation compared the two
+  // raw, so it never matched and the reason never once appeared for anybody.
+  const game = { ...makeGame(), genres: ["Action", "Adventure"] };
+  const pool = buildVaultPool({
+    games: [game], session: "short", mood: null, goal: null,
+    selectedCollectionId: null, selectedGenres: ["Action"], snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: "short", mood: null, goal: null, selectedGenres: ["Action"]
+  });
+  const genre = explanation.insights.find((insight) => insight.kind === "genre");
+
+  assert.ok(genre, "a genre the player filtered for should be credited");
+  assert.match(genre.headline, /Action/);
+  assert.equal(genre.strength, "perfect");
+});
+
+test("a partial genre match is credited as partial", () => {
+  const game = { ...makeGame(), genres: ["Action", "Simulation"] };
+  const selected = ["Action", "Racing"];
+  const pool = buildVaultPool({
+    games: [game], session: "short", mood: null, goal: null,
+    selectedCollectionId: null, selectedGenres: selected, snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({
+    entry: pool[0], pool, session: "short", mood: null, goal: null, selectedGenres: selected
+  });
+  const genre = explanation.insights.find((insight) => insight.kind === "genre");
+
+  assert.ok(genre);
+  assert.equal(genre.strength, "strong");
+  assert.match(genre.detail, /matches 1 of 2/);
+});
+
 test("an explanation claims nothing the draw did not use", () => {
   // Quick Draw and Collection Draw ignore session, mood and goal, so crediting
   // them would be inventing reasoning.

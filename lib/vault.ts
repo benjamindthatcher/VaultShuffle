@@ -559,6 +559,12 @@ function canonicalGenre(value: string) {
   return key;
 }
 
+/** "Action", "Action and Casual", "Action, Adventure and Casual". */
+function listGenres(names: string[]) {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+}
+
 function displayGenre(value: string) {
   if (value === "sci-fi") return "Sci-Fi";
   if (value === "rpg") return "RPG";
@@ -774,14 +780,20 @@ export function buildVaultMatchExplanation({
   }
 
   if (selectedGenres.length) {
+    // Both sides normalised. The picker hands back the label it displays -
+    // "Action" - and the game's genres are lowercased and hyphenated on the way
+    // in, so comparing them as they arrived never matched a single genre and
+    // this reason had never once appeared. Everywhere else in the scoring does
+    // canonicalise both; only the explanation did not.
+    const wanted = selectedGenres.map(canonicalGenre);
     const gameGenres = game.genres.map(canonicalGenre);
-    const matches = selectedGenres.filter((genre) => gameGenres.includes(genre));
+    const matches = wanted.filter((genre) => gameGenres.includes(genre));
     if (matches.length) {
       insights.push({
         kind: "genre",
-        strength: matches.length === selectedGenres.length ? "perfect" : "strong",
-        headline: `${matches.map(displayGenre).join(" and ")}, as asked`,
-        detail: `You filtered for ${selectedGenres.map(displayGenre).join(", ")} and this matches ${matches.length} of ${selectedGenres.length}.`
+        strength: matches.length === wanted.length ? "perfect" : "strong",
+        headline: `${listGenres(matches.map(displayGenre))}, as asked`,
+        detail: `You filtered for ${wanted.map(displayGenre).join(", ")} and this matches ${matches.length} of ${wanted.length}.`
       });
     }
   }
