@@ -789,11 +789,14 @@ export function buildVaultMatchExplanation({
     const gameGenres = game.genres.map(canonicalGenre);
     const matches = wanted.filter((genre) => gameGenres.includes(genre));
     if (matches.length) {
+      const everything = matches.length === wanted.length;
       insights.push({
         kind: "genre",
-        strength: matches.length === wanted.length ? "perfect" : "strong",
-        headline: `${listGenres(matches.map(displayGenre))}, as asked`,
-        detail: `You filtered for ${wanted.map(displayGenre).join(", ")} and this matches ${matches.length} of ${wanted.length}.`
+        strength: everything ? "perfect" : "strong",
+        headline: listGenres(matches.map(displayGenre)),
+        detail: everything
+          ? `Matches every genre you filtered for.`
+          : `You filtered for ${listGenres(wanted.map(displayGenre))}, and this has ${matches.length} of the ${wanted.length}.`
       });
     }
   }

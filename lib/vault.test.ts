@@ -359,7 +359,7 @@ test("a partial genre match is credited as partial", () => {
 
   assert.ok(genre);
   assert.equal(genre.strength, "strong");
-  assert.match(genre.detail, /matches 1 of 2/);
+  assert.match(genre.detail, /1 of the 2/);
 });
 
 test("an explanation claims nothing the draw did not use", () => {
