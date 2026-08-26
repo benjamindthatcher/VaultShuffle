@@ -1,4 +1,5 @@
 import { gameProgress, isEndlessGame } from "@/lib/game-classification";
+import { decodeHtmlEntities } from "@/lib/html-entities";
 import { describeRecency, UNKNOWN_RECENCY } from "@/lib/recency";
 import { sessionabilityScore } from "@/lib/sessionability";
 import { splitGenres, steamTagGenreLabels, steamTagLabels, topLevelGenresFor } from "@/lib/genres";
@@ -142,7 +143,7 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       // game's description everywhere it appeared, and the fallback line spent a
       // whole paragraph on the result screen restating the genres shown beside it.
       description:
-        game.short_description?.trim() ||
+        decodeHtmlEntities(game.short_description?.trim() ?? "") ||
         `${genres.slice(0, 2).join(" / ")} pick from your live VaultShuffle library.`,
       notes: game.notes || "",
       artworkUrl: game.steam_appid
@@ -217,7 +218,7 @@ export function mapGuestGames(games: Game[]): DemoGame[] {
     priority: "Medium",
     // Same reasoning as the live path: Steam's synopsis first, the generated
     // line only when the catalogue genuinely has nothing.
-    description: games[index]?.short_description?.trim() || `${game.genres.slice(0, 2).join(" / ") || "Steam"} pick from the VaultShuffle guest catalogue.`,
+    description: decodeHtmlEntities(games[index]?.short_description?.trim() ?? "") || `${game.genres.slice(0, 2).join(" / ") || "Steam"} pick from the VaultShuffle guest catalogue.`,
     lastPlayedLabel: "Guest preview",
     recency: UNKNOWN_RECENCY,
     addedLabel: "Popular on Steam",

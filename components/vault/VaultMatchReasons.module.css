@@ -1,4 +1,5 @@
 .panel {
+  --reason-row: 50px;
   display: grid;
   gap: 7px;
   margin-top: 6px;
@@ -33,12 +34,25 @@
 .score[data-strength="high"] { color: #7ce7b2; }
 .score[data-strength="mid"] { color: #d392ff; }
 
+.rank {
+  margin-left: 8px;
+  color: var(--vault-text-muted, rgba(226, 232, 255, 0.6));
+  font-weight: 500;
+}
+
 /* Two across rather than six stacked. The reasoning is the best thing on this
    screen, but as a full-width column it ran taller than the artwork beside it
    and turned the case for one game into a page of its own. */
+/* Two across, and always tall enough for three rows. The panel used to grow and
+   shrink with the number of reasons, which moved the buttons underneath it
+   between one draw and the next - so the thing you were reaching for was never
+   in the same place twice. */
 .list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: min-content;
+  align-content: start;
+  min-height: calc(3 * var(--reason-row) + 2 * 6px);
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -46,6 +60,7 @@
 }
 
 .item {
+  min-height: var(--reason-row);
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
@@ -89,8 +104,8 @@
 .detail {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
   overflow: hidden;
   font-size: 0.74rem;
   line-height: 1.35;

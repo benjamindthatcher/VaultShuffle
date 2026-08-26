@@ -233,7 +233,22 @@ with matched as (
     matched.*,
     coalesce(
       not matched.missing_catalogue_game
-      and matched.match_confidence in ('medium', 'high')
+      and (
+        matched.match_confidence in ('medium', 'high')
+        or (
+          matched.provider = 'hltb'
+          and matched.match_confidence = 'low'
+          and matched.evidence @> '{"identity_validated": true}'::jsonb
+          and matched.evidence ->> 'verification_method' = 'profile_steam_exact'
+          and matched.evidence ->> 'verification_tier' = 'steam_appid'
+          and matched.evidence ->> 'duration_basis' = 'completion_times'
+          and matched.evidence -> 'duration_issues' = '[]'::jsonb
+          and (
+            coalesce(matched.submission_count, 0) >= 2
+            or matched.value_count >= 2
+          )
+        )
+      )
       and matched.provider_game_id is not null
       and matched.valid_shape
       and (
@@ -482,7 +497,26 @@ with acceptable_estimates as (
   join public.catalog_games as game
     on game.steam_appid = estimate.steam_app_id
   where estimate.match_status = 'matched'
-    and estimate.match_confidence in ('medium', 'high')
+    and (
+      estimate.match_confidence in ('medium', 'high')
+      or (
+        estimate.provider = 'hltb'
+        and estimate.match_confidence = 'low'
+        and estimate.evidence @> '{"identity_validated": true}'::jsonb
+        and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
+        and estimate.evidence ->> 'verification_tier' = 'steam_appid'
+        and estimate.evidence ->> 'duration_basis' = 'completion_times'
+        and estimate.evidence -> 'duration_issues' = '[]'::jsonb
+        and (
+          coalesce(estimate.submission_count, 0) >= 2
+          or (
+            (estimate.main_story_minutes is not null)::int
+            + (estimate.main_extra_minutes is not null)::int
+            + (estimate.completionist_minutes is not null)::int
+          ) >= 2
+        )
+      )
+    )
     and estimate.provider_game_id is not null
     and (
       estimate.main_story_minutes > 0
@@ -1085,7 +1119,26 @@ with acceptable_estimates as (
   join public.catalog_games as game
     on game.steam_appid = estimate.steam_app_id
   where estimate.match_status = 'matched'
-    and estimate.match_confidence in ('medium', 'high')
+    and (
+      estimate.match_confidence in ('medium', 'high')
+      or (
+        estimate.provider = 'hltb'
+        and estimate.match_confidence = 'low'
+        and estimate.evidence @> '{"identity_validated": true}'::jsonb
+        and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
+        and estimate.evidence ->> 'verification_tier' = 'steam_appid'
+        and estimate.evidence ->> 'duration_basis' = 'completion_times'
+        and estimate.evidence -> 'duration_issues' = '[]'::jsonb
+        and (
+          coalesce(estimate.submission_count, 0) >= 2
+          or (
+            (estimate.main_story_minutes is not null)::int
+            + (estimate.main_extra_minutes is not null)::int
+            + (estimate.completionist_minutes is not null)::int
+          ) >= 2
+        )
+      )
+    )
     and estimate.provider_game_id is not null
     and (
       estimate.main_story_minutes > 0

@@ -466,7 +466,26 @@ function hardenedFiniteCatalogueCte() {
       estimate.completionist_minutes
     )
     and estimate.match_status = 'matched'
-    and estimate.match_confidence in ('medium', 'high')
+    and (
+      estimate.match_confidence in ('medium', 'high')
+      or (
+        estimate.provider = 'hltb'
+        and estimate.match_confidence = 'low'
+        and estimate.evidence @> '{"identity_validated": true}'::jsonb
+        and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
+        and estimate.evidence ->> 'verification_tier' = 'steam_appid'
+        and estimate.evidence ->> 'duration_basis' = 'completion_times'
+        and estimate.evidence -> 'duration_issues' = '[]'::jsonb
+        and (
+          coalesce(estimate.submission_count, 0) >= 2
+          or (
+            (estimate.main_story_minutes is not null)::int
+            + (estimate.main_extra_minutes is not null)::int
+            + (estimate.completionist_minutes is not null)::int
+          ) >= 2
+        )
+      )
+    )
     and estimate.provider_game_id is not null
     and (estimate.main_story_minutes > 0 or estimate.main_extra_minutes > 0 or estimate.completionist_minutes > 0)
     and (estimate.main_story_minutes is null or estimate.main_story_minutes between 1 and 120000)

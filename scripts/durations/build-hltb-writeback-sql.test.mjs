@@ -210,6 +210,10 @@ test("job completion requires a hardened post-trigger catalogue resolution", () 
   assert.match(jobSection, /estimate\.evidence @> '\{"identity_validated": true\}'::jsonb/);
   assert.match(jobSection, /estimate\.provider = 'hltb'/);
   assert.match(jobSection, /estimate\.provider = 'igdb'/);
+  assert.match(jobSection, /estimate\.match_confidence = 'low'/);
+  assert.match(jobSection, /estimate\.evidence ->> 'duration_basis' = 'completion_times'/);
+  assert.match(jobSection, /estimate\.evidence -> 'duration_issues' = '\[\]'::jsonb/);
+  assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) >= 2/);
   assert.doesNotMatch(jobSection, /'igdb-parent'|'igdb-title'/);
   assert.match(jobSection, /game\.duration_manual_override/);
   assert.match(jobSection, /hardened\.steam_app_id is not null/);

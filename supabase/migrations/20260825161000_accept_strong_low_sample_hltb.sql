@@ -14,6 +14,39 @@ lock table public.catalog_game_quarantine in share mode;
 lock table public.catalog_games in share row exclusive mode;
 lock table public.game_duration_jobs in row exclusive mode;
 
+create temporary table pg_temp.strong_low_sample_protected_before
+on commit drop
+as
+select game.steam_appid, pg_catalog.to_jsonb(game) as protected_row
+from public.catalog_games as game
+where game.duration_manual_override
+   or exists (
+     select 1
+     from public.catalog_game_quarantine as quarantine
+     where quarantine.steam_appid = game.steam_appid
+       and quarantine.review_status = 'excluded'
+   );
+
+create temporary table pg_temp.strong_low_sample_evidence_guard
+on commit drop
+as
+select
+  count(*) as estimate_rows,
+  coalesce(sum(pg_catalog.hashtextextended(
+    pg_catalog.to_jsonb(estimate)::text, 0
+  )::numeric), 0::numeric) as evidence_fingerprint
+from public.game_duration_estimates as estimate;
+
+create temporary table pg_temp.strong_low_sample_quarantine_guard
+on commit drop
+as
+select
+  count(*) as quarantine_rows,
+  coalesce(sum(pg_catalog.hashtextextended(
+    pg_catalog.to_jsonb(quarantine)::text, 0
+  )::numeric), 0::numeric) as quarantine_fingerprint
+from public.catalog_game_quarantine as quarantine;
+
 alter function public.reconcile_catalogue_duration(bigint, boolean)
   rename to reconcile_catalogue_duration_v2;
 
@@ -200,6 +233,42 @@ where estimate.provider = 'hltb'
   and estimate.match_status = 'matched'
   and estimate.match_confidence = 'low'
   and estimate.provider_game_id is not null
+  and (
+    estimate.main_story_minutes > 0
+    or estimate.main_extra_minutes > 0
+    or estimate.completionist_minutes > 0
+  )
+  and (
+    estimate.main_story_minutes is null
+    or estimate.main_story_minutes between 1 and 120000
+  )
+  and (
+    estimate.main_extra_minutes is null
+    or estimate.main_extra_minutes between 1 and 120000
+  )
+  and (
+    estimate.completionist_minutes is null
+    or estimate.completionist_minutes between 1 and 120000
+  )
+  and (
+    estimate.main_story_minutes is null
+    or estimate.main_extra_minutes is null
+    or estimate.main_extra_minutes >= estimate.main_story_minutes
+  )
+  and (
+    estimate.completionist_minutes is null
+    or coalesce(estimate.main_extra_minutes, estimate.main_story_minutes) is null
+    or estimate.completionist_minutes >= coalesce(
+      estimate.main_extra_minutes,
+      estimate.main_story_minutes
+    )
+  )
+  and (
+    estimate.main_story_minutes is null
+    or estimate.completionist_minutes is null
+    or estimate.completionist_minutes::bigint
+      < estimate.main_story_minutes::bigint * 12
+  )
   and estimate.evidence @> '{"identity_validated": true}'::jsonb
   and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
   and estimate.evidence ->> 'verification_tier' = 'steam_appid'
@@ -309,6 +378,51 @@ begin
        )
   ) then
     raise exception 'a strong low-sample HLTB candidate did not resolve finite';
+  end if;
+
+  if exists (
+    select 1
+    from pg_temp.strong_low_sample_protected_before as before
+    left join public.catalog_games as game
+      on game.steam_appid = before.steam_appid
+    where game.steam_appid is null
+       or before.protected_row is distinct from pg_catalog.to_jsonb(game)
+  ) then
+    raise exception 'strong low-sample reconciliation changed a protected row';
+  end if;
+
+  if exists (
+    select 1
+    from pg_temp.strong_low_sample_evidence_guard as before
+    cross join lateral (
+      select
+        count(*) as estimate_rows,
+        coalesce(sum(pg_catalog.hashtextextended(
+          pg_catalog.to_jsonb(estimate)::text, 0
+        )::numeric), 0::numeric) as evidence_fingerprint
+      from public.game_duration_estimates as estimate
+    ) as after
+    where row(before.estimate_rows, before.evidence_fingerprint)
+      is distinct from row(after.estimate_rows, after.evidence_fingerprint)
+  ) then
+    raise exception 'strong low-sample reconciliation changed raw evidence';
+  end if;
+
+  if exists (
+    select 1
+    from pg_temp.strong_low_sample_quarantine_guard as before
+    cross join lateral (
+      select
+        count(*) as quarantine_rows,
+        coalesce(sum(pg_catalog.hashtextextended(
+          pg_catalog.to_jsonb(quarantine)::text, 0
+        )::numeric), 0::numeric) as quarantine_fingerprint
+      from public.catalog_game_quarantine as quarantine
+    ) as after
+    where row(before.quarantine_rows, before.quarantine_fingerprint)
+      is distinct from row(after.quarantine_rows, after.quarantine_fingerprint)
+  ) then
+    raise exception 'strong low-sample reconciliation changed quarantine state';
   end if;
 end;
 $$;

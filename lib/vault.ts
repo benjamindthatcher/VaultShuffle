@@ -632,6 +632,9 @@ export type VaultMatchInsight = {
   detail: string;
 };
 
+/** Two across, three rows. */
+export const MAX_MATCH_INSIGHTS = 6;
+
 export type VaultMatchExplanation = {
   score: number;
   label: string;
@@ -675,16 +678,9 @@ export function buildVaultMatchExplanation({
   const remaining = remainingHours(game);
   const totalHours = totalPlaythroughHours(game);
 
-  // What the pick was chosen from. A recommendation carries far more weight when
-  // the player can see the field it came through.
-  if (pool.length > 1) {
-    insights.push({
-      kind: "selection",
-      strength: rank <= 3 ? "perfect" : rank <= 10 ? "strong" : "good",
-      headline: rank === 1 ? `Best fit of ${pool.length} games` : `Ranked ${ordinal(rank)} of ${pool.length} games`,
-      detail: `Scored ${entry.score}/100 against everything else your setup allows.`
-    });
-  }
+  // Rank is not a tile. It says the same thing as the score in the header
+  // beside it, and it was taking one of the few slots that could have carried a
+  // reason the player did not already know.
 
   if (session) {
     const label = sessionLabel(session).toLowerCase();
@@ -792,7 +788,19 @@ export function buildVaultMatchExplanation({
     });
   }
 
-  return { score: entry.score, label: vaultMatchLabel(entry.score), rank, poolSize: pool.length, insights };
+  // Whole rows only, six at most. The grid is two across, so an odd count left a
+  // single tile alone on the last row looking like something had failed to load,
+  // and the weakest reason is worth less than losing that.
+  const shown = insights.slice(0, MAX_MATCH_INSIGHTS);
+  const wholeRows = shown.length >= 2 ? shown.length - (shown.length % 2) : shown.length;
+
+  return {
+    score: entry.score,
+    label: vaultMatchLabel(entry.score),
+    rank,
+    poolSize: pool.length,
+    insights: shown.slice(0, wholeRows)
+  };
 }
 
 function totalPlaythroughHours(game: DemoGame) {
@@ -841,7 +849,7 @@ function dormancyDetail(game: DemoGame, now: number) {
     const years = Math.floor(days / 365);
     return {
       headline: years >= 2 ? `Untouched for ${years} years` : "Untouched for over a year",
-      detail: `Last played ${when}. This is exactly the kind of game the Vault exists to resurface.`
+      detail: `Last played ${when}.`
     };
   }
   if (days >= 60) {

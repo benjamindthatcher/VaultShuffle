@@ -23,6 +23,13 @@ const ICONS: Record<VaultMatchInsightKind, VaultIconName> = {
  * through". The player is being asked to spend an evening on this; the reasoning
  * should be worth reading.
  */
+function ordinal(value: number) {
+  const remainder = value % 100;
+  if (remainder >= 11 && remainder <= 13) return `${value}th`;
+  const suffix = ["th", "st", "nd", "rd"][value % 10] ?? "th";
+  return `${value}${value % 10 <= 3 ? suffix : "th"}`;
+}
+
 export function VaultMatchReasons({ explanation }: { explanation: VaultMatchExplanation }) {
   if (!explanation.insights.length) return null;
 
@@ -32,6 +39,9 @@ export function VaultMatchReasons({ explanation }: { explanation: VaultMatchExpl
         <p className={styles.label}>Why it&apos;s a great match</p>
         <span className={styles.score} data-strength={explanation.score >= 82 ? "high" : explanation.score >= 60 ? "mid" : "low"}>
           {explanation.label} · {explanation.score}/100
+          {/* Rank sits with the score rather than taking one of the six tiles,
+              since it is another way of saying the same thing. */}
+          {explanation.poolSize > 1 ? <span className={styles.rank}>{ordinal(explanation.rank)} of {explanation.poolSize}</span> : null}
         </span>
       </header>
 

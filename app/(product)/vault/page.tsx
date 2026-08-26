@@ -64,6 +64,14 @@ export default function VaultPage() {
   const [sleepUndo, setSleepUndo] = useState<{ gameId: string; title: string; status: "Not Started" | "In Progress"; wasPinned: boolean } | null>(null);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
   const [pinMessage, setPinMessage] = useState("");
+
+  // Confirmations are news for a moment and clutter after that. It had a
+  // Dismiss button and nothing else, so it sat there until you told it to go.
+  useEffect(() => {
+    if (!pinMessage) return;
+    const timer = window.setTimeout(() => setPinMessage(""), 4000);
+    return () => window.clearTimeout(timer);
+  }, [pinMessage]);
   const [completionUndo, setCompletionUndo] = useState<{ id: string; title: string } | null>(null);
   const [drawState, setDrawState] = useState<VaultDrawState>("idle");
   const [genresOpen, setGenresOpen] = useState(false);
@@ -670,14 +678,23 @@ export default function VaultPage() {
           <div className={styles.resultBody}>
             <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
             <p className={styles.resultCopy}>{currentPick.description}</p>
-            {currentPickExplanation ? <VaultMatchReasons explanation={currentPickExplanation} /> : (
-              <>
-                <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
-                <div className={styles.resultReasonRow}>
-                  {(fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? []).map((reason) => <FilterPill key={reason} label={reason} />)}
-                </div>
-              </>
-            )}
+            {(() => {
+              if (currentPickExplanation) return <VaultMatchReasons explanation={currentPickExplanation} />;
+              // A Collection Draw has no session, mood or goal to reason from, so
+              // there is nothing to explain - and a heading over an empty row was
+              // asking a question the card could not answer. The buttons move up
+              // to fill the space, which is right when there is genuinely none.
+              const reasons = fullPool.find((entry) => entry.game.id === currentPick.id)?.reasons ?? [];
+              if (!reasons.length) return null;
+              return (
+                <>
+                  <p className={styles.reasonLabel}>Why it&apos;s a great match</p>
+                  <div className={styles.resultReasonRow}>
+                    {reasons.map((reason) => <FilterPill key={reason} label={reason} />)}
+                  </div>
+                </>
+              );
+            })()}
             {currentDrawId ? <div className={styles.feedbackRow}>
               <span className={styles.feedbackLabel}>Good pick?</span>
               <button
@@ -823,11 +840,17 @@ export default function VaultPage() {
 
       </section>
 
+      {/* Pin props matter here: without them the drawer's pin button renders
+          disabled, so opening a deck card and trying to pin it did nothing. */}
       <LibraryDetailsDrawer
         game={detailsGame}
         previewMode={!isLive}
         collections={collections}
         saving={savingGameId === detailsGame?.id}
+        pinSlot={detailsGame ? vaultState.pinnedIds.indexOf(detailsGame.id) + 1 || null : null}
+        pinCount={vaultState.pinnedIds.length}
+        onTogglePin={() => { if (detailsGame) void togglePin(detailsGame.id); }}
+        onManagePins={() => { if (detailsGame) setPinCandidate(detailsGame); }}
         onSave={async (patch) => {
           if (!detailsGame) return;
           setSavingGameId(detailsGame.id);
@@ -870,8 +893,13 @@ function wait(duration: number) {
   return new Promise<void>((resolve) => window.setTimeout(resolve, duration));
 }
 
-/** Matches scroll-margin-top on the draw bar; used to tell "already there". */
-const DRAW_STAGE_OFFSET = 96;
+/**
+ * Matches scroll-margin-top on the draw bar, and is what "already there" means.
+ *
+ * Small on purpose: the bar is the anchor, so a big gap above it pushed the pick
+ * itself down the screen. Tight to the top leaves the whole card in view.
+ */
+const DRAW_STAGE_OFFSET = 24;
 
 async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
   if (!element) return;
