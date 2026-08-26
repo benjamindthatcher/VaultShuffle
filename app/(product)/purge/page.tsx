@@ -401,6 +401,40 @@ export default function PurgePage() {
   }
 
   /**
+   * Wake games back up.
+   *
+   * Flagging cannot reach a slept game: the queue is built from active games
+   * only, so a flag on something asleep was written and then filtered straight
+   * back out - the button did nothing, in bulk or one at a time. Waking is the
+   * actual undo of a sleep, and once a game is active again it is eligible for
+   * the queue on its own.
+   */
+  async function wakeGames(gameIds: string[]) {
+    if (!gameIds.length) return;
+    setError("");
+    try {
+      await Promise.all(gameIds.map((gameId) => restoreGame(gameId)));
+      setSelectedIds((current) => current.filter((id) => !gameIds.includes(id)));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Could not wake those games.");
+    }
+  }
+
+  async function wakeOne(gameId: string) {
+    if (flaggingId || flagging) return;
+    setFlaggingId(gameId);
+    await wakeGames([gameId]);
+    setFlaggingId(null);
+  }
+
+  async function wakeSelected() {
+    if (!selected.size || flagging) return;
+    setFlagging(true);
+    await wakeGames([...selected]);
+    setFlagging(false);
+  }
+
+  /**
    * Flagging a single card leaves you where you are. The card drops out of this
    * list on its own once the queue has it, which is proof enough that it worked,
    * and you are usually going down a grid picking out two or three - being
@@ -527,7 +561,7 @@ export default function PurgePage() {
 
             {/* Said once, under the control it explains, rather than on every
                 card. The buttons stay on screen so the feature is visible. */}
-            {!isLive && activeGroup.games.length ? (
+            {!isLive && activeGroup.games.length && activeGroup.id !== "slept" ? (
               <SignInLock feature="purge_flag">Flagging a game back into the review queue keeps it there between visits, so it needs a library to keep it in.</SignInLock>
             ) : null}
 
@@ -536,16 +570,28 @@ export default function PurgePage() {
                 scrolling past all 31 to find the button that acts on them. */}
             {selected.size ? <div className={styles.bulkBar}>
               <span className={styles.bulkCheck}>{selected.size} selected</span>
-              <button
-                type="button"
-                className={styles.bulkAction}
-                disabled={!isLive || flagging}
-                title={isLive ? undefined : "Flagging needs a signed-in library."}
-                onClick={() => void flagSelected()}
-              >
-                {!isLive ? <VaultIcon name="lock" size={15} /> : null}
-                {flagging ? "Flagging…" : `Flag ${selected.size} for review`}
-              </button>
+              {activeGroup?.id === "slept" ? (
+                <button
+                  type="button"
+                  className={styles.bulkWake}
+                  disabled={flagging}
+                  onClick={() => void wakeSelected()}
+                >
+                  <VaultIcon name="restore-active" size={15} />
+                  {flagging ? "Waking…" : `Wake ${selected.size} back up`}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={styles.bulkAction}
+                  disabled={!isLive || flagging}
+                  title={isLive ? undefined : "Flagging needs a signed-in library."}
+                  onClick={() => void flagSelected()}
+                >
+                  {!isLive ? <VaultIcon name="lock" size={15} /> : null}
+                  {flagging ? "Flagging…" : `Flag ${selected.size} for review`}
+                </button>
+              )}
             </div> : null}
 
             <div role="tabpanel" aria-label={`${activeGroup.label} games`}>
@@ -570,17 +616,35 @@ export default function PurgePage() {
                         spotting one. */}
                     <span className={styles.outcomeFooter}>
                       <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : "Active"}</span>
-                      <button
-                        type="button"
-                        className={styles.outcomeFlag}
-                        disabled={!isLive || flagging || Boolean(flaggingId)}
-                        aria-label={isLive ? `Flag ${game.title} for review` : "Flag for review needs a signed-in library"}
-                        title={isLive ? undefined : "Flagging needs a signed-in library."}
-                        onClick={() => void flagOne(game.id)}
-                      >
-                        <VaultIcon name={isLive ? "ready-to-review" : "lock"} size={15} />
-                        {flaggingId === game.id ? "Flagging…" : "Flag for review"}
-                      </button>
+                      {/* A slept game cannot be flagged - the queue is built
+                          from active games, so the flag was written and filtered
+                          straight back out. Waking it is the undo that was
+                          missing, and unlike flagging it works in the preview
+                          too. */}
+                      {game.status === "Slept" ? (
+                        <button
+                          type="button"
+                          className={styles.outcomeWake}
+                          disabled={flagging || Boolean(flaggingId)}
+                          aria-label={`Wake ${game.title} up`}
+                          onClick={() => void wakeOne(game.id)}
+                        >
+                          <VaultIcon name="restore-active" size={15} />
+                          {flaggingId === game.id ? "Waking…" : "Wake up"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.outcomeFlag}
+                          disabled={!isLive || flagging || Boolean(flaggingId)}
+                          aria-label={isLive ? `Flag ${game.title} for review` : "Flag for review needs a signed-in library"}
+                          title={isLive ? undefined : "Flagging needs a signed-in library."}
+                          onClick={() => void flagOne(game.id)}
+                        >
+                          <VaultIcon name={isLive ? "ready-to-review" : "lock"} size={15} />
+                          {flaggingId === game.id ? "Flagging…" : "Flag for review"}
+                        </button>
+                      )}
                     </span>
                   </li>)}
                 </ul>

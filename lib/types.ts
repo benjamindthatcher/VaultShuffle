@@ -35,6 +35,7 @@ export type Game = {
   recency_source?: string | null;
   recency_evidence_at?: string | null;
   observed_playtime_minutes?: number | null;
+  /** Set when the player has asked for this game to come back to the Purge queue. */
   review_requested_at?: string | null;
   release_date?: string | null;
   completed_at?: string | null;

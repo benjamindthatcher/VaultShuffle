@@ -456,6 +456,56 @@
   color: #ffe2e2;
 }
 
+/* Green, against the red of Flag: this one brings a game back rather than
+   sending it away. It is also the undo of the decision the card is reporting,
+   so it should not look like the same action in a different place. */
+.outcomeWake {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid rgba(98, 211, 175, 0.45);
+  border-radius: 999px;
+  background: rgba(46, 160, 116, 0.18);
+  color: #7ce7b2;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.outcomeWake:hover:not(:disabled),
+.outcomeWake:focus-visible:not(:disabled) {
+  border-color: rgba(124, 231, 178, 0.9);
+  background: rgba(52, 178, 129, 0.34);
+  color: #e6fff4;
+}
+
+.outcomeWake:disabled { opacity: 0.55; }
+
+.bulkWake {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border: 1px solid rgba(98, 211, 175, 0.55);
+  border-radius: 10px;
+  background: rgba(46, 160, 116, 0.26);
+  color: #d8fff0;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.bulkWake:hover:not(:disabled),
+.bulkWake:focus-visible:not(:disabled) {
+  border-color: rgba(124, 231, 178, 0.9);
+  background: rgba(52, 178, 129, 0.42);
+  color: #fff;
+}
+
+.bulkWake:disabled { opacity: 0.55; }
+
 /* Locked for guests, so it drops back to grey. A red control you cannot press
    is an alarm about nothing. */
 .outcomeFlag:disabled {

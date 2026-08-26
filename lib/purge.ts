@@ -104,14 +104,32 @@ export function buildPurgeCandidates({
   const result: PurgeCandidate[] = [];
 
   for (const game of games) {
+    // Asked for by hand, which overrides everything the queue would otherwise
+    // use to leave this one alone.
+    //
+    // The flag was read further down, to word the reason - but the exclusions
+    // above ran first, so a game you had kept was dropped by its own keep before
+    // the flag was ever consulted, for the 180 days that keep stands. Which is
+    // the whole set of games the Reviewed tab offers to flag.
+    //
+    // It overrides the cooldowns, which exist to stop the queue nagging you
+    // about something you have just decided - a rule about the queue's own
+    // judgement, not about yours. It does not override a pin, a snooze or the
+    // current pick: those are live commitments, not suppressed judgements. Nor
+    // ownership or status - a completed or sleeping game is changed from the
+    // Library, and the RPC will not set the flag on one.
+    const requested = Boolean(game.reviewRequested);
+
     if (
       game.ownership !== "Owned" ||
       game.status === "Completed" ||
       game.status === "Slept" ||
       protectedIds.has(game.id) ||
-      recentlyKept.has(game.id) ||
-      recentlyActioned.has(game.id) ||
-      likelyFinishedIds?.has(game.id)
+      (!requested && (
+        recentlyKept.has(game.id) ||
+        recentlyActioned.has(game.id) ||
+        likelyFinishedIds?.has(game.id)
+      ))
     ) {
       continue;
     }
@@ -122,10 +140,6 @@ export function buildPurgeCandidates({
     // Never opened is a fact about playtime, not about recency: nought hours is
     // nought hours whether or not Steam ever told us a date.
     const neverOpened = game.hoursPlayed === 0;
-
-    // Asked for by hand, which overrides the evidence rules below: the player has
-    // already decided this one is worth a look.
-    const requested = Boolean(game.reviewRequested);
 
     // For everything else, age is the whole basis of the review, so it needs
     // evidence. Missing recency used to score as infinitely old, which put every

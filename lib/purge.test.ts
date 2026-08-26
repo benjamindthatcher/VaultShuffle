@@ -154,7 +154,13 @@ test("a game flagged by hand joins the queue even with no evidence against it", 
   assert.match(candidates[0].reason, /You flagged this one for review/);
 });
 
-test("flagging does not override a standing decision", () => {
+test("flagging overrides the keep cooldown, which is the only reason to flag", () => {
+  // This used to assert the opposite, and the opposite made the button useless:
+  // a keep suppresses a game for 180 days, and the games offered for flagging
+  // are exactly the ones that have been kept. Flagging them did nothing.
+  //
+  // The cooldown is a rule about the queue's own judgement - do not nag about
+  // something just decided. A flag is the player overruling that by hand.
   const flagged = { ...game("flagged", UNKNOWN_RECENCY), hoursPlayed: 12, reviewRequested: true };
   const candidates = buildPurgeCandidates({
     games: [flagged],
@@ -163,5 +169,18 @@ test("flagging does not override a standing decision", () => {
     now
   });
 
-  assert.deepEqual(candidates, []);
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["flagged"]);
+});
+
+test("flagging does not override a live commitment", () => {
+  // A pin, a snooze or the current pick are things you are actively doing, not
+  // judgements the queue is suppressing, so a flag does not pull them back in.
+  const flagged = { ...game("flagged", UNKNOWN_RECENCY), hoursPlayed: 12, reviewRequested: true };
+
+  assert.deepEqual(buildPurgeCandidates({
+    games: [flagged], pinnedIds: ["flagged"], currentPickId: null, snoozedIds: [], reviews: [], now
+  }), []);
+  assert.deepEqual(buildPurgeCandidates({
+    games: [flagged], pinnedIds: [], currentPickId: null, snoozedIds: ["flagged"], reviews: [], now
+  }), []);
 });
