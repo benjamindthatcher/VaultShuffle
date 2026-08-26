@@ -381,24 +381,28 @@ export default function VaultPage() {
     const describeDraw = (pickId: string): DrawSnapshot => {
       const explanationPool = quick ? quickPool : fullPool;
       const entry = explanationPool.find((candidate) => candidate.game.id === pickId) ?? null;
-      // Explained only for the inputs that actually shaped it: a Quick Draw
-      // ignores the setup entirely and a Collection Draw drops session, mood and
-      // goal, so claiming credit for them would be inventing reasoning the draw
-      // never used.
+      // Explained only when the draw actually reasoned: a Quick Draw ignores the
+      // setup entirely and a Collection Draw drops session, mood and goal.
+      // Scoring them anyway put a "Why it's a great match" panel on the card
+      // headed "Eligible pick · 0/100" - a score of nothing, dressed as
+      // reasoning, for a draw that reasoned about nothing.
       const guided = !quick && !collectionMode;
       return {
         pickId,
-        explanation: entry
+        explanation: guided && entry
           ? buildVaultMatchExplanation({
               entry,
               pool: explanationPool,
-              session: guided ? activeSession : null,
-              mood: guided ? activeMood : null,
-              goal: guided ? activeGoal : null,
-              selectedGenres: guided ? activeGenres : []
+              session: activeSession,
+              mood: activeMood,
+              goal: activeGoal,
+              selectedGenres: activeGenres
             })
           : null,
-        reasons: entry?.reasons ?? [],
+        // Quick Draw picks at random from everything eligible. There is no match
+        // to describe, so the card says nothing rather than reaching for
+        // whatever the pool happened to note about the game.
+        reasons: quick ? [] : entry?.reasons ?? [],
         collectionDraw,
         collectionName: selectedCollection?.name ?? null,
         session,
@@ -771,7 +775,7 @@ export default function VaultPage() {
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
           </button>
           <button type="button" className={styles.quickDrawButton} onClick={() => void handleOpenVault({ quick: true })} disabled={isDrawing || !quickPool.length}>
-            <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
+            <VaultIcon name="shuffle" size={16} />Skip it, just pick something
           </button>
         </div>
       </section>
@@ -900,7 +904,7 @@ export default function VaultPage() {
               <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === pickDraw?.session)?.shortLabel ?? "Not selected"} />
               <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === pickDraw?.mood)?.label ?? "Not selected"} />
               <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === pickDraw?.goal)?.label ?? "Not selected"} />
-              <ResultSummary icon="genre" label="Genres" value={pickDraw?.genres.length ? pickDraw.genres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
+              <ResultSummary icon="genre" label="Genres" value={pickDraw?.genres.length ? pickDraw.genres.join(" · ") : "All"} />
             </>}
           </aside>
         </section>
