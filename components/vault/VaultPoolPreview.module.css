@@ -212,11 +212,17 @@
   outline-offset: -2px;
 }
 
+/* The card the draw landed on, in a rail of a dozen others. The pulse below
+   fades out, so this is what is left holding your eye afterwards - and at a
+   fifth of an alpha it was losing to the artwork it sits on. A crisp ring plus
+   a near halo and a wide one: the ring says which card, the halo carries far
+   enough to catch you scanning past. */
 .cardHighlighted {
-  border-color: rgba(192, 139, 255, 0.7);
+  border-color: rgba(219, 163, 255, 0.96);
   box-shadow:
-    0 0 0 1px rgba(192, 139, 255, 0.22),
-    0 0 36px rgba(128, 85, 255, 0.18);
+    0 0 0 1px rgba(219, 163, 255, 0.55),
+    0 0 20px rgba(173, 99, 255, 0.5),
+    0 0 52px rgba(142, 76, 255, 0.36);
 }
 
 .cardHighlighted::after {
@@ -225,9 +231,9 @@
   inset: 0;
   pointer-events: none;
   content: "";
-  border: 2px solid rgba(211, 118, 255, 0.66);
+  border: 2px solid rgba(228, 156, 255, 0.9);
   border-radius: inherit;
-  box-shadow: 0 0 34px rgba(151, 70, 255, 0.32);
+  box-shadow: 0 0 44px rgba(176, 92, 255, 0.5);
   will-change: transform, opacity;
   animation: selectedPulse 420ms ease-out 1 both;
 }
