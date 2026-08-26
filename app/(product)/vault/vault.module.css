@@ -54,6 +54,31 @@
   opacity: 0.6;
 }
 
+/* Once session, mood and goal are answered, this is the only thing left to
+   choose - and sitting dim under three rows wearing green ticks, it read as
+   finished rather than available. A border and a lit icon, not a pulse: it is
+   still optional, and the draw button is still the thing to press. */
+.optionalSetup[data-ready="true"] {
+  border-color: var(--vault-tile-selected-border);
+  background:
+    linear-gradient(140deg, rgba(120, 62, 220, 0.16), var(--vault-card-surface) 58%);
+  box-shadow: 0 0 0 1px rgba(188, 100, 255, 0.12), 0 0 26px rgba(134, 91, 255, 0.14);
+}
+
+.optionalSetup[data-ready="true"] .optionalIcon {
+  border-color: rgba(215, 142, 255, 0.68);
+  background: linear-gradient(145deg, rgba(143, 61, 231, 0.5), rgba(75, 61, 185, 0.28));
+  color: #ecd4ff;
+}
+
+.optionalSetup[data-ready="true"] .optionalLabel {
+  color: #d392ff;
+}
+
+.optionalSetup[data-ready="true"] .optionalCopy small {
+  color: #c6b3e8;
+}
+
 .optionalChevron {
   color: var(--vault-text-soft);
   transition: transform 180ms ease;

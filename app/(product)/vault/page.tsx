@@ -701,7 +701,15 @@ export default function VaultPage() {
         <div className={styles.setupSidebar}>
           {/* Collapsed by default: it is the optional step, and open it took as
               much room as the three required ones together. */}
-          <aside className={styles.optionalSetup} aria-label="Optional genre filters" data-disabled={collectionMode || undefined}>
+          {/* Lit once the three required steps are answered and this is the only
+              choice left. As the one dim row under three bright ones it was easy
+              to scroll straight past. */}
+          <aside
+            className={styles.optionalSetup}
+            aria-label="Optional genre filters"
+            data-disabled={collectionMode || undefined}
+            data-ready={!collectionMode && !nextSetupStep && !selectedGenres.length || undefined}
+          >
             <button
               type="button"
               className={styles.optionalHeader}
@@ -710,7 +718,7 @@ export default function VaultPage() {
               onClick={() => setGenresOpen((open) => !open)}
             >
               <span className={styles.optionalIcon}><VaultIcon name="filter" size={21} /></span>
-              <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{collectionMode ? "Vault Draw only · collection mode ignores filters" : selectedGenres.length ? `${selectedGenres.length} of 3 selected` : "Optional · no filters selected"}</small></span>
+              <span className={styles.optionalCopy}><strong>Genre filters</strong><small>{collectionMode ? "Vault Draw only · collection mode ignores filters" : selectedGenres.length ? `${selectedGenres.length} of 3 selected` : !nextSetupStep ? "Optional · narrow the deck by genre" : "Optional · no filters selected"}</small></span>
               <span className={styles.optionalLabel}>{collectionMode ? "Paused" : "Optional"}</span>
               <VaultIcon className={styles.optionalChevron} name="chevron-down" size={17} />
             </button>
