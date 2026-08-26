@@ -103,11 +103,7 @@
 .drawActionBar {
   position: relative;
   z-index: 2;
-  /* Where the draw scrolls to. The gap left above it clears the sticky header
-     and leaves the pick sitting directly underneath, so the button that rerolls
-     and the thing it produced are on screen together. Declared here so the
-     offset lives with the element it describes. */
-  scroll-margin-top: 24px;
+
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
   align-items: center;
@@ -337,6 +333,9 @@
   display: grid;
   gap: 0;
   overflow: hidden;
+  /* Where a draw scrolls to. Leaves the draw bar's reroll button visible
+     directly above the pick it produced. */
+  scroll-margin-top: 76px;
   padding: 0;
   border-color: rgba(155, 106, 255, 0.3);
   background: linear-gradient(135deg, rgba(9, 13, 34, 0.98), rgba(6, 10, 27, 0.95));
@@ -366,20 +365,34 @@
   }
 }
 
-/* A banner across the top of the card, not a picture sitting in a box. Capping
-   the height while the image was still fitted by its own aspect ratio left it
-   floating in the middle of a much wider frame with the card showing either
-   side, which is what made it look pasted on. It fills the width and takes the
-   card's own top corners. */
+/* Artwork beside the name, not a band above it. A full-width banner spent a
+   whole horizontal stripe on the image and another on the text, when the two
+   together fit in one. */
+.resultTop {
+  display: grid;
+  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 0;
+}
+
+.resultIntro {
+  min-width: 0;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: clamp(16px, 1.6vw, 26px);
+}
+
 .resultArtwork {
   position: relative;
   overflow: hidden;
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  height: clamp(150px, 14vw, 210px);
+  height: 100%;
+  min-height: clamp(150px, 13vw, 200px);
   align-self: stretch;
-  border-radius: var(--vault-sheet-radius) var(--vault-sheet-radius) 0 0;
+  border-radius: var(--vault-sheet-radius) 0 0 0;
   background: var(--vault-well-surface);
 }
 
@@ -425,7 +438,7 @@
   display: grid;
   gap: 11px;
   align-content: start;
-  padding: clamp(16px, 1.3vw, 22px);
+  padding: 0 clamp(16px, 1.3vw, 22px) clamp(16px, 1.3vw, 22px);
 }
 
 /* Slightly quieter than full white, which buys the artwork above it more room

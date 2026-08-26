@@ -10,6 +10,8 @@
 --   * a coherent matched estimate with a provider game ID;
 --   * medium/high confidence, or exact-Steam low-confidence HLTB evidence with
 --     clean completion times and either two submissions or two populated tiers;
+--   * direct low-confidence IGDB evidence only with 2-4 submissions, at least
+--     two coherent tiers, a primary title and no reused provider identity;
 --   * HLTB evidence with an accepted validation method/tier pair, or
 --     conservative direct IGDB evidence (5+ submissions, 2+ values, no
 --     derivative-product title, and no reused provider ID unless that estimate
@@ -250,6 +252,29 @@ with matched as (
             or matched.value_count >= 2
           )
         )
+        or (
+          matched.provider = 'igdb'
+          and matched.match_confidence = 'low'
+          and coalesce(matched.submission_count, 0) between 2 and 4
+          and matched.value_count >= 2
+          and (
+            matched.main_story_minutes is null
+            or matched.main_extra_minutes is null
+            or matched.main_extra_minutes::bigint
+              < matched.main_story_minutes::bigint * 12
+          )
+          and (
+            coalesce(
+              matched.main_story_minutes,
+              matched.main_extra_minutes
+            ) is null
+            or matched.completionist_minutes is null
+            or matched.completionist_minutes::bigint < coalesce(
+              matched.main_story_minutes,
+              matched.main_extra_minutes
+            )::bigint * 12
+          )
+        )
       )
       and matched.provider_game_id is not null
       and matched.valid_shape
@@ -276,7 +301,10 @@ with matched as (
         )
         or (
           matched.provider = 'igdb'
-          and coalesce(matched.submission_count, 0) >= 5
+          and (
+            coalesce(matched.submission_count, 0) >= 5
+            or matched.match_confidence = 'low'
+          )
           and matched.value_count >= 2
           and matched.catalogue_name is not null
           and not matched.derivative_product_title
@@ -307,6 +335,23 @@ select
         and (
           coalesce(submission_count, 0) >= 2
           or value_count >= 2
+        )
+      )
+      or (
+        provider = 'igdb'
+        and match_confidence = 'low'
+        and coalesce(submission_count, 0) between 2 and 4
+        and value_count >= 2
+        and (
+          main_story_minutes is null
+          or main_extra_minutes is null
+          or main_extra_minutes::bigint < main_story_minutes::bigint * 12
+        )
+        and (
+          coalesce(main_story_minutes, main_extra_minutes) is null
+          or completionist_minutes is null
+          or completionist_minutes::bigint
+            < coalesce(main_story_minutes, main_extra_minutes)::bigint * 12
         )
       )
     )
@@ -360,6 +405,22 @@ select
   count(*) filter (
     where provider = 'igdb'
       and coalesce(submission_count, 0) < 5
+      and not (
+        match_confidence = 'low'
+        and coalesce(submission_count, 0) between 2 and 4
+        and value_count >= 2
+        and (
+          main_story_minutes is null
+          or main_extra_minutes is null
+          or main_extra_minutes::bigint < main_story_minutes::bigint * 12
+        )
+        and (
+          coalesce(main_story_minutes, main_extra_minutes) is null
+          or completionist_minutes is null
+          or completionist_minutes::bigint
+            < coalesce(main_story_minutes, main_extra_minutes)::bigint * 12
+        )
+      )
   ) as igdb_below_five_submissions,
   count(*) filter (
     where provider = 'igdb' and derivative_product_title
@@ -397,6 +458,33 @@ with matched as (
                 + (estimate.main_extra_minutes is not null)::int
                 + (estimate.completionist_minutes is not null)::int
               ) >= 2
+            )
+          )
+          or (
+            estimate.provider = 'igdb'
+            and estimate.match_confidence = 'low'
+            and coalesce(estimate.submission_count, 0) between 2 and 4
+            and (
+              (estimate.main_story_minutes is not null)::int
+              + (estimate.main_extra_minutes is not null)::int
+              + (estimate.completionist_minutes is not null)::int
+            ) >= 2
+            and (
+              estimate.main_story_minutes is null
+              or estimate.main_extra_minutes is null
+              or estimate.main_extra_minutes::bigint
+                < estimate.main_story_minutes::bigint * 12
+            )
+            and (
+              coalesce(
+                estimate.main_story_minutes,
+                estimate.main_extra_minutes
+              ) is null
+              or estimate.completionist_minutes is null
+              or estimate.completionist_minutes::bigint < coalesce(
+                estimate.main_story_minutes,
+                estimate.main_extra_minutes
+              )::bigint * 12
             )
           )
         )
@@ -459,6 +547,32 @@ with matched as (
       case
         when estimate.provider = 'igdb'
           and coalesce(estimate.submission_count, 0) < 5
+          and not (
+            estimate.match_confidence = 'low'
+            and coalesce(estimate.submission_count, 0) between 2 and 4
+            and (
+              (estimate.main_story_minutes is not null)::int
+              + (estimate.main_extra_minutes is not null)::int
+              + (estimate.completionist_minutes is not null)::int
+            ) >= 2
+            and (
+              estimate.main_story_minutes is null
+              or estimate.main_extra_minutes is null
+              or estimate.main_extra_minutes::bigint
+                < estimate.main_story_minutes::bigint * 12
+            )
+            and (
+              coalesce(
+                estimate.main_story_minutes,
+                estimate.main_extra_minutes
+              ) is null
+              or estimate.completionist_minutes is null
+              or estimate.completionist_minutes::bigint < coalesce(
+                estimate.main_story_minutes,
+                estimate.main_extra_minutes
+              )::bigint * 12
+            )
+          )
         then 'igdb_below_five_submissions'
       end,
       case
@@ -553,6 +667,33 @@ with acceptable_estimates as (
           ) >= 2
         )
       )
+      or (
+        estimate.provider = 'igdb'
+        and estimate.match_confidence = 'low'
+        and coalesce(estimate.submission_count, 0) between 2 and 4
+        and (
+          (estimate.main_story_minutes is not null)::int
+          + (estimate.main_extra_minutes is not null)::int
+          + (estimate.completionist_minutes is not null)::int
+        ) >= 2
+        and (
+          estimate.main_story_minutes is null
+          or estimate.main_extra_minutes is null
+          or estimate.main_extra_minutes::bigint
+            < estimate.main_story_minutes::bigint * 12
+        )
+        and (
+          coalesce(
+            estimate.main_story_minutes,
+            estimate.main_extra_minutes
+          ) is null
+          or estimate.completionist_minutes is null
+          or estimate.completionist_minutes::bigint < coalesce(
+            estimate.main_story_minutes,
+            estimate.main_extra_minutes
+          )::bigint * 12
+        )
+      )
     )
     and estimate.provider_game_id is not null
     and (
@@ -604,7 +745,10 @@ with acceptable_estimates as (
       )
       or (
         estimate.provider = 'igdb'
-        and coalesce(estimate.submission_count, 0) >= 5
+        and (
+          coalesce(estimate.submission_count, 0) >= 5
+          or estimate.match_confidence = 'low'
+        )
         and (
           (estimate.main_story_minutes is not null)::int
           + (estimate.main_extra_minutes is not null)::int

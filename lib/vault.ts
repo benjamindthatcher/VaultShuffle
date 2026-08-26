@@ -632,8 +632,16 @@ export type VaultMatchInsight = {
   detail: string;
 };
 
-/** Two across, three rows. */
-export const MAX_MATCH_INSIGHTS = 6;
+/**
+ * Two across, two rows.
+ *
+ * Seven kinds can fire, but a draw rarely produces more than four: Surprise Me
+ * contributes no goal line, genre only speaks when filters are set, and
+ * dormancy, appeal and learned taste each need evidence the game may not have.
+ * Reserving three rows meant one sat empty almost every time, so the card
+ * carried a permanent gap to accommodate a case that hardly ever arrives.
+ */
+export const MAX_MATCH_INSIGHTS = 4;
 
 export type VaultMatchExplanation = {
   score: number;
@@ -788,21 +796,17 @@ export function buildVaultMatchExplanation({
     });
   }
 
-  // Six or four, whichever the evidence supports. The grid is two across, so an
-  // odd count leaves a tile alone on the last row - but only trim down to a full
-  // row, never below four. Cutting three good reasons to two buys tidiness with
-  // something the player would actually have wanted to read.
+  // The four strongest, in the order they were built: what you asked for first,
+  // then what the game brings to it. Never trimmed below what is there, since a
+  // lone tile sits in space that is reserved anyway.
   const shown = insights.slice(0, MAX_MATCH_INSIGHTS);
-  const wholeRows = shown.length >= MAX_MATCH_INSIGHTS
-    ? MAX_MATCH_INSIGHTS
-    : shown.length >= 4 ? 4 : shown.length;
 
   return {
     score: entry.score,
     label: vaultMatchLabel(entry.score),
     rank,
     poolSize: pool.length,
-    insights: shown.slice(0, wholeRows)
+    insights: shown
   };
 }
 

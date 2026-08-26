@@ -247,7 +247,53 @@ with scoped as (
   join public.game_duration_estimates as estimate
     on estimate.steam_app_id = game.steam_appid
   where estimate.match_status = 'matched'
-    and estimate.match_confidence in ('medium', 'high')
+    and (
+      estimate.match_confidence in ('medium', 'high')
+      or (
+        estimate.provider = 'hltb'
+        and estimate.match_confidence = 'low'
+        and estimate.evidence @> '{"identity_validated": true}'::jsonb
+        and estimate.evidence ->> 'verification_method' = 'profile_steam_exact'
+        and estimate.evidence ->> 'verification_tier' = 'steam_appid'
+        and estimate.evidence ->> 'duration_basis' = 'completion_times'
+        and estimate.evidence -> 'duration_issues' = '[]'::jsonb
+        and (
+          coalesce(estimate.submission_count, 0) >= 2
+          or (
+            (estimate.main_story_minutes is not null)::int
+            + (estimate.main_extra_minutes is not null)::int
+            + (estimate.completionist_minutes is not null)::int
+          ) >= 2
+        )
+      )
+      or (
+        estimate.provider = 'igdb'
+        and estimate.match_confidence = 'low'
+        and coalesce(estimate.submission_count, 0) between 2 and 4
+        and (
+          (estimate.main_story_minutes is not null)::int
+          + (estimate.main_extra_minutes is not null)::int
+          + (estimate.completionist_minutes is not null)::int
+        ) >= 2
+        and (
+          estimate.main_story_minutes is null
+          or estimate.main_extra_minutes is null
+          or estimate.main_extra_minutes::bigint
+            < estimate.main_story_minutes::bigint * 12
+        )
+        and (
+          coalesce(
+            estimate.main_story_minutes,
+            estimate.main_extra_minutes
+          ) is null
+          or estimate.completionist_minutes is null
+          or estimate.completionist_minutes::bigint < coalesce(
+            estimate.main_story_minutes,
+            estimate.main_extra_minutes
+          )::bigint * 12
+        )
+      )
+    )
     and estimate.provider_game_id is not null
     and (
       estimate.main_story_minutes > 0
@@ -297,7 +343,10 @@ with scoped as (
       )
       or (
         estimate.provider = 'igdb'
-        and coalesce(estimate.submission_count, 0) >= 5
+        and (
+          coalesce(estimate.submission_count, 0) >= 5
+          or estimate.match_confidence = 'low'
+        )
         and (
           (estimate.main_story_minutes is not null)::int
           + (estimate.main_extra_minutes is not null)::int

@@ -95,6 +95,7 @@ export default function VaultPage() {
   const [rerollReasonGiven, setRerollReasonGiven] = useState(false);
   const drawingRef = useRef(false);
   const drawStageRef = useRef<HTMLElement>(null);
+  const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
@@ -268,14 +269,14 @@ export default function VaultPage() {
   // at the same element again afterwards corrects both without fighting itself.
   useEffect(() => {
     if (drawState !== "revealed" || !revealedPickId) return;
-    const bar = drawStageRef.current;
-    if (!bar) return;
+    const target = resultRef.current ?? drawStageRef.current;
+    if (!target) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const frame = requestAnimationFrame(() => {
       // Only if it is not already where it should be, so a draw made from the
       // right place does not jiggle.
-      if (Math.abs(bar.getBoundingClientRect().top - DRAW_STAGE_OFFSET) < 24) return;
-      bar.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
+      if (Math.abs(target.getBoundingClientRect().top - DRAW_STAGE_OFFSET) < 24) return;
+      target.scrollIntoView({ block: "start", behavior: reducedMotion ? "auto" : "smooth" });
     });
     return () => cancelAnimationFrame(frame);
   }, [drawState, revealedPickId]);
@@ -359,7 +360,7 @@ export default function VaultPage() {
     // simply there by the time you scrolled down to it. The draw bar is the
     // anchor rather than the card itself, so the button that rerolls stays in
     // view alongside whatever it just produced.
-    await scrollToDrawStage(drawStageRef.current, reducedMotion);
+    await scrollToDrawStage(resultRef.current ?? drawStageRef.current, reducedMotion);
     setDrawState("focusing");
 
     // The pick is already decided, so the write does not have to finish before we
@@ -670,14 +671,21 @@ export default function VaultPage() {
       <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
 
       {currentPick ? (
-        <section className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
-          <div className={styles.resultArtwork}>
-            <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 42vw" priority fit="contain" />
-            <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
+        <section ref={resultRef} className={`${styles.resultCard} ${drawState === "revealed" ? styles.resultRevealed : ""}`} data-visible={drawState === "revealed"}>
+          {/* Artwork and the name sit side by side rather than stacked, so the
+              description fills the room beside the image instead of the card
+              spending a whole band on each in turn. */}
+          <div className={styles.resultTop}>
+            <div className={styles.resultArtwork}>
+              <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 36vw" priority fit="cover" />
+              <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={18} />Current pick</span>
+            </div>
+            <div className={styles.resultIntro}>
+              <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
+              <p className={styles.resultCopy}>{currentPick.description}</p>
+            </div>
           </div>
           <div className={styles.resultBody}>
-            <div className={styles.resultHeading}><h2 className={styles.resultTitle}>{currentPick.title}</h2><VaultIcon name="new" size={22} /></div>
-            <p className={styles.resultCopy}>{currentPick.description}</p>
             {(() => {
               if (currentPickExplanation) return <VaultMatchReasons explanation={currentPickExplanation} />;
               // A Collection Draw has no session, mood or goal to reason from, so
@@ -894,12 +902,14 @@ function wait(duration: number) {
 }
 
 /**
- * Matches scroll-margin-top on the draw bar, and is what "already there" means.
+ * The gap left above the pick, and what "already there" means.
  *
- * Small on purpose: the bar is the anchor, so a big gap above it pushed the pick
- * itself down the screen. Tight to the top leaves the whole card in view.
+ * The pick is the anchor rather than the draw bar: anchoring the bar left the
+ * card starting most of a bar-height down the screen, which was not far enough.
+ * The gap is roughly the height of the bar's second row, so the button that
+ * rerolls stays visible directly above the thing it produced.
  */
-const DRAW_STAGE_OFFSET = 24;
+const DRAW_STAGE_OFFSET = 76;
 
 async function scrollToDrawStage(element: HTMLElement | null, reducedMotion: boolean) {
   if (!element) return;

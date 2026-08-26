@@ -43,16 +43,16 @@
 /* Two across rather than six stacked. The reasoning is the best thing on this
    screen, but as a full-width column it ran taller than the artwork beside it
    and turned the case for one game into a page of its own. */
-/* Two across, and always tall enough for three rows. The panel used to grow and
-   shrink with the number of reasons, which moved the buttons underneath it
-   between one draw and the next - so the thing you were reaching for was never
-   in the same place twice. */
+/* Two across, and always tall enough for two rows - which is as many as a draw
+   realistically fills. The panel used to grow and shrink with the number of
+   reasons, moving the buttons underneath between one draw and the next, so the
+   thing you were reaching for was never twice in the same place. */
 .list {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-auto-rows: min-content;
   align-content: start;
-  min-height: calc(3 * var(--reason-row) + 2 * 6px);
+  min-height: calc(2 * var(--reason-row) + 6px);
   gap: 6px;
   margin: 0;
   padding: 0;
