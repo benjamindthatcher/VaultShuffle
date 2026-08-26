@@ -314,6 +314,15 @@ export default function VaultPage() {
   }, [drawState, revealedPickId]);
 
 
+  // A new setup means a new deck, so the draw cycle starts over: the queue, the
+  // already-drawn set and the deck highlight all belong to the deck that just
+  // stopped existing.
+  //
+  // The draw id does not. It identifies the pick still on screen, and it is what
+  // "Good pick?" and every follow-up - opened on Steam, pinned, snoozed - are
+  // recorded against. Clearing it took the feedback row off a card that was
+  // still sitting there, for the same reason the card itself is frozen: what you
+  // change now applies to the next draw, not the one you already have.
   useEffect(() => {
     const resetQueue = { setupKey, gameIds: [] };
     activeDrawRef.current += 1;
@@ -323,8 +332,10 @@ export default function VaultPage() {
     setDeferredQueue(resetQueue);
     setHighlightedGameId(null);
     setDrawWinnerId(null);
-    setCurrentDrawId(null);
-    setDrawState("idle");
+    // Idle only if a draw was in flight, which this has just cancelled. A
+    // revealed pick stays revealed - leaving "focusing" would disable the draw
+    // button for good, and forcing "idle" drops the card's revealed treatment.
+    setDrawState((current) => (current === "revealed" ? "revealed" : "idle"));
     setDrawMessage("");
   }, [setupKey]);
 
