@@ -42,6 +42,7 @@ export default function PurgePage() {
   const [reviewedTab, setReviewedTab] = useState<"active" | "slept">("active");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [flagging, setFlagging] = useState(false);
+  const [flaggingId, setFlaggingId] = useState<string | null>(null);
   const [selectedOffset, setSelectedOffset] = useState(0);
   const [undo, setUndo] = useState<Undo | null>(null);
   const savingRef = useRef(false);
@@ -370,25 +371,45 @@ export default function PurgePage() {
       : [...current, gameId]);
   }
 
-  async function flagSelected() {
-    if (!selected.size || flagging) return;
-    setFlagging(true);
+  async function flagGames(gameIds: string[]) {
+    if (!gameIds.length) return false;
     setError("");
     try {
       const response = await fetch("/api/purge/flags", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ game_ids: [...selected] })
+        body: JSON.stringify({ game_ids: gameIds })
       });
       if (!response.ok) throw new Error("Could not flag those games for review.");
-      setSelectedIds([]);
-      setReviewView("needs");
+      setSelectedIds((current) => current.filter((id) => !gameIds.includes(id)));
       await refresh();
+      return true;
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not flag those games for review.");
-    } finally {
-      setFlagging(false);
+      return false;
     }
+  }
+
+  async function flagSelected() {
+    if (!selected.size || flagging) return;
+    setFlagging(true);
+    // Sending a batch back is a move to the queue, so the queue is where you
+    // land. One card is not - see below.
+    if (await flagGames([...selected])) setReviewView("needs");
+    setFlagging(false);
+  }
+
+  /**
+   * Flagging a single card leaves you where you are. The card drops out of this
+   * list on its own once the queue has it, which is proof enough that it worked,
+   * and you are usually going down a grid picking out two or three - being
+   * thrown to the queue after the first one would mean coming back each time.
+   */
+  async function flagOne(gameId: string) {
+    if (flaggingId || flagging) return;
+    setFlaggingId(gameId);
+    await flagGames([gameId]);
+    setFlaggingId(null);
   }
 
   return <PurgePageFrame>
@@ -498,7 +519,23 @@ export default function PurgePage() {
                     </label>
                     <span className={styles.outcomeArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                     <span className={styles.outcomeName}>{game.title}</span>
-                    <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : "Active"}</span>
+                    {/* Flagging one game needed a tick and then a trip to the bar
+                        at the bottom of the page. The checkbox is still there for
+                        doing several at once; this is for the common case of
+                        spotting one. */}
+                    <span className={styles.outcomeFooter}>
+                      <span className={styles.outcomeBadge} data-status={game.status}>{game.status === "Slept" ? "Asleep" : "Active"}</span>
+                      <button
+                        type="button"
+                        className={styles.outcomeFlag}
+                        disabled={flagging || Boolean(flaggingId)}
+                        aria-label={`Flag ${game.title} for review`}
+                        onClick={() => void flagOne(game.id)}
+                      >
+                        <VaultIcon name="ready-to-review" size={15} />
+                        {flaggingId === game.id ? "Flagging…" : "Flag for review"}
+                      </button>
+                    </span>
                   </li>)}
                 </ul>
               ) : <p className={styles.emptyNote}>{activeGroup.empty}</p>}

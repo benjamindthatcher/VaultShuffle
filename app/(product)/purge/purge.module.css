@@ -463,6 +463,43 @@
   font-size: 0.88rem;
   line-height: 1.3;
 }
+/* Status on the left, the action on the right. The card's third row used to be
+   the badge alone, sitting in a lot of empty space. */
+.outcomeFooter {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.outcomeFlag {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 999px;
+  background: var(--vault-well-surface);
+  color: var(--vault-text-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.outcomeFlag:hover:not(:disabled),
+.outcomeFlag:focus-visible:not(:disabled) {
+  border-color: var(--vault-control-hover-border);
+  background: var(--vault-control-hover-bg);
+  color: #fff;
+}
+
+.outcomeFlag:disabled { opacity: 0.5; }
+
+.outcomeFlag svg { flex: 0 0 auto; }
+
 .outcomeBadge {
   justify-self: start;
   padding: 4px 10px;

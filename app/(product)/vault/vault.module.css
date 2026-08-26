@@ -744,9 +744,19 @@
   gap: 8px;
   margin: 0 0 12px;
 }
-/* A Quick Draw explains nothing, so there is no reasoning panel above this and
-   it landed 4px under the artwork. The panel is a bordered box and can sit
-   close; a bare line of text reads as attached to the picture. */
+/* The same 24px under whatever it follows - the reasoning panel on a guided
+   draw, the artwork on a Quick Draw, which explains nothing and so has no panel.
+   It is a bare line of text either way and should not sit closer to one than to
+   the other, and at 4px under the picture it read as attached to it.
+
+   The two numbers differ because 11px of the gap is the body's own grid gap,
+   which a first child does not get, and the row above the artwork contributes
+   4px of padding. */
+.resultBody > .feedbackRow,
+.resultBody > .rerollAsk {
+  margin-top: 13px;
+}
+
 .resultBody > .feedbackRow:first-child,
 .resultBody > .rerollAsk:first-child {
   margin-top: 20px;
