@@ -801,7 +801,7 @@ export default function VaultPage() {
                 onClick={() => setLensOpen((value) => !value)}
               >
                 <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
+                <span className={styles.deckToolCopy}><strong>Vault Lens</strong></span>
                 <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
               </button>
               <button
@@ -816,7 +816,7 @@ export default function VaultPage() {
                 }}
               >
                 <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
+                <span className={styles.deckToolCopy}><strong>Draw History</strong></span>
                 <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
               </button>
             </div>}
@@ -824,15 +824,10 @@ export default function VaultPage() {
 
           {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
 
-          <div className={styles.pillRow}>
-            {collectionDraw && selectedCollection ? <FilterPill label={`Collection · ${selectedCollection.name}`} /> : null}
-            {!collectionMode && session ? <FilterPill label={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Session"} /> : null}
-            {!collectionMode && mood ? <FilterPill label={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Mood"} /> : null}
-            {!collectionMode && goal ? <FilterPill label={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Goal"} /> : null}
-            {!collectionMode ? selectedGenres.map((genre) => <FilterPill key={genre} label={genre} removable onRemove={() => toggleGenre(genre)} />) : null}
-            {!collectionMode && !session && !mood && !goal && !selectedGenres.length ? <span className={styles.noFilters}>No filters selected</span> : null}
-            {collectionMode && !selectedCollection ? <span className={styles.noFilters}>Choose a collection to build this deck.</span> : null}
-          </div>
+          {/* The setup pills that used to sit here restated session, mood and goal,
+              which the pick's own summary bar shows directly above. What is worth
+              keeping is the case where the deck is empty and the reason why. */}
+          {collectionMode && !selectedCollection ? <span className={styles.noFilters}>Choose a collection to build this deck.</span> : null}
         </div>
 
         {deck.length ? (
