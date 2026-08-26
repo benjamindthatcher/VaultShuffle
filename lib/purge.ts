@@ -66,7 +66,6 @@ export function buildPurgeCandidates({
   currentPickId,
   snoozedIds,
   reviews = [],
-  likelyFinishedIds,
   now = new Date()
 }: {
   games: DemoGame[];
@@ -75,7 +74,6 @@ export function buildPurgeCandidates({
   snoozedIds: string[];
   reviews?: PurgeReview[];
   /** Games already queued for the completion sweep; Purge must not ask about them too. */
-  likelyFinishedIds?: Set<string>;
   now?: Date;
 }): PurgeCandidate[] {
   const protectedIds = new Set([
@@ -127,8 +125,7 @@ export function buildPurgeCandidates({
       protectedIds.has(game.id) ||
       (!requested && (
         recentlyKept.has(game.id) ||
-        recentlyActioned.has(game.id) ||
-        likelyFinishedIds?.has(game.id)
+        recentlyActioned.has(game.id)
       ))
     ) {
       continue;

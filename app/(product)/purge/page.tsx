@@ -18,7 +18,6 @@ import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SignInLock } from "@/components/guest/SignInLock";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
-import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
 
 
@@ -55,24 +54,15 @@ export default function PurgePage() {
   const [reviewsReady, setReviewsReady] = useState(false);
   const [error, setError] = useState("");
 
-  // Anything the completion sweep is already asking about is not a pruning
-  // question, and being asked twice about the same game is how the two queues
-  // started feeling like one chore.
-  const likelyFinishedIds = useMemo(
-    () => new Set(findCompletionCandidates(games).map((candidate) => candidate.game.id)),
-    [games]
-  );
-
   const candidates = useMemo(
     () => buildPurgeCandidates({
       games,
       pinnedIds: vaultState.pinnedIds,
       currentPickId: vaultState.currentPickId,
       snoozedIds: vaultState.snoozedIds,
-      reviews,
-      likelyFinishedIds: likelyFinishedIds
+      reviews
     }),
-    [games, likelyFinishedIds, reviews, vaultState.currentPickId, vaultState.pinnedIds, vaultState.snoozedIds]
+    [games, reviews, vaultState.currentPickId, vaultState.pinnedIds, vaultState.snoozedIds]
   );
   const activeIndex = Math.min(selectedOffset, Math.max(0, candidates.length - 1));
   const current = candidates[activeIndex] ?? null;
@@ -96,11 +86,17 @@ export default function PurgePage() {
   // outcome. The tab summary already reported from current status for exactly this
   // reason; the rows did not, so a game woken from the Library kept its "Put to
   // sleep" label and was counted as reviewed while also queueing for review again.
+  //
+  // Completed games drop out here. Finishing a game is not a Purge outcome and
+  // there is nothing on this page that can act on one, so they were being
+  // counted into Reviewed and then filtered out of both tabs - a few hundred
+  // games in the total that you could never find.
   const standingReviews = useMemo(() => {
     const standing = new Map<string, PurgeReview>();
     for (const [gameId, review] of latestReviews) {
       const game = gameById.get(gameId);
-      if (game && !isReviewSuperseded(review.action, game.status)) standing.set(gameId, review);
+      if (!game || game.status === "Completed") continue;
+      if (!isReviewSuperseded(review.action, game.status)) standing.set(gameId, review);
     }
     return standing;
   }, [latestReviews, gameById]);
@@ -129,9 +125,8 @@ export default function PurgePage() {
     return {
       ready: candidates.length,
       reviewed: reviewedStatuses.length,
-      kept: reviewedStatuses.filter((status) => status !== "Slept" && status !== "Completed").length,
+      kept: reviewedStatuses.filter((status) => status !== "Slept").length,
       slept: reviewedStatuses.filter((status) => status === "Slept").length,
-      completed: reviewedStatuses.filter((status) => status === "Completed").length,
       noReviewNeeded
     };
   }, [candidates, games, standingReviews]);

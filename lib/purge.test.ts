@@ -154,6 +154,25 @@ test("a game flagged by hand joins the queue even with no evidence against it", 
   assert.match(candidates[0].reason, /You flagged this one for review/);
 });
 
+test("a game waiting on a completion answer is still an active game", () => {
+  // Games the completion sweep was about to ask about used to be held out of
+  // this queue so the two could not ask about the same game. But "did you finish
+  // this" and "should this stay in the draw pool" are different questions with
+  // different answers, and a long-idle game past its campaign is a fair subject
+  // for both.
+  const pastItsCampaign = {
+    ...game("finished-looking"),
+    hoursPlayed: 40,
+    duration: { mainStoryMinutes: 30 * 60 }
+  } as DemoGame;
+
+  const candidates = buildPurgeCandidates({
+    games: [pastItsCampaign], pinnedIds: [], currentPickId: null, snoozedIds: [], reviews: [], now
+  });
+
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["finished-looking"]);
+});
+
 test("flagging overrides the keep cooldown, which is the only reason to flag", () => {
   // This used to assert the opposite, and the opposite made the button useless:
   // a keep suppresses a game for 180 days, and the games offered for flagging

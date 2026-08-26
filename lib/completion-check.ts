@@ -66,7 +66,12 @@ export function findCompletionCandidates(games: DemoGame[], _now = new Date()): 
 
   for (const game of games) {
     if (game.ownership !== "Owned") continue;
-    if (game.status === "Completed" || game.status === "Slept") continue;
+    // Completed is the answer to this question, so there is nothing to ask.
+    // Slept is the answer to a different one - whether it stays in the draw pool
+    // - and has no bearing on whether you reached the credits. Skipping it meant
+    // a game you finished and then put to sleep was never asked about and never
+    // reached the Completed page.
+    if (game.status === "Completed") continue;
     if (game.duration?.endless) continue;
 
     const estimateMinutes = estimatedTimeToBeatMinutes(game.duration);

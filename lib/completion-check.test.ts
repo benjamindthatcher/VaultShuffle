@@ -39,12 +39,18 @@ test("endless games are never asked about", () => {
   assert.deepEqual(found, []);
 });
 
-test("already completed or slept games are not asked about again", () => {
-  const found = findCompletionCandidates([
-    game({ id: "a", status: "Completed", hoursPlayed: 20 }),
-    game({ id: "b", status: "Slept", hoursPlayed: 20 })
-  ]);
+test("an already completed game is not asked about again", () => {
+  const found = findCompletionCandidates([game({ id: "a", status: "Completed", hoursPlayed: 20 })]);
   assert.deepEqual(found, []);
+});
+
+test("sleeping a game says nothing about whether it was finished", () => {
+  // Sleep answers "should this stay in the draw pool". Whether you reached the
+  // credits is a different question, and skipping slept games meant one you had
+  // finished and then put to sleep was never asked about and never reached the
+  // Completed page.
+  const found = findCompletionCandidates([game({ id: "b", status: "Slept", hoursPlayed: 20 })]);
+  assert.deepEqual(found.map(({ game }) => game.id), ["b"]);
 });
 
 test("dismissing holds until another real session has gone in", () => {

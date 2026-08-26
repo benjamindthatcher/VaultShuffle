@@ -53,15 +53,6 @@ test("a middling game gets no signal, because a middling score helps nobody deci
   assert.equal(only.signal, null);
 });
 
-test("games already queued for the completion sweep are not asked about twice", () => {
-  const candidates = buildPurgeCandidates({
-    ...base,
-    games: [game({ id: "a" }), game({ id: "b" })],
-    likelyFinishedIds: new Set(["a"])
-  });
-  assert.deepEqual(candidates.map((candidate) => candidate.game.id), ["b"]);
-});
-
 test("never-opened games explain why they need review", () => {
   const [fresh] = buildPurgeCandidates({ ...base, games: [game({ id: "a", hoursPlayed: 0 })] });
   assert.match(fresh.reason, /Never opened/);
