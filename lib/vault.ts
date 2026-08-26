@@ -24,11 +24,15 @@ export const MAX_VAULT_GENRES = 3;
 export const MAX_VAULT_DECK_SIZE = 64;
 const VAULT_SELECTION_TEMPERATURE = 15;
 
+/* `label` names the choice where nothing else does - the setup cards read
+   "Short Session". `shortLabel` is for places that have already said the word,
+   like the pick's summary bar, where "SESSION  Weekend Session" says it twice
+   and spends the room on the repeat. */
 export const vaultSessionOptions = [
-  { id: "short", label: "Short Session", caption: "Shorter pick · up to 10h left" },
-  { id: "evening", label: "Evening Session", caption: "Medium pick · 10-30h left" },
-  { id: "weekend", label: "Weekend Session", caption: "Long pick · 30h+ left" }
-] satisfies ReadonlyArray<{ id: VaultSessionId; label: string; caption: string }>;
+  { id: "short", label: "Short Session", shortLabel: "Short", caption: "Shorter pick · up to 10h left" },
+  { id: "evening", label: "Evening Session", shortLabel: "Evening", caption: "Medium pick · 10-30h left" },
+  { id: "weekend", label: "Weekend Session", shortLabel: "Weekend", caption: "Long pick · 30h+ left" }
+] satisfies ReadonlyArray<{ id: VaultSessionId; label: string; shortLabel: string; caption: string }>;
 
 export const vaultMoodOptions = [
   { id: "brain-off", label: "Brain-Off", caption: "Easy to drop into and play." },

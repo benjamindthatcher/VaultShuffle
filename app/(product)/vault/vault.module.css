@@ -391,7 +391,21 @@
 
 .resultHeading { display: flex; align-items: center; gap: 12px; color: #d17cff; }
 .reasonLabel { margin: 6px 0 -2px; color: #d392ff; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
-.resultContext { grid-column: 1 / -1; min-width: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); align-items: center; gap: 12px; padding: 10px 18px; border-top: 1px solid var(--vault-card-border); }
+/* Content-sized rather than four equal columns. Equal columns gave "Mood
+   Intense" the same width as a list of three genres, so the short ones sat in
+   space they did not need while the long one truncated. Wraps rather than
+   clips if a viewport is genuinely too narrow for the row. */
+.resultContext {
+  grid-column: 1 / -1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px 12px;
+  padding: 10px 18px;
+  border-top: 1px solid var(--vault-card-border);
+}
 
 .resultRevealed {
   box-shadow: 0 0 0 1px rgba(184, 92, 255, 0.16), 0 24px 64px rgba(1, 4, 18, 0.46), 0 0 34px rgba(117, 65, 224, 0.14);
@@ -675,6 +689,12 @@
   .resultBody { padding: 22px 18px; }
   .resultContext { padding: 18px; border-top: 1px solid var(--vault-card-border); border-left: 0; }
 
+  /* Each item has the whole row to itself down here, so a long value wraps onto
+     a second line rather than ellipsing - three genres joined will not fit one
+     phone-width line however the row is arranged. */
+  .summaryItem span,
+  .summaryItem strong { flex-wrap: wrap; white-space: normal; overflow: visible; }
+
   .resultAction { min-height: 58px; }
 }
 
@@ -692,10 +712,6 @@
   .deckTools {
     grid-template-columns: minmax(0, 1fr);
   }
-}
-
-@media (min-width: 1080px) and (max-width: 1320px) {
-  .resultContext { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
 @media (min-width: 1080px) {

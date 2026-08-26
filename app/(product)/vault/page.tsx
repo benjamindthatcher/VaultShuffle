@@ -851,10 +851,10 @@ export default function VaultPage() {
               <ResultSummary icon="collections" label="Collection Draw" value={selectedCollection?.name ?? "Collection"} />
               <ResultSummary icon="genre" label="Filters" value="Collection only" />
             </> : <>
-              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.label ?? "Not selected"} />
+              <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === session)?.shortLabel ?? "Not selected"} />
               <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === mood)?.label ?? "Not selected"} />
               <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === goal)?.label ?? "Not selected"} />
-              <ResultSummary icon="genre" label="Genres / context" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
+              <ResultSummary icon="genre" label="Genres" value={selectedGenres.length ? selectedGenres.join(" · ") : (isLive ? "Entire Vault" : "Guest Catalogue")} />
             </>}
           </aside>
         </section>
