@@ -304,12 +304,20 @@ export default function VaultPage() {
     setDrawMessage("");
   }, [setupKey]);
 
-  // An empty deck needs explaining, so the Lens opens itself - but only into a
-  // strip nothing else is using, and only when the deck changes, so closing it
-  // stays closed.
+  // The Lens opens itself when a deck comes back empty - but only when empty is
+  // surprising, which means a finished setup that matched nothing.
+  //
+  // An unfinished one is empty by design and the page already says why: pressing
+  // Collection Draw empties the deck until you choose a collection, and it puts
+  // "Choose a collection to build this deck" on screen while it waits. Treating
+  // that as something to explain popped the Lens open on a plain mode switch.
+  const setupComplete = collectionMode ? Boolean(selectedCollection) : !nextSetupStep;
+  const deckEmptyUnexpectedly = setupComplete && !deck.length;
   useEffect(() => {
-    if (!deck.length) setDeckPanel((current) => current ?? "lens");
-  }, [deck.length]);
+    // Only into a strip nothing else is using, and only when the answer changes,
+    // so closing it stays closed.
+    if (deckEmptyUnexpectedly) setDeckPanel((current) => current ?? "lens");
+  }, [deckEmptyUnexpectedly]);
 
   async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
     // Quick Draw bypasses the setup gate on purpose: it exists for the visitor who
