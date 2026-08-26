@@ -747,6 +747,39 @@ def write_report(path, report):
         print(serialized)
 
 
+def read_stdin_games(stream):
+    """Read either a JSON array or newline-delimited game objects from stdin.
+
+    NDJSON is useful for large catalogues because each record stays below a
+    terminal's canonical-input limit. A blank line terminates an interactive
+    NDJSON stream; EOF also terminates it.
+    """
+    first_line = stream.readline()
+    if not first_line:
+        return []
+    first_value = first_line.strip()
+    if not first_value:
+        return []
+    if first_value.startswith("["):
+        games = json.loads(first_value)
+        if not isinstance(games, list):
+            raise ValueError("stdin JSON input must be an array of games")
+        return games
+
+    games = []
+    current_value = first_value
+    while current_value:
+        game = json.loads(current_value)
+        if not isinstance(game, dict):
+            raise ValueError("each NDJSON input row must be a game object")
+        games.append(game)
+        next_line = stream.readline()
+        if not next_line:
+            break
+        current_value = next_line.strip()
+    return games
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -785,7 +818,7 @@ def main():
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
     if args.input:
         if args.input == "-":
-            games = json.loads(sys.stdin.readline())[: args.limit]
+            games = read_stdin_games(sys.stdin)[: args.limit]
         else:
             with open(args.input, encoding="utf-8") as source:
                 games = json.load(source)[: args.limit]

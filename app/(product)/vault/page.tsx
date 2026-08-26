@@ -11,7 +11,7 @@ import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
 import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
 import { VaultLens } from "@/components/vault/VaultLens";
-import { VaultHistoryDrawer } from "@/components/vault/VaultHistoryDrawer";
+import { VaultHistoryPanel } from "@/components/vault/VaultHistoryPanel";
 import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SectionHeading } from "@/components/shared/SectionHeading";
@@ -83,8 +83,10 @@ export default function VaultPage() {
   // the answer arrived a full animation before the animation that announces it.
   const [revealedPickId, setRevealedPickId] = useState<string | null>(null);
   const [drawMessage, setDrawMessage] = useState("");
-  const [lensOpen, setLensOpen] = useState(false);
-  const [historyOpen, setHistoryOpen] = useState(false);
+  // The two deck tools open into the same strip below the bar, so they are one
+  // disclosure rather than two booleans that can both be true and stack two
+  // panels between you and the pick.
+  const [deckPanel, setDeckPanel] = useState<"lens" | "history" | null>(null);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
   const [lastDrawWasQuick, setLastDrawWasQuick] = useState(false);
@@ -302,8 +304,11 @@ export default function VaultPage() {
     setDrawMessage("");
   }, [setupKey]);
 
+  // An empty deck needs explaining, so the Lens opens itself - but only into a
+  // strip nothing else is using, and only when the deck changes, so closing it
+  // stays closed.
   useEffect(() => {
-    if (!deck.length) setLensOpen(true);
+    if (!deck.length) setDeckPanel((current) => current ?? "lens");
   }, [deck.length]);
 
   async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
@@ -524,6 +529,18 @@ export default function VaultPage() {
     await Promise.all(vaultState.snoozedIds.map((gameId) => recordVaultAction("unsnoozed", gameId)));
   }
 
+  /* Toggling is a state update; fetching the history and reporting the open are
+     not, so they stay out of the updater React is free to run twice. */
+  function openDrawHistory() {
+    if (deckPanel === "history") {
+      setDeckPanel(null);
+      return;
+    }
+    setDeckPanel("history");
+    void loadVaultHistory();
+    trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened, { preview_mode: !isLive });
+  }
+
   async function togglePin(id: string) {
     const game = ownedGames.find((item) => item.id === id);
     if (!game) return;
@@ -663,39 +680,6 @@ export default function VaultPage() {
             <p className={styles.setupStatus} id="vault-setup-status">{setupStatusMessage}</p>
           )}
         </div>
-        {/* The bar had a wide empty middle while these sat in a band of their
-            own further down the page. Neither is part of setting a draw up, so
-            they take the space rather than a row. */}
-        <div className={styles.deckTools}>
-              <button
-                type="button"
-                className={styles.deckToolButton}
-                data-active={lensOpen || undefined}
-                aria-expanded={lensOpen}
-                aria-controls="vault-lens-panel"
-                onClick={() => setLensOpen((value) => !value)}
-              >
-                <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
-                <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
-              </button>
-              <button
-                type="button"
-                className={styles.deckToolButton}
-                aria-expanded={historyOpen}
-                aria-haspopup="dialog"
-                onClick={() => {
-                  setHistoryOpen(true);
-                  void loadVaultHistory();
-                  trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened, { preview_mode: !isLive });
-                }}
-              >
-                <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
-                <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
-                <VaultIcon className={styles.deckToolArrow} name="chevron-right" size={17} />
-              </button>
-        </div>
-
         <div className={styles.drawActionControl}>
           <button type="button" className={styles.ctaButton} onClick={handlePrimaryDrawAction} disabled={isDrawing || (collectionMode ? Boolean(selectedCollection && !deck.length) : (!nextSetupStep && !deck.length))} aria-busy={isDrawing} aria-describedby="vault-setup-status">
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
@@ -704,11 +688,52 @@ export default function VaultPage() {
             <VaultIcon name="surprise-me" size={16} />Skip it, just pick something
           </button>
         </div>
+        {/* The bar had a wide empty middle while these sat in a band of their
+            own further down the page. Neither is part of setting a draw up, so
+            they take the end of the bar rather than a row of their own. */}
+        <div className={styles.deckTools}>
+          <button
+            type="button"
+            className={styles.deckToolButton}
+            data-active={deckPanel === "lens" || undefined}
+            aria-expanded={deckPanel === "lens"}
+            aria-controls="vault-lens-panel"
+            onClick={() => setDeckPanel((current) => (current === "lens" ? null : "lens"))}
+          >
+            <span className={styles.deckToolIcon}><VaultIcon name="details" size={21} /></span>
+            <span className={styles.deckToolCopy}><strong>Vault Lens</strong><small>How this deck was built</small></span>
+            <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
+          </button>
+          <button
+            type="button"
+            className={styles.deckToolButton}
+            data-active={deckPanel === "history" || undefined}
+            aria-expanded={deckPanel === "history"}
+            aria-controls="vault-history-panel"
+            onClick={openDrawHistory}
+          >
+            <span className={styles.deckToolIcon}><VaultIcon name="clock" size={21} /></span>
+            <span className={styles.deckToolCopy}><strong>Draw History</strong><small>{isLive ? "Revisit previous picks" : "Saved for this visit"}</small></span>
+            <VaultIcon className={styles.deckToolChevron} name="chevron-down" size={17} />
+          </button>
+        </div>
       </section>
 
-      {/* Directly under the bar, so the panel opens next to the button that
+      {/* Directly under the bar, so a panel opens next to the button that
           toggles it rather than somewhere further down the page. */}
-      {lensOpen ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
+      {deckPanel === "lens" ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
+      {deckPanel === "history" ? (
+        <VaultHistoryPanel
+          draws={vaultHistory}
+          games={ownedGames}
+          isLive={isLive}
+          onClear={clearVaultHistory}
+          onViewDetails={(game) => {
+            setDeckPanel(null);
+            setDetailsGameId(game.id);
+          }}
+        />
+      ) : null}
 
       <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
 
@@ -892,17 +917,6 @@ export default function VaultPage() {
         onComplete={() => detailsGame ? completeGame(detailsGame) : Promise.resolve()}
         onSleep={() => detailsGame ? sleepPoolGame(detailsGame.id) : Promise.resolve()}
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}
-      />
-      <VaultHistoryDrawer
-        open={historyOpen}
-        draws={vaultHistory}
-        games={ownedGames}
-        onClose={() => setHistoryOpen(false)}
-        onClear={clearVaultHistory}
-        onViewDetails={(game) => {
-          setHistoryOpen(false);
-          setDetailsGameId(game.id);
-        }}
       />
       <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} catalogueSize={ownedGames.length} reason="finish_goal" />
       {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}

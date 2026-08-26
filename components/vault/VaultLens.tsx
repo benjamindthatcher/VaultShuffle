@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { VaultEligibilityStage } from "@/lib/vault";
+import shell from "./DeckPanel.module.css";
 import styles from "./VaultLens.module.css";
 
 type Props = {
@@ -19,10 +20,10 @@ export function VaultLens({ stages, selectedCollection, selectedGenres, snoozedC
   // Purge is worth suggesting based on what is left to play, not the raw library.
   const activeCount = stages.find((stage) => stage.id === "active")?.count ?? stages[0]?.count ?? 0;
 
-  return <div id="vault-lens-panel" className={styles.panel}>
-      <div className={styles.heading}>
+  return <div id="vault-lens-panel" className={shell.panel}>
+      <div className={shell.heading}>
         <div><p>Deck eligibility</p><h3>{availableCount ? "How this deck was formed" : "No games reached the end of the Lens"}</h3></div>
-        <span className={styles.finalCount} aria-live="polite">{deckCount}{availableCount > deckCount ? ` in deck · ${availableCount} available` : " available"}</span>
+        <span className={shell.meta} aria-live="polite">{deckCount}{availableCount > deckCount ? ` in deck · ${availableCount} available` : " available"}</span>
       </div>
       <ol className={styles.funnel} aria-label="Vault eligibility stages">
         {stages.map((stage, index) => <li key={stage.id}>
@@ -34,12 +35,12 @@ export function VaultLens({ stages, selectedCollection, selectedGenres, snoozedC
           {index < stages.length - 1 ? <VaultIcon name="chevron-right" size={18} className={styles.arrow} /> : null}
         </li>)}
       </ol>
-      <div className={styles.actions}>
+      <div className={shell.actions}>
         {selectedGenres ? <button type="button" onClick={onClearGenres}>Clear Genres</button> : null}
         {selectedCollection ? <button type="button" onClick={onUseEntireVault}>Use Entire Vault</button> : null}
         {snoozedCount ? <button type="button" onClick={onClearSnoozes}>Clear Snoozes ({snoozedCount})</button> : null}
         <Link href="/library?tab=slept">View Slept</Link>
-        {activeCount >= 40 ? <Link className={styles.purge} href="/purge">Want a more focused backlog? Open Purge</Link> : null}
+        {activeCount >= 40 ? <Link className={`${shell.trailing} ${styles.purge}`} href="/purge">Want a more focused backlog? Open Purge</Link> : null}
       </div>
     </div>;
 }

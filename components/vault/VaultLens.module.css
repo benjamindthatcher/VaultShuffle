@@ -1,49 +1,5 @@
-/* Built from the same tokens as every other panel in the app. It used to carry
-   its own gradient, its own border colour and its own type scale, so the one
-   place that explains how a draw was made looked like it came from a different
-   product. */
-.panel {
-  display: grid;
-  gap: 16px;
-  margin-top: 4px;
-  padding: 18px;
-  border: 1px solid var(--vault-sheet-border);
-  border-radius: var(--vault-sheet-radius);
-  background: var(--vault-sheet-surface);
-}
-
-.heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.heading p,
-.heading h3 {
-  margin: 0;
-}
-
-/* The eyebrow used on every other section label. */
-.heading p {
-  color: #d392ff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-}
-
-.heading h3 {
-  margin-top: 5px;
-  color: var(--vault-text);
-  font-size: 1rem;
-}
-
-.finalCount {
-  color: var(--vault-text-muted);
-  font-size: 0.82rem;
-  white-space: nowrap;
-}
+/* Only what is particular to the Lens - the funnel. Its panel, heading and
+   footer row come from DeckPanel.module.css, shared with Draw History. */
 
 .funnel {
   display: flex;
@@ -88,38 +44,9 @@
   color: var(--accent-bright, #a855f7);
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid var(--vault-card-border);
-}
-
-.actions button,
-.actions a {
-  min-height: 36px;
-  display: inline-flex;
-  align-items: center;
-  padding: 0 13px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: 9px;
-  background: var(--vault-well-surface);
-  color: var(--vault-text-soft);
-  font-size: 0.8rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.actions button:hover,
-.actions a:hover {
-  border-color: var(--vault-control-hover-border);
-  background: var(--vault-control-hover-bg);
-}
-
-.actions .purge {
-  margin-left: auto;
+/* Position comes from the shared shell; the accent is the Lens's own, because
+   it is the one action here that sends you somewhere else. */
+.purge {
   border-color: var(--vault-tile-selected-border);
   background: var(--vault-tile-selected-surface);
   color: #fff;
@@ -138,5 +65,4 @@
   .funnel { display: grid; }
   .funnel li { display: grid; grid-template-columns: 1fr; }
   .arrow { transform: rotate(90deg); justify-self: center; }
-  .actions .purge { margin-left: 0; }
 }

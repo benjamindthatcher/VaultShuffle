@@ -110,9 +110,10 @@
   scroll-margin-top: 30px;
 
   display: grid;
-  /* Mode picker, then the deck tools in what used to be dead space, then the
-     draw itself. */
-  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(270px, 320px);
+  /* Mode picker, then the draw itself, then the two deck tools on the end. The
+     draw is what the bar is for, so it sits in the middle where the eye lands
+     rather than being pushed out to the edge by the tools. */
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(232px, 268px);
   align-items: center;
   gap: 14px;
   padding: 14px;
@@ -176,7 +177,9 @@
 .drawModeButton:focus-visible { outline: 2px solid rgba(222, 158, 255, 0.86); outline-offset: 2px; }
 .drawModeButton[data-active="true"] { border-color: var(--vault-tile-selected-border); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); color: #fff; }
 
-.drawActionControl { min-width: 0; display: grid; justify-items: stretch; gap: 8px; }
+/* Capped and centred: the middle column is elastic, and a draw button stretched
+   across a third of a wide screen reads as a banner rather than a button. */
+.drawActionControl { min-width: 0; width: 100%; max-width: 340px; justify-self: center; display: grid; justify-items: stretch; gap: 8px; }
 .drawActionControl .ctaButton { width: 100%; max-width: none; }
 .drawActionControl .quickDrawButton { width: 100%; min-height: 40px; font-size: 0.82rem; }
 
@@ -232,18 +235,18 @@
 }
 
 
-/* Centred in the bar's middle column. Side by side where there is room, stacked
-   where there is not, so neither has to be squashed to fit. */
+/* Two equal rows filling the column, so the pair are the same width and the
+   same height as each other whatever their labels say. Sizing them to their own
+   content left one visibly wider than the other. */
 .deckTools {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  min-width: 0;
+  display: grid;
+  grid-template-rows: repeat(2, minmax(58px, 1fr));
   gap: 10px;
 }
 
 .deckToolButton {
-  min-width: 202px;
-  min-height: 58px;
+  min-width: 0;
   display: grid;
   grid-template-columns: 36px minmax(0, 1fr) 18px;
   align-items: center;
@@ -298,11 +301,17 @@
   line-height: 1.15;
 }
 
+.deckToolCopy strong,
+.deckToolCopy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .deckToolCopy small {
   color: #9da0b8;
   font-size: 0.66rem;
   line-height: 1.2;
-  white-space: nowrap;
 }
 
 .deckToolChevron,
@@ -637,8 +646,7 @@
 .pinToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 
 @media (max-width: 720px) {
-  .deckTools { width: 100%; margin-left: 0; }
-  .deckToolButton { width: 50%; min-width: 0; }
+  .deckTools { grid-template-rows: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .ctaButton { width: 100%; max-width: none; }
   .drawActionBar { position: relative; bottom: auto; grid-template-columns: 1fr; gap: 10px; padding: 10px; }
   .drawModeToggle { width: 100%; }
@@ -659,13 +667,9 @@
   .optionalLabel { display: none; }
   .optionalHeader { grid-template-columns: 36px minmax(0, 1fr) 18px; }
 
+  /* Below this, two across leaves neither wide enough to read. */
   .deckTools {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
-
-  .deckToolButton {
-    width: 100%;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 

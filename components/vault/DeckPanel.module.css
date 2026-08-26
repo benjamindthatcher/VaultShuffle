@@ -1,0 +1,88 @@
+/* The shell shared by the two panels the deck tools open below the draw bar.
+   Vault Lens and Draw History are the same kind of thing - a disclosure that
+   explains the deck - so they are the same surface, the same heading and the
+   same footer row. Kept in one file rather than copied into each, because when
+   they were separate they drifted into looking like two different products. */
+.panel {
+  display: grid;
+  gap: 16px;
+  margin-top: 4px;
+  padding: 18px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.heading p,
+.heading h3 {
+  margin: 0;
+}
+
+/* The eyebrow used on every other section label. */
+.heading p {
+  color: #d392ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.heading h3 {
+  margin-top: 5px;
+  color: var(--vault-text);
+  font-size: 1rem;
+}
+
+.meta {
+  color: var(--vault-text-muted);
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid var(--vault-card-border);
+}
+
+.actions button,
+.actions a {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 9px;
+  background: var(--vault-well-surface);
+  color: var(--vault-text-soft);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.actions button:hover,
+.actions a:hover {
+  border-color: var(--vault-control-hover-border);
+  background: var(--vault-control-hover-bg);
+}
+
+/* Pushed to the far end, so the one action that leaves the page is not sitting
+   in the middle of the ones that do not. */
+.trailing {
+  margin-left: auto;
+}
+
+@media (max-width: 700px) {
+  .trailing { margin-left: 0; }
+}

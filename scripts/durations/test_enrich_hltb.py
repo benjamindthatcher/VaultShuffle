@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import importlib.util
+from io import StringIO
 from pathlib import Path
 from types import SimpleNamespace
 from unittest import TestCase, main
@@ -59,6 +60,16 @@ def entry(
 
 
 class DurationMatcherTests(TestCase):
+    def test_stdin_reader_accepts_json_arrays_and_ndjson(self):
+        expected = [
+            {"steam_appid": 10, "name": "One"},
+            {"steam_appid": 20, "name": "Two"},
+        ]
+
+        self.assertEqual(MODULE.read_stdin_games(StringIO(json.dumps(expected))), expected)
+        ndjson = "\n".join(json.dumps(row) for row in expected) + "\n\n"
+        self.assertEqual(MODULE.read_stdin_games(StringIO(ndjson)), expected)
+
     def run_match(
         self,
         search_results,

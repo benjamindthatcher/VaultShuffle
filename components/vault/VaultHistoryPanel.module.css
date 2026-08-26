@@ -1,0 +1,124 @@
+/* Only what is particular to the history. Its panel, heading and footer row
+   come from DeckPanel.module.css, shared with Vault Lens. */
+
+.groups {
+  display: grid;
+  gap: 14px;
+  /* Long histories scroll inside the panel rather than pushing the pick you
+     just drew off the bottom of the screen. */
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.groupLabel {
+  margin: 0 0 8px;
+  color: #d0a0ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) auto;
+  gap: 11px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
+  color: var(--vault-text);
+  text-align: left;
+}
+
+.entry:hover,
+.entry:focus-visible {
+  border-color: var(--vault-control-hover-border);
+  background: var(--vault-control-hover-bg);
+}
+
+.thumb {
+  position: relative;
+  width: 96px;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  border-radius: 7px;
+}
+
+.thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.entryCopy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+/* One line each, so a long title cannot make one card taller than its row. */
+.entryCopy strong,
+.entryCopy small,
+.entryCopy em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entryCopy strong { font-size: 0.84rem; }
+.entryCopy small,
+.entry time { color: var(--vault-text-muted); font-size: 0.72rem; }
+.entryCopy em { color: #cc83f7; font-size: 0.72rem; font-style: normal; }
+.entry time { align-self: start; }
+
+.detail {
+  display: grid;
+  grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: center;
+}
+
+.detailArtwork {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 460 / 215;
+  overflow: hidden;
+  border-radius: 10px;
+}
+
+.detailArtwork img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.detailCopy { display: grid; gap: 6px; }
+.detailCopy p { margin: 0; }
+.detailSetup { color: var(--vault-text); font-size: 0.92rem; }
+.detailOutcome { color: var(--vault-text-muted); font-size: 0.82rem; }
+
+.empty {
+  margin: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.86rem;
+}
+
+@media (max-width: 700px) {
+  .detail { grid-template-columns: minmax(0, 1fr); }
+  .entry { grid-template-columns: 72px minmax(0, 1fr) auto; }
+  .thumb { width: 72px; }
+}
