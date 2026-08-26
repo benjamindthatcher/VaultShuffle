@@ -20,7 +20,7 @@ export type VaultIconName =
   | "draw-again" | "draw-from-vault" | "snooze" | "details" | "clock" | "search" | "snooze-not-now" | "view-details"
   | "all-collections" | "ready-to-review" | "actioned" | "no-review-needed" | "keep-active"
   | "privacy" | "terms" | "steam-data" | "contact" | "feedback" | "cookies"
-  | "current-pick" | "trophy" | "shuffle";
+  | "current-pick" | "trophy" | "shuffle" | "lock";
 
 type VaultIconProps = {
   name: VaultIconName;

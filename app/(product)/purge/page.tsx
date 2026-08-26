@@ -16,6 +16,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
+import { SignInLock } from "@/components/guest/SignInLock";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import styles from "./purge.module.css";
@@ -372,7 +373,7 @@ export default function PurgePage() {
   }
 
   async function flagGames(gameIds: string[]) {
-    if (!gameIds.length) return false;
+    if (!gameIds.length || !isLive) return false;
     setError("");
     try {
       const response = await fetch("/api/purge/flags", {
@@ -509,6 +510,12 @@ export default function PurgePage() {
               ) : null}
             </div>
 
+            {/* Said once, under the control it explains, rather than on every
+                card. The buttons stay on screen so the feature is visible. */}
+            {!isLive && activeGroup.games.length ? (
+              <SignInLock feature="purge_flag">Flagging a game back into the review queue keeps it there between visits, so it needs a library to keep it in.</SignInLock>
+            ) : null}
+
             <div role="tabpanel" aria-label={`${activeGroup.label} games`}>
               {activeGroup.games.length ? (
                 <ul className={styles.outcomeGrid}>
@@ -528,11 +535,12 @@ export default function PurgePage() {
                       <button
                         type="button"
                         className={styles.outcomeFlag}
-                        disabled={flagging || Boolean(flaggingId)}
-                        aria-label={`Flag ${game.title} for review`}
+                        disabled={!isLive || flagging || Boolean(flaggingId)}
+                        aria-label={isLive ? `Flag ${game.title} for review` : "Flag for review needs a signed-in library"}
+                        title={isLive ? undefined : "Flagging needs a signed-in library."}
                         onClick={() => void flagOne(game.id)}
                       >
-                        <VaultIcon name="ready-to-review" size={15} />
+                        <VaultIcon name={isLive ? "ready-to-review" : "lock"} size={15} />
                         {flaggingId === game.id ? "Flagging…" : "Flag for review"}
                       </button>
                     </span>
@@ -548,9 +556,13 @@ export default function PurgePage() {
           <button
             type="button"
             className={styles.bulkAction}
-            disabled={flagging}
+            disabled={!isLive || flagging}
+            title={isLive ? undefined : "Flagging needs a signed-in library."}
             onClick={() => void flagSelected()}
-          >{flagging ? "Flagging…" : `Flag ${selected.size} for review`}</button>
+          >
+            {!isLive ? <VaultIcon name="lock" size={15} /> : null}
+            {flagging ? "Flagging…" : `Flag ${selected.size} for review`}
+          </button>
         </div> : null}
       </section>}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : ""}</span></footer>

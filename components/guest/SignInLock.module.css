@@ -1,0 +1,30 @@
+/* Deliberately quiet: muted text at the size of a caption, sharing the row with
+   the control it explains. It is a note, not a warning - nothing has gone
+   wrong, and the preview is still doing what it can. */
+.lock {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 7px;
+  margin: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.lock svg {
+  flex: 0 0 auto;
+  color: #b98cff;
+}
+
+.lock a {
+  color: #d392ff;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.lock a:hover,
+.lock a:focus-visible {
+  color: #ecd0ff;
+}
