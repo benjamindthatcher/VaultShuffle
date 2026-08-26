@@ -858,9 +858,3 @@ function dormancyDetail(game: DemoGame, now: number) {
   return { headline: `Not played in ${days} days`, detail: `Last played ${when}.` };
 }
 
-function ordinal(value: number) {
-  const remainder = value % 100;
-  if (remainder >= 11 && remainder <= 13) return `${value}th`;
-  const suffix = ["th", "st", "nd", "rd"][value % 10] ?? "th";
-  return `${value}${value % 10 <= 3 ? suffix : "th"}`;
-}
