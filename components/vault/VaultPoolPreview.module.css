@@ -87,8 +87,13 @@
 
 .grid::-webkit-scrollbar { display: none; }
 
+/* Four across, sized from the rail rather than a fixed pixel width, so the
+   count does not drift with the viewport. It was four and a bit, and the bit
+   was narrow enough that a game with a long genre - "Action-Adventure" - wrapped
+   its tags onto a second line. */
 .card {
   position: relative;
+  display: flex;
   flex: 0 0 min(220px, 78vw);
   scroll-snap-align: start;
   overflow: hidden;
@@ -104,8 +109,13 @@
   z-index: 8;
 }
 
+/* A column that fills the card, so the body below the artwork can hand its
+   spare height to the tag row rather than leaving it under the last line. */
 .cardAction {
   width: 100%;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 0;
   color: inherit;
   text-align: left;
@@ -283,8 +293,15 @@
   object-position: center;
 }
 
+/* The tag row takes the slack, so the match label and the duration sit on the
+   bottom edge of every card in the row whether the tags took one line or two.
+   Widening the cards makes wrapping rarer; it cannot make it impossible, and a
+   card that wraps used to push its own bottom line out of step with its
+   neighbours. */
 .cardBody {
+  flex: 1;
   display: grid;
+  grid-template-rows: auto auto 1fr auto;
   gap: 10px;
   padding: 16px;
 }
@@ -319,14 +336,18 @@
   -webkit-line-clamp: 2;
 }
 
+/* The gap and the chip padding are tight on purpose. The row that started this -
+   Action, Adventure, Action-Adventure - measured 225px against 221px of room,
+   so four pixels of chrome were the difference between one line and two. */
 .tagRow {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
+  align-content: start;
+  gap: 4px;
 }
 
 .tagRow span {
-  padding: 3px 6px;
+  padding: 3px 5px;
   border-radius: 5px;
   border: 1px solid var(--vault-card-border);
   color: #b7add6;
@@ -388,7 +409,7 @@
 }
 
 @media (min-width: 720px) {
-  .card { flex-basis: 240px; }
+  .card { flex-basis: calc((100% - 30px) / 4); }
 }
 
 @keyframes vaultPoolSweep {
