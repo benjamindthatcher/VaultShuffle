@@ -51,6 +51,7 @@ export default function PurgePage() {
   const decisionQueueRef = useRef(Promise.resolve());
   const [saving, setSaving] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
+  const settleTimerRef = useRef<number | null>(null);
   const [optimisticPinnedIds, setOptimisticPinnedIds] = useState<string[]>([]);
   const [reviewsReady, setReviewsReady] = useState(false);
   const [error, setError] = useState("");
@@ -208,6 +209,26 @@ export default function PurgePage() {
     setSelectedOffset(0);
   }
 
+  useEffect(() => () => {
+    if (settleTimerRef.current) window.clearTimeout(settleTimerRef.current);
+  }, []);
+
+  /**
+   * Re-read once the decisions stop, not after each one.
+   *
+   * Every decision that lands cancels the pending re-read and starts the timer
+   * again, so a run of twenty costs one reload at the end rather than twenty
+   * along the way.
+   */
+  function scheduleSettledRefresh() {
+    if (settleTimerRef.current) window.clearTimeout(settleTimerRef.current);
+    settleTimerRef.current = window.setTimeout(() => {
+      settleTimerRef.current = null;
+      if (pendingGameIdsRef.current.size > 0) return;
+      void refresh({ quiet: true }).then(() => setOptimisticPinnedIds([]));
+    }, 1200);
+  }
+
   function queueLiveDecision(candidate: PurgeCandidate, action: PurgeAction) {
     if (pendingGameIdsRef.current.has(candidate.game.id)) return;
 
@@ -243,12 +264,12 @@ export default function PurgePage() {
       } finally {
         pendingGameIdsRef.current.delete(candidate.game.id);
         setQueuedCount((value) => Math.max(0, value - 1));
-        if (pendingGameIdsRef.current.size === 0) {
-          // Quiet: the decision is already applied locally, so there is nothing
-          // to wait for and no reason to drop the page back to its skeletons.
-          await refresh({ quiet: true });
-          setOptimisticPinnedIds([]);
-        }
+        // Re-reading rebuilds every derived list over the whole library, which
+        // is a real pause on a big one. Working down the queue at speed used to
+        // pay that after every single decision; now it waits for a gap and pays
+        // it once. Quiet, because the decision is already applied locally and
+        // there is nothing to wait for.
+        scheduleSettledRefresh();
       }
     });
   }
@@ -518,7 +539,7 @@ export default function PurgePage() {
                 whether to keep something you have never opened is mostly a
                 question of what it is, and the panel never said. */}{current.game.description ? <p className={styles.synopsis}>{current.game.description}</p> : null}<p>{current.reason}</p>{current.signal ? <p className={current.signal.leaning === "cut" ? styles.signalCut : styles.signalKeep}><strong>{current.signal.label}</strong>{current.signal.detail}</p> : null}<div className={styles.tags}>{current.game.genres.slice(0, 4).map((genre) => <span key={genre}>{genre}</span>)}</div></div>
           <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
-            <button type="button" data-decision="keep" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>{isLive ? "Leave active and review again in 180 days." : "Leave it active in this preview."}</small></span></button>
+            <button type="button" data-decision="keep" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>{isLive ? "Leave active and review again in 90 days." : "Leave it active in this preview."}</small></span></button>
             <button type="button" data-decision="sleep" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>{isLive ? "Remove it from active views and Vault draws." : "Remove it from this visit's active views and draws."}</small></span></button>
             <button type="button" data-decision="pin" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : isLive ? "Keep it at the front of your Library." : "Keep it at the front of the preview Library."}</small></span></button>
           </div>
@@ -675,7 +696,10 @@ export default function PurgePage() {
         ) : null}
 
       </section>}
-    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button><span>{queuedCount > 0 ? `${queuedCount} decision${queuedCount === 1 ? "" : "s"} saving in the background…` : ""}</span></footer>
+    {/* No running commentary on the writes. That a decision is still in flight
+        is our problem, not something to report back at someone working down a
+        queue - and it only ever appeared for as long as nobody needed to know. */}
+    <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button></footer>
     {error ? <p className={styles.error} role="alert">{error}</p> : null}
 
   </PurgePageFrame>;
