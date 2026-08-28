@@ -425,9 +425,10 @@ export default function PurgePage() {
   async function flagSelected() {
     if (!selected.size || flagging) return;
     setFlagging(true);
-    // Sending a batch back is a move to the queue, so the queue is where you
-    // land. One card is not - see below.
-    if (await flagGames([...selected])) setReviewView("needs");
+    // Stays on the tab you flagged from. Being thrown to the queue meant losing
+    // your place in a list you were working down, and the flagged cards leave
+    // this list on their own once the queue has them.
+    await flagGames([...selected]);
     setFlagging(false);
   }
 
@@ -443,9 +444,29 @@ export default function PurgePage() {
   async function wakeGames(gameIds: string[]) {
     if (!gameIds.length) return;
     setError("");
-    try {
+
+    if (!isLive) {
       await Promise.all(gameIds.map((gameId) => restoreGame(gameId)));
       setSelectedIds((current) => current.filter((id) => !gameIds.includes(id)));
+      return;
+    }
+
+    // One request for one intent. Waking fifty games as fifty PATCHes is fifty
+    // writes against a budget of a hundred and twenty a minute, which is how
+    // "put my slept games back" came back as "you are making changes too
+    // quickly".
+    try {
+      const response = await fetch("/api/games/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_ids: gameIds })
+      });
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Could not wake those games.");
+      }
+      setSelectedIds((current) => current.filter((id) => !gameIds.includes(id)));
+      await refresh({ quiet: true });
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Could not wake those games.");
     }
