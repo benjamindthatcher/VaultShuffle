@@ -373,11 +373,25 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function createCollection(payload: CollectionInput) {
     if (isLive) {
+      // The id comes from the server, so this one round trip is unavoidable -
+      // but re-reading the whole library afterwards is not. A collection created
+      // here has no games in it yet, so its row can be built from what was just
+      // sent and dropped straight into the list.
       const { collection } = await api<{ collection: Collection }>("/api/collections", {
         method: "POST",
         body: JSON.stringify(payload)
       });
-      await load();
+      setLiveCollections((current) => [...current, {
+        id: collection.id,
+        kind: payload.kind || "custom",
+        name: payload.name,
+        description: payload.description || (payload.kind === "smart"
+          ? "Automatically updated from your live VaultShuffle library."
+          : "Custom collection from your live VaultShuffle library."),
+        artworkUrl: "/assets/vault/vault-stage-open.png",
+        accent: "0 games currently assigned.",
+        smartPreset: payload.rules?.preset
+      }]);
       trackEvent(ANALYTICS_EVENTS.collectionCreated, { kind: payload.kind ?? "custom" });
       return collection.id;
     }
@@ -401,9 +415,15 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function updateCollection(collectionId: string, payload: CollectionInput) {
     if (isLive) {
-      await api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) });
-      await load();
+      setLiveCollections((current) => current.map((collection) => collection.id === collectionId ? {
+        ...collection,
+        name: payload.name,
+        description: payload.description || collection.description,
+        kind: payload.kind ?? collection.kind,
+        smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
+      } : collection));
       trackEvent(ANALYTICS_EVENTS.collectionUpdated, { kind: payload.kind ?? "custom" });
+      queueWrite(api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) }));
       return;
     }
     setGuestCollections((current) => current.map((collection) => collection.id === collectionId ? {
@@ -420,9 +440,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function removeCollection(collectionId: string) {
     if (isLive) {
-      await api(`/api/collections/${collectionId}`, { method: "DELETE" });
-      await load();
+      setLiveCollections((current) => current.filter((collection) => collection.id !== collectionId));
+      setLiveGames((current) => current.map((game) => game.collectionIds.includes(collectionId)
+        ? { ...game, collectionIds: game.collectionIds.filter((id) => id !== collectionId) }
+        : game));
       trackEvent(ANALYTICS_EVENTS.collectionDeleted);
+      queueWrite(api(`/api/collections/${collectionId}`, { method: "DELETE" }));
       return;
     }
     setGuestCollections((current) => current.filter((collection) => collection.id !== collectionId));
@@ -538,12 +561,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
     if (isLive) {
-      await api(`/api/collections/${collectionId}/games${assigned ? "" : `/${gameId}`}`, {
+      setLiveGames((current) => current.map((game) => game.id === gameId ? {
+        ...game,
+        collectionIds: assigned
+          ? Array.from(new Set([...game.collectionIds, collectionId]))
+          : game.collectionIds.filter((id) => id !== collectionId)
+      } : game));
+      trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: assigned ? "added" : "removed" });
+      queueWrite(api(`/api/collections/${collectionId}/games${assigned ? "" : `/${gameId}`}`, {
         method: assigned ? "POST" : "DELETE",
         body: assigned ? JSON.stringify({ game_id: gameId }) : undefined
-      });
-      await load();
-      trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: assigned ? "added" : "removed" });
+      }));
       return;
     }
 
