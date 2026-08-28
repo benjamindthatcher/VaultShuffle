@@ -22,6 +22,11 @@ export const ANALYTICS_EVENTS = {
   // the ones acquisition work actually moves.
   landingViewed: "landing_viewed",
   landingChoiceMade: "landing_choice_made",
+  // The landing page's interactive demo - the only thing on the page someone can
+  // actually do before choosing a path, and so the clearest read on whether the
+  // page is doing any work. Which control was touched is a dimension of the one
+  // event rather than six event names.
+  landingDemoUsed: "landing_demo_used",
   signInStarted: "sign_in_started",
   // The step between a finished first import and a first draw, which is where a
   // new account either becomes a user or does not.

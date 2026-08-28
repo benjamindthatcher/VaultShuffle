@@ -11,12 +11,12 @@ import { useSearchParams } from "next/navigation";
  * params on the server would opt the whole landing page out of static
  * rendering, for a message almost nobody sees.
  */
-export function SignInNotice() {
+export function SignInNotice({ className }: { className?: string }) {
   const message = useSearchParams().get("signin");
   if (!message) return null;
 
   return (
-    <p className="vs-signin-notice" role="alert">
+    <p className={className} role="alert">
       {message}
     </p>
   );
