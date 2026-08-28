@@ -98,6 +98,12 @@ export default function PurgePage() {
     for (const [gameId, review] of latestReviews) {
       const game = gameById.get(gameId);
       if (!game || game.status === "Completed") continue;
+      // Asking for it back is itself a decision about the old one: the game is
+      // in the queue again, so its previous call no longer stands. Without this
+      // a flagged card kept sitting in Reviewed looking exactly as it did
+      // before, which is why flagging read as doing nothing at all - the only
+      // sign it had worked was a counter on another tab.
+      if (game.reviewRequested) continue;
       if (!isReviewSuperseded(review.action, game.status)) standing.set(gameId, review);
     }
     return standing;
@@ -412,7 +418,19 @@ export default function PurgePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ game_ids: gameIds })
       });
-      if (!response.ok) throw new Error("Could not flag those games for review.");
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null) as { error?: string } | null;
+        throw new Error(payload?.error ?? "Could not flag those games for review.");
+      }
+      // The endpoint reports how many rows the flag actually reached. A request
+      // that succeeds and changes nothing is the worst outcome to leave silent:
+      // it looks exactly like a button that does not work.
+      const { flagged } = await response.json().catch(() => ({ flagged: null })) as { flagged: number | null };
+      if (flagged === 0) {
+        throw new Error(gameIds.length === 1
+          ? "That game could not be flagged. It may have changed since this page loaded - try refreshing."
+          : `None of those ${gameIds.length} could be flagged. They may have changed since this page loaded - try refreshing.`);
+      }
       setSelectedIds((current) => current.filter((id) => !gameIds.includes(id)));
       await refresh({ quiet: true });
       return true;
@@ -506,6 +524,11 @@ export default function PurgePage() {
         Try the review flow with catalogue metadata. There is no personal play history here, and preview decisions reset when you leave.
       </GuestPreviewNotice>
     ) : null}
+    {/* Directly under the tabs and sticky, because the list below can run to two
+        hundred cards. At the foot of the page an error was reported to nobody:
+        press a button at the top, get told at the bottom, conclude the button
+        does nothing. */}
+    {error ? <p className={styles.error} role="alert">{error}</p> : null}
     <section className={styles.setupGrid} aria-label="Purge setup">
       <aside className={styles.snapshot} aria-label="Review status">
         {/* The same control the Library uses for Active / Slept / Completed:
@@ -728,8 +751,6 @@ export default function PurgePage() {
         is our problem, not something to report back at someone working down a
         queue - and it only ever appeared for as long as nobody needed to know. */}
     <footer className={styles.reviewFooter}><button type="button" disabled={!undo || saving || queuedCount > 0} onClick={() => void undoLast()}>Undo last decision</button></footer>
-    {error ? <p className={styles.error} role="alert">{error}</p> : null}
-
   </PurgePageFrame>;
 }
 

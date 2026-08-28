@@ -326,6 +326,9 @@
   color: #fff;
 }
 .error {
+  position: sticky;
+  top: 12px;
+  z-index: 6;
   margin: 0;
   padding: 10px 12px;
   border: 1px solid rgba(239, 132, 177, 0.42);
