@@ -169,16 +169,29 @@
   line-height: 1.15;
   letter-spacing: -0.03em;
 }
+/* Three lines' worth of room, always - clamped so it cannot take more, and
+   held so it cannot take less. A paragraph that sizes to its own text moves
+   everything under it, which means the decision buttons land somewhere new on
+   every game and the cursor has to go looking for them. Two lines, three, or
+   none: the row below sits in the same place. */
 .reviewCopy > p:not(.eyebrow) {
+  --review-line: 1.5em;
   margin: 12px 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   color: #aaaac0;
   font-size: 0.92rem;
   line-height: 1.5;
 }
+
+/* The synopsis takes three lines whether it has three, two or none. */
+.reviewCopy > .synopsis { min-height: calc(3 * var(--review-line)); }
+
+/* The verdict takes two, which is its longest. */
+.reviewCopy > p:not(.eyebrow):not(.synopsis):not(.signalNone):not(.signalCut):not(.signalKeep) { min-height: calc(2 * var(--review-line)); }
 /* Quieter than the verdict below it: this is context, not the call. */
 .synopsis {
   color: var(--vault-text-soft);
@@ -560,6 +573,18 @@
 .signalCut { border-color: rgba(255, 138, 128, 0.36); background: rgba(255, 106, 96, 0.09); color: rgba(255, 190, 184, 0.92); }
 .signalKeep { border-color: rgba(124, 231, 178, 0.36); background: rgba(124, 231, 178, 0.09); color: rgba(178, 240, 210, 0.92); }
 .signalCut strong, .signalKeep strong { color: var(--vault-text); font-size: 0.88rem; }
+
+/* The same box with nothing in it and nothing drawn, so the row below sits
+   where it sits whether or not this game has a signal to report. */
+.signalNone {
+  display: grid;
+  margin: 10px 0 0;
+  padding: 10px 13px;
+  border: 1px solid transparent;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  min-height: calc(2 * 1.45em);
+}
 
 /* Bulk selection, matching the completion sweep: the same job done the same way
    in both places. Reviewing 200 games one card at a time is not a workflow. */
