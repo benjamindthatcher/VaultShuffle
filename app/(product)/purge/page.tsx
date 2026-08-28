@@ -532,7 +532,13 @@ export default function PurgePage() {
           </div>}
         </section>
 
-        {current && dataReady ? <section key={current.game.id} className={styles.reviewPanel} aria-busy={saving}>
+        {/* Deliberately not keyed on the game. Keyed, every decision tore the
+            whole panel down and built a new one - including the three buttons,
+            which were destroyed and recreated under the cursor that had just
+            pressed one. A second click landing in that gap hit nothing, which is
+            what "it didn't update" feels like. Unkeyed, React swaps the text and
+            the artwork in place and the buttons never move. */}
+        {current && dataReady ? <section className={styles.reviewPanel} aria-busy={saving}>
           <div className={styles.reviewArtwork}><Artwork src={current.game.bannerUrl} sizes="(max-width: 880px) 100vw, 38vw" priority fit="contain" /></div>
           <div className={styles.reviewCopy}><p className={styles.eyebrow}>Now reviewing</p><h2>{current.game.title}</h2><div className={styles.facts}><span>{current.game.hoursPlayed ? `${current.game.hoursPlayed}h played` : "Never Played"}</span>{formatGameDuration(current.game.duration) ? <span>{formatGameDuration(current.game.duration)}</span> : null}{current.game.lastPlayedLabel ? <span>{current.game.lastPlayedLabel}</span> : null}</div>{/* What the game actually is, above why it is up for review. Deciding
                 whether to keep something you have never opened is mostly a
