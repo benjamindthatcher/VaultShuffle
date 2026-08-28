@@ -243,10 +243,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   // Registered as a PostHog super property so every event this session sends can be
   // split by guest vs signed-in without each call site passing it.
+  //
+  // Registered immediately rather than after the session resolves. Everyone
+  // arrives as a guest and is promoted if a session comes back, so waiting only
+  // meant the first events of every visit - the ones at the top of the funnel -
+  // carried no audience at all and dropped out of any split by it.
   useEffect(() => {
-    if (isLoading) return;
     setAnalyticsAudience(!isLive);
-  }, [isLive, isLoading]);
+  }, [isLive]);
 
   function setDeviceMode(mode: DeviceMode) {
     setDeviceModeState(mode);
@@ -391,7 +395,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGuestCollections((current) => [nextCollection, ...current]);
     trackEvent(ANALYTICS_EVENTS.collectionCreated, {
       kind: payload.kind ?? "custom",
-      preview_mode: true,
     });
     return nextCollection.id;
   }
@@ -412,7 +415,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } : collection));
     trackEvent(ANALYTICS_EVENTS.collectionUpdated, {
       kind: payload.kind ?? "custom",
-      preview_mode: true,
     });
   }
 
@@ -428,7 +430,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...game,
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
-    trackEvent(ANALYTICS_EVENTS.collectionDeleted, { preview_mode: true });
+    trackEvent(ANALYTICS_EVENTS.collectionDeleted);
   }
 
   async function updateGame(
@@ -474,7 +476,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (patch.status) {
       trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
         status: patch.status,
-        preview_mode: true,
       });
     }
     if (patch.status === "Completed" || patch.status === "Slept") {
@@ -501,7 +502,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
       status: "Active",
       restored: true,
-      preview_mode: true,
     });
   }
 
@@ -533,7 +533,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     setGuestGames((current) => current.map((game) => adding.has(game.id) && !game.collectionIds.includes(collectionId)
       ? { ...game, collectionIds: [...game.collectionIds, collectionId] }
       : game));
-    trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: "added", count: gameIds.length, preview_mode: true });
+    trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, { action: "added", count: gameIds.length });
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
@@ -555,7 +555,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } : game));
     trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged, {
       action: assigned ? "added" : "removed",
-      preview_mode: true,
     });
   }
 
@@ -585,7 +584,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const guestGame = guestGames.find((game) => game.id === gameId);
     setGuestVaultState((current) => predictVaultState(current, action, gameId, context, guestGame?.hoursPlayed ?? 0));
     const guestEvent = VAULT_ACTION_EVENT_NAMES[action];
-    if (guestEvent) trackEvent(guestEvent, { action, preview_mode: true });
+    if (guestEvent) trackEvent(guestEvent, { action });
   }
 
   async function loadVaultHistory() {
@@ -617,7 +616,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     const properties: Record<string, unknown> = {
       draw_id: drawId,
       draw_action: eventType,
-      preview_mode: !isLive,
       ...analytics,
     };
     if (eventType === "snoozed_7_days") properties.snooze_days = 7;
@@ -640,7 +638,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   async function clearVaultHistory() {
     if (isLive) await api("/api/vault/history", { method: "DELETE" });
     if (isLive) setLiveVaultHistory([]); else setGuestVaultHistory([]);
-    trackEvent(ANALYTICS_EVENTS.vaultHistoryCleared, { preview_mode: !isLive });
+    trackEvent(ANALYTICS_EVENTS.vaultHistoryCleared);
   }
 
   const visibleGames = useMemo(

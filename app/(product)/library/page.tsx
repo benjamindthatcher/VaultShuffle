@@ -46,7 +46,6 @@ export default function LibraryPage() {
     const timer = setTimeout(() => {
       trackEvent(ANALYTICS_EVENTS.librarySearched, {
         query_length: query.length,
-        preview_mode: !isLive,
       });
     }, 800);
     return () => clearTimeout(timer);
@@ -169,7 +168,6 @@ export default function LibraryPage() {
     setSelectedGameId(gameId);
     trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
       surface,
-      preview_mode: !isLive,
     });
   }
 
@@ -231,7 +229,7 @@ export default function LibraryPage() {
 
       <div className={styles.statusTabs} role="tablist" aria-label={isLive ? "Library status" : "Preview status"}>
         {(["active", "slept", "completed"] as const).map((tab) => (
-          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setStatusTab(tab); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "status", value: tab, preview_mode: !isLive }); }}>
+          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setStatusTab(tab); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "status", value: tab }); }}>
             <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{statusCounts[tab]}</strong>
           </button>
         ))}
@@ -249,7 +247,7 @@ export default function LibraryPage() {
             onSortChange={(value) => {
               setSort(value);
               setSortReversed(false);
-              trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "sort", value, preview_mode: !isLive });
+              trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "sort", value });
             }}
             sortReversed={sortReversed}
             onToggleSortDirection={() => setSortReversed((current) => !current)}
@@ -260,12 +258,11 @@ export default function LibraryPage() {
               setFilters(next);
               trackEvent(ANALYTICS_EVENTS.libraryFiltered, {
                 filter: "filters",
-                value: `${next.progress}|${next.length}|${next.genres.length}`,
-                preview_mode: !isLive
+                value: `${next.progress}|${next.length}|${next.genres.length}`
               });
             }}
             viewMode={viewMode}
-            onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value, preview_mode: !isLive }); }}
+            onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value }); }}
           />
         </div>
         <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>

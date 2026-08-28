@@ -33,7 +33,6 @@ export function trackCompletionClaim(game: DemoGame, source: CompletionSource, i
     // Above 1 means they played past the estimate, which is what the sweep spots.
     played_vs_estimate: estimateMinutes ? Number((hoursPlayed / (estimateMinutes / 60)).toFixed(2)) : null,
     had_estimate: Boolean(estimateMinutes),
-    preview_mode: !isLive,
   });
 
   if (!isLive) return;
@@ -55,7 +54,6 @@ export function trackCompletionUndone(game: DemoGame, source: CompletionSource, 
   trackEvent(ANALYTICS_EVENTS.completionUndone, {
     source,
     price_cents: priceCents(game),
-    preview_mode: !isLive,
   });
   if (!isLive) return;
   void fetch("/api/completions", {

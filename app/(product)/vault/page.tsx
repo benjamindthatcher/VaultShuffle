@@ -157,7 +157,6 @@ export default function VaultPage() {
     () => ({
       vault_genre_learning: drawArm,
       reroll_index: drawRerollIndexRef.current,
-      preview_mode: !isLive,
     }),
     [drawArm, isLive]
   );
@@ -509,7 +508,6 @@ export default function VaultPage() {
         reroll_index: drawnCycleRef.current.size - 1,
         vault_genre_learning: arm,
         preference_rows: preferenceRowCount,
-        preview_mode: !isLive,
       });
     } catch (error) {
       if (activeDraw !== activeDrawRef.current) return;
@@ -519,7 +517,6 @@ export default function VaultPage() {
       trackEvent(ANALYTICS_EVENTS.vaultDrawFailed, {
         draw_mode: quick ? "quick" : collectionMode ? "collection" : "vault",
         reason: error instanceof Error ? error.message : "unknown",
-        preview_mode: !isLive,
       });
       drawnCycleRef.current.delete(nextPick.id);
       setDrawState("error");
@@ -563,7 +560,6 @@ export default function VaultPage() {
     trackEvent(ANALYTICS_EVENTS.vaultSetupChanged, {
       step,
       value: id,
-      preview_mode: !isLive,
     });
     let nextStep: VaultSetupStep | null = null;
 
@@ -654,7 +650,7 @@ export default function VaultPage() {
     }
     setDeckPanel("history");
     void loadVaultHistory();
-    trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened, { preview_mode: !isLive });
+    trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened);
   }
 
   async function togglePin(id: string) {

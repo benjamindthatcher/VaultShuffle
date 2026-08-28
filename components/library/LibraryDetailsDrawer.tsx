@@ -168,7 +168,6 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
               rel={previewMode ? "noreferrer" : undefined}
               onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.gameSteamOpened, {
                 action: previewMode ? "view_store" : "launch_game",
-                preview_mode: previewMode,
               })}
             >
               <VaultIcon name="open-steam" size={20} />

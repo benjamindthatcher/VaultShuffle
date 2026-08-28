@@ -37,6 +37,11 @@ export const ANALYTICS_EVENTS = {
   guestPreviewAction: "guest_preview_action",
   guestSignInNudgeShown: "guest_sign_in_nudge_shown",
   guestSignInNudgeDismissed: "guest_sign_in_nudge_dismissed",
+  // A guest meeting something the preview genuinely cannot do. This is the point
+  // where a preview either converts or loses someone, and it was the one part of
+  // the guest journey with no event at all - we could see them arrive, draw and
+  // leave, but not what they reached for and could not have.
+  guestFeatureLocked: "guest_feature_locked",
 
   // The Vault loop. vault_pick_launched is the north-star metric: it is the point
   // at which VaultShuffle has actually solved the user's decision problem.

@@ -29,7 +29,6 @@ export function GuestPreviewNotice({
     trackEvent(ANALYTICS_EVENTS.guestPreviewViewed, {
       feature: featureId,
       catalogue_size: catalogueSize,
-      preview_mode: true,
     });
   }, [catalogueSize, featureId]);
 
@@ -45,7 +44,6 @@ export function GuestPreviewNotice({
         onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
           location: `${featureId}_preview`,
           feature: featureId,
-          preview_mode: true,
         })}
       >
         <VaultIcon name="open-steam" size={17} />

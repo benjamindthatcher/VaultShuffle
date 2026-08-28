@@ -296,7 +296,6 @@ export default function PurgePage() {
       }
       trackEvent(ANALYTICS_EVENTS.purgeDecision, {
         action: committedAction,
-        preview_mode: true,
       });
       finishDecision(candidate, committedAction, previousStatus, review);
     } catch (caught) {

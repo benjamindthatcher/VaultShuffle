@@ -94,7 +94,6 @@ export default function DashboardPage() {
             onClick={() => trackEvent(ANALYTICS_EVENTS.guestPreviewAction, {
               feature: "dashboard",
               action: "open_vault",
-              preview_mode: true,
             })}
           >
             Try a Vault draw<VaultIcon name="chevron-right" size={16} />

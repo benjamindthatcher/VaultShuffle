@@ -27,7 +27,6 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
       trackEvent(ANALYTICS_EVENTS.guestSignInNudgeShown, {
         reason,
         catalogue_size: catalogueSize,
-        preview_mode: true,
       });
     }
 
@@ -36,7 +35,6 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
         trackEvent(ANALYTICS_EVENTS.guestSignInNudgeDismissed, {
           reason,
           method: "escape",
-          preview_mode: true,
         });
         onClose();
       }
@@ -54,7 +52,6 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
     trackEvent(ANALYTICS_EVENTS.guestSignInNudgeDismissed, {
       reason,
       method,
-      preview_mode: true,
     });
     onClose();
   }
@@ -78,7 +75,6 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
           onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
             location: "guest_personal_progress_nudge",
             reason,
-            preview_mode: true,
           })}
         >
           Use my Steam library
