@@ -1,102 +1,252 @@
-/* The vault dial.
- *
- * The same three facts the old bar carried — value finished, value owned, how
- * far through that is — drawn as the door of a vault rather than as a progress
- * bar, which is what every other backlog tracker uses. The ring fills on load,
- * the tumbler ticks sit behind it, and the whole thing is built from the app's
- * own purple and the completion green.
- */
+/* The dashboard's one theatrical surface: a compact vault ledger that spreads
+ * the three parts of the story across the panel instead of marooning them at
+ * one end. The app's existing vault corridor supplies depth and context; the
+ * live figures and progress treatments remain native HTML/SVG. */
 .dial {
+  --dial-progress: 0%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "value dial games"
+    "track track track";
+  grid-template-columns: minmax(220px, 1fr) minmax(172px, 206px) minmax(220px, 1fr);
   align-items: center;
-  gap: clamp(18px, 3vw, 32px);
-  padding: 20px;
+  gap: 12px clamp(24px, 4vw, 54px);
+  min-height: 254px;
+  padding: 22px clamp(24px, 4vw, 38px) 20px;
   border: 1px solid var(--vault-feature-border);
   border-radius: var(--vault-sheet-radius);
   background:
-    radial-gradient(120% 120% at 85% -10%, rgba(168, 85, 247, 0.16), transparent 60%),
+    linear-gradient(90deg, rgba(23, 13, 46, 0.97) 0%, rgba(23, 13, 46, 0.76) 29%, rgba(18, 10, 36, 0.12) 50%, rgba(23, 13, 46, 0.76) 71%, rgba(23, 13, 46, 0.97) 100%),
+    linear-gradient(180deg, rgba(18, 10, 36, 0.12), rgba(18, 10, 36, 0.68)),
+    url("/assets/vault/vault-header.webp") center / cover no-repeat,
     var(--vault-feature-surface);
+  box-shadow:
+    inset 0 1px 0 rgba(219, 190, 255, 0.12),
+    inset 0 -22px 42px rgba(8, 4, 22, 0.32);
 }
+
+.dial::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(130, 68, 255, 0.18), transparent 22%),
+    repeating-linear-gradient(90deg, transparent 0 8.2%, rgba(194, 160, 255, 0.025) 8.3%, transparent 8.5%);
+}
+
+.dial::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 7px;
+  border: 1px solid rgba(180, 126, 255, 0.1);
+  border-radius: calc(var(--vault-sheet-radius) - 6px);
+  pointer-events: none;
+}
+
+.dialColumn { grid-area: dial; display: grid; place-items: center; }
 
 .ringWrap {
   position: relative;
-  width: clamp(132px, 18vw, 168px);
+  width: clamp(172px, 20vw, 206px);
   aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(42, 25, 82, 0.92) 0 36%, rgba(13, 7, 31, 0.98) 68%, rgba(68, 35, 125, 0.72) 100%);
+  box-shadow:
+    0 0 0 1px rgba(185, 131, 255, 0.2),
+    0 0 34px rgba(112, 55, 255, 0.28),
+    inset 0 0 26px rgba(4, 2, 14, 0.78);
 }
 
 .ring { width: 100%; height: 100%; transform: rotate(-90deg); }
 
-.ringTrack { stroke: rgba(255, 255, 255, 0.08); }
+.bezelOuter { stroke: url(#vaultBezelStroke); }
+.bezelInner { stroke: rgba(135, 87, 222, 0.2); }
+.ringTrack { stroke: rgba(225, 211, 255, 0.1); }
 
 .ringFill {
   stroke: url(#vaultDialStroke);
   stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(138, 84, 255, 0.7));
   animation: dialSweep 1100ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
 }
 
 /* The tumbler marks, so the ring reads as a dial rather than as a doughnut. */
-.tick { stroke: rgba(226, 215, 255, 0.22); }
-.tickLive { stroke: rgba(168, 85, 247, 0.75); }
+.tick { stroke: rgba(226, 215, 255, 0.18); }
+.tickLive { stroke: rgba(184, 116, 255, 0.86); }
 
 .ringCentre {
   position: absolute;
-  inset: 0;
+  inset: 22%;
   display: grid;
   place-content: center;
+  border: 1px solid rgba(180, 128, 255, 0.18);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(73, 39, 132, 0.72), rgba(15, 8, 34, 0.94) 72%);
+  box-shadow:
+    inset 0 0 18px rgba(5, 2, 17, 0.75),
+    0 0 18px rgba(103, 52, 202, 0.16);
   text-align: center;
 }
 
 .percent {
   margin: 0;
-  font-size: clamp(1.5rem, 3.6vw, 2rem);
-  font-weight: 800;
+  font-size: clamp(1.7rem, 3.6vw, 2.35rem);
+  font-weight: 850;
   line-height: 1;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.05em;
+  text-shadow: 0 0 18px rgba(193, 142, 255, 0.34);
 }
 
 .percentLabel {
   margin: 4px 0 0;
-  color: var(--vault-text-soft);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.copy { min-width: 0; display: grid; gap: 4px; }
-
-.label {
-  margin: 0;
-  color: #c9a6ff;
-  font-size: 0.7rem;
-  font-weight: 700;
+  color: rgba(226, 215, 255, 0.62);
+  font-size: 0.58rem;
+  font-weight: 750;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-.value {
-  margin: 0;
-  font-size: clamp(1.9rem, 5vw, 2.7rem);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
+.copy,
+.games {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
 }
 
-.value span { color: var(--vault-text-muted); font-size: 0.42em; font-weight: 600; }
+.copy { grid-area: value; }
+.games { grid-area: games; justify-self: end; text-align: right; }
 
-.hint { margin: 6px 0 0; color: var(--vault-text-muted); font-size: 0.84rem; }
+.label {
+  margin: 0 0 8px;
+  color: #c9a6ff;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.value,
+.gameCount {
+  margin: 0;
+  color: #fbf9ff;
+  font-size: clamp(2.35rem, 5vw, 3.5rem);
+  font-weight: 850;
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+  text-shadow: 0 5px 24px rgba(8, 3, 25, 0.75);
+}
+
+.gameCount span {
+  color: rgba(226, 215, 255, 0.62);
+  font-size: 0.42em;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.total,
+.hint {
+  margin: 9px 0 0;
+  color: rgba(226, 215, 255, 0.62);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.total strong { color: rgba(245, 241, 255, 0.9); font-weight: 700; }
+
+.progressTrack {
+  grid-area: track;
+  position: relative;
+  z-index: 1;
+  height: 7px;
+  margin-top: 4px;
+  overflow: hidden;
+  border: 1px solid rgba(186, 139, 255, 0.2);
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(90deg, rgba(229, 211, 255, 0.09) 0 1px, transparent 1px 5%),
+    rgba(12, 6, 29, 0.82);
+  box-shadow: inset 0 1px 4px rgba(2, 1, 8, 0.72);
+}
+
+.progressFill {
+  display: block;
+  position: relative;
+  width: var(--dial-progress);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #6ee7b7 0%, #a855f7 62%, #7667ff 100%);
+  box-shadow: 0 0 14px rgba(145, 88, 255, 0.76);
+  animation: trackSweep 1100ms cubic-bezier(0.22, 0.9, 0.24, 1) both;
+}
+
+.progressFill::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #d8b7ff;
+  box-shadow: 0 0 12px #a855f7;
+  transform: translate(30%, -50%);
+}
 
 @keyframes dialSweep {
   from { stroke-dashoffset: var(--dial-empty); }
   to { stroke-dashoffset: var(--dial-offset); }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .ringFill { animation: none; }
+@keyframes trackSweep {
+  from { width: 0; }
+  to { width: var(--dial-progress); }
 }
 
-@media (max-width: 620px) {
-  .dial { grid-template-columns: 1fr; justify-items: center; text-align: center; }
-  .copy { justify-items: center; }
+@media (prefers-reduced-motion: reduce) {
+  .ringFill,
+  .progressFill { animation: none; }
+}
+
+@media (max-width: 760px) {
+  .dial {
+    grid-template-areas:
+      "dial dial"
+      "value games"
+      "track track";
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 24px;
+    min-height: 0;
+    padding: 20px;
+    background:
+      linear-gradient(90deg, rgba(23, 13, 46, 0.9), rgba(18, 10, 36, 0.24) 50%, rgba(23, 13, 46, 0.9)),
+      linear-gradient(180deg, rgba(18, 10, 36, 0.16), rgba(18, 10, 36, 0.82)),
+      url("/assets/vault/vault-header.webp") center top / auto 230px no-repeat,
+      var(--vault-feature-surface);
+  }
+
+  .ringWrap { width: 164px; }
+  .value,
+  .gameCount { font-size: clamp(2rem, 9vw, 2.8rem); }
+}
+
+@media (max-width: 440px) {
+  .dial {
+    grid-template-areas:
+      "dial"
+      "value"
+      "games"
+      "track";
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .copy,
+  .games { justify-self: center; text-align: center; }
+  .games { padding-top: 2px; }
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { DemoGame } from "@/lib/demo-data";
 import type { VaultPin } from "@/lib/vault-state";
 import { Artwork } from "@/components/shared/Artwork";
@@ -62,6 +63,20 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
           const label = pinProgressLabel(game, pinFor(game.id));
           const progress = pinProgress(game, pinFor(game.id));
           const bar = pinProgressBar(game, pinFor(game.id));
+          const earnedPercent = bar?.atPin === null || bar?.atPin === undefined
+            ? null
+            : Math.max(0, bar.percent - bar.atPin);
+          const progressStyle = bar ? {
+            "--pin-before": `${bar.atPin ?? bar.percent}%`,
+            "--pin-progress": `${bar.percent}%`
+          } as CSSProperties : undefined;
+          const progressCue = earnedPercent === null
+            ? "Current estimate"
+            : earnedPercent > 0
+              ? `+${earnedPercent}% since pinning`
+              : progress?.started
+                ? "Keep the dial moving"
+                : "Play to move it";
           return (
             <li key={game.id} className={styles.item} data-started={progress?.started ? "yes" : "no"}>
               {onUnpin ? (
@@ -80,23 +95,38 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
                   <small>{label ?? `${Math.round(game.hoursPlayed)}h played`}</small>
                   {bar ? (
                     <span
-                      className={styles.track}
+                      className={styles.progressInstrument}
                       role="img"
                       aria-label={bar.atPin === null
                         ? `${bar.percent}% through`
                         : `${bar.percent}% through, ${bar.percent - bar.atPin}% of it since pinning`}
+                      style={progressStyle}
                     >
-                      <span className={styles.fill}>
-                        <span className={styles.trackBefore} style={{ width: `${bar.atPin ?? bar.percent}%` }} />
-                        {bar.atPin === null ? null : (
-                          <span className={styles.trackSince} style={{ left: `${bar.atPin}%`, width: `${bar.percent - bar.atPin}%` }} />
-                        )}
+                      <span className={styles.progressReadout} aria-hidden="true">
+                        <span className={styles.progressMeta}>
+                          <span>Story progress</span>
+                          <span data-earned={earnedPercent !== null && earnedPercent > 0 ? "true" : undefined}>{progressCue}</span>
+                        </span>
+                        <span className={styles.track}>
+                          <span className={styles.fill}>
+                            <span className={styles.trackBefore} style={{ width: `${bar.atPin ?? bar.percent}%` }} />
+                            {bar.atPin === null ? null : (
+                              <span className={styles.trackSince} style={{ left: `${bar.atPin}%`, width: `${bar.percent - bar.atPin}%` }} />
+                            )}
+                          </span>
+                          {/* Only worth marking once there is something on each side
+                              of it. At 0% it is a tick against an empty bar. */}
+                          {bar.atPin !== null && bar.atPin > 0 && bar.percent > bar.atPin ? (
+                            <span className={styles.notch} style={{ left: `${bar.atPin}%` }} />
+                          ) : null}
+                        </span>
                       </span>
-                      {/* Only worth marking once there is something on each side
-                          of it. At 0% it is a tick against an empty bar. */}
-                      {bar.atPin !== null && bar.atPin > 0 && bar.percent > bar.atPin ? (
-                        <span className={styles.notch} style={{ left: `${bar.atPin}%` }} />
-                      ) : null}
+                      <span className={styles.progressGauge} aria-hidden="true">
+                        <span className={styles.progressGaugeFace}>
+                          <strong>{bar.percent}<small>%</small></strong>
+                          <span>complete</span>
+                        </span>
+                      </span>
                     </span>
                   ) : null}
                 </span>

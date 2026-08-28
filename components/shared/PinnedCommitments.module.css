@@ -34,17 +34,79 @@
 .body strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.86rem; color: var(--vault-text); }
 .body small { font-size: 0.74rem; color: var(--vault-text-muted); }
 
-/* Two segments, not one: what was already played when you pinned it, then what
-   you have done since. The second is the part that says whether the pin meant
-   anything, so it is the part that is lit - and the notch between them marks
-   where you were standing when you made the promise. */
+/* A tiny vault telemetry console rather than an anonymous bar. The dial carries
+   the headline percentage; the rail still keeps the useful distinction between
+   what was played before the pin and what the player earned afterwards. */
+.progressInstrument {
+  --pin-before: 0%;
+  --pin-progress: 0%;
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 62px;
+  align-items: center;
+  gap: 10px;
+  min-height: 72px;
+  margin-top: 8px;
+  padding: 8px 8px 8px 11px;
+  overflow: hidden;
+  border: 1px solid rgba(158, 112, 239, 0.28);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 100% 50%, rgba(131, 72, 232, 0.18), transparent 40%),
+    linear-gradient(135deg, rgba(16, 8, 37, 0.9), rgba(28, 16, 55, 0.76));
+  box-shadow:
+    inset 0 1px 0 rgba(226, 205, 255, 0.06),
+    inset 0 -12px 22px rgba(5, 2, 15, 0.18);
+}
+
+.progressInstrument::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0 14px, rgba(190, 151, 255, 0.025) 14px 15px);
+}
+
+.progressReadout { display: grid; min-width: 0; gap: 8px; }
+
+.progressMeta {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+  line-height: 1.05;
+}
+
+.progressMeta > span:first-child {
+  color: #c9a6ff;
+  font-size: 0.56rem;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.progressMeta > span:last-child {
+  overflow: hidden;
+  color: rgba(226, 215, 255, 0.58);
+  font-size: 0.64rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.progressMeta > span[data-earned="true"] { color: var(--vault-success); }
+
 .track {
   position: relative;
-  height: 7px;
-  margin-top: 7px;
+  height: 8px;
   border-radius: 999px;
-  background: rgba(12, 9, 30, 0.72);
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(150, 120, 235, 0.18);
+  background:
+    repeating-linear-gradient(90deg, rgba(221, 203, 255, 0.08) 0 1px, transparent 1px 12.5%),
+    rgba(7, 4, 20, 0.88);
+  box-shadow:
+    inset 0 1px 3px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(150, 120, 235, 0.18);
 }
 
 /* The fills are clipped to the track; the notch is not, so it can stand a little
@@ -68,7 +130,8 @@
 
 .trackBefore {
   left: 0;
-  background: linear-gradient(90deg, rgba(126, 96, 205, 0.72), rgba(163, 130, 245, 0.82));
+  background: linear-gradient(90deg, #7049ba, #a06ce6);
+  box-shadow: 0 0 7px rgba(157, 95, 235, 0.4);
 }
 
 /* Lit, and glowing a little, because this is the part you earned. */
@@ -90,6 +153,78 @@
   box-shadow: 0 0 6px rgba(190, 150, 255, 0.7);
 }
 
+/* Concentric surfaces and a segmented outer edge echo the main dashboard dial
+   without copying its scale. Purple is progress made before the pin; green is
+   what the player has added since making the commitment. */
+.progressGauge {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 62px;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from -90deg, rgba(235, 219, 255, 0.3) 0 1deg, transparent 1deg 12deg),
+    conic-gradient(from -90deg,
+      #9f68e8 0 var(--pin-before),
+      #6ee7b7 var(--pin-before) var(--pin-progress),
+      rgba(106, 75, 164, 0.24) var(--pin-progress) 100%);
+  box-shadow:
+    0 0 0 1px rgba(190, 142, 255, 0.2),
+    0 0 15px rgba(124, 65, 224, 0.22);
+}
+
+.progressGauge::before {
+  content: "";
+  position: absolute;
+  inset: 5px;
+  border: 1px solid rgba(187, 141, 255, 0.22);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 34%, rgba(70, 41, 121, 0.78), rgba(13, 7, 29, 0.98) 72%);
+  box-shadow:
+    inset 0 0 12px rgba(3, 1, 10, 0.76),
+    0 0 0 2px rgba(13, 7, 29, 0.78);
+}
+
+.progressGaugeFace {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+.progressGaugeFace strong {
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-shadow: 0 0 10px rgba(193, 142, 255, 0.34);
+}
+
+.progressGaugeFace strong small {
+  color: inherit;
+  font-size: 0.56em;
+  font-weight: inherit;
+}
+
+.progressGaugeFace > span {
+  color: rgba(226, 215, 255, 0.58);
+  font-size: 0.4rem;
+  font-weight: 750;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.item[data-started="yes"] .progressGauge {
+  box-shadow:
+    0 0 0 1px rgba(110, 231, 183, 0.22),
+    0 0 17px rgba(91, 219, 165, 0.2);
+}
+
 @keyframes pinBarGrow {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
@@ -98,6 +233,11 @@
 @media (prefers-reduced-motion: reduce) {
   .trackBefore,
   .trackSince { animation: none; }
+}
+
+@media (max-width: 340px) {
+  .progressInstrument { grid-template-columns: minmax(0, 1fr) 56px; }
+  .progressGauge { width: 56px; }
 }
 
 @media (max-width: 720px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
