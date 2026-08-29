@@ -26,7 +26,6 @@ export default function FinishedPage() {
   const { games, isLive, updateGame } = useAppData();
   const [claimed, setClaimed] = useState<Record<string, "finished" | "not-yet">>({});
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [saving, setSaving] = useState<string | null>(null);
   const [bulkRunning, setBulkRunning] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,17 +73,30 @@ export default function FinishedPage() {
     }
   }
 
+  /**
+   * The row goes as soon as it is clicked, and the save follows it.
+   *
+   * This used to wait for the round trip before anything moved, and a single
+   * shared saving flag blocked every other row while it did - so someone
+   * working through thirty
+   * games clicked the next one, got nothing, and clicked again. Eight people
+   * rage-clicked this button in twelve hours.
+   *
+   * A failure puts the row back and says why, so nothing is quietly lost.
+   */
   async function claim(gameId: string, finished: boolean) {
-    if (saving || bulkRunning) return;
-    setSaving(gameId);
+    if (bulkRunning || claimed[gameId]) return;
+    setClaimed((value) => ({ ...value, [gameId]: finished ? "finished" : "not-yet" }));
     setError("");
     try {
       await saveOne(gameId, finished);
-      setClaimed((value) => ({ ...value, [gameId]: finished ? "finished" : "not-yet" }));
     } catch (caught) {
+      setClaimed((value) => {
+        const reverted = { ...value };
+        delete reverted[gameId];
+        return reverted;
+      });
       setError(caught instanceof Error ? caught.message : "Could not save that. Please try again.");
-    } finally {
-      setSaving(null);
     }
   }
 
@@ -96,7 +108,7 @@ export default function FinishedPage() {
    */
   async function claimSelected(finished: boolean) {
     const ids = pending.map((candidate) => candidate.game.id).filter((id) => selected[id]);
-    if (!ids.length || bulkRunning || saving) return;
+    if (!ids.length || bulkRunning) return;
     setBulkRunning(true);
     setError("");
     const done: Record<string, "finished" | "not-yet"> = {};
@@ -204,13 +216,13 @@ export default function FinishedPage() {
                 <button
                   type="button"
                   className={styles.primary}
-                  disabled={saving === candidate.game.id}
+                  disabled={bulkRunning}
                   onClick={() => void claim(candidate.game.id, true)}
                 >Finished</button>
                 <button
                   type="button"
                   className={styles.secondary}
-                  disabled={saving === candidate.game.id}
+                  disabled={bulkRunning}
                   onClick={() => void claim(candidate.game.id, false)}
                 >Not yet</button>
               </span>
