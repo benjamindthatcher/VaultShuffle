@@ -7,6 +7,7 @@ import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { findCompletionCandidates } from "@/lib/completion-check";
+import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import { formatMoney } from "@/lib/backlog-stats";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionDismissed } from "@/lib/completion-tracking";
@@ -23,7 +24,7 @@ import styles from "./finished.module.css";
  * unclaimed for months.
  */
 export default function FinishedPage() {
-  const { games, isLive, updateGame } = useAppData();
+  const { games, isLive, updateGame, refresh } = useAppData();
   const [claimed, setClaimed] = useState<Record<string, "finished" | "not-yet">>({});
   const [selected, setSelected] = useState<Record<string, boolean>>({});
   const [bulkRunning, setBulkRunning] = useState(false);
@@ -101,26 +102,70 @@ export default function FinishedPage() {
   }
 
   /**
-   * Ticking through thirty-odd games one pair of buttons at a time is a chore, and
-   * a chore is exactly what this queue is meant not to be. Saves run one at a time
-   * so a mid-run failure leaves everything before it already committed rather than
-   * rolling the whole sweep back.
+   * The whole selection in one request.
+   *
+   * This was a loop of individual saves, and a claim costs two writes - the game
+   * itself and its ledger row - against a budget of a hundred and twenty a
+   * minute. So a sweep of eighty games sent a hundred and sixty writes and the
+   * person using the button built for long sweeps was told, halfway through
+   * their own sweep, that they were making changes too quickly. Waking games hit
+   * this first and was fixed the same way.
+   *
+   * Analytics still fire per game: they go to PostHog, not to us, and they are
+   * how the threshold that put these games here gets checked.
    */
   async function claimSelected(finished: boolean) {
-    const ids = pending.map((candidate) => candidate.game.id).filter((id) => selected[id]);
-    if (!ids.length || bulkRunning) return;
+    const chosen = pending.filter((candidate) => selected[candidate.game.id]);
+    if (!chosen.length || bulkRunning) return;
     setBulkRunning(true);
     setError("");
+
+    const mark = finished ? "finished" as const : "not-yet" as const;
     const done: Record<string, "finished" | "not-yet"> = {};
+    for (const candidate of chosen) done[candidate.game.id] = mark;
+
     try {
-      for (const id of ids) {
-        await saveOne(id, finished, true);
-        done[id] = finished ? "finished" : "not-yet";
+      if (!isLive) {
+        // Guest state is local, so there is nothing to batch and nothing to
+        // spend: the existing per-game path already only touches memory.
+        for (const candidate of chosen) await saveOne(candidate.game.id, finished, true);
+      } else {
+        const response = await fetch("/api/games/completions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: finished ? "claimed" : "dismissed",
+            games: chosen.map(({ game }) => {
+              const estimateMinutes = estimatedTimeToBeatMinutes(game.duration) ?? null;
+              return {
+                id: game.id,
+                hours_played: Number(game.hoursPlayed ?? 0),
+                estimate_minutes: estimateMinutes,
+                price_cents: game.isFree ? 0 : Math.round(Number(game.priceInitial ?? 0)) || 0
+              };
+            })
+          })
+        });
+        if (!response.ok) {
+          const payload = await response.json().catch(() => null) as { error?: string } | null;
+          throw new Error(payload?.error ?? "Some games could not be saved. The rest were kept.");
+        }
+        for (const { game } of chosen) {
+          // isLive false on purpose: this reports to PostHog only. The ledger
+          // rows were already written by the batch, and letting the tracker post
+          // them again is the per-game write we just removed.
+          if (finished) trackCompletionClaim(game, "sweep_bulk", false);
+          else trackCompletionDismissed(game, true);
+        }
+        await refresh({ quiet: true });
       }
+      setClaimed((value) => ({ ...value, ...done }));
     } catch (caught) {
+      // Nothing is marked done on a failure. The batch is one request, so either
+      // the sweep landed or none of it did - saying otherwise would hide games
+      // that are still waiting to be answered.
       setError(caught instanceof Error ? caught.message : "Some games could not be saved. The rest were kept.");
     } finally {
-      setClaimed((value) => ({ ...value, ...done }));
       setSelected({});
       setBulkRunning(false);
     }
