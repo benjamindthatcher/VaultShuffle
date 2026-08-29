@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
+const SESSION_COOKIE = "vault_session";
 const INGEST_PREFIX = "/ingest";
 const POSTHOG_API_HOST = "https://eu.i.posthog.com";
 const POSTHOG_ASSET_HOST = "https://eu-assets.i.posthog.com";
@@ -70,6 +71,26 @@ export function proxy(request: NextRequest) {
     return response;
   }
 
+  // A signed-in visitor has no use for the marketing page, so the landing route
+  // belongs to signed-out people only. Signing out clears the session cookie,
+  // which is what makes the landing page reachable again.
+  //
+  // Presence of the cookie is enough here. Verifying it would mean a database
+  // round trip on every landing request, and the product routes already treat
+  // an unusable session as a guest rather than bouncing back here, so a stale
+  // cookie cannot produce a redirect loop.
+  //
+  // A failed Steam sign-in returns to "/?signin=<message>" to show the error,
+  // so that case has to stay on the landing page.
+  if (
+    request.method === "GET" &&
+    request.nextUrl.pathname === "/" &&
+    !request.nextUrl.searchParams.has("signin") &&
+    request.cookies.get(SESSION_COOKIE)?.value
+  ) {
+    return NextResponse.redirect(new URL("/dashboard", request.nextUrl.origin));
+  }
+
   if (UNSAFE_METHODS.has(request.method) && request.nextUrl.pathname !== "/api/catalogue/process") {
     const origin = request.headers.get("origin");
     const fetchSite = request.headers.get("sec-fetch-site");
@@ -97,6 +118,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/",
     "/api/:path*",
     "/ingest/:path*",
     "/dashboard",
