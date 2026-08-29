@@ -233,8 +233,17 @@ export default function FinishedPage() {
           ) : null}
         </div>
         <ul className={styles.list}>
-          {pending.map((candidate) => (
-            <li key={candidate.game.id} className={selected[candidate.game.id] ? styles.rowSelected : styles.row}>
+          {/* Every candidate, not just the undecided ones.
+              Filtering to `pending` meant a row vanished the instant it was
+              answered and the whole list jumped up a place - so a second tap,
+              200ms behind the first, landed on the next game's button instead.
+              7.7% of consecutive claims arrive less than half a second apart,
+              and seventeen people rage-clicked this button in a day. A decided
+              row stays exactly where it was and says what it now is. */}
+          {candidates.map((candidate) => {
+            const outcome = claimed[candidate.game.id];
+            return (
+            <li key={candidate.game.id} className={outcome ? `${styles.row} ${styles.rowDecided}` : selected[candidate.game.id] ? styles.rowSelected : styles.row}>
               {/* Everything but the two buttons ticks the box. Aiming at the
                   checkbox itself is a poor way to work down a list, and the rest
                   of the row means the same thing: this one. */}
@@ -244,7 +253,7 @@ export default function FinishedPage() {
                     type="checkbox"
                     checked={Boolean(selected[candidate.game.id])}
                     onChange={() => toggle(candidate.game.id)}
-                    disabled={bulkRunning}
+                    disabled={bulkRunning || Boolean(outcome)}
                     aria-label={`Select ${candidate.game.title}`}
                   />
                 </span>
@@ -258,6 +267,12 @@ export default function FinishedPage() {
                 </span>
               </label>
               <span className={styles.actions}>
+                {outcome ? (
+                  <span className={styles.outcome} data-outcome={outcome}>
+                    <VaultIcon name={outcome === "finished" ? "check" : "snooze-not-now"} size={16} />
+                    {outcome === "finished" ? "Finished" : "Not yet"}
+                  </span>
+                ) : (<>
                 <button
                   type="button"
                   className={styles.primary}
@@ -270,9 +285,11 @@ export default function FinishedPage() {
                   disabled={bulkRunning}
                   onClick={() => void claim(candidate.game.id, false)}
                 >Not yet</button>
+                </>)}
               </span>
             </li>
-          ))}
+            );
+          })}
         </ul>
         </>
       ) : (

@@ -62,3 +62,39 @@
   .bulkActions { width: 100%; }
   .bulkActions .primary, .bulkActions .secondary { flex: 1; }
 }
+
+/* A row that has been answered keeps its place in the list.
+   Removing it made every row below jump up under a finger that was already
+   moving, so the next tap hit a game nobody had looked at. It stays, dimmed,
+   saying what it now is. */
+.rowDecided {
+  opacity: 0.5;
+  transition: opacity 160ms ease;
+}
+
+.outcome {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  min-height: 32px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.outcome[data-outcome="finished"] {
+  border: 1px solid rgba(110, 231, 183, 0.34);
+  background: rgba(110, 231, 183, 0.1);
+  color: #b6f4d4;
+}
+
+.outcome[data-outcome="not-yet"] {
+  border: 1px solid var(--vault-card-border);
+  color: var(--vault-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rowDecided { transition: none; }
+}
