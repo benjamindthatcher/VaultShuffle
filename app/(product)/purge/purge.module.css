@@ -363,6 +363,7 @@
   .facts,
   .tags { min-height: calc(2 * var(--fact-row) + var(--fact-gap)); }
 
+
   .categoryGrid {
     grid-template-columns: 1fr;
   }
@@ -816,4 +817,29 @@
   position: sticky;
   top: 12px;
   z-index: 5;
+}
+
+/* Placed after .groupHeader rather than in the earlier mobile block: these are
+   the same specificity as the three-column layout above, so sitting before it
+   meant losing every time.
+
+   The Reviewed header pins the tabs, the search and the select-all to one row of
+   three columns, and the tab pair alone asks for 280px. On a 375px screen the
+   tabs overflowed their column and rendered on top of the select-all, which is
+   pinned to column one beneath them. Stacked, each gets the width it needs. */
+@media (max-width: 760px) {
+  .groupHeader {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .groupHeader > :first-child,
+  .groupHeader > :only-child,
+  .groupHeader > .bulkCheck,
+  .groupHeader > .reviewedSearch {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: stretch;
+    width: auto;
+  }
 }
