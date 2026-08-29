@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
-import { steamLaunchUrl } from "@/lib/steam-images";
+import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
+import { useCanLaunchSteam } from "@/components/shared/useSteamLaunch";
 import { formatGameDuration } from "@/lib/game-duration";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./GameCard.module.css";
@@ -25,6 +26,7 @@ type GameCardProps = {
 };
 
 export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, onUnpin, pinned = false, showProgress = false }: GameCardProps) {
+  const canLaunchSteam = useCanLaunchSteam();
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuShellRef = useRef<HTMLDivElement>(null);
@@ -126,7 +128,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
           {onTogglePin ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onTogglePin(); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Unpin game" : "Pin game"}</button> : null}
           {onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Sleep game</button> : null}
           {onComplete ? <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setMenuOpen(false); onComplete(); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button> : null}
-          <a role="menuitem" href={steamLaunchUrl(game.steamAppId)} onClick={() => setMenuOpen(false)}><VaultIcon name="open-steam" size={18} />Open on Steam</a>
+          <a role="menuitem" href={canLaunchSteam ? steamLaunchUrl(game.steamAppId) : steamStoreUrl(game.steamAppId)} onClick={() => setMenuOpen(false)}><VaultIcon name="open-steam" size={18} />Open on Steam</a>
         </>}
       </div>, document.body) : null}
     </div> : null}

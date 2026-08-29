@@ -9,6 +9,13 @@ import styles from "./SteamImportProgressCard.module.css";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
 
+/**
+ * Below this a backlog is not a problem worth offering to solve, and saying so
+ * would be noise on someone's first minute. Matches the threshold Vault Lens
+ * already uses to suggest Purge.
+ */
+const PURGE_SUGGESTION_MIN_GAMES = 40;
+
 export function SteamImportProgressCard() {
   const {
     games,
@@ -185,16 +192,40 @@ export function SteamImportProgressCard() {
         <p>{detail}</p>
       </div>
       {complete && wasFirstImport ? (
-        <Link
-          className={styles.handoff}
-          href="/vault"
-          onClick={() => {
-            setJustFinished(false);
-            trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, { games: steamImport.total });
-          }}
-        >
-          Choose what to play<VaultIcon name="chevron-right" size={16} />
-        </Link>
+        <div className={styles.handoffGroup}>
+          <Link
+            className={styles.handoff}
+            href="/vault"
+            onClick={() => {
+              setJustFinished(false);
+              trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, { games: steamImport.total });
+            }}
+          >
+            Choose what to play<VaultIcon name="chevron-right" size={16} />
+          </Link>
+          {/* Purge's only door was a line inside Vault Lens that appears at 40+
+              active games, so almost nobody found it: of the people with a
+              library, 13 opened it and 4 used it - and those 4 made 321
+              decisions between them. This is the moment someone has just watched
+              their whole backlog arrive, which is the one moment thinning it out
+              is an obvious idea. Secondary on purpose; picking a game to play
+              stays the point. */}
+          {steamImport.total >= PURGE_SUGGESTION_MIN_GAMES ? (
+            <Link
+              className={styles.handoffSecondary}
+              href="/purge"
+              onClick={() => {
+                setJustFinished(false);
+                trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, {
+                  games: steamImport.total,
+                  destination: "purge"
+                });
+              }}
+            >
+              {steamImport.total} is a lot — thin it out first
+            </Link>
+          ) : null}
+        </div>
       ) : null}
 
       {steamLibraryPrivate ? (

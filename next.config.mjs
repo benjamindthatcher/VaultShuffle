@@ -28,6 +28,16 @@ const securityHeaders = [
 ];
 
 const nextConfig = {
+  /**
+   * Without this the browser withholds the message and stack of any error
+   * thrown by a script it considers cross-origin, and reports the literal string
+   * "Script error." instead. Our bundles are served from the same site but
+   * through a CDN, so genuine failures arrive indistinguishable from the noise
+   * that browser extensions throw - and 60% of this traffic is mobile, where
+   * that noise is constant. Anonymous CORS on the script tags means real errors
+   * come through with something to read.
+   */
+  crossOrigin: "anonymous",
   poweredByHeader: false,
   skipTrailingSlashRedirect: true,
   async redirects() {

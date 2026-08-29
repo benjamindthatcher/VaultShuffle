@@ -42,18 +42,21 @@ const MIN_CREDIBLE_ESTIMATE_MINUTES = 120;
  * asked "did you finish this?" about a game you did finish is a much cheaper
  * mistake than never being asked at all.
  *
- * 0.65 is what the numbers asked for. When people mark a game finished without
- * being prompted - from the Library or a Vault pick, where no threshold gates
- * them - the median sits at 0.45 to 0.66 of the estimate, so a gate at 0.8 was
- * never asking about a large share of genuinely finished games. And of the
- * people we did ask, 506 said yes against 82 who said not yet: a rate that high
- * means the question was being held back, not that it was well aimed.
+ * Where nothing gates the choice - marking a game done from the Library or from
+ * a Vault pick - the median lands at 0.45 to 0.66 of the estimate, and of the
+ * people the sweep did ask, 506 said yes against 82 who said not yet. Both say
+ * 0.8 was asking too late.
  *
- * It is also the number the Nearly Finished collection already used, so the two
- * now agree: the point where a game is nearly finished is the point where we
- * ask whether it is.
+ * 0.75 is the deliberate compromise: enough earlier than 0.8 to catch the people
+ * who skip side content, without asking about a game somebody is only two thirds
+ * of the way through. completion_dismissed now records the ratio, so the next
+ * move on this number can be read off the yes/no split by bucket rather than
+ * argued about.
+ *
+ * Nearly Finished derives from it, so the two cannot drift: the point where a
+ * game is nearly finished is the point where we ask whether it is.
  */
-export const FINISHED_RATIO = 0.65;
+export const FINISHED_RATIO = 0.75;
 
 /**
  * Re-asking after a dismissal needs new evidence, not merely a new day. Time

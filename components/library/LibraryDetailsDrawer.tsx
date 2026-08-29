@@ -9,6 +9,7 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
+import { useCanLaunchSteam } from "@/components/shared/useSteamLaunch";
 import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./LibraryDetailsDrawer.module.css";
 
@@ -30,6 +31,7 @@ type LibraryDetailsDrawerProps = {
 };
 
 export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore, onSleep, previewMode = false }: LibraryDetailsDrawerProps) {
+  const canLaunchSteam = useCanLaunchSteam();
   const mounted = useIsMounted();
   const [notes, setNotes] = useState("");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
@@ -163,7 +165,7 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           <div className={styles.actionRow}>
             <a
               className={styles.steamButton}
-              href={previewMode ? steamStoreUrl(game.steamAppId) : steamLaunchUrl(game.steamAppId)}
+              href={canLaunchSteam && !previewMode ? steamLaunchUrl(game.steamAppId) : steamStoreUrl(game.steamAppId)}
               target={previewMode ? "_blank" : undefined}
               rel={previewMode ? "noreferrer" : undefined}
               onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.gameSteamOpened, {

@@ -115,3 +115,21 @@
 .privateFix a { color: #d392ff; text-decoration: underline; text-underline-offset: 2px; }
 .privateFix button { justify-self: start; min-height: 40px; padding: 9px 16px; border: 0; border-radius: 999px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.84rem; cursor: pointer; }
 .privateFix button:disabled { opacity: 0.6; cursor: default; }
+
+/* Two ways on from a finished import, the second quieter than the first. */
+.handoffGroup { display: grid; justify-items: start; gap: 8px; }
+
+.handoffSecondary {
+  padding: 4px 2px;
+  color: var(--vault-text-muted);
+  font-size: 0.79rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.handoffSecondary:hover { color: var(--vault-text); }
+
+@media (max-width: 560px) {
+  .handoffGroup { grid-column: 1 / -1; justify-items: start; }
+}

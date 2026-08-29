@@ -13,7 +13,7 @@ import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import type { Game, SmartCollectionPreset } from "./types.ts";
 
 export const smartCollectionPresets: Array<{ id: SmartCollectionPreset; label: string; description: string }> = [
-  { id: "nearly-finished", label: "Nearly Finished", description: "Finite games at 65–99% progress." },
+  { id: "nearly-finished", label: "Nearly Finished", description: "Finite games at 75–99% progress." },
   { id: "quick-wins", label: "Quick Wins", description: "Finite games with eight hours or less left." },
   { id: "recently-played", label: "Recently Played", description: "Games played during the last 30 days." },
   { id: "fallen-off", label: "Fallen Off", description: "Started games left untouched for six months." },

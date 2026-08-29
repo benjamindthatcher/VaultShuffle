@@ -37,6 +37,7 @@ import {
   type VaultMatchExplanation
 } from "@/lib/vault";
 import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
+import { useCanLaunchSteam } from "@/components/shared/useSteamLaunch";
 import { formatGameDuration } from "@/lib/game-duration";
 import { matchesSmartPreset } from "@/lib/smart-collections";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
@@ -132,6 +133,12 @@ export default function VaultPage() {
   // The two deck tools open into the same strip below the bar, so they are one
   // disclosure rather than two booleans that can both be true and stack two
   // panels between you and the pick.
+  // Guests were always sent to the store page; signed-in users were sent to
+  // steam://run, which does nothing without the desktop client. Most people
+  // drawing are on a phone, so the product's primary action did nothing for
+  // them. A device that can launch gets the launch.
+  const canLaunchSteam = useCanLaunchSteam();
+  const steamPlayIsLaunch = isLive && canLaunchSteam;
   const [deckPanel, setDeckPanel] = useState<"lens" | "history" | null>(null);
   const [currentDrawId, setCurrentDrawId] = useState<string | null>(null);
   const [guestSignInOpen, setGuestSignInOpen] = useState(false);
@@ -961,7 +968,7 @@ export default function VaultPage() {
                 alongside the pick, completion has its own sweep, and details are
                 a click away on any deck card. */}
             <div className={styles.resultActions}>
-              <a href={isLive ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={isLive ? undefined : "_blank"} rel={isLive ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
+              <a href={steamPlayIsLaunch ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={steamPlayIsLaunch ? undefined : "_blank"} rel={steamPlayIsLaunch ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
                 <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong></span>
               </a>
               <button type="button" className={styles.resultAction} data-action="snooze" onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>

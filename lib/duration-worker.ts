@@ -107,6 +107,11 @@ export async function processDurationQueue(
       const acceptedAsReady = !identityConflict && !classificationConflict && Boolean(
         projected?.duration_manual_override ||
         (
+          ["no_duration", "not_found"].includes(result.status) &&
+          projected?.duration_status === "no_match" &&
+          projected?.duration_kind === "unknown"
+        ) ||
+        (
           projected?.duration_status === "ready" &&
           ["finite", "endless", "not-applicable"].includes(projected?.duration_kind ?? "")
         )

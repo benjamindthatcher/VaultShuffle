@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { editableSmartCollectionPreset, matchesSmartPreset } from "./smart-collections.ts";
 import type { Game } from "./types.ts";
+import { FINISHED_RATIO } from "./completion-check.ts";
 
 function makeGame(overrides: Partial<Game> = {}): Game {
   return {
@@ -28,16 +29,26 @@ function makeGame(overrides: Partial<Game> = {}): Game {
   };
 }
 
-test("nearly finished includes active finite games at 65–99% only", () => {
-  const nearlyFinished = makeGame({
-    hours_played: 7,
+// The boundary is FINISHED_RATIO, the same number the completion sweep asks on,
+// so this reads it rather than restating it. The two were 65 and 80 separately
+// once, which let a game sit in Nearly Finished for months without ever being
+// asked about.
+test("nearly finished starts where the completion sweep starts asking", () => {
+  const atThreshold = makeGame({
+    hours_played: 10 * FINISHED_RATIO,
+    main_story_minutes: 600,
+    duration_kind: "finite",
+  });
+  const justBelow = makeGame({
+    hours_played: 10 * FINISHED_RATIO - 0.4,
     main_story_minutes: 600,
     duration_kind: "finite",
   });
 
-  assert.equal(matchesSmartPreset(nearlyFinished, "nearly-finished"), true);
-  assert.equal(matchesSmartPreset({ ...nearlyFinished, status: "Completed" }, "nearly-finished"), false);
-  assert.equal(matchesSmartPreset({ ...nearlyFinished, duration_kind: "endless" }, "nearly-finished"), false);
+  assert.equal(matchesSmartPreset(atThreshold, "nearly-finished"), true);
+  assert.equal(matchesSmartPreset(justBelow, "nearly-finished"), false);
+  assert.equal(matchesSmartPreset({ ...atThreshold, status: "Completed" }, "nearly-finished"), false);
+  assert.equal(matchesSmartPreset({ ...atThreshold, duration_kind: "endless" }, "nearly-finished"), false);
 });
 
 test("quick wins uses remaining time rather than total duration", () => {
