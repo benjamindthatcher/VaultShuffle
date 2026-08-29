@@ -271,6 +271,17 @@ export function drawQuickVaultGame(
  */
 export const VAULT_FINALIST_SCORE_WINDOW = 15;
 
+/**
+ * How many finalists a draw records for history.
+ *
+ * The API capped this at 32 and rejected anything longer, so a draw failed
+ * outright when the field kept for history would not fit - twelve people in
+ * twelve hours, all with libraries big enough for dozens of games to score
+ * within a point of each other. The list is a record of the draw, not the draw,
+ * so it truncates now instead of failing.
+ */
+export const RECORDED_FINALIST_LIMIT = 128;
+
 export function vaultFinalists(pool: VaultPoolEntry[], previousWinnerId?: string | null) {
   if (!pool.length) return [];
   const eligible = pool.length > 1 && previousWinnerId

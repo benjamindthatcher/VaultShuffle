@@ -13,6 +13,7 @@ import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-
 import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
 import { announceCooldown, CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
+import { RECORDED_FINALIST_LIMIT } from "@/lib/vault";
 import {
   IDLE_STEAM_IMPORT,
   type SteamImportProgress
@@ -695,7 +696,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function recordVaultDraw(gameId: string, input: VaultDrawInput) {
     if (isLive) {
-      const { state, draw } = await api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex, finalist_appids: input.finalistAppIds }) });
+      const { state, draw } = await api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex, finalist_appids: input.finalistAppIds?.slice(0, RECORDED_FINALIST_LIMIT) }) });
       setLiveVaultState(state);
       setLiveVaultHistory((current) => [draw, ...current].slice(0, 50));
       return draw;

@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession, requireWriteSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { RECORDED_FINALIST_LIMIT } from "@/lib/vault";
 import { jsonError, readJsonBody } from "@/lib/http";
 
 const drawSchema = z.object({
   game_id: z.string().uuid(), steam_app_id: z.number().int().positive(),
   session: z.enum(["short", "evening", "weekend"]).nullable(), mood: z.enum(["brain-off", "chill", "intense"]).nullable(), goal: z.enum(["new", "finish", "surprise"]).nullable(),
   collection_id: z.string().nullable(), selected_genres: z.array(z.string()).max(3), eligible_pool_count: z.number().int().nonnegative(), reroll_index: z.number().int().nonnegative(),
-  finalist_appids: z.array(z.number().int().positive()).max(32).optional()
+  finalist_appids: z.array(z.number().int().positive()).max(RECORDED_FINALIST_LIMIT).optional()
 }).superRefine((input, context) => {
   const collectionDraw = Boolean(input.collection_id);
   if (collectionDraw) {
