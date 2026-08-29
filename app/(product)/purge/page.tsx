@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
@@ -16,11 +16,12 @@ import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim } from "@/lib/completion-tracking";
+import { PurgeTouchQueue, type TouchDecision } from "@/components/purge/PurgeTouchQueue";
+import { useTouchLayout } from "@/components/purge/useTouchLayout";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SignInLock } from "@/components/guest/SignInLock";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import styles from "./purge.module.css";
-
 
 
 type Undo = {
@@ -41,6 +42,30 @@ export default function PurgePage() {
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
   const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
   const [reviewedTab, setReviewedTab] = useState<"active" | "slept">("active");
+  const touchLayout = useTouchLayout();
+  // What this visit has decided, so a card can hold its place and say what it
+  // now is instead of vanishing and pulling the next game up under a thumb.
+  const [touchDecided, setTouchDecided] = useState<Record<string, TouchDecision>>({});
+  /**
+   * A fixed batch to work through, rather than a live view of the queue.
+   *
+   * A decided game leaves `candidates` the moment its review stands, so
+   * rendering candidates directly would delete the card mid-tap and slide the
+   * next one into its place - the exact thing this layout exists to stop. The
+   * batch is taken once, held while it is worked, and replaced only when every
+   * card in it has been answered.
+   */
+  const [touchBatch, setTouchBatch] = useState<PurgeCandidate[]>([]);
+  // Preview decisions run one at a time, in the order they were tapped.
+  const previewQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const clearTouchDecision = useCallback((gameId: string) => {
+    setTouchDecided((value) => {
+      if (!(gameId in value)) return value;
+      const next = { ...value };
+      delete next[gameId];
+      return next;
+    });
+  }, []);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [reviewedQuery, setReviewedQuery] = useState("");
   const [flagging, setFlagging] = useState(false);
@@ -69,6 +94,7 @@ export default function PurgePage() {
   const activeIndex = Math.min(selectedOffset, Math.max(0, candidates.length - 1));
   const current = candidates[activeIndex] ?? null;
   const queue = candidates.slice(0, 4);
+
 
   const gameById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
 
@@ -136,7 +162,6 @@ export default function PurgePage() {
       noReviewNeeded
     };
   }, [candidates, games, standingReviews]);
-
 
   const settledList = useMemo(() => {
     const readyIds = new Set(candidates.map(({ game }) => game.id));
@@ -263,6 +288,10 @@ export default function PurgePage() {
         if (review.action === "complete") trackCompletionClaim(candidate.game, "purge", false);
       } catch (caught) {
         setReviews((value) => value.filter((item) => item.id !== optimisticReview.id));
+        // The touch card is optimistic too, and it is the only thing telling
+        // someone this game was dealt with. Left set, a refused decision reads
+        // as a finished one and the game quietly leaves their queue unsaved.
+        clearTouchDecision(candidate.game.id);
         setError(`${candidate.game.title}: ${caught instanceof Error ? caught.message : "Could not save this Purge decision."}`);
       } finally {
         pendingGameIdsRef.current.delete(candidate.game.id);
@@ -277,14 +306,25 @@ export default function PurgePage() {
     });
   }
 
-  async function act(action: PurgeAction, candidate = current) {
-    if (!candidate || !reviewsReady) return;
+  /** Returns false when the decision was not taken, so an optimistic card can
+   *  stop claiming it was. The live path reports its own failures from inside
+   *  the queue, which is where they happen. */
+  async function act(action: PurgeAction, candidate = current): Promise<boolean> {
+    if (!candidate || !reviewsReady) return false;
     setError("");
     if (isLive) {
       queueLiveDecision(candidate, action);
-      return;
+      return true;
     }
-    if (savingRef.current) return;
+    // Queued, not dropped. This used to return early while a preview decision
+    // was in flight, which was harmless when one card was on screen and one
+    // decision was possible at a time. On a grid built for a thumb it threw
+    // away three of every four rapid taps - measured, not guessed.
+    const runAfter = previewQueueRef.current;
+    let release = () => {};
+    previewQueueRef.current = new Promise<void>((resolve) => { release = resolve; });
+    await runAfter;
+
     savingRef.current = true;
     setSaving(true);
     const previousStatus = candidate.game.status;
@@ -301,11 +341,15 @@ export default function PurgePage() {
         action: committedAction,
       });
       finishDecision(candidate, committedAction, previousStatus, review);
+      return true;
     } catch (caught) {
+      clearTouchDecision(candidate.game.id);
       setError(caught instanceof Error ? caught.message : "Could not save this Purge decision.");
+      return false;
     } finally {
       savingRef.current = false;
       setSaving(false);
+      release();
     }
   }
 
@@ -337,12 +381,35 @@ export default function PurgePage() {
     }
   }
 
-
   // Every count here derives from two independent async sources: the games list
   // and the saved reviews. Rendering before both landed showed each flagged game
   // as "needs review" — the reviews had not arrived to say otherwise — and the
   // numbers then snapped once they did. Hold the panel until both exist.
   const dataReady = !isLoading && reviewsReady;
+
+  // Twelve at a time: enough that scrolling feels like progress, few enough that
+  // a phone is not rendering two hundred pieces of artwork to show ten.
+  const TOUCH_BATCH_SIZE = 12;
+  useEffect(() => {
+    if (!touchLayout || !dataReady) return;
+    const unanswered = touchBatch.filter((entry) => !touchDecided[entry.game.id]);
+    if (unanswered.length > 0) return;
+    const next = candidates.filter((entry) => !touchDecided[entry.game.id]).slice(0, TOUCH_BATCH_SIZE);
+    // Same batch means nothing new arrived; replacing it would only churn keys.
+    const changed = next.length !== touchBatch.length
+      || next.some((entry, index) => entry.game.id !== touchBatch[index]?.game.id);
+    if (!changed) return;
+
+    // Waits for the tapping to stop before swapping in the next twelve.
+    //
+    // Deciding the last card in a batch would otherwise replace the whole grid
+    // in the same frame, and a thumb already on its way down would land on a
+    // game that arrived after it started moving. It is the one place left where
+    // something moves under a finger, which is the thing this layout exists to
+    // prevent - it just happens once every twelve rather than every time.
+    const timer = window.setTimeout(() => setTouchBatch(next), 700);
+    return () => window.clearTimeout(timer);
+  }, [touchLayout, dataReady, candidates, touchDecided, touchBatch]);
 
   // The two review lists, as they are actually shown. Selection and "select all"
   // both work from this so the buttons can never claim more than is on screen.
@@ -557,6 +624,33 @@ export default function PurgePage() {
       </aside>
     </section>
       {reviewView === "needs" ? <>
+        {/* On a device held in the hands the decision goes on the card. The
+            strip-and-panel below puts a whole screen between a game and the
+            button that decides it, which costs mobile 2.4s a decision against
+            desktop's 1.07s. Desktop keeps what it has. */}
+        {touchLayout ? (
+          dataReady && touchBatch.length ? (
+            <section className={styles.queuePanel}>
+              <PurgeTouchQueue
+                candidates={touchBatch}
+                decided={touchDecided}
+                busy={!reviewsReady}
+                onDecide={(action, candidate) => {
+                  setTouchDecided((value) => ({ ...value, [candidate.game.id]: action as TouchDecision }));
+                  void act(action, candidate).then((taken) => {
+                    if (!taken) clearTouchDecision(candidate.game.id);
+                  });
+                }}
+              />
+            </section>
+          ) : (
+            <section className={styles.queuePanel}>
+              <div className={styles.queue}>
+                <PlaceholderSlots count={4} label={dataReady ? "Your review queue is clear." : "Loading your review queue."} />
+              </div>
+            </section>
+          )
+        ) : <>
         <section className={styles.queuePanel}>
           {!dataReady ? <div className={styles.queue}>
             <PlaceholderSlots count={4} label="Loading your review queue." />
@@ -592,6 +686,7 @@ export default function PurgePage() {
             <button type="button" data-decision="complete" disabled={saving || !reviewsReady} onClick={() => void act("complete")}><PurgeDecisionIcon name="completed" /><span><strong>Completed</strong><small>{isLive ? "Mark it finished and move it to Completed." : "Mark it finished for this preview."}</small></span></button>
           </div>
         </section> : null}
+        </>}
       </> : <section className={styles.queuePanel}>
         {/* Reviewed splits into what is still active and what is asleep, behind
             the same tabs the Library uses. As one list of 200 they were
@@ -754,7 +849,6 @@ export default function PurgePage() {
 function PurgePageFrame({ children }: { children: ReactNode }) {
   return <section className={styles.page}><div className={styles.content}>{children}</div></section>;
 }
-
 
 type PurgeDecisionIconName = "keep-active" | "completed" | "sleep";
 

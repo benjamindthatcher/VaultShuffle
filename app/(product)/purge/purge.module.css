@@ -843,3 +843,34 @@
     width: auto;
   }
 }
+
+/* Three tabs across 320px, and "No Review Needed" is the widest label on the
+   page. At the default 18px of side padding the labels ran past their buttons -
+   "Reviewed" by 10px - and were cut rather than wrapped. Trimming the padding
+   and the gap gives the words the room instead of the chrome. */
+@media (max-width: 380px) {
+  .categoryTabs,
+  .statusTabs { gap: 4px; padding: 4px; }
+
+  /* The 140px floor on each of the two Reviewed tabs needs 280px before gaps
+     and padding, which is more than a 320px screen has left after its own
+     margins. They can share whatever is there. */
+  .statusTabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+  .statusTab,
+  .statusTabActive {
+    gap: 5px;
+    padding: 0 6px;
+    font-size: 0.78rem;
+  }
+
+  /* "Needs Review" and "No Review Needed" wrap; "Reviewed" is one word and
+     cannot, so it is the label the column has to actually fit. The count pill
+     shrinks with it rather than holding 25px it does not need for a 0. */
+  .statusTab strong,
+  .statusTabActive strong {
+    min-width: 0;
+    padding: 2px 6px;
+    font-size: 0.72rem;
+  }
+}
