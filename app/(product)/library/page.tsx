@@ -177,7 +177,7 @@ export default function LibraryPage() {
 
       {!isLive ? (
         <GuestPreviewNotice feature="Library" icon="all-games" catalogueSize={libraryGames.length}>
-          Browse and filter the live guest catalogue. Any statuses, pins or notes you try are temporary until you connect Steam.
+          Browse and filter the live guest catalogue. Any statuses, pins or notes you try are temporary until you connect a public Steam library.
         </GuestPreviewNotice>
       ) : null}
 

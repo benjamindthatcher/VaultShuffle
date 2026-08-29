@@ -60,7 +60,7 @@ export default function DashboardPage() {
         <PageHeading title="Dashboard preview" />
 
         <GuestPreviewNotice feature="Dashboard" icon="details" catalogueSize={games.length}>
-          These are catalogue facts, not claims about your library. Connect Steam whenever you want this dashboard to become yours.
+          These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
         </GuestPreviewNotice>
 
         <section className={styles.hero}>

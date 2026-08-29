@@ -18,9 +18,12 @@ export type CollectionDetailPayload = {
 
 export const guestSession: SessionPayload = {
   logged_in: false,
+  account_type: "guest",
+  identity_verified: false,
   user_id: "",
   steam_id: "",
   display_name: "Guest",
+  steam_display_name: "",
   avatar_url: "",
   has_steam_key: false
 };
@@ -234,7 +237,7 @@ export function guestPreviewCollection(gameCount: number): DemoCollection[] {
       name: "Guest Catalogue",
       description: `${gameCount} popular and iconic Steam games available for preview draws.`,
       artworkUrl: "/assets/vault/vault-stage-open.png",
-      accent: "Sign in to replace this pool with your own Steam library."
+      accent: "Connect a public Steam library to replace this preview pool."
     },
     {
       id: "guest-catalogue-sampler",

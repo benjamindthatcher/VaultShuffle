@@ -1,6 +1,7 @@
 "use client";
 
 import { useIsMounted } from "@/components/shared/useIsMounted";
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { VaultIcon } from "@/components/shared/VaultIcon";
@@ -59,14 +60,14 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
   if (!mounted || !open) return null;
 
   return createPortal(
-    <aside className={styles.prompt} aria-label="Optional Steam sign-in suggestion">
+    <aside className={styles.prompt} aria-label="Optional library connection suggestion">
       <button type="button" className={styles.close} onClick={() => dismiss("close")} aria-label="Dismiss suggestion">
         <VaultIcon name="close" size={16} />
       </button>
       <span className={styles.icon} aria-hidden="true"><VaultIcon name="finish-something" size={22} /></span>
       <span className={styles.copy}>
         <strong>This one needs your playtime</strong>
-        <small>Steam lets VaultShuffle spot games you have actually started. You can keep using the {catalogueSize}-game preview without it.</small>
+        <small>Connect a public library so VaultShuffle can spot games you have actually started. You can keep using the {catalogueSize}-game preview without it.</small>
       </span>
       <span className={styles.actions}>
         <a
@@ -77,8 +78,18 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
             reason,
           })}
         >
-          Use my Steam library
+          Sign in with Steam
         </a>
+        <Link
+          href="/setup/steam-profile?from=guest_personal_progress_nudge"
+          className={styles.profile}
+          onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSetupStarted, {
+            location: "guest_personal_progress_nudge",
+            reason,
+          })}
+        >
+          Create profile
+        </Link>
         <button type="button" className={styles.secondary} onClick={() => dismiss("keep_previewing")}>Keep previewing</button>
       </span>
     </aside>,

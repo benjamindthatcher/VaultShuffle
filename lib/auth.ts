@@ -7,6 +7,8 @@ import type { AppUser, SteamPlayerSummary } from "@/lib/types";
 
 export const SESSION_COOKIE = "vault_session";
 const SESSION_DAYS = 30;
+const MANUAL_SESSION_DAYS = 365;
+const MANUAL_TOKEN_PREFIX = "manual.";
 
 function describeSupabaseError(error: unknown, fallback: string) {
   if (!error) return fallback;
@@ -56,6 +58,12 @@ export async function getCurrentSession() {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
+  return token.startsWith(MANUAL_TOKEN_PREFIX)
+    ? getManualProfileSession(token)
+    : getVerifiedSteamSession(token);
+}
+
+async function getVerifiedSteamSession(token: string) {
   const tokenHash = hashToken(token);
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
@@ -78,7 +86,53 @@ export async function getCurrentSession() {
 
   return {
     sessionId: data.id as string,
-    user: appUser as AppUser
+    user: { ...(appUser as Omit<AppUser, "account_type">), account_type: "steam" as const }
+  };
+}
+
+async function getManualProfileSession(token: string) {
+  const supabase = getSupabaseAdmin();
+  const { data, error } = await supabase
+    .from("manual_profile_sessions")
+    .select("id, profile_id, last_seen_at, expires_at, manual_steam_profiles ( id, steam_id, display_name, steam_display_name, avatar_url )")
+    .eq("token_hash", hashToken(token))
+    .gt("expires_at", new Date().toISOString())
+    .maybeSingle();
+
+  if (error) throw new SessionLookupError(error.message);
+  if (!data) return null;
+
+  const manualProfile = Array.isArray(data.manual_steam_profiles)
+    ? data.manual_steam_profiles[0]
+    : data.manual_steam_profiles;
+  if (!manualProfile) return null;
+
+  // A lightweight backend return signal for the separate manual-profile
+  // cohort. At most one write per session per hour, rather than turning every
+  // API call on a product page into a database update.
+  const staleBefore = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  if (!data.last_seen_at || data.last_seen_at < staleBefore) {
+    const { error: seenError } = await supabase
+      .from("manual_profile_sessions")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", data.id)
+      .lt("last_seen_at", staleBefore);
+    if (seenError) {
+      console.warn(JSON.stringify({
+        level: "warning",
+        message: "Could not update manual-profile last seen time",
+        session_id: data.id,
+        detail: seenError.message,
+      }));
+    }
+  }
+
+  return {
+    sessionId: data.id as string,
+    user: {
+      ...(manualProfile as Omit<AppUser, "account_type">),
+      account_type: "manual" as const,
+    },
   };
 }
 
@@ -98,7 +152,7 @@ export class SessionRequiredError extends Error {
   readonly code = "session_required";
 
   constructor() {
-    super("Steam sign-in is required.");
+    super("A VaultShuffle profile is required.");
     this.name = "SessionRequiredError";
   }
 }
@@ -152,11 +206,77 @@ export async function createSessionForSteamId(steamId: string, profile?: SteamPl
     throw new Error(describeSupabaseError(sessionError, "Could not create Steam session."));
   }
 
-  return { token, user: user as AppUser };
+  return {
+    token,
+    user: { ...(user as Omit<AppUser, "account_type">), account_type: "steam" as const } satisfies AppUser,
+  };
 }
 
-export async function updateSteamUserProfile(userId: string, profile: SteamPlayerSummary) {
+export async function createManualProfileSession(input: {
+  steamId: string;
+  profileUrl: string;
+  displayName: string;
+  steamDisplayName: string;
+  avatarUrl: string | null;
+}) {
   const supabase = getSupabaseAdmin();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + MANUAL_SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const token = `${MANUAL_TOKEN_PREFIX}${crypto.randomBytes(32).toString("base64url")}`;
+  const { data, error } = await supabase
+    .rpc("create_manual_profile_session", {
+      p_steam_id: input.steamId,
+      p_profile_url: input.profileUrl,
+      p_display_name: input.displayName,
+      p_steam_display_name: input.steamDisplayName,
+      p_avatar_url: input.avatarUrl,
+      p_token_hash: hashToken(token),
+      p_expires_at: expiresAt.toISOString(),
+    })
+    .single();
+
+  if (error || !data) {
+    throw new Error(describeSupabaseError(error, "Could not create the VaultShuffle profile."));
+  }
+
+  const row = data as {
+    id: unknown;
+    steam_id: unknown;
+    display_name?: unknown;
+    avatar_url?: unknown;
+  };
+  const user = {
+    id: String(row.id),
+    steam_id: String(row.steam_id),
+    display_name: row.display_name ? String(row.display_name) : null,
+    steam_display_name: input.steamDisplayName,
+    avatar_url: row.avatar_url ? String(row.avatar_url) : null,
+    account_type: "manual" as const,
+  } satisfies AppUser;
+  return { token, user };
+}
+
+export async function updateSteamUserProfile(
+  userId: string,
+  accountType: AppUser["account_type"],
+  profile: SteamPlayerSummary,
+) {
+  const supabase = getSupabaseAdmin();
+  if (accountType === "manual") {
+    const { data, error } = await supabase
+      .from("manual_steam_profiles")
+      .update({
+        ...(profile.display_name ? { steam_display_name: profile.display_name } : {}),
+        ...(profile.avatar_url ? { avatar_url: profile.avatar_url } : {}),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId)
+      .select("id, steam_id, display_name, steam_display_name, avatar_url")
+      .single();
+    if (error) throw new Error(describeSupabaseError(error, "Could not update Steam profile."));
+    return { ...(data as Omit<AppUser, "account_type">), account_type: accountType };
+  }
+
   const { data, error } = await supabase
     .from("app_users")
     .update({
@@ -169,7 +289,7 @@ export async function updateSteamUserProfile(userId: string, profile: SteamPlaye
     .single();
 
   if (error) throw new Error(describeSupabaseError(error, "Could not update Steam profile."));
-  return data as AppUser;
+  return { ...(data as Omit<AppUser, "account_type">), account_type: accountType };
 }
 
 export async function deleteCurrentSession() {
@@ -178,10 +298,14 @@ export async function deleteCurrentSession() {
   if (!token) return;
 
   const supabase = getSupabaseAdmin();
-  await supabase.from("sessions").delete().eq("token_hash", hashToken(token));
+  await supabase
+    .from(token.startsWith(MANUAL_TOKEN_PREFIX) ? "manual_profile_sessions" : "sessions")
+    .delete()
+    .eq("token_hash", hashToken(token));
 }
 
 export function attachSessionCookie(response: NextResponse, token: string) {
+  const maxAgeDays = token.startsWith(MANUAL_TOKEN_PREFIX) ? MANUAL_SESSION_DAYS : SESSION_DAYS;
   response.cookies.set({
     name: SESSION_COOKIE,
     value: token,
@@ -190,7 +314,7 @@ export function attachSessionCookie(response: NextResponse, token: string) {
     secure: process.env.NODE_ENV === "production",
     priority: "high",
     path: "/",
-    maxAge: SESSION_DAYS * 24 * 60 * 60
+    maxAge: maxAgeDays * 24 * 60 * 60
   });
   return response;
 }
@@ -210,5 +334,5 @@ export function clearSessionCookie(response: NextResponse) {
 }
 
 export function unauthorizedResponse() {
-  return NextResponse.json({ error: "Steam sign-in is required." }, { status: 401 });
+  return NextResponse.json({ error: "A VaultShuffle profile is required." }, { status: 401 });
 }

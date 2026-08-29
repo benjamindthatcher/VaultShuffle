@@ -91,7 +91,7 @@ export function LandingExperience() {
               nothing rendering it the sign-in silently appears to do nothing.
               Suspense keeps useSearchParams from making the whole page dynamic. */}
           <Suspense fallback={null}><SignInNotice className={styles.signInNotice} /></Suspense>
-          <p className={styles.securityNote}><SiteGlyph name="shield" size={18} />Steam handles sign-in. VaultShuffle never sees your password.</p>
+          <p className={styles.securityNote}><SiteGlyph name="shield" size={18} />Sign in with Steam or use a public profile URL. VaultShuffle never sees your password.</p>
         </div>
 
         <div className={styles.heroVisual}>
@@ -169,7 +169,7 @@ export function LandingExperience() {
       <section id="start" className={styles.closing} aria-labelledby="closing-title">
         <div>
           <h2 id="closing-title">Free forever.<span>No card, no trial, no paid tier.</span></h2>
-          <p>Explore the guest preview without an account. Steam handles sign-in; VaultShuffle never sees your password.</p>
+          <p>Explore as a guest, sign in with Steam, or bring a public library by profile URL. VaultShuffle never sees your password.</p>
         </div>
         <LandingCtas location="footer" compact />
       </section>

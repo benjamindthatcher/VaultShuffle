@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, type ReactNode } from "react";
+import Link from "next/link";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { VaultIcon, type VaultIconName } from "@/components/shared/VaultIcon";
 import styles from "./GuestPreviewNotice.module.css";
@@ -9,7 +10,6 @@ type GuestPreviewNoticeProps = {
   feature: string;
   icon: VaultIconName;
   children: ReactNode;
-  actionLabel?: string;
   catalogueSize?: number;
 };
 
@@ -17,7 +17,6 @@ export function GuestPreviewNotice({
   feature,
   icon,
   children,
-  actionLabel = "Use my Steam library",
   catalogueSize,
 }: GuestPreviewNoticeProps) {
   const featureId = feature.toLowerCase().replaceAll(" ", "_");
@@ -39,17 +38,31 @@ export function GuestPreviewNotice({
         <strong>{feature} preview</strong>
         <small>{children}</small>
       </span>
-      <a
-        href="/api/auth/steam"
-        onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
-          location: `${featureId}_preview`,
-          feature: featureId,
-        })}
-      >
-        <VaultIcon name="open-steam" size={17} />
-        {actionLabel}
-        <VaultIcon name="chevron-right" size={15} />
-      </a>
+      <span className={styles.actions}>
+        <a
+          href="/api/auth/steam"
+          className={styles.steamAction}
+          onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
+            location: `${featureId}_preview`,
+            feature: featureId,
+          })}
+        >
+          <VaultIcon name="open-steam" size={17} />
+          Sign in with Steam
+        </a>
+        <Link
+          href={`/setup/steam-profile?from=guest_${featureId}_preview`}
+          className={styles.profileAction}
+          onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSetupStarted, {
+            location: `${featureId}_preview`,
+            feature: featureId,
+          })}
+        >
+          <VaultIcon name="id" size={17} />
+          Create profile
+          <VaultIcon name="chevron-right" size={15} />
+        </Link>
+      </span>
     </aside>
   );
 }

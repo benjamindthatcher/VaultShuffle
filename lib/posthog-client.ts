@@ -8,7 +8,10 @@ type ProductAnalyticsMode = "enabled" | "disabled";
 export type ProductUserIdentity = {
   userId: string;
   steamId: string;
+  accountType: "steam" | "manual";
+  identityVerified: boolean;
   displayName?: string | null;
+  steamDisplayName?: string | null;
   avatarUrl?: string | null;
 };
 
@@ -30,16 +33,18 @@ function productAnalyticsMode(): ProductAnalyticsMode {
 }
 
 function applyProductUserIdentity(posthog: PostHogClient, identity: ProductUserIdentity) {
-  const properties: Record<string, string> = {
+  const properties: Record<string, string | boolean> = {
     vaultshuffle_user_id: identity.userId,
     steam_id: identity.steamId,
     steam_profile_url: `https://steamcommunity.com/profiles/${identity.steamId}`,
+    account_type: identity.accountType,
+    identity_verified: identity.identityVerified,
   };
 
   if (identity.displayName) {
     properties.name = identity.displayName;
-    properties.steam_display_name = identity.displayName;
   }
+  if (identity.steamDisplayName) properties.steam_display_name = identity.steamDisplayName;
   if (identity.avatarUrl) properties.steam_avatar_url = identity.avatarUrl;
 
   posthog.identify(identity.userId, properties);

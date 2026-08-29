@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./AppHeader.module.css";
 
 const NAV_ITEMS = [
@@ -109,7 +110,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
           <div className={styles.profilePopover}>
             <div className={styles.accountSummary}>
               <strong>{profileName}</strong>
-              <span>{isLive ? "Steam connected" : "Guest preview"}</span>
+              <span>{isLive ? (session.account_type === "manual" ? "Public Steam library" : "Steam connected") : "Guest preview"}</span>
             </div>
             {/* Outside the signed-in branch: the guest catalogue carries the same
                 platform and Deck data, so someone evaluating the product on a Mac
@@ -152,7 +153,26 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                 </button>
               </>
             ) : (
-              <a href="/api/auth/steam" className={styles.menuAction}>Sign in with Steam</a>
+              <>
+                <a
+                  href="/api/auth/steam"
+                  className={styles.menuAction}
+                  onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
+                    location: "guest_profile_menu",
+                  })}
+                >
+                  Sign in with Steam
+                </a>
+                <Link
+                  href="/setup/steam-profile?from=guest_profile_menu"
+                  className={`${styles.menuAction} ${styles.profileCreateAction}`}
+                  onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSetupStarted, {
+                    location: "guest_profile_menu",
+                  })}
+                >
+                  Create profile from URL
+                </Link>
+              </>
             )}
           </div>
         </details>

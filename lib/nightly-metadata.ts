@@ -19,6 +19,10 @@ export async function refreshNightlyMetadata() {
   if (!apiKey) throw new Error("STEAM_WEB_API_KEY is required for the nightly refresh.");
 
   const users = await loadSteamUsers();
+  // A verified account and one or more manual profiles can point at the same
+  // public Steam library. Read that library once per run, then apply the answer
+  // to each independent VaultShuffle account.
+  const libraryFetches = new Map<string, ReturnType<typeof fetchOwnedSteamGames>>();
   const deadlineAt = Date.now() + 275_000;
   const libraryDeadlineAt = Math.min(deadlineAt - 150_000, Date.now() + 90_000);
   let librariesRefreshed = 0;
@@ -35,7 +39,12 @@ export async function refreshNightlyMetadata() {
     const batch = users.slice(index, index + 3);
     await Promise.all(batch.map(async (user) => {
       try {
-        const ownedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
+        let libraryFetch = libraryFetches.get(user.steam_id);
+        if (!libraryFetch) {
+          libraryFetch = fetchOwnedSteamGames(user.steam_id, apiKey);
+          libraryFetches.set(user.steam_id, libraryFetch);
+        }
+        const ownedGames = await libraryFetch;
         const appIds = ownedGames.flatMap((game) => game.steam_appid ? [String(game.steam_appid)] : []);
         try {
           await recordImportedSteamAppIds(user.id, appIds);
@@ -112,20 +121,27 @@ export async function refreshNightlyMetadata() {
 
 async function loadSteamUsers() {
   const supabase = getSupabaseAdmin();
-  const users: SteamUser[] = [];
   const pageSize = 500;
 
-  for (let from = 0; ; from += pageSize) {
-    const { data, error } = await supabase
-      .from("app_users")
-      .select("id, steam_id")
-      .not("steam_id", "is", null)
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    const page = (data ?? []) as SteamUser[];
-    users.push(...page.filter((user) => Boolean(user.steam_id)));
-    if (page.length < pageSize) break;
+  async function loadIdentityTable(table: "app_users" | "manual_steam_profiles") {
+    const users: SteamUser[] = [];
+    for (let from = 0; ; from += pageSize) {
+      const { data, error } = await supabase
+        .from(table)
+        .select("id, steam_id")
+        .not("steam_id", "is", null)
+        .range(from, from + pageSize - 1);
+      if (error) throw error;
+      const page = (data ?? []) as SteamUser[];
+      users.push(...page.filter((user) => Boolean(user.steam_id)));
+      if (page.length < pageSize) break;
+    }
+    return users;
   }
 
-  return users;
+  const [verifiedUsers, manualProfiles] = await Promise.all([
+    loadIdentityTable("app_users"),
+    loadIdentityTable("manual_steam_profiles"),
+  ]);
+  return [...verifiedUsers, ...manualProfiles];
 }

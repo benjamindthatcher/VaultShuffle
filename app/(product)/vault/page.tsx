@@ -800,7 +800,7 @@ export default function VaultPage() {
       ) : null}
 
       {!isLive ? (
-        <GuestPreviewNotice feature="Vault" icon="current-pick" actionLabel="Shuffle my library" catalogueSize={ownedGames.length}>
+        <GuestPreviewNotice feature="Vault" icon="current-pick" catalogueSize={ownedGames.length}>
           Draw from {ownedGames.length} popular Steam games or try a catalogue collection. Your picks and history last for this visit only.
         </GuestPreviewNotice>
       ) : null}

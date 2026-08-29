@@ -22,9 +22,12 @@ import styles from "./SiteExperience.module.css";
 type AnalyticsChoice = "enabled" | "disabled" | null;
 type AnalyticsSession = {
   logged_in: boolean;
+  account_type: "guest" | "steam" | "manual";
+  identity_verified: boolean;
   user_id: string;
   steam_id: string;
   display_name: string;
+  steam_display_name: string;
   avatar_url: string;
 };
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
@@ -63,11 +66,14 @@ async function syncProductAnalyticsIdentity() {
     }
 
     const session = await response.json() as AnalyticsSession;
-    if (session.logged_in && session.user_id && session.steam_id) {
+    if (session.logged_in && session.account_type !== "guest" && session.user_id && session.steam_id) {
       identifyProductUser({
         userId: session.user_id,
         steamId: session.steam_id,
+        accountType: session.account_type,
+        identityVerified: session.identity_verified,
         displayName: session.display_name,
+        steamDisplayName: session.steam_display_name,
         avatarUrl: session.avatar_url,
       });
       return;
@@ -88,7 +94,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
   const [noticeSeen, setNoticeSeen] = useState(true);
   const [loaded, setLoaded] = useState(false);
   const consentBannerRef = useRef<HTMLDivElement>(null);
-  const hideFooter = pathname.startsWith("/auth");
+  const hideFooter = pathname.startsWith("/auth") || pathname.startsWith("/setup/");
   const isAppPage = ["/vault", "/library", "/purge", "/collections"].some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
@@ -159,8 +165,8 @@ function SiteFrame({ children }: { children: ReactNode }) {
       {children}
     </AnalyticsSettingsContext.Provider>
     {!hideFooter ? <SiteFooter variant={isAppPage ? "app" : "site"} onFeedback={() => openFeedback({ source: "footer" })} onCookieSettings={() => setSettingsOpen(true)} /> : null}
-    {loaded && !noticeSeen && !settingsOpen ? <div ref={consentBannerRef} className={styles.consentBanner} role="region" aria-label="Analytics notice"><div className={styles.consentBannerCopy}><strong>VaultShuffle measures how the app gets used</strong><p>Usage analytics and session replay are on. They link to your Steam profile once you sign in, and form inputs are masked. <Link href="/privacy">Privacy Policy</Link></p></div><div className={styles.consentBannerActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={dismissNotice}>Got it</button></div></div> : null}
-    {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics to understand how the product is used and improve it. They are on by default and you can turn them off at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog product analytics</strong><small>Usage events, heatmaps, error/performance data and session replay. Signed-in analytics are linked to your VaultShuffle/Steam profile; form and input values are masked in replay.</small></span><b>{analyticsChoice === "disabled" ? "Off" : "On"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}
+    {loaded && !noticeSeen && !settingsOpen ? <div ref={consentBannerRef} className={styles.consentBanner} role="region" aria-label="Analytics notice"><div className={styles.consentBannerCopy}><strong>VaultShuffle measures how the app gets used</strong><p>Usage analytics and session replay are on. They link to your VaultShuffle profile once you connect a library, and form inputs are masked. <Link href="/privacy">Privacy Policy</Link></p></div><div className={styles.consentBannerActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={dismissNotice}>Got it</button></div></div> : null}
+    {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics to understand how the product is used and improve it. They are on by default and you can turn them off at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog product analytics</strong><small>Usage events, heatmaps, error/performance data and session replay. Connected analytics are linked to your internal VaultShuffle profile; form and input values are masked in replay.</small></span><b>{analyticsChoice === "disabled" ? "Off" : "On"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}
     <Analytics />
     <SpeedInsights />
   </>;

@@ -7,13 +7,13 @@ import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import styles from "./landing-experience.module.css";
 
 /**
- * The two ways into the product, and the first two steps of the acquisition
+ * The three ways into the product, and the first two steps of the acquisition
  * funnel. Without these events the funnel begins at the point someone is already
  * inside the app, and the choice that decides which path they take goes
  * unrecorded. `location` separates the hero from the closing section, which is
  * what tells you whether reading the page helps or hurts.
  *
- * A client island rather than part of the page: these two links are the only
+ * A client island rather than part of the page: these links are the only
  * thing in the hero and the closing section that has to run any JavaScript.
  */
 export function LandingCtas({ location, compact = false }: { location: "hero" | "footer"; compact?: boolean }) {
@@ -39,6 +39,15 @@ export function LandingCtas({ location, compact = false }: { location: "hero" | 
         <span>Continue with Steam</span>
         <SiteGlyph name="chevron-right" size={18} />
       </a>
+      <Link
+        className={styles.manualCta}
+        href="/setup/steam-profile"
+        onClick={() => trackEvent(ANALYTICS_EVENTS.landingChoiceMade, { choice: "manual_profile", location })}
+      >
+        <SiteGlyph name="id" size={22} />
+        <span>Use profile URL</span>
+        <SiteGlyph name="chevron-right" size={16} />
+      </Link>
       <Link
         className={styles.secondaryCta}
         href="/vault"

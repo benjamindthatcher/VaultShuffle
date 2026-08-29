@@ -220,6 +220,14 @@
   background: rgba(143, 88, 255, 0.12);
 }
 
+.profileCreateAction {
+  color: #a7f3d0;
+}
+
+.profileCreateAction:hover {
+  background: rgba(15, 157, 112, 0.14);
+}
+
 .menuAction:disabled {
   cursor: wait;
   opacity: 0.58;

@@ -16,7 +16,7 @@ export default function PrivacyPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 18 August 2026"
+        eyebrow="Legal · Updated 29 August 2026"
         title="Privacy Policy"
         intro="This notice explains what personal data VaultShuffle uses, where it comes from, why it is needed, and the choices available to you."
         sections={[
@@ -42,6 +42,12 @@ export default function PrivacyPage() {
                   last-played timestamps. We never receive your Steam password.
                 </p>
                 <p>
+                  You can instead provide a public Steam profile URL, custom profile name or SteamID. In that case Steam
+                  does not authenticate you: we resolve the public profile, check that its games are visible, and create
+                  a separate VaultShuffle profile held by a cookie in this browser. This does not prove ownership of or
+                  provide access to the Steam account.
+                </p>
+                <p>
                   You may also create collections and save notes, progress, pins and game-status choices. A field-by-field
                   breakdown of what Steam provides is on the <Link href="/steam-data">Steam Data</Link> page.
                 </p>
@@ -54,7 +60,7 @@ export default function PrivacyPage() {
               <>
                 <p>We use account and game data to:</p>
                 <ul>
-                  <li>authenticate you and maintain your library</li>
+                  <li>maintain your VaultShuffle profile, browser session and library</li>
                   <li>calculate progress and provide Vault recommendations</li>
                   <li>run Purge reviews and keep collections current</li>
                   <li>prevent abuse and diagnose faults</li>
@@ -77,9 +83,10 @@ export default function PrivacyPage() {
                 </p>
                 <p>
                   PostHog product analytics are on by default and use first-party cookie and local-storage persistence.
-                  You are told this on your first visit and can turn them off at any time. When you are signed in,
+                  You are told this on your first visit and can turn them off at any time. When a library is connected,
                   VaultShuffle identifies your PostHog analytics profile using our internal user ID and attaches your
-                  SteamID, Steam display name, Steam profile link and avatar where available.
+                  account type, whether Steam verified the identity, SteamID, display name, Steam profile link and avatar
+                  where available. Manual public-profile users and Steam-verified users have separate internal IDs.
                 </p>
                 <p>
                   PostHog is used for product-usage events, heatmaps, error and performance information, feature analysis
@@ -99,8 +106,8 @@ export default function PrivacyPage() {
               <>
                 <p>We rely on these providers:</p>
                 <ul>
-                  <li><strong>Steam</strong> — sign-in and game data</li>
-                  <li><strong>Supabase</strong> — database and authentication infrastructure</li>
+                  <li><strong>Steam</strong> — optional sign-in, public profile and game data</li>
+                  <li><strong>Supabase</strong> — database and session infrastructure</li>
                   <li><strong>Vercel</strong> — application hosting and operational telemetry</li>
                   <li><strong>IGDB</strong> — game metadata</li>
                   <li><strong>PostHog</strong> — product analytics, when analytics are enabled</li>

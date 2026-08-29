@@ -7,7 +7,7 @@ export default function TermsPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 13 August 2026"
+        eyebrow="Legal · Updated 29 August 2026"
         title="Terms of Use"
         intro="These terms apply when you access VaultShuffle, create an account, sync Steam data or use its library, recommendation, collection and purge tools."
         sections={[
@@ -16,9 +16,10 @@ export default function TermsPage() {
             open: true,
             body: (
               <p>
-                You must use a Steam account you are entitled to access, and keep your browser session secure.
-                Information you submit must be accurate enough for the feature being used. You are responsible for
-                activity performed through your active session, and should sign out on a shared device.
+                Steam OpenID verifies control of a Steam identity. The public-profile option does not: it creates a
+                separate VaultShuffle profile from information Steam makes public and must not be treated as proof that
+                you own that Steam account. Keep your browser session secure. You are responsible for activity performed
+                through your active session and should sign out on a shared device.
               </p>
             )
           },

@@ -743,7 +743,7 @@ export default function PurgePage() {
                   type="button"
                   className={styles.bulkAction}
                   disabled={!isLive || flagging}
-                  title={isLive ? undefined : "Flagging needs a signed-in library."}
+                  title={isLive ? undefined : "Flagging needs a connected library."}
                   onClick={() => void flagSelected()}
                 >
                   {!isLive ? <VaultIcon name="lock" size={15} /> : null}
@@ -795,8 +795,8 @@ export default function PurgePage() {
                           type="button"
                           className={styles.outcomeFlag}
                           disabled={!isLive || flagging || Boolean(flaggingId)}
-                          aria-label={isLive ? `Flag ${game.title} for review` : "Flag for review needs a signed-in library"}
-                          title={isLive ? undefined : "Flagging needs a signed-in library."}
+                          aria-label={isLive ? `Flag ${game.title} for review` : "Flag for review needs a connected library"}
+                          title={isLive ? undefined : "Flagging needs a connected library."}
                           onClick={() => void flagOne(game.id)}
                         >
                           <VaultIcon name={isLive ? "ready-to-review" : "lock"} size={15} />

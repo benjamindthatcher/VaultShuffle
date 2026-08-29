@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./SignInLock.module.css";
@@ -46,6 +47,16 @@ export function SignInLock({ feature, children }: SignInLockProps) {
       >
         Sign in with Steam
       </a>
+      <span aria-hidden="true">or</span>
+      <Link
+        href={`/setup/steam-profile?from=guest_${feature}_lock`}
+        onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSetupStarted, {
+          location: `${feature}_lock`,
+          feature,
+        })}
+      >
+        create a profile
+      </Link>
     </p>
   );
 }

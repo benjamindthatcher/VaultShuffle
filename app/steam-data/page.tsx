@@ -7,19 +7,26 @@ export default function SteamDataPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Data · Updated 13 August 2026"
+        eyebrow="Data · Updated 29 August 2026"
         title="Steam Data"
         intro="This page describes the Steam information VaultShuffle requests, how each field is used, and what can prevent a complete sync."
         sections={[
           {
-            title: "Sign-in data",
+            title: "Sign-in and public-profile data",
             open: true,
             body: (
-              <p>
-                Steam OpenID confirms your SteamID and returns you to VaultShuffle after authentication. We may then read
-                public profile details such as display name and avatar. Steam handles your credentials directly;
-                VaultShuffle never receives or stores your Steam password.
-              </p>
+              <>
+                <p>
+                  Steam OpenID confirms your SteamID and returns you to VaultShuffle after authentication. We may then read
+                  public profile details such as display name and avatar. Steam handles your credentials directly;
+                  VaultShuffle never receives or stores your Steam password.
+                </p>
+                <p>
+                  Alternatively, you can submit a public Steam profile URL, custom profile name or SteamID. We resolve it
+                  through Steam&apos;s API and create a separate, unverified VaultShuffle profile for that public library.
+                  Providing a URL does not sign in to, prove ownership of or change the Steam account.
+                </p>
+              </>
             )
           },
           {
@@ -75,8 +82,9 @@ export default function SteamDataPage() {
             body: (
               <p>
                 VaultShuffle refreshes changing metadata periodically, and may refresh your owned-library data after
-                sign-in or a manual sync. Steam remains the source for owned-game playtime and last-played values. If a
-                Steam value is wrong, confirm it in Steam first; if VaultShuffle has not caught up, sign in again or{" "}
+                connection, a periodic refresh or a manual sync. Steam remains the source for owned-game playtime and
+                last-played values. If a Steam value is wrong, confirm it in Steam first; if VaultShuffle has not caught
+                up, refresh the library or{" "}
                 <Link href="/contact">contact support</Link>.
               </p>
             )
@@ -85,8 +93,8 @@ export default function SteamDataPage() {
             title: "Deletion and disconnection",
             body: (
               <p>
-                You can stop further Steam syncing by signing out and not reconnecting. To request deletion of your
-                VaultShuffle account, Steam identifiers, library copy and associated preferences, email{" "}
+                Signing out removes this browser&apos;s access to the VaultShuffle profile. To stop periodic syncing and
+                request deletion of your VaultShuffle profile, Steam identifiers, library copy and associated preferences, email{" "}
                 <a href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a> or use{" "}
                 <Link href="/contact">Contact Us</Link>. Deleting VaultShuffle data does not alter your Steam account.
                 What else we hold, and why, is in the <Link href="/privacy">Privacy Policy</Link>.

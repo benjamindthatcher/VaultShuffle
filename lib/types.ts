@@ -90,14 +90,19 @@ export type AppUser = {
   id: string;
   steam_id: string;
   display_name: string | null;
+  steam_display_name?: string | null;
   avatar_url: string | null;
+  account_type: "steam" | "manual";
 };
 
 export type SessionPayload = {
   logged_in: boolean;
+  account_type: "guest" | "steam" | "manual";
+  identity_verified: boolean;
   user_id: string;
   steam_id: string;
   display_name: string;
+  steam_display_name: string;
   avatar_url: string;
   has_steam_key: boolean;
   steam_playtime_visible?: boolean | null;

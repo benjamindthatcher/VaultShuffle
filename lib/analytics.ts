@@ -28,6 +28,15 @@ export const ANALYTICS_EVENTS = {
   // event rather than six event names.
   landingDemoUsed: "landing_demo_used",
   signInStarted: "sign_in_started",
+  manualProfileSetupStarted: "manual_profile_setup_started",
+  manualProfileSetupViewed: "manual_profile_setup_viewed",
+  manualProfileLookupStarted: "manual_profile_lookup_started",
+  manualProfileLookupSucceeded: "manual_profile_lookup_succeeded",
+  manualProfileLookupFailed: "manual_profile_lookup_failed",
+  manualProfileCreationStarted: "manual_profile_creation_started",
+  manualProfileCreated: "manual_profile_created",
+  manualProfileCreationFailed: "manual_profile_creation_failed",
+  manualProfileDashboardReached: "manual_profile_dashboard_reached",
   // The step between a finished first import and a first draw, which is where a
   // new account either becomes a user or does not.
   onboardingHandoffTaken: "onboarding_handoff_taken",
@@ -169,9 +178,12 @@ export function trackNavigationEvent(event: AnalyticsEvent, properties?: Record<
 }
 
 /** Registers session-wide context so every later event can be segmented by it. */
-export function setAnalyticsAudience(isGuest: boolean) {
+export function setAnalyticsAudience(accountType: "guest" | "steam" | "manual") {
+  const isGuest = accountType === "guest";
   registerAnalyticsContext({
     is_guest: isGuest,
     data_scope: isGuest ? "guest_session" : "steam_library",
+    account_type: accountType,
+    identity_verified: accountType === "steam",
   });
 }

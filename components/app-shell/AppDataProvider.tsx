@@ -264,8 +264,24 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // meant the first events of every visit - the ones at the top of the funnel -
   // carried no audience at all and dropped out of any split by it.
   useEffect(() => {
-    setAnalyticsAudience(!isLive);
-  }, [isLive]);
+    setAnalyticsAudience(session.account_type);
+  }, [session.account_type]);
+
+  useEffect(() => {
+    if (isLoading || session.account_type !== "manual" || !session.user_id) return;
+    const key = `vault-manual-dashboard-seen:${session.user_id}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      // Analytics still fires when storage is unavailable; at worst it appears
+      // once more after a reload in this uncommon browser mode.
+    }
+    trackEvent(ANALYTICS_EVENTS.manualProfileDashboardReached, {
+      account_type: "manual",
+      identity_verified: false,
+    });
+  }, [isLoading, session.account_type, session.user_id]);
 
   function setDeviceMode(mode: DeviceMode) {
     setDeviceModeState(mode);
@@ -323,7 +339,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function runSteamLibrarySync({ restart = true }: { restart?: boolean }) {
-    if (!isLive) throw new Error("Sign in with Steam before syncing your library.");
+    if (!isLive) throw new Error("Connect a Steam library before syncing it.");
 
     setIsSyncing(true);
     setSteamImport((current) => ({
