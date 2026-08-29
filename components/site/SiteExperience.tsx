@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { FeedbackProvider, useFeedback } from "@/components/feedback/FeedbackProvider";
@@ -29,6 +29,22 @@ type AnalyticsSession = {
 };
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 const NOTICE_STORAGE_KEY = "vault-analytics-notice-seen";
+
+/**
+ * Opens the analytics dialog from anywhere under the shell.
+ *
+ * The dialog has no address of its own - it is state on SiteFrame, reachable
+ * only through the footer button. That made it impossible for the privacy policy
+ * to do the thing a privacy policy has to do: put the control next to the
+ * sentence describing it. Same shape as useFeedback, for the same reason.
+ */
+const AnalyticsSettingsContext = createContext<{ openAnalyticsSettings: () => void } | null>(null);
+
+export function useAnalyticsSettings() {
+  const value = useContext(AnalyticsSettingsContext);
+  if (!value) throw new Error("useAnalyticsSettings must be used inside SiteExperience.");
+  return value;
+}
 
 export function SiteExperience({ children }: { children: ReactNode }) {
   return (
@@ -139,7 +155,9 @@ function SiteFrame({ children }: { children: ReactNode }) {
   };
 
   return <>
-    {children}
+    <AnalyticsSettingsContext.Provider value={{ openAnalyticsSettings: () => setSettingsOpen(true) }}>
+      {children}
+    </AnalyticsSettingsContext.Provider>
     {!hideFooter ? <SiteFooter variant={isAppPage ? "app" : "site"} onFeedback={() => openFeedback({ source: "footer" })} onCookieSettings={() => setSettingsOpen(true)} /> : null}
     {loaded && !noticeSeen && !settingsOpen ? <div ref={consentBannerRef} className={styles.consentBanner} role="region" aria-label="Analytics notice"><div className={styles.consentBannerCopy}><strong>VaultShuffle measures how the app gets used</strong><p>Usage analytics and session replay are on. They link to your Steam profile once you sign in, and form inputs are masked. <Link href="/privacy">Privacy Policy</Link></p></div><div className={styles.consentBannerActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={dismissNotice}>Got it</button></div></div> : null}
     {settingsOpen ? <div className={styles.consentLayer}><button className={styles.consentBackdrop} type="button" aria-label="Close analytics settings" onClick={() => setSettingsOpen(false)} /><section className={styles.consentDialog} role="dialog" aria-modal="true" aria-labelledby="analytics-title"><button className={styles.close} type="button" onClick={() => setSettingsOpen(false)} aria-label="Close analytics settings"><VaultIcon name="close" size={19} /></button><p className={styles.eyebrow}>Privacy controls</p><h2 id="analytics-title">Analytics Settings</h2><p>VaultShuffle uses product analytics to understand how the product is used and improve it. They are on by default and you can turn them off at any time.</p><div className={styles.consentChoice}><span><strong>Essential and service performance</strong><small>Session, preferences, Vercel Web Analytics and Speed Insights</small></span><b>Required</b></div><div className={styles.consentChoice}><span><strong>PostHog product analytics</strong><small>Usage events, heatmaps, error/performance data and session replay. Signed-in analytics are linked to your VaultShuffle/Steam profile; form and input values are masked in replay.</small></span><b>{analyticsChoice === "disabled" ? "Off" : "On"}</b></div><div className={styles.consentActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={() => chooseAnalytics("enabled")}>Enable analytics</button></div></section></div> : null}

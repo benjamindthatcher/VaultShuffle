@@ -1,6 +1,8 @@
-/* The same heading and card the app pages use: eyebrow, title, one sentence,
-   then content in plain cards on the ground. */
+/* The same heading the app pages use: eyebrow, title, one sentence, then the
+   content in cards. The cards are sized to the text rather than to the shell,
+   so a paragraph no longer stops two thirds of the way across its own card. */
 .page {
+  width: min(720px, 100%);
   display: grid;
   gap: 6px;
 }
@@ -26,7 +28,6 @@
 }
 
 .intro {
-  max-width: 66ch;
   color: var(--vault-text-muted);
   font-size: 0.9rem;
   line-height: 1.55;
@@ -34,41 +35,123 @@
 
 .sections {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   margin-top: 18px;
 }
 
-.sections section {
-  padding: 18px 20px;
+.section {
   border: 1px solid var(--vault-sheet-border);
   border-radius: var(--vault-sheet-radius);
   background: var(--vault-sheet-surface);
 }
 
-.sections h2,
-.sections p {
-  margin: 0;
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 20px;
+  cursor: pointer;
+  list-style: none;
 }
 
-.sections h2 {
+/* Safari still paints its own triangle without this. */
+.summary::-webkit-details-marker { display: none; }
+
+.summary:hover h2 { color: #fff; }
+
+.summary:focus-visible {
+  border-radius: var(--vault-sheet-radius);
+  outline: 2px solid #b06bff;
+  outline-offset: 2px;
+}
+
+.summary h2 {
+  flex: 1;
+  margin: 0;
   font-size: 1.02rem;
   font-weight: 700;
+  transition: color 140ms ease;
 }
 
-.sections p {
-  max-width: 74ch;
-  margin-top: 7px;
+.chevron {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid rgba(226, 214, 255, 0.6);
+  border-bottom: 2px solid rgba(226, 214, 255, 0.6);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.section[open] .chevron { transform: translateY(1px) rotate(225deg); }
+
+.body {
+  padding: 0 20px 18px;
   color: var(--vault-text-muted);
   font-size: 0.9rem;
   line-height: 1.6;
 }
 
-@media (max-width: 720px) {
-  .sections {
-    margin-top: 14px;
-  }
+.body p {
+  margin: 0 0 11px;
+}
 
-  .sections section {
-    padding: 16px;
-  }
+.body p:last-child,
+.body ul:last-child {
+  margin-bottom: 0;
+}
+
+.body ul {
+  margin: 0 0 11px;
+  padding-left: 20px;
+}
+
+.body li {
+  margin-bottom: 6px;
+}
+
+.body li:last-child {
+  margin-bottom: 0;
+}
+
+.body a {
+  color: #d392ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.body a:hover {
+  color: #eab6ff;
+}
+
+/* A control that reads as part of the sentence it sits in - the analytics dialog
+   has no address, so the policy opens it directly rather than describing where
+   the button lives. */
+.inlineAction {
+  padding: 0;
+  border: 0;
+  color: #d392ff;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.inlineAction:hover { color: #eab6ff; }
+
+.inlineAction:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #b06bff;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+}
+
+@media (max-width: 720px) {
+  .sections { margin-top: 14px; }
+  .summary { padding: 14px 16px; gap: 10px; }
+  .body { padding: 0 16px 15px; }
 }
