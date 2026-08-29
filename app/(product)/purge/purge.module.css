@@ -45,7 +45,7 @@
    top of the page to say what three words and a number say. */
 .categoryTabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
   padding: 6px;
   border: 1px solid var(--vault-sheet-border);
@@ -844,10 +844,10 @@
   }
 }
 
-/* Three tabs across 320px, and "No Review Needed" is the widest label on the
-   page. At the default 18px of side padding the labels ran past their buttons -
-   "Reviewed" by 10px - and were cut rather than wrapped. Trimming the padding
-   and the gap gives the words the room instead of the chrome. */
+/* Tabs across 320px. At the default 18px of side padding the labels ran past
+   their buttons - "Reviewed" by 10px - and were cut rather than wrapped.
+   Trimming the padding and the gap gives the words the room instead of the
+   chrome. */
 @media (max-width: 380px) {
   .categoryTabs,
   .statusTabs { gap: 4px; padding: 4px; }
@@ -864,9 +864,9 @@
     font-size: 0.78rem;
   }
 
-  /* "Needs Review" and "No Review Needed" wrap; "Reviewed" is one word and
-     cannot, so it is the label the column has to actually fit. The count pill
-     shrinks with it rather than holding 25px it does not need for a 0. */
+  /* "Needs Review" wraps; "Reviewed" is one word and cannot, so it is the label
+     the column has to actually fit. The count pill shrinks with it rather than
+     holding 25px it does not need for a 0. */
   .statusTab strong,
   .statusTabActive strong {
     min-width: 0;

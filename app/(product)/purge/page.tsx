@@ -40,7 +40,7 @@ class PurgeRequestError extends Error {
 export default function PurgePage() {
   const { games, vaultState, isLive, isLoading, refresh, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [reviews, setReviews] = useState<PurgeReview[]>([]);
-  const [reviewView, setReviewView] = useState<"needs" | "reviewed" | "settled">("needs");
+  const [reviewView, setReviewView] = useState<"needs" | "reviewed">("needs");
   const [reviewedTab, setReviewedTab] = useState<"active" | "slept">("active");
   const touchLayout = useTouchLayout();
   // What this visit has decided, so a card can hold its place and say what it
@@ -141,10 +141,7 @@ export default function PurgePage() {
   );
 
   const purgeStats = useMemo(() => {
-    const readyIds = new Set(candidates.map(({ game }) => game.id));
     const actionedIds = new Set(standingReviews.keys());
-    const reviewableGames = games.filter((game) => game.ownership === "Owned" && game.status !== "Completed" && game.status !== "Slept");
-    const noReviewNeeded = reviewableGames.filter((game) => !readyIds.has(game.id) && !actionedIds.has(game.id)).length;
 
     // Reported from each game's CURRENT state, not the decision that was made.
     // A game slept in Purge and later restored elsewhere is active now, and
@@ -158,21 +155,10 @@ export default function PurgePage() {
       ready: candidates.length,
       reviewed: reviewedStatuses.length,
       kept: reviewedStatuses.filter((status) => status !== "Slept").length,
-      slept: reviewedStatuses.filter((status) => status === "Slept").length,
-      noReviewNeeded
+      slept: reviewedStatuses.filter((status) => status === "Slept").length
     };
   }, [candidates, games, standingReviews]);
 
-  const settledList = useMemo(() => {
-    const readyIds = new Set(candidates.map(({ game }) => game.id));
-    const actionedIds = new Set(standingReviews.keys());
-    return games.filter((game) =>
-      game.ownership === "Owned" &&
-      game.status !== "Completed" &&
-      game.status !== "Slept" &&
-      !readyIds.has(game.id) &&
-      !actionedIds.has(game.id));
-  }, [games, candidates, standingReviews]);
 
   useEffect(() => {
     let cancelled = false;
@@ -411,40 +397,28 @@ export default function PurgePage() {
     return () => window.clearTimeout(timer);
   }, [touchLayout, dataReady, candidates, touchDecided, touchBatch]);
 
-  // The two review lists, as they are actually shown. Selection and "select all"
-  // both work from this so the buttons can never claim more than is on screen.
-  const listedGames = reviewView === "reviewed"
-    ? reviewedList.map(({ game }) => game)
-    : reviewView === "settled" ? settledList.slice(0, 24) : [];
+  // The reviewed list, as it is actually shown. Selection and "select all" both
+  // work from this so the buttons can never claim more than is on screen.
+  const listedGames = reviewView === "reviewed" ? reviewedList.map(({ game }) => game) : [];
 
   // Completed is not a Purge outcome any more, so it is filtered out rather than
   // shown with a badge nothing here can act on.
-  const reviewGroups = reviewView === "reviewed"
-    ? [
-        {
-          id: "active",
-          label: "Active",
-          status: "Active",
-          games: listedGames.filter((game) => game.status !== "Slept" && game.status !== "Completed"),
-          empty: "Nothing you have reviewed is still active."
-        },
-        {
-          id: "slept",
-          label: "Slept",
-          status: "Slept",
-          games: listedGames.filter((game) => game.status === "Slept"),
-          empty: "You have not put anything to sleep yet."
-        }
-      ]
-    : [
-        {
-          id: "settled",
-          label: "Active",
-          status: "Active",
-          games: listedGames,
-          empty: "Every active game has either been flagged or reviewed."
-        }
-      ];
+  const reviewGroups = [
+    {
+      id: "active",
+      label: "Active",
+      status: "Active",
+      games: listedGames.filter((game) => game.status !== "Slept" && game.status !== "Completed"),
+      empty: "Nothing you have reviewed is still active."
+    },
+    {
+      id: "slept",
+      label: "Slept",
+      status: "Slept",
+      games: listedGames.filter((game) => game.status === "Slept"),
+      empty: "You have not put anything to sleep yet."
+    }
+  ];
   // One list at a time, behind the same tabs the Library uses, rather than the
   // two stacked sections this used to be. Reviewed can run to hundreds of games,
   // and stacking meant scrolling past every active one to reach the slept.
@@ -602,8 +576,7 @@ export default function PurgePage() {
         <div className={styles.categoryTabs} role="tablist" aria-label="Purge review status">
           {([
             { id: "needs", label: "Needs Review", count: dataReady ? purgeStats.ready : "—" },
-            { id: "reviewed", label: "Reviewed", count: dataReady ? purgeStats.reviewed : "—" },
-            { id: "settled", label: "No Review Needed", count: dataReady ? purgeStats.noReviewNeeded : "—" }
+            { id: "reviewed", label: "Reviewed", count: dataReady ? purgeStats.reviewed : "—" }
           ] as const).map((view) => {
             const active = reviewView === view.id;
             return (

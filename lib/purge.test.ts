@@ -88,12 +88,18 @@ test("a decision reversed elsewhere is superseded", () => {
   assert.equal(isReviewSuperseded("pin", "Completed"), true);
 });
 
-test("a played game with no recency evidence is not queued as abandoned", () => {
+test("a played game with no recency evidence is queued, but not as abandoned", () => {
   // The bug: a missing last-played date scored as infinitely old, so every game
   // Steam declined to date went to the top of the review queue described as
   // "untouched for 9 years". Steam withholds that date from most accounts.
+  //
+  // Age no longer gates the queue, so this game is offered like any other the
+  // player has not decided on. What must not come back is the claim: with no
+  // evidence the reason says so plainly, and the game earns none of the
+  // confidence that genuine age would, so it sorts below one that is actually
+  // ancient rather than above it.
   const candidates = buildPurgeCandidates({
-    games: [game("undecember", UNKNOWN_RECENCY)],
+    games: [game("undecember", UNKNOWN_RECENCY), game("ancient", playedLongAgo(900))],
     pinnedIds: [],
     currentPickId: null,
     snoozedIds: [],
@@ -101,7 +107,11 @@ test("a played game with no recency evidence is not queued as abandoned", () => 
     now
   });
 
-  assert.deepEqual(candidates, []);
+  const undated = candidates.find(({ game }) => game.id === "undecember");
+  assert.ok(undated, "a game with no recency evidence is still worth asking about");
+  assert.doesNotMatch(undated.reason, /untouched for/);
+  assert.match(undated.reason, /not played since we started watching/);
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["ancient", "undecember"]);
 });
 
 test("a never-opened game still qualifies without any recency evidence", () => {
@@ -152,6 +162,39 @@ test("a game flagged by hand joins the queue even with no evidence against it", 
 
   assert.deepEqual(candidates.map(({ game }) => game.id), ["flagged"]);
   assert.match(candidates[0].reason, /You flagged this one for review/);
+});
+
+test("a game played last week is offered, but sorts behind the abandoned ones", () => {
+  // These used to be held back entirely and counted under a "No Review Needed"
+  // tab, which claimed a judgement it had not made: it only meant "too recent to
+  // ask about yet". The queue now offers the whole active library and lets
+  // confidence order it, so a game played last week comes last rather than never.
+  const candidates = buildPurgeCandidates({
+    games: [game("recent", playedLongAgo(7)), game("abandoned", playedLongAgo(900))],
+    pinnedIds: [],
+    currentPickId: null,
+    snoozedIds: [],
+    reviews: [],
+    now
+  });
+
+  assert.deepEqual(candidates.map(({ game }) => game.id), ["abandoned", "recent"]);
+});
+
+test("a recent game is still held back by a live commitment", () => {
+  // Dropping the age gate must not open the queue to games the player has an
+  // active claim on: a pin, a snooze and tonight's pick are commitments, not
+  // suppressed judgements.
+  const candidates = buildPurgeCandidates({
+    games: [game("pinned", playedLongAgo(7)), game("tonight", playedLongAgo(7)), game("snoozed", playedLongAgo(7))],
+    pinnedIds: ["pinned"],
+    currentPickId: "tonight",
+    snoozedIds: ["snoozed"],
+    reviews: [],
+    now
+  });
+
+  assert.deepEqual(candidates, []);
 });
 
 test("a keep holds for a season, then the game comes round again", () => {
