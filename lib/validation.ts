@@ -114,6 +114,14 @@ export const contactMessageSchema = z.object({
   email: z.string().trim().email("Enter a valid email address.").max(320),
   subject: z.string().trim().min(3, "Add a subject.").max(150),
   message: z.string().trim().min(10, "Please add a little more detail.").max(5000),
+  // "Technical problem" is one of the enquiry types above, and those used to
+  // arrive with no way of knowing what the person was even using. Same shape as
+  // the feedback form's context, minus the fields only feedback has.
+  client_context: z.object({
+    viewport: z.enum(["mobile", "tablet", "desktop"]).optional(),
+    browser: z.string().trim().max(120).optional(),
+    submitted_at: z.string().datetime().optional()
+  }).strict().optional().nullable(),
   website: z.string().max(0).optional().default(""),
   form_started_at: z.number().int().positive()
 }).strict();

@@ -26,6 +26,8 @@
 .actions button:last-child, .success button { border-color: rgba(185, 106, 255, .7); background: linear-gradient(90deg, #7438ff, #a64cff); }
 .actions button:disabled { cursor: not-allowed; opacity: .48; }
 .error { margin: -4px 0 0; color: #ff9bb5; font-size: .86rem; }
+/* Why the submit button is not available yet - it used to just sit there. */
+.hint { margin: -6px 0 0; color: var(--vault-text-muted); font-size: .82rem; }
 .success { display: grid; justify-items: center; gap: 9px; padding: 34px 10px 10px; text-align: center; }
 .success > span { display: grid; width: 54px; height: 54px; place-items: center; border-radius: 50%; background: rgba(109, 215, 177, .14); color: #70dab5; font-size: 1.5rem; }
 .success h3, .success p { margin: 0; }

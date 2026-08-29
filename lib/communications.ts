@@ -93,5 +93,12 @@ export async function saveContactMessage(userId: string | null, fingerprint: str
     dedupe_hash: dedupeHash
   });
   if (error) throw new SubmissionStorageError("We couldn’t send your message. Please try again.");
-  await notifySupport(`[VaultShuffle Contact] ${input.subject}`, `${input.message}\n\nEnquiry: ${input.enquiry_type}\nFrom: ${input.email}`, input.email);
+  // Into the mail rather than a new column: support reads these by hand, and a
+  // migration to hold two strings we only ever print is not worth it.
+  const context = [
+    input.client_context?.browser,
+    input.client_context?.viewport
+  ].filter(Boolean).join(" · ");
+  const footer = `Enquiry: ${input.enquiry_type}\nFrom: ${input.email}${context ? `\nClient: ${context}` : ""}`;
+  await notifySupport(`[VaultShuffle Contact] ${input.subject}`, `${input.message}\n\n${footer}`, input.email);
 }

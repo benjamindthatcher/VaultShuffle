@@ -121,7 +121,17 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
     sessionStorage.setItem("vault-feedback-draft", JSON.stringify({ message, type, contactAllowed, email }));
   }, [message, type, contactAllowed, email, status]);
 
-  const valid = message.trim().length >= 10 && message.trim().length <= 2000 && (!contactAllowed || !email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+  const trimmed = message.trim();
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  // Ticking the box used to be allowed with no address, which meant asking to be
+  // contacted and silently making that impossible.
+  const valid = trimmed.length >= 10 && trimmed.length <= 2000 && (!contactAllowed || emailValid);
+  // Each hint sits under the field it is about, rather than one line doing both
+  // jobs from wherever it happens to be.
+  const messageHint = trimmed.length > 0 && trimmed.length < 10
+    ? `A little more detail, please - ${10 - trimmed.length} more character${10 - trimmed.length === 1 ? "" : "s"}.`
+    : "";
+  const emailHint = contactAllowed && !emailValid ? "Add an email address so we can reply." : "";
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -146,7 +156,6 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
             submitted_at: new Date().toISOString(),
             source
           },
-          website: "",
           form_started_at: formStartedAt.current
         })
       });
@@ -167,7 +176,10 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
   if (!mounted) return null;
   return createPortal(
     <div className={styles.layer}>
-      <button className={styles.backdrop} type="button" aria-label="Close feedback" onClick={() => !submitting && onClose()} />
+      {/* Clickable, but out of the tab order and hidden from assistive tech:
+          Escape and the header's close button already cover both, and this was
+          putting an invisible full-screen control in the focus trap. */}
+      <button className={styles.backdrop} type="button" tabIndex={-1} aria-hidden="true" onClick={() => !submitting && onClose()} />
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef} tabIndex={-1}>
         <header className={styles.header}>
           <div><p>Help shape the Vault</p><h2 id={titleId}>Share Feedback</h2></div>
@@ -177,16 +189,17 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
           <div className={styles.success} role="status"><span><VaultIcon name="check" size={27} /></span><h3>Thanks — your feedback has been sent.</h3><p>Your note is safely with the VaultShuffle team.</p><button type="button" onClick={onClose}>Close</button></div>
         ) : (
           <form onSubmit={submit} className={styles.form}>
-            <input type="text" name="website" value="" onChange={() => {}} tabIndex={-1} autoComplete="off" aria-hidden="true" hidden />
             <p className={styles.intro}>What could be better? Spotted a bug? Let us know.</p>
             <div className={styles.segmented} role="group" aria-label="Feedback type">
               <button type="button" aria-pressed={type === "improvement"} onClick={() => setType("improvement")}>Improvement</button>
               <button type="button" aria-pressed={type === "bug"} onClick={() => setType("bug")}>Bug Report</button>
             </div>
-            <label className={styles.field}><span>Your feedback</span><textarea required minLength={10} maxLength={2000} value={message} onChange={(event) => { setMessage(event.target.value); setStatus("editing"); }} placeholder={type === "bug" ? "What happened, and what did you expect to happen?" : "What feature or experience could be better?"} /><small>{message.length.toLocaleString()} / 2,000</small></label>
+            <label className={styles.field}><span>Your feedback</span><textarea required minLength={10} maxLength={2000} value={message} onChange={(event) => { setMessage(event.target.value); setStatus("editing"); }} placeholder={type === "bug" ? "What happened, and what did you expect to happen?" : "What feature or experience could be better?"} /><small aria-hidden="true">{message.length.toLocaleString()} / 2,000</small></label>
+            {messageHint ? <p className={styles.hint} role="status">{messageHint}</p> : null}
             {type === "bug" ? <p className={styles.contextNote}>Basic page and device details are included to help us investigate bugs.</p> : null}
             <label className={styles.checkbox}><input type="checkbox" checked={contactAllowed} onChange={(event) => setContactAllowed(event.target.checked)} /><span>You may contact me about this feedback</span></label>
-            {contactAllowed ? <label className={styles.field}><span>Email address <em>Optional</em></span><input type="email" maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label> : null}
+            {contactAllowed ? <label className={styles.field}><span>Email address</span><input required type="email" maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label> : null}
+            {emailHint ? <p className={styles.hint} role="status">{emailHint}</p> : null}
             <div className={styles.actions}><button type="button" onClick={onClose} disabled={submitting}>Cancel</button><button type="submit" disabled={!valid || submitting}>{submitting ? "Submitting…" : type === "bug" ? "Submit Bug Report" : "Submit Feedback"}</button></div>
             {error ? <p className={styles.error} role="alert">{error}</p> : null}
           </form>
