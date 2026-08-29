@@ -150,7 +150,7 @@ export function SteamImportProgressCard() {
           : "Your Steam library is ready"
         : "Building your dashboard";
   const detail = steamLibraryPrivate
-    ? "Your sign-in worked. Steam keeps game details private by default, so it will not tell us what you own until you change that — it takes about twenty seconds."
+    ? "Your sign-in worked. Steam will not tell us what you own until Game details is public — it is the only setting we read, and it takes about twenty seconds."
     : coolingDown
     ? `Steam limits how often a library can be re-read. You can try again in ${waitLabel}.`
     : fetching
@@ -193,7 +193,7 @@ export function SteamImportProgressCard() {
         <div className={styles.privateFix}>
           <ol>
             <li>Open <a href="https://steamcommunity.com/my/edit/settings" target="_blank" rel="noreferrer">Steam privacy settings</a></li>
-            <li>Set <strong>Game details</strong> to <strong>Public</strong></li>
+            <li>Set <strong>Game details</strong> to <strong>Public</strong> — the only setting we read</li>
             <li>Come back and try again</li>
           </ol>
           <button type="button" onClick={retry} disabled={isSyncing}>

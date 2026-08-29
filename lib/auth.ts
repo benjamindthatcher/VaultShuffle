@@ -87,11 +87,12 @@ export async function getCurrentSession() {
  * message, because the message was how routes used to decide: any error whose
  * text contained "sign-in" became a 401.
  *
- * SteamLibraryUnavailableError says "Steam sign-in worked, but Steam returned no
- * visible games..." - so a private Steam profile was answered with a bare
- * unauthorized, and the instructions for fixing it were thrown away. Seventeen
- * of fifty-five accounts had no library and no import job; the ones who tried
- * again for hours were being told the wrong thing every time.
+ * SteamLibraryUnavailableError used to open "Steam sign-in worked, but..." - so
+ * an account with non-public game details was answered with a bare unauthorized
+ * and the instructions for fixing it were thrown away. Seventeen of fifty-five
+ * accounts had no library and no import job; the ones who tried again for hours
+ * were told the wrong thing every time. The wording has changed since, but the
+ * type is what makes it impossible for any message to matter again.
  */
 export class SessionRequiredError extends Error {
   readonly code = "session_required";

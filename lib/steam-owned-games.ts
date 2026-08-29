@@ -3,7 +3,7 @@ import type { GamePayload } from "./types.ts";
 export class SteamLibraryUnavailableError extends Error {
   constructor() {
     super(
-      "Steam sign-in worked, but Steam returned no visible games. In Steam, open Profile > Edit Profile > Privacy Settings, set Game details to Public, then retry the library import."
+      "Steam accepted the sign-in but will not share your games. In Steam, open Profile > Edit Profile > Privacy Settings and set Game details to Public. That is the only setting VaultShuffle reads."
     );
     this.name = "SteamLibraryUnavailableError";
   }
