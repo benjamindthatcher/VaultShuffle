@@ -3,7 +3,10 @@ import { z } from "zod";
 const prioritySchema = z.enum(["Low", "Medium", "High", "Must Play"]);
 export const purgeReviewPayloadSchema = z.object({
   game_id: z.string().uuid(),
-  action: z.enum(["keep", "pin", "sleep"])
+  // "pin" is no longer offered anywhere, but a tab left open before the change
+  // will still send it and the RPC still handles it. Rejecting it here would
+  // turn a stale tab into an error for no gain.
+  action: z.enum(["keep", "pin", "sleep", "complete"])
 }).strict();
 
 export const smartCollectionPresetSchema = z.enum([

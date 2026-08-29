@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSession, requireWriteSession } from "@/lib/auth";
 import { HttpError, jsonError, readJsonBody } from "@/lib/http";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { recordCompletionClaim } from "@/lib/completion-events";
 import { purgeReviewPayloadSchema } from "@/lib/validation";
 
 export async function GET() {
@@ -37,6 +38,20 @@ export async function POST(request: Request) {
       throw new HttpError("This game has already changed. Refresh the Purge queue and try again.", 409);
     }
     if (error) throw error;
+
+    // The completion ledger row goes in with the decision. Sending it from the
+    // browser afterwards would be a second write per decision, and people work
+    // this queue at a median of one second apart - two writes a second is the
+    // whole hundred-and-twenty-a-minute budget.
+    if (input.action === "complete") {
+      await recordCompletionClaim(user.id, {
+        gameId: input.game_id,
+        source: "purge",
+        hoursPlayed: null,
+        estimateMinutes: null,
+        priceCents: null
+      }).catch(() => undefined);
+    }
 
     // A decision answers the question the flag was asking, so the flag goes with
     // it. Left set, a game would rejoin the queue the moment a Keep expired.

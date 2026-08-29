@@ -13,7 +13,12 @@ test("purge decisions have one category-free request contract", () => {
     purgeReviewPayloadSchema.safeParse({ game_id: gameId, action: "sleep", category: "legacy" }).success,
     false
   );
-  assert.equal(purgeReviewPayloadSchema.safeParse({ game_id: gameId, action: "complete" }).success, false);
+  // Purge can mark a game completed now, so the contract accepts it. "pin" is
+  // still accepted although nothing offers it any more: a tab opened before the
+  // change will still send it, and the RPC still handles it.
+  assert.equal(purgeReviewPayloadSchema.safeParse({ game_id: gameId, action: "complete" }).success, true);
+  assert.equal(purgeReviewPayloadSchema.safeParse({ game_id: gameId, action: "pin" }).success, true);
+  assert.equal(purgeReviewPayloadSchema.safeParse({ game_id: gameId, action: "nonsense" }).success, false);
 });
 
 test("collection create requires a rule for smart collections", () => {

@@ -9,10 +9,23 @@ import { idleForAtLeast, type GameRecency } from "./recency.ts";
  * mixing the two buried the quick rewarding question inside the slow one. It
  * lives in the completion sweep instead.
  */
-export type PurgeAction = "keep" | "pin" | "sleep";
+/**
+ * What Purge can do to a game now.
+ *
+ * Pin is gone: it was a Library and Vault idea sitting in a queue about whether
+ * a game stays active, and it answered a question nobody was being asked here.
+ * Complete answers one that was missing - "I already finished this" is a real
+ * answer to "is this still worth keeping active", and until now the only way to
+ * say it was to leave Purge.
+ */
+export type PurgeAction = "keep" | "sleep" | "complete";
 
 /** Includes "complete" so historical reviews taken before the split still read. */
-export type PurgeReviewAction = PurgeAction | "complete";
+/**
+ * What a stored review can say. Still includes "pin" so the reviews already in
+ * the table keep rendering after it stopped being offered.
+ */
+export type PurgeReviewAction = PurgeAction | "pin";
 export type PurgeReview = {
   id: string;
   gameId: string;

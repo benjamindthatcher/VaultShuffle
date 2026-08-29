@@ -257,7 +257,10 @@
    difference you had to read to see. */
 .decisions > button[data-decision="keep"] { --decision-fill: #2f9e6b; --decision-edge: #43c98c; }
 .decisions > button[data-decision="sleep"] { --decision-fill: #6d4bc7; --decision-edge: #9d7cff; }
-.decisions > button[data-decision="pin"] { --decision-fill: #b5762a; --decision-edge: #e0a34a; }
+/* Gold for finishing something, which is the language the trophies on the
+   Completed page already use. Keeping green would put two greens next to each
+   other for two different answers. */
+.decisions > button[data-decision="complete"] { --decision-fill: #b5762a; --decision-edge: #e0a34a; }
 
 .decisions > button[data-decision] {
   border-color: var(--decision-edge);

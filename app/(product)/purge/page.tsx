@@ -15,6 +15,7 @@ import {
 import type { DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { trackCompletionClaim } from "@/lib/completion-tracking";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { SignInLock } from "@/components/guest/SignInLock";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
@@ -52,7 +53,6 @@ export default function PurgePage() {
   const [saving, setSaving] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
   const settleTimerRef = useRef<number | null>(null);
-  const [optimisticPinnedIds, setOptimisticPinnedIds] = useState<string[]>([]);
   const [reviewsReady, setReviewsReady] = useState(false);
   const [error, setError] = useState("");
 
@@ -69,8 +69,6 @@ export default function PurgePage() {
   const activeIndex = Math.min(selectedOffset, Math.max(0, candidates.length - 1));
   const current = candidates[activeIndex] ?? null;
   const queue = candidates.slice(0, 4);
-  const effectivePinnedIds = new Set([...vaultState.pinnedIds, ...optimisticPinnedIds]);
-  const pinsFull = effectivePinnedIds.size >= 3 && current ? !effectivePinnedIds.has(current.game.id) : false;
 
   const gameById = useMemo(() => new Map(games.map((game) => [game.id, game])), [games]);
 
@@ -231,7 +229,7 @@ export default function PurgePage() {
     settleTimerRef.current = window.setTimeout(() => {
       settleTimerRef.current = null;
       if (pendingGameIdsRef.current.size > 0) return;
-      void refresh({ quiet: true }).then(() => setOptimisticPinnedIds([]));
+      void refresh({ quiet: true });
     }, 1200);
   }
 
@@ -248,9 +246,6 @@ export default function PurgePage() {
 
     pendingGameIdsRef.current.add(candidate.game.id);
     setQueuedCount((value) => value + 1);
-    if (action === "pin") {
-      setOptimisticPinnedIds((value) => value.includes(candidate.game.id) ? value : [...value, candidate.game.id]);
-    }
     setReviews((value) => [optimisticReview, ...value]);
     setUndo(null);
     setSelectedOffset(0);
@@ -261,11 +256,13 @@ export default function PurgePage() {
         setReviews((value) => [review, ...value.filter((item) => item.id !== optimisticReview.id && item.id !== review.id)]);
         setUndo({ candidate, review, previousStatus });
         trackEvent(ANALYTICS_EVENTS.purgeDecision, { action: review.action });
+        // isLive false on purpose: this reports to PostHog only. The ledger row
+        // is written by the reviews route inside the same request that saved the
+        // decision, so posting it again here would be the second write per
+        // decision that the write budget cannot afford at one a second.
+        if (review.action === "complete") trackCompletionClaim(candidate.game, "purge", false);
       } catch (caught) {
         setReviews((value) => value.filter((item) => item.id !== optimisticReview.id));
-        if (action === "pin") {
-          setOptimisticPinnedIds((value) => value.filter((id) => id !== candidate.game.id));
-        }
         setError(`${candidate.game.title}: ${caught instanceof Error ? caught.message : "Could not save this Purge decision."}`);
       } finally {
         pendingGameIdsRef.current.delete(candidate.game.id);
@@ -282,7 +279,6 @@ export default function PurgePage() {
 
   async function act(action: PurgeAction, candidate = current) {
     if (!candidate || !reviewsReady) return;
-    if (action === "pin" && pinsFull) return;
     setError("");
     if (isLive) {
       queueLiveDecision(candidate, action);
@@ -295,10 +291,11 @@ export default function PurgePage() {
     try {
       const review = await saveReview(candidate, action);
       const committedAction = review.action;
-      if (committedAction === "pin" && !vaultState.pinnedIds.includes(candidate.game.id)) {
-        await recordVaultAction("pinned", candidate.game.id);
-      } else if (committedAction === "sleep") {
+      if (committedAction === "sleep") {
         await updateGame(candidate.game.id, { status: "Slept", sleptAt: new Date().toISOString() });
+      } else if (committedAction === "complete") {
+        await updateGame(candidate.game.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+        trackCompletionClaim(candidate.game, "purge", false);
       }
       trackEvent(ANALYTICS_EVENTS.purgeDecision, {
         action: committedAction,
@@ -592,7 +589,7 @@ export default function PurgePage() {
           <div className={styles.decisions}><p className={styles.eyebrow}>Decision</p>
             <button type="button" data-decision="keep" disabled={saving || !reviewsReady} onClick={() => void act("keep")}><PurgeDecisionIcon name="keep-active" /><span><strong>Keep Active</strong><small>{isLive ? "Leave active and review again in 90 days." : "Leave it active in this preview."}</small></span></button>
             <button type="button" data-decision="sleep" disabled={saving || !reviewsReady} onClick={() => void act("sleep")}><PurgeDecisionIcon name="sleep" /><span><strong>Sleep</strong><small>{isLive ? "Remove it from active views and Vault draws." : "Remove it from this visit's active views and draws."}</small></span></button>
-            <button type="button" data-decision="pin" disabled={saving || !reviewsReady || pinsFull} onClick={() => void act("pin")} title={pinsFull ? "Unpin a game before adding another." : undefined}><PurgeDecisionIcon name="pin" /><span><strong>Pin</strong><small>{pinsFull ? "All 3 pin slots are currently full." : isLive ? "Keep it at the front of your Library." : "Keep it at the front of the preview Library."}</small></span></button>
+            <button type="button" data-decision="complete" disabled={saving || !reviewsReady} onClick={() => void act("complete")}><PurgeDecisionIcon name="completed" /><span><strong>Completed</strong><small>{isLive ? "Mark it finished and move it to Completed." : "Mark it finished for this preview."}</small></span></button>
           </div>
         </section> : null}
       </> : <section className={styles.queuePanel}>
@@ -759,7 +756,7 @@ function PurgePageFrame({ children }: { children: ReactNode }) {
 }
 
 
-type PurgeDecisionIconName = "keep-active" | "pin" | "sleep";
+type PurgeDecisionIconName = "keep-active" | "completed" | "sleep";
 
 function PurgeDecisionIcon({ name }: { name: PurgeDecisionIconName }) {
   return <span className={styles.decisionIcon} aria-hidden="true"><VaultIcon name={name} size={34} /></span>;
