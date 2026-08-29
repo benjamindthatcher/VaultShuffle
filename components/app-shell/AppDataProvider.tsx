@@ -12,7 +12,7 @@ import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
-import { announceCooldown } from "@/lib/cooldown";
+import { announceCooldown, CooldownError } from "@/lib/cooldown";
 import {
   IDLE_STEAM_IMPORT,
   type SteamImportProgress
@@ -70,6 +70,7 @@ type AppDataContextValue = {
   isSyncing: boolean;
   steamImport: SteamImportProgress;
   steamImportChecked: boolean;
+  steamImportCooldownUntil: number | null;
   loadError: string | null;
   refresh: (options?: { quiet?: boolean }) => Promise<boolean>;
   checkSteamImport: () => Promise<SteamImportProgress>;
@@ -103,7 +104,8 @@ async function api<T>(path: string, options: RequestInit = {}) {
 
   const payload = await response.json();
   if (!response.ok) {
-    announceCooldown(response, payload);
+    const cooldown = announceCooldown(response, payload);
+    if (cooldown) throw new CooldownError(cooldown.retryAfterSeconds, cooldown.message);
     throw new Error(payload.error || "Request failed.");
   }
   return payload as T;
@@ -127,6 +129,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false);
   const [steamImport, setSteamImport] = useState<SteamImportProgress>(IDLE_STEAM_IMPORT);
   const [steamImportChecked, setSteamImportChecked] = useState(false);
+  // When the refresh limit turns a request away, this is the moment it is worth
+  // trying again. Held apart from steamImport.status so the card can say "wait"
+  // rather than "paused", and so retrying is disabled until it means something.
+  const [steamImportCooldownUntil, setSteamImportCooldownUntil] = useState<number | null>(null);
   const [playHistoryMissing, setPlayHistoryMissing] = useState(false);
   const [deviceMode, setDeviceModeState] = useState<DeviceMode>("all");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -296,6 +302,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       lastError: null,
       completedAt: restart ? null : current.completedAt
     }));
+    setSteamImportCooldownUntil(null);
     let steamImportSaved = restart ? false : steamImport.imported > 0;
     let importCompleted = false;
     try {
@@ -340,6 +347,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       return result.progress.total;
     } catch (error) {
       const message = error instanceof Error ? error.message : "The Steam import stopped before it finished.";
+      // Being asked to wait is not a broken import. Marking it failed put a
+      // Retry button in front of people that could not work until the window
+      // passed, and they pressed it until they left.
+      if (error instanceof CooldownError) {
+        setSteamImportCooldownUntil(Date.now() + error.retryAfterSeconds * 1000);
+        throw error;
+      }
       if (!importCompleted) {
         setSteamImport((current) => ({ ...current, status: "failed", lastError: message }));
       }
@@ -701,6 +715,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       isSyncing,
       steamImport,
       steamImportChecked,
+      steamImportCooldownUntil,
       loadError,
       refresh: load,
       checkSteamImport,
@@ -719,7 +734,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [capabilities, session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [capabilities, session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, steamImportCooldownUntil, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

@@ -17,6 +17,7 @@ export function SteamImportProgressCard() {
     isSyncing,
     steamImport,
     steamImportChecked,
+    steamImportCooldownUntil,
     syncSteamLibrary
   } = useAppData();
   const [markerChecked, setMarkerChecked] = useState(false);
@@ -28,6 +29,18 @@ export function SteamImportProgressCard() {
   const [justFinished, setJustFinished] = useState(false);
   const [refreshRequested, setRefreshRequested] = useState(false);
   const [engaged, setEngaged] = useState(false);
+  // Re-renders once a second while a cooldown is running, so the wait counts
+  // down and the button comes back on its own.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!steamImportCooldownUntil || steamImportCooldownUntil <= now) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [steamImportCooldownUntil, now]);
+  const cooldownSecondsLeft = steamImportCooldownUntil
+    ? Math.max(0, Math.ceil((steamImportCooldownUntil - now) / 1000))
+    : 0;
+  const coolingDown = cooldownSecondsLeft > 0;
   const automaticStartRef = useRef(false);
 
   useEffect(() => {
@@ -110,14 +123,20 @@ export function SteamImportProgressCard() {
   const running = isSyncing || checkingForFirstImport || steamImport.status === "importing" || steamImport.status === "fetching";
   const visible = running
     || justFinished
+    || coolingDown
     || (steamImport.status === "failed" && games.length === 0)
     || (engaged && steamImport.status === "failed");
   if (!visible) return null;
 
-  const fetching = checkingForFirstImport || steamImport.status === "fetching";
-  const failed = steamImport.status === "failed";
+  const fetching = !coolingDown && (checkingForFirstImport || steamImport.status === "fetching");
+  const failed = !coolingDown && steamImport.status === "failed";
   const complete = justFinished && !running;
-  const title = fetching
+  const waitLabel = cooldownSecondsLeft >= 60
+    ? `${Math.ceil(cooldownSecondsLeft / 60)} minute${Math.ceil(cooldownSecondsLeft / 60) === 1 ? "" : "s"}`
+    : `${cooldownSecondsLeft} second${cooldownSecondsLeft === 1 ? "" : "s"}`;
+  const title = coolingDown
+    ? "Your library was refreshed a moment ago"
+    : fetching
     ? "Reading your Steam library"
     : failed
       ? "Your import is paused"
@@ -126,7 +145,9 @@ export function SteamImportProgressCard() {
           ? `${steamImport.total} games imported. Ready for your first pick?`
           : "Your Steam library is ready"
         : "Building your dashboard";
-  const detail = fetching
+  const detail = coolingDown
+    ? `Steam limits how often a library can be re-read. You can try again in ${waitLabel}.`
+    : fetching
     ? "Steam sends the ownership list once, then we save it in small batches."
     : failed
       ? (steamImport.lastError || "The next batch was not saved. Everything shown in the bar is already safe.")
@@ -178,7 +199,15 @@ export function SteamImportProgressCard() {
           <strong>{fetching ? "Connecting…" : `${steamImport.percent}%`}</strong>
           {!fetching && steamImport.total ? <span>{steamImport.imported} / {steamImport.total}</span> : null}
         </p>
-        {failed ? (
+        {/* During a cooldown the button counts down and stays disabled, rather
+            than inviting a press that the window will only refuse again. */}
+        {coolingDown ? (
+          <button type="button" disabled>
+            {cooldownSecondsLeft >= 60
+              ? `Try again in ${waitLabel}`
+              : `Try again in ${cooldownSecondsLeft}s`}
+          </button>
+        ) : failed ? (
           <button type="button" onClick={retry} disabled={isSyncing}>
             {isSyncing ? "Resuming…" : steamImport.total > steamImport.imported ? "Resume import" : "Try Steam again"}
           </button>

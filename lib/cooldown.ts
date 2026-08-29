@@ -30,6 +30,26 @@ export function readCooldown(response: Response, payload: RateLimitPayload): Coo
   };
 }
 
+/**
+ * Thrown instead of a plain Error so callers can tell "wait a bit" apart from
+ * "this broke". The Steam import used to collapse the two, so being refused for
+ * four more minutes was reported as a paused import with a Retry button that
+ * could not succeed - people pressed it until they gave up.
+ */
+export class CooldownError extends Error {
+  readonly code = "rate_limited";
+  // Declared and assigned rather than a constructor parameter property: this
+  // module is loaded by the test runner under --experimental-strip-types, which
+  // cannot compile those.
+  readonly retryAfterSeconds: number;
+
+  constructor(retryAfterSeconds: number, message: string) {
+    super(message);
+    this.name = "CooldownError";
+    this.retryAfterSeconds = retryAfterSeconds;
+  }
+}
+
 export function announceCooldown(response: Response, payload: RateLimitPayload) {
   const notice = readCooldown(response, payload);
   if (!notice || typeof window === "undefined") return notice;

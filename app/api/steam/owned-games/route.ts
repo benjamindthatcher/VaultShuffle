@@ -2,7 +2,7 @@ import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
-import { enforceRateLimit } from "@/lib/rate-limit";
+import { enforceRateLimit, releaseRateLimit } from "@/lib/rate-limit";
 import { fetchOwnedSteamGames } from "@/lib/steam";
 import { syncSteamRecentWindow } from "@/lib/recency-sync";
 import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
@@ -61,15 +61,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // One refresh per five minutes stops somebody re-reading their whole library
+    // over and over. Applied to a first import it does something else entirely:
+    // one failed attempt and a new account is locked out of the product for five
+    // minutes, on the screen where they have just signed in. They get room to
+    // retry; the limit still holds for everyone who already has a library.
+    const firstImport = existing.status === "idle" && existing.total === 0 && !existing.completedAt;
+    const refreshLimit = { bucket: "steam_library_refresh", identity: `user:${user.id}` };
     await enforceRateLimit({
-      bucket: "steam_library_refresh",
-      identity: `user:${user.id}`,
-      limit: 1,
+      ...refreshLimit,
+      limit: firstImport ? 5 : 1,
       windowSeconds: 5 * 60,
       message: "Your Steam library was refreshed recently. To protect your account and Steam, please wait before starting another refresh."
     });
 
-    const importedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
+    let importedGames;
+    try {
+      importedGames = await fetchOwnedSteamGames(user.steam_id, apiKey);
+    } catch (error) {
+      // The reservation paid for a library we never received. Charging for it
+      // would leave the next attempt refused for a failure that was ours.
+      await releaseRateLimit(refreshLimit);
+      throw error;
+    }
     const progress = await stageSteamImport(user.id, importedGames);
 
     // Bootstraps recency on the very first import, so a new account knows what

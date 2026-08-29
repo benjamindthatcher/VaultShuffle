@@ -68,6 +68,54 @@ export async function enforceRateLimit(options: RateLimitOptions) {
   };
 }
 
+/**
+ * Hands back a request counted against a limit when the work it was guarding
+ * never happened.
+ *
+ * The Steam refresh limit is one per five minutes, and it is spent before the
+ * call to Steam. So a single failed fetch used to cost someone their only
+ * attempt and lock them out for five minutes on their first ever import - the
+ * request was counted, and nothing was imported for it.
+ *
+ * Best effort on purpose: if the refund fails the user waits, which is the
+ * behaviour we already had. It must never turn a recoverable error into a
+ * different one.
+ */
+export async function releaseRateLimit(options: Pick<RateLimitOptions, "bucket" | "identity">) {
+  try {
+    const keyHash = digestIdentity(options.bucket, options.identity);
+    const supabase = getSupabaseAdmin();
+    const { data } = await supabase
+      .from("api_rate_limits")
+      .select("request_count")
+      .eq("bucket", options.bucket)
+      .eq("key_hash", keyHash)
+      .maybeSingle();
+
+    const count = Number(data?.request_count) || 0;
+    if (count <= 0) return;
+
+    // request_count carries a `> 0` check constraint, so the last one out
+    // deletes the row rather than decrementing to zero.
+    if (count === 1) {
+      await supabase.from("api_rate_limits").delete().eq("bucket", options.bucket).eq("key_hash", keyHash);
+      return;
+    }
+    await supabase
+      .from("api_rate_limits")
+      .update({ request_count: count - 1 })
+      .eq("bucket", options.bucket)
+      .eq("key_hash", keyHash);
+  } catch (error) {
+    console.warn(JSON.stringify({
+      level: "warning",
+      message: "Could not release a rate limit reservation",
+      bucket: options.bucket,
+      error: error instanceof Error ? error.message : String(error)
+    }));
+  }
+}
+
 export async function enforceAuthenticatedWriteRate(userId: string) {
   return enforceRateLimit({
     bucket: "authenticated_write",
