@@ -61,18 +61,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // One refresh per five minutes stops somebody re-reading their whole library
-    // over and over. Applied to a first import it does something else entirely:
-    // one failed attempt and a new account is locked out of the product for five
-    // minutes, on the screen where they have just signed in. They get room to
-    // retry; the limit still holds for everyone who already has a library.
+    // Importing is not refreshing. The one-per-five-minutes rule exists to stop
+    // someone re-reading a library they already have; charging a first import
+    // against it locked new accounts out of the product on the screen where they
+    // had just signed in. A first import never touches that bucket, so a
+    // cooldown can only ever follow a library that already exists.
+    //
+    // It still gets a bucket of its own, several times looser and never phrased
+    // as a refresh, so that a retry loop cannot sit on Steam's API unattended.
     const firstImport = existing.status === "idle" && existing.total === 0 && !existing.completedAt;
-    const refreshLimit = { bucket: "steam_library_refresh", identity: `user:${user.id}` };
+    const refreshLimit = firstImport
+      ? { bucket: "steam_first_import", identity: `user:${user.id}` }
+      : { bucket: "steam_library_refresh", identity: `user:${user.id}` };
     await enforceRateLimit({
       ...refreshLimit,
-      limit: firstImport ? 5 : 1,
+      limit: firstImport ? 10 : 1,
       windowSeconds: 5 * 60,
-      message: "Your Steam library was refreshed recently. To protect your account and Steam, please wait before starting another refresh."
+      message: firstImport
+        ? "That import has been started several times over. Give the current one a moment to finish."
+        : "Your Steam library was refreshed recently. To protect your account and Steam, please wait before starting another refresh."
     });
 
     let importedGames;
