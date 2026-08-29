@@ -289,6 +289,30 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return promise;
   }
 
+  /**
+   * One transient failure - a 401 from a cold function, a dropped connection -
+   * used to end the whole sync. The import itself runs on the server and carries
+   * on regardless, so giving up here reported a failure for something that was
+   * still working. Two more attempts, then let it through.
+   *
+   * A cooldown is never retried: it is a definite answer, not a blip.
+   */
+  async function withTransientRetry<T>(work: () => Promise<T>, attempts = 3): Promise<T> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt < attempts; attempt += 1) {
+      try {
+        return await work();
+      } catch (error) {
+        if (error instanceof CooldownError) throw error;
+        lastError = error;
+        if (attempt < attempts - 1) {
+          await new Promise((resolve) => window.setTimeout(resolve, 1200 * (attempt + 1)));
+        }
+      }
+    }
+    throw lastError;
+  }
+
   async function runSteamLibrarySync({ restart = true }: { restart?: boolean }) {
     if (!isLive) throw new Error("Sign in with Steam before syncing your library.");
 
@@ -306,7 +330,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     let steamImportSaved = restart ? false : steamImport.imported > 0;
     let importCompleted = false;
     try {
-      let result = await requestSteamImportBatch(restart);
+      let result = await withTransientRetry(() => requestSteamImportBatch(restart));
       setSteamImport(result.progress);
       steamImportSaved = result.progress.imported > 0;
 
@@ -317,7 +341,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           await new Promise((resolve) => window.setTimeout(resolve, retryAfterMs));
         }
         const previousImported = result.progress.imported;
-        result = await requestSteamImportBatch(false);
+        result = await withTransientRetry(() => requestSteamImportBatch(false));
         setSteamImport(result.progress);
         steamImportSaved ||= result.progress.imported > 0;
         unchangedResponses = result.progress.imported === previousImported
@@ -347,6 +371,27 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       return result.progress.total;
     } catch (error) {
       const message = error instanceof Error ? error.message : "The Steam import stopped before it finished.";
+
+      // Ask the server what actually happened before calling this a failure.
+      // The import runs there, not here, so losing the connection that was
+      // watching it does not stop it: people were shown "your import is paused"
+      // over the top of an import that went on to finish. Every job in the table
+      // had completed; the only thing that had failed was the reporting.
+      const actual = await checkSteamImport().catch(() => null);
+      if (actual?.status === "complete") {
+        setSteamImportCooldownUntil(null);
+        await load().catch(() => null);
+        trackEvent(ANALYTICS_EVENTS.steamLibrarySynced, {
+          imported_count: actual.total,
+          play_history_missing: actual.playHistoryMissing,
+          // Distinguishes these from clean runs, so the rate of them is visible
+          // rather than hiding inside the success count.
+          recovered_from: message
+        });
+        setPlayHistoryMissing(actual.playHistoryMissing);
+        return actual.total;
+      }
+
       // Being asked to wait is not a broken import. Marking it failed put a
       // Retry button in front of people that could not work until the window
       // passed, and they pressed it until they left.
@@ -355,7 +400,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         throw error;
       }
       if (!importCompleted) {
-        setSteamImport((current) => ({ ...current, status: "failed", lastError: message }));
+        // Seeded from the server's own count where we have it, so "Resume
+        // import" resumes from the right place rather than from whatever this
+        // tab last managed to see.
+        setSteamImport((current) => ({ ...(actual ?? current), status: "failed", lastError: message }));
       }
       // A failed first import is the highest-intent moment in the funnel failing.
       // Reporting only successes would leave it invisible, which is exactly how
