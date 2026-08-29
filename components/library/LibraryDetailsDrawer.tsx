@@ -8,8 +8,7 @@ import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
-import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
-import { useCanLaunchSteam } from "@/components/shared/useSteamLaunch";
+import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
 import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./LibraryDetailsDrawer.module.css";
 
@@ -31,7 +30,7 @@ type LibraryDetailsDrawerProps = {
 };
 
 export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollection, saving, onClose, pinSlot = null, pinCount = 0, onTogglePin, onManagePins, onComplete, onRestore, onSleep, previewMode = false }: LibraryDetailsDrawerProps) {
-  const canLaunchSteam = useCanLaunchSteam();
+  const steamLink = useSteamPlayLink(game?.steamAppId, { forceStore: previewMode });
   const mounted = useIsMounted();
   const [notes, setNotes] = useState("");
   const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
@@ -165,15 +164,15 @@ export function LibraryDetailsDrawer({ game, collections, onSave, onToggleCollec
           <div className={styles.actionRow}>
             <a
               className={styles.steamButton}
-              href={canLaunchSteam && !previewMode ? steamLaunchUrl(game.steamAppId) : steamStoreUrl(game.steamAppId)}
-              target={previewMode ? "_blank" : undefined}
-              rel={previewMode ? "noreferrer" : undefined}
+              href={steamLink.href}
+              target={steamLink.target}
+              rel={steamLink.rel}
               onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.gameSteamOpened, {
                 action: previewMode ? "view_store" : "launch_game",
               })}
             >
               <VaultIcon name="open-steam" size={20} />
-              <span>{previewMode ? "View on Steam" : "Play on Steam"}</span>
+              <span>{steamLink.launching ? "Play on Steam" : "View on Steam"}</span>
               <VaultIcon name="chevron-right" size={18} className={styles.steamArrow} />
             </a>
             <button

@@ -31,9 +31,32 @@ export function useCanLaunchSteam() {
   return canLaunch;
 }
 
-/** The launch URL where that can work, and the store page where it cannot. */
-export function useSteamPlayUrl(appId: number | string | null | undefined) {
+/**
+ * Everything an anchor needs to send someone to a game, including where it opens.
+ *
+ * The two cases want opposite things. steam://run hands off to the Steam client
+ * and never navigates the page, so it has to stay in the same tab or the browser
+ * is left sitting on a blank one. A store page is an ordinary web page, and
+ * opening it in the same tab throws away whatever the person was in the middle
+ * of - on a phone that means answering the three questions again, which is
+ * exactly what someone reported.
+ *
+ * Returned together so the href and the target cannot disagree, which is how
+ * two of the three links ended up sending people to the store page in the same
+ * tab.
+ */
+export function useSteamPlayLink(
+  appId: number | string | null | undefined,
+  { forceStore = false }: { forceStore?: boolean } = {}
+) {
   const canLaunch = useCanLaunchSteam();
-  if (!appId) return null;
-  return canLaunch ? steamLaunchUrl(appId) : steamStoreUrl(appId);
+  const launching = canLaunch && !forceStore;
+  return {
+    href: appId ? (launching ? steamLaunchUrl(appId) : steamStoreUrl(appId)) : "",
+    target: launching ? undefined : "_blank",
+    rel: launching ? undefined : "noreferrer",
+    // So a button can say where it is actually going. "Play on Steam" pointing
+    // at a store page is a small lie that costs a tap to find out.
+    launching
+  } as const;
 }

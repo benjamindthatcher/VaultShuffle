@@ -81,12 +81,18 @@ type DrawSnapshot = {
 };
 const EMPTY_GAME_IDS: string[] = [];
 
+/** Per-tab, so a trip to Steam and back keeps your answers but a new visit does not. */
+const VAULT_SETUP_KEY = "vault-setup";
+
 export default function VaultPage() {
   const { games, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
   const [openSetupStep, setOpenSetupStep] = useState<VaultSetupPanel | null>("session");
+  // Whether the saved setup has been read back yet. Nothing is written until it
+  // has, or the first render would save its own empty state over the real one.
+  const [setupRestored, setSetupRestored] = useState(false);
   const [drawMode, setDrawMode] = useState<VaultDrawMode>("vault");
   const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
@@ -183,6 +189,63 @@ export default function VaultPage() {
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? null;
   const entireVault = collections.find((collection) => collection.id === "all") ?? collections[0];
   const collectionCounts = useMemo(() => Object.fromEntries(collections.map((collection) => [collection.id, collection.id === "all" ? drawableGames.length : drawableGames.filter((game) => game.collectionIds.includes(collection.id)).length])), [collections, drawableGames]);
+  /**
+   * Your answers survive leaving the page.
+   *
+   * Session, mood and goal were plain useState, so anything that unloaded the
+   * page threw them away - and on a phone that is every time you tap through to
+   * a game and come back. Someone reported exactly that: "when you go back you
+   * always have to answer the questions again."
+   *
+   * sessionStorage rather than localStorage on purpose. This is meant to survive
+   * a trip to Steam and back, not to answer next week's question with last
+   * week's mood. Closing the tab still starts you fresh, which is right - the
+   * whole point of the three questions is that the answer changes.
+   *
+   * Read in an effect rather than a lazy initialiser because the server renders
+   * this too and has no sessionStorage; doing it during render would mismatch.
+   */
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem(VAULT_SETUP_KEY);
+      if (saved) {
+        const setup = JSON.parse(saved) as {
+          session?: VaultSessionId | null;
+          mood?: VaultMoodId | null;
+          goal?: VaultGoalId | null;
+          drawMode?: VaultDrawMode;
+          selectedCollectionId?: string | null;
+          selectedGenres?: string[];
+        };
+        if (setup.session) setSession(setup.session);
+        if (setup.mood) setMood(setup.mood);
+        if (setup.goal) setGoal(setup.goal);
+        if (setup.drawMode) setDrawMode(setup.drawMode);
+        if (setup.selectedCollectionId) setSelectedCollectionId(setup.selectedCollectionId);
+        if (Array.isArray(setup.selectedGenres)) setSelectedGenres(setup.selectedGenres);
+        // Open the first thing still unanswered, not question one. Reopening
+        // "What kind of session?" when that is the one thing you did answer
+        // reads as though nothing was remembered at all.
+        setOpenSetupStep(
+          !setup.session ? "session"
+          : !setup.mood ? "mood"
+          : !setup.goal ? "goal"
+          : null
+        );
+      }
+    } catch { /* A malformed or unreadable draft just means starting fresh. */ }
+    setSetupRestored(true);
+  }, []);
+
+  useEffect(() => {
+    if (!setupRestored) return;
+    try {
+      sessionStorage.setItem(VAULT_SETUP_KEY, JSON.stringify({
+        session, mood, goal, drawMode, selectedCollectionId, selectedGenres
+      }));
+    } catch { /* Private mode and full quotas are not worth an error here. */ }
+  }, [setupRestored, session, mood, goal, drawMode, selectedCollectionId, selectedGenres]);
+
   const collectionMode = drawMode === "collection";
   const collectionDraw = collectionMode && isCollectionDraw(selectedCollectionId);
   const activeSession = collectionMode ? null : session;
@@ -969,7 +1032,7 @@ export default function VaultPage() {
                 a click away on any deck card. */}
             <div className={styles.resultActions}>
               <a href={steamPlayIsLaunch ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={steamPlayIsLaunch ? undefined : "_blank"} rel={steamPlayIsLaunch ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
-                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{isLive ? "Open on Steam" : "View on Steam"}</strong></span>
+                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{steamPlayIsLaunch ? "Open on Steam" : "View on Steam"}</strong></span>
               </a>
               <button type="button" className={styles.resultAction} data-action="snooze" onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
                 <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Snooze</strong></span>
