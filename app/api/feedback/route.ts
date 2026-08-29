@@ -18,7 +18,9 @@ export async function POST(request: Request) {
     });
     const input = feedbackSubmissionSchema.parse(await readJsonBody(request, 16 * 1024));
     assertHumanSubmission(input.form_started_at, input.website);
-    const session = await getCurrentSession();
+    // Only used to attach the sender to their account. If the lookup is having
+    // a bad moment the message is still worth keeping, unattributed.
+    const session = await getCurrentSession().catch(() => null);
     await saveFeedback(session?.user.id ?? null, fingerprint, input);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
