@@ -201,9 +201,12 @@
 
 .facts,
 .tags {
+  --fact-gap: 7px;
+  /* One pill: 0.75rem text, 6px of padding each side, 1px border. */
+  --fact-row: 28px;
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
+  gap: var(--fact-gap);
 }
 .facts span,
 .tags span {
@@ -347,6 +350,16 @@
   }
 }
 @media (max-width: 760px) {
+  /* Two rows whether the facts need one or two.
+     "28h estimated" is wider than "Endless", so at phone width one game wraps
+     this row and the next one does not - which moved the decision buttons 35px
+     between games, while people are deciding at about one a second. The
+     synopsis and the verdict above it are already held to a fixed number of
+     lines for the same reason; this row was the one that got missed. Desktop
+     has the width never to wrap, which is why it only shows up here. */
+  .facts,
+  .tags { min-height: calc(2 * var(--fact-row) + var(--fact-gap)); }
+
   .categoryGrid {
     grid-template-columns: 1fr;
   }
