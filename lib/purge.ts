@@ -57,18 +57,28 @@ export function isReviewSuperseded(action: PurgeReviewAction, status: DemoGame["
   return status === "Slept" || status === "Completed";
 }
 
-/** How long a started game must have gone untouched before it is worth reviewing. */
-const PURGE_IDLE_DAYS = 180;
+/**
+ * How long a started game must have gone untouched before it is worth reviewing.
+ *
+ * The same ninety days as the keep cooldown below, deliberately: the two are the
+ * same promise read from either end. Play something and Purge leaves it alone
+ * for ninety days; keep something and Purge leaves it alone for ninety days.
+ * "No review needed" then means one plain thing - you have played it recently -
+ * rather than a leftover of two different clocks.
+ *
+ * At a hundred and eighty this was half a year, so a game you last touched five
+ * months ago sat in neither bucket: too recent to be asked about, too long ago
+ * for "no review needed" to be true of it.
+ */
+const PURGE_IDLE_DAYS = 90;
 
 /**
  * How long a "keep" holds before the game can come back round.
  *
- * Was the same 180 days as the idle gate, which is longer than it needs to be:
- * the point is only that the queue should not re-ask about something you have
- * just answered, and half a year of silence means a game you keep once is a
- * game you are asked about roughly once a year. Ninety days is long enough that
- * the queue never feels repetitive, and short enough that a decision you have
- * changed your mind about comes back within a season.
+ * Ninety days is long enough that the queue never feels repetitive, and short
+ * enough that a decision you have changed your mind about comes back within a
+ * season. It matches the idle gate above so that both halves of the rule read
+ * the same way round.
  *
  * It is not the only way back either - flagging one by hand overrides this
  * entirely.

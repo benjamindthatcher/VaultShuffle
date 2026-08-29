@@ -195,7 +195,7 @@ test("a game waiting on a completion answer is still an active game", () => {
 
 test("flagging overrides the keep cooldown, which is the only reason to flag", () => {
   // This used to assert the opposite, and the opposite made the button useless:
-  // a keep suppresses a game for 180 days, and the games offered for flagging
+  // a keep suppresses a game for 90 days, and the games offered for flagging
   // are exactly the ones that have been kept. Flagging them did nothing.
   //
   // The cooldown is a rule about the queue's own judgement - do not nag about
