@@ -63,9 +63,23 @@ export function trackCompletionUndone(game: DemoGame, source: CompletionSource, 
   }).catch(() => undefined);
 }
 
+/**
+ * Carries what a claim carries, so the two can be compared.
+ *
+ * It used to record only `bulk` and the hours, which made the one question worth
+ * asking unanswerable: at what point do people say "not yet"? Tuning the
+ * threshold meant reading the yes column and guessing at the no.
+ */
 export function trackCompletionDismissed(game: DemoGame, bulk: boolean) {
+  const estimateMinutes = estimatedTimeToBeatMinutes(game.duration) ?? null;
+  const hoursPlayed = Number(game.hoursPlayed ?? 0);
+
   trackEvent(ANALYTICS_EVENTS.completionDismissed, {
     bulk,
-    hours_played: Math.round(Number(game.hoursPlayed ?? 0))
+    source: bulk ? "sweep_bulk" : "sweep",
+    hours_played: Math.round(hoursPlayed),
+    estimate_hours: estimateMinutes ? Math.round(estimateMinutes / 60) : null,
+    played_vs_estimate: estimateMinutes ? Number((hoursPlayed / (estimateMinutes / 60)).toFixed(2)) : null,
+    had_estimate: Boolean(estimateMinutes)
   });
 }

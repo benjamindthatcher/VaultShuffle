@@ -1,4 +1,12 @@
 import { describeRecency, idleForAtLeast, playedWithin } from "./recency.ts";
+import { FINISHED_RATIO } from "./completion-check.ts";
+
+/**
+ * The same line the completion sweep asks on, so "Nearly Finished" and "we think
+ * you finished this" cannot drift apart. They were 65 and 80 independently, which
+ * meant a game could sit in Nearly Finished for months without ever being asked.
+ */
+const NEARLY_FINISHED_PERCENT = Math.round(FINISHED_RATIO * 100);
 import type { DemoGame } from "./demo-data.ts";
 import { gameProgress } from "./game-classification.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
@@ -42,7 +50,7 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
             : null
       );
 
-  if (preset === "nearly-finished") return active && !duration.endless && progress >= 65 && progress < 100;
+  if (preset === "nearly-finished") return active && !duration.endless && progress >= NEARLY_FINISHED_PERCENT && progress < 100;
   if (preset === "quick-wins") {
     if (!active || duration.endless || !duration.hours) return false;
     const remainingHours = Math.max(0, duration.hours - hours);
