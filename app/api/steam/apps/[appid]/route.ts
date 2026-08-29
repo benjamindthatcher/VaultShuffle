@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { jsonError } from "@/lib/http";
 import { enforceRateLimit } from "@/lib/rate-limit";
 import { fetchSteamAppDetails } from "@/lib/steam";
@@ -24,7 +24,7 @@ export async function GET(_request: Request, context: RouteContext) {
     }
     return NextResponse.json({ details: await fetchSteamAppDetails(appid) });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();
+    if (error instanceof SessionRequiredError) return unauthorizedResponse();
     return jsonError(error, 502);
   }
 }

@@ -50,6 +50,20 @@ export class CooldownError extends Error {
   }
 }
 
+/**
+ * Steam accepted the sign-in but will not share the library, because the
+ * account's game details are not public. Seventeen of the first fifty-five
+ * accounts were in exactly this state and were told "unauthorized" instead.
+ */
+export class SteamLibraryPrivateError extends Error {
+  readonly code = "steam_library_private";
+
+  constructor(message: string) {
+    super(message);
+    this.name = "SteamLibraryPrivateError";
+  }
+}
+
 export function announceCooldown(response: Response, payload: RateLimitPayload) {
   const notice = readCooldown(response, payload);
   if (!notice || typeof window === "undefined") return notice;

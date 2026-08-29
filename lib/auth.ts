@@ -82,10 +82,30 @@ export async function getCurrentSession() {
   };
 }
 
+/**
+ * There is no session, so the caller must sign in. A class rather than a
+ * message, because the message was how routes used to decide: any error whose
+ * text contained "sign-in" became a 401.
+ *
+ * SteamLibraryUnavailableError says "Steam sign-in worked, but Steam returned no
+ * visible games..." - so a private Steam profile was answered with a bare
+ * unauthorized, and the instructions for fixing it were thrown away. Seventeen
+ * of fifty-five accounts had no library and no import job; the ones who tried
+ * again for hours were being told the wrong thing every time.
+ */
+export class SessionRequiredError extends Error {
+  readonly code = "session_required";
+
+  constructor() {
+    super("Steam sign-in is required.");
+    this.name = "SessionRequiredError";
+  }
+}
+
 export async function requireSession() {
   const session = await getCurrentSession();
   if (!session) {
-    throw new Error("Steam sign-in is required.");
+    throw new SessionRequiredError();
   }
   return session;
 }

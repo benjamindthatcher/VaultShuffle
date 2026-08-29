@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { deleteCollection, getCollectionWithGames, updateCollection } from "@/lib/collections";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { collectionPatchSchema } from "@/lib/validation";
@@ -35,7 +35,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     await deleteCollection(user.id, id);
     return NextResponse.json({ ok: true });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();
+    if (error instanceof SessionRequiredError) return unauthorizedResponse();
     return jsonError(error);
   }
 }

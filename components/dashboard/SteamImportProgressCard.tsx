@@ -18,6 +18,7 @@ export function SteamImportProgressCard() {
     steamImport,
     steamImportChecked,
     steamImportCooldownUntil,
+    steamLibraryPrivate,
     syncSteamLibrary
   } = useAppData();
   const [markerChecked, setMarkerChecked] = useState(false);
@@ -124,17 +125,20 @@ export function SteamImportProgressCard() {
   const visible = running
     || justFinished
     || coolingDown
+    || steamLibraryPrivate
     || (steamImport.status === "failed" && games.length === 0)
     || (engaged && steamImport.status === "failed");
   if (!visible) return null;
 
-  const fetching = !coolingDown && (checkingForFirstImport || steamImport.status === "fetching");
-  const failed = !coolingDown && steamImport.status === "failed";
+  const fetching = !coolingDown && !steamLibraryPrivate && (checkingForFirstImport || steamImport.status === "fetching");
+  const failed = !coolingDown && !steamLibraryPrivate && steamImport.status === "failed";
   const complete = justFinished && !running;
   const waitLabel = cooldownSecondsLeft >= 60
     ? `${Math.ceil(cooldownSecondsLeft / 60)} minute${Math.ceil(cooldownSecondsLeft / 60) === 1 ? "" : "s"}`
     : `${cooldownSecondsLeft} second${cooldownSecondsLeft === 1 ? "" : "s"}`;
-  const title = coolingDown
+  const title = steamLibraryPrivate
+    ? "Steam is not sharing your games yet"
+    : coolingDown
     ? "Your library was refreshed a moment ago"
     : fetching
     ? "Reading your Steam library"
@@ -145,7 +149,9 @@ export function SteamImportProgressCard() {
           ? `${steamImport.total} games imported. Ready for your first pick?`
           : "Your Steam library is ready"
         : "Building your dashboard";
-  const detail = coolingDown
+  const detail = steamLibraryPrivate
+    ? "Your sign-in worked. Steam keeps game details private by default, so it will not tell us what you own until you change that — it takes about twenty seconds."
+    : coolingDown
     ? `Steam limits how often a library can be re-read. You can try again in ${waitLabel}.`
     : fetching
     ? "Steam sends the ownership list once, then we save it in small batches."
@@ -183,7 +189,20 @@ export function SteamImportProgressCard() {
         </Link>
       ) : null}
 
-      <div className={styles.progressBlock}>
+      {steamLibraryPrivate ? (
+        <div className={styles.privateFix}>
+          <ol>
+            <li>Open <a href="https://steamcommunity.com/my/edit/settings" target="_blank" rel="noreferrer">Steam privacy settings</a></li>
+            <li>Set <strong>Game details</strong> to <strong>Public</strong></li>
+            <li>Come back and try again</li>
+          </ol>
+          <button type="button" onClick={retry} disabled={isSyncing}>
+            {isSyncing ? "Checking…" : "I've made it public — try again"}
+          </button>
+        </div>
+      ) : null}
+
+      <div className={styles.progressBlock} hidden={steamLibraryPrivate}>
         <div
           className={`${styles.track}${fetching ? ` ${styles.indeterminate}` : ""}`}
           role="progressbar"

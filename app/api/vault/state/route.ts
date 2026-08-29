@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { getVaultState, recordVaultAction } from "@/lib/vault-state";
 
@@ -15,7 +15,7 @@ export async function GET() {
     const { user } = await requireSession();
     return NextResponse.json(await getVaultState(user.id));
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sign-in")) {
+    if (error instanceof SessionRequiredError) {
       return unauthorizedResponse();
     }
     return jsonError(error, 500);
@@ -28,6 +28,6 @@ export async function POST(request: Request) {
     const payload = vaultActionSchema.parse(await readJsonBody(request));
     return NextResponse.json(await recordVaultAction(user.id, payload.action, payload.game_id, payload.context));
   } catch (error) {
-    return jsonError(error, error instanceof Error && error.message.includes("sign-in") ? 401 : 400);
+    return jsonError(error, error instanceof SessionRequiredError ? 401 : 400);
   }
 }

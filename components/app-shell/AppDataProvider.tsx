@@ -12,7 +12,7 @@ import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
-import { announceCooldown, CooldownError } from "@/lib/cooldown";
+import { announceCooldown, CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
 import {
   IDLE_STEAM_IMPORT,
   type SteamImportProgress
@@ -71,6 +71,7 @@ type AppDataContextValue = {
   steamImport: SteamImportProgress;
   steamImportChecked: boolean;
   steamImportCooldownUntil: number | null;
+  steamLibraryPrivate: boolean;
   loadError: string | null;
   refresh: (options?: { quiet?: boolean }) => Promise<boolean>;
   checkSteamImport: () => Promise<SteamImportProgress>;
@@ -106,6 +107,9 @@ async function api<T>(path: string, options: RequestInit = {}) {
   if (!response.ok) {
     const cooldown = announceCooldown(response, payload);
     if (cooldown) throw new CooldownError(cooldown.retryAfterSeconds, cooldown.message);
+    if (payload.code === "steam_library_private") {
+      throw new SteamLibraryPrivateError(payload.error || "Steam is not sharing your games.");
+    }
     throw new Error(payload.error || "Request failed.");
   }
   return payload as T;
@@ -133,6 +137,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // trying again. Held apart from steamImport.status so the card can say "wait"
   // rather than "paused", and so retrying is disabled until it means something.
   const [steamImportCooldownUntil, setSteamImportCooldownUntil] = useState<number | null>(null);
+  // Steam will not hand over the library at all until the account makes its game
+  // details public. Nothing here can fix that, so the only useful thing the app
+  // can do is say so plainly and point at the setting.
+  const [steamLibraryPrivate, setSteamLibraryPrivate] = useState(false);
   const [playHistoryMissing, setPlayHistoryMissing] = useState(false);
   const [deviceMode, setDeviceModeState] = useState<DeviceMode>("all");
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -327,6 +335,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       completedAt: restart ? null : current.completedAt
     }));
     setSteamImportCooldownUntil(null);
+    setSteamLibraryPrivate(false);
     let steamImportSaved = restart ? false : steamImport.imported > 0;
     let importCompleted = false;
     try {
@@ -399,6 +408,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         setSteamImportCooldownUntil(Date.now() + error.retryAfterSeconds * 1000);
         throw error;
       }
+      if (error instanceof SteamLibraryPrivateError) setSteamLibraryPrivate(true);
       if (!importCompleted) {
         // Seeded from the server's own count where we have it, so "Resume
         // import" resumes from the right place rather than from whatever this
@@ -764,6 +774,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       steamImport,
       steamImportChecked,
       steamImportCooldownUntil,
+      steamLibraryPrivate,
       loadError,
       refresh: load,
       checkSteamImport,
@@ -782,7 +793,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [capabilities, session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, steamImportCooldownUntil, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [capabilities, session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

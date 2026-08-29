@@ -105,3 +105,13 @@
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* Steam will not share the library until the account makes game details public.
+   Nothing in the app can do it for them, so the card gives the three steps and
+   a way straight to the setting. */
+.privateFix { grid-column: 1 / -1; display: grid; gap: 12px; }
+.privateFix ol { margin: 0; padding-left: 20px; display: grid; gap: 5px; color: var(--vault-text-muted); font-size: 0.82rem; line-height: 1.45; }
+.privateFix li strong { color: var(--vault-text); }
+.privateFix a { color: #d392ff; text-decoration: underline; text-underline-offset: 2px; }
+.privateFix button { justify-self: start; min-height: 40px; padding: 9px 16px; border: 0; border-radius: 999px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.84rem; cursor: pointer; }
+.privateFix button:disabled { opacity: 0.6; cursor: default; }

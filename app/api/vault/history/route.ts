@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession, requireWriteSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, requireWriteSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { jsonError, readJsonBody } from "@/lib/http";
 
@@ -45,7 +45,7 @@ export async function GET() {
       eventsByDraw.set(event.draw_id, drawEvents);
     }
     return NextResponse.json({ draws: (draws ?? []).map((draw) => ({ id: draw.id, steamAppId: Number(draw.steam_appid), drawnAt: draw.drawn_at, session: draw.session, mood: draw.mood, goal: draw.goal, collectionId: draw.collection_id, selectedGenres: draw.selected_genres ?? [], eligiblePoolCount: draw.eligible_pool_count, rerollIndex: draw.reroll_index, events: (eventsByDraw.get(draw.id) ?? []).map((event) => ({ id: event.id, drawId: event.draw_id, eventType: event.event_type, createdAt: event.created_at })) })) });
-  } catch (error) { if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse(); return jsonError(error); }
+  } catch (error) { if (error instanceof SessionRequiredError) return unauthorizedResponse(); return jsonError(error); }
 }
 
 export async function POST(request: Request) {
@@ -68,10 +68,10 @@ export async function POST(request: Request) {
     });
     if (error) throw error;
     return NextResponse.json(data, { status: 201 });
-  } catch (error) { return jsonError(error, error instanceof Error && error.message.includes("sign-in") ? 401 : 400); }
+  } catch (error) { return jsonError(error, error instanceof SessionRequiredError ? 401 : 400); }
 }
 
 export async function DELETE() {
   try { const { user } = await requireWriteSession(); const { error } = await getSupabaseAdmin().from("vault_draws").delete().eq("user_id", user.id); if (error) throw error; return NextResponse.json({ ok: true }); }
-  catch (error) { return jsonError(error, error instanceof Error && error.message.includes("sign-in") ? 401 : 400); }
+  catch (error) { return jsonError(error, error instanceof SessionRequiredError ? 401 : 400); }
 }

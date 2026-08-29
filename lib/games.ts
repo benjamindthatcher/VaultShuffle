@@ -34,20 +34,54 @@ function normalizeGamePayload(payload: Partial<GamePayload>): GamePayload {
   };
 }
 
+/** PostgREST stops at 1,000 rows per request whatever the query asks for. */
+const READ_PAGE_SIZE = 1000;
+/** 40,000 games is far beyond the largest Steam library; a stop, not a limit. */
+const MAX_READ_PAGES = 40;
+
+/**
+ * Every owned game, not the first thousand of them.
+ *
+ * This was a single select. PostgREST caps a response at 1,000 rows and says
+ * nothing about it, so anyone with a bigger library had it silently cut down -
+ * Library, Purge and the played counts all agreed on exactly 1,000 because they
+ * are all fed from here. One account has 4,741 games; it was showing 1,000.
+ *
+ * Title alone is not a stable sort across pages, so id breaks the ties: without
+ * it two games sharing a title can swap places between requests and be fetched
+ * twice or not at all.
+ */
 export async function listGames(userId: string) {
   const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase
-    .from(USER_GAMES_READ_MODEL)
-    .select("*")
-    .eq("user_id", userId)
-    .eq("is_quarantined", false)
-    // Wishlist was removed. Any legacy row is skipped rather than promoted to
-    // Owned, which would silently add games the user does not own.
-    .eq("ownership", "Owned")
-    .order("title", { ascending: true });
+  const rows: Game[] = [];
 
-  if (error) throw error;
-  return ((data ?? []) as Game[]).map(cleanStoredGame);
+  for (let page = 0; page < MAX_READ_PAGES; page += 1) {
+    const from = page * READ_PAGE_SIZE;
+    const { data, error } = await supabase
+      .from(USER_GAMES_READ_MODEL)
+      .select("*")
+      .eq("user_id", userId)
+      .eq("is_quarantined", false)
+      // Wishlist was removed. Any legacy row is skipped rather than promoted to
+      // Owned, which would silently add games the user does not own.
+      .eq("ownership", "Owned")
+      .order("title", { ascending: true })
+      .order("id", { ascending: true })
+      .range(from, from + READ_PAGE_SIZE - 1);
+
+    if (error) throw error;
+    const batch = (data ?? []) as Game[];
+    rows.push(...batch);
+    if (batch.length < READ_PAGE_SIZE) return rows.map(cleanStoredGame);
+  }
+
+  console.warn(JSON.stringify({
+    level: "warning",
+    message: "Library read hit the page ceiling",
+    pages: MAX_READ_PAGES,
+    rows: rows.length
+  }));
+  return rows.map(cleanStoredGame);
 }
 
 export async function findGame(userId: string, gameId: string) {

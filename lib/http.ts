@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ZodError } from "zod";
+import { SessionRequiredError } from "@/lib/auth";
 import { RateLimitExceededError } from "@/lib/rate-limit";
 
 const DEFAULT_MAX_BODY_BYTES = 64 * 1024;
@@ -74,7 +75,7 @@ export function jsonError(error: unknown, status = 500) {
   }
 
   const message = error instanceof Error ? error.message : "Something went wrong.";
-  const responseStatus = message === "Steam sign-in is required." ? 401 : status;
+  const responseStatus = error instanceof SessionRequiredError ? 401 : status;
   if (responseStatus >= 500) {
     console.error("API request failed:", error);
     return NextResponse.json({ error: "Something went wrong. Please try again." }, { status: responseStatus });

@@ -1,6 +1,6 @@
 import { after, NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { requireSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { enforceRateLimit, releaseRateLimit } from "@/lib/rate-limit";
 import { fetchOwnedSteamGames } from "@/lib/steam";
@@ -18,7 +18,7 @@ export async function GET() {
     const { user } = await requireSession();
     return NextResponse.json({ progress: await getSteamImportProgress(user.id) });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sign-in")) return unauthorizedResponse();
+    if (error instanceof SessionRequiredError) return unauthorizedResponse();
     return jsonError(error, 502);
   }
 }
@@ -116,7 +116,7 @@ export async function POST(request: Request) {
     }));
     return NextResponse.json({ progress });
   } catch (error) {
-    if (error instanceof Error && error.message.includes("sign-in")) {
+    if (error instanceof SessionRequiredError) {
       return unauthorizedResponse();
     }
     if (error instanceof SteamLibraryUnavailableError) {
@@ -126,7 +126,13 @@ export async function POST(request: Request) {
         route: "/api/steam/owned-games",
         duration_ms: Date.now() - startedAt
       }));
-      return NextResponse.json({ error: error.message }, { status: 409 });
+      // A code, so the browser never has to read the sentence to know what
+      // this is. Reading messages to make decisions is what sent this whole
+      // condition to a 401 in the first place.
+      return NextResponse.json(
+        { error: error.message, code: "steam_library_private" },
+        { status: 409 }
+      );
     }
     return jsonError(error, 502);
   }
