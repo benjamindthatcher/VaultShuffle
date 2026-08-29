@@ -761,13 +761,28 @@
   .summaryItem strong { flex-wrap: wrap; white-space: normal; overflow: visible; }
 
   .resultAction { min-height: 58px; }
+
+  /* The card reads top to bottom: artwork across the full width, then the name,
+     the description, the reasoning, and the actions.
+
+     Side by side, the 340px artwork track takes essentially the whole card and
+     the name and description end up in a column narrower than one word - laid
+     out past the right edge, where the card's overflow removes them. There is
+     no width at which two columns work on a phone. */
+  .resultTop {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    padding: 12px 0 0;
+  }
+
+  /* width: auto, not the 100% it inherits - as a grid item it stretches to the
+     track anyway, and 100% plus the margins is 36px wider than the card. */
+  .resultArtwork { width: auto; margin: 0 18px; }
+
+  /* Matches .resultBody's horizontal padding below it, so the name lines up
+     with the reasoning rather than sitting inset from it. */
+  .resultIntro { padding: 16px 18px 0; }
 }
-
-/* The card reads top to bottom: artwork across the full width, then the name,
-   the description, the reasoning, and the actions. Side by side, the artwork
-   column set the height of the whole card and left the reasoning squeezed into
-   half the width beside it. */
-
 
 @media (max-width: 440px) {
   .optionalLabel { display: none; }
