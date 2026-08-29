@@ -119,3 +119,37 @@
   font-weight: 650;
   color: #7ce7b2;
 }
+
+/* Three tabs at a 140px floor demand 420px of columns, and with the gaps,
+   padding and border the row insists on 446px. The page only offers 327px on a
+   phone, so the row overflowed and dragged the whole document into sideways
+   scroll - every card sat 95px wider than the screen. Below the width where the
+   floor genuinely fits, the tabs share the room the page actually has. */
+@media (max-width: 520px) {
+  .statusTabs {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-self: stretch;
+    gap: 4px;
+    padding: 4px;
+  }
+
+  /* Side by side, a column has to fit "Completed" and its count pill added
+     together - and a player with three digits of completed games squeezed the
+     pill down to 16px and cut the number. Stacked, the column only has to fit
+     the wider of the two, which leaves room to spare at every count. */
+  .statusTab,
+  .statusTabActive {
+    flex-direction: column;
+    gap: 2px;
+    min-height: 48px;
+    padding: 0 4px;
+    font-size: 0.78rem;
+  }
+
+  .statusTab strong,
+  .statusTabActive strong {
+    min-width: 0;
+    padding: 1px 7px;
+    font-size: 0.72rem;
+  }
+}

@@ -234,3 +234,34 @@
     font-size: 0.75rem;
   }
 }
+
+/* Sits under the card rather than on it: the artwork is what people scan, and a
+   button floating over it costs a game its face. The shell is only a positioning
+   context, so the button is a sibling of the card and stacks beneath it. */
+.cardShell:has(> .quickComplete) { display: grid; gap: 8px; }
+
+.quickComplete {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  /* A thumb target, on the page where this is pressed most. */
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(110, 231, 183, 0.34);
+  border-radius: 11px;
+  background: rgba(110, 231, 183, 0.1);
+  color: #b6f4d4;
+  font-size: 0.84rem;
+  font-weight: 750;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.quickComplete:hover {
+  border-color: rgba(110, 231, 183, 0.6);
+  background: rgba(110, 231, 183, 0.2);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickComplete { transition: none; }
+}
