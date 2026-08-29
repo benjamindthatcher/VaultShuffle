@@ -86,6 +86,9 @@
 @media (max-width: 560px) {
   .card { grid-template-columns: 34px minmax(0, 1fr); }
   .progressBlock { grid-column: 1 / -1; }
+  /* Without this the handoff lands in the 34px icon column and sits on top of
+     the icon - the third column it was placed in does not exist down here. */
+  .handoff { grid-column: 1 / -1; justify-self: start; }
 }
 
 /* The hand-off out of onboarding. Only shown on a first import, where the card
