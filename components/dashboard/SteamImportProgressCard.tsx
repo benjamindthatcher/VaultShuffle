@@ -19,8 +19,16 @@ export function SteamImportProgressCard() {
     steamImportChecked,
     steamImportCooldownUntil,
     steamLibraryPrivate,
+    session,
     syncSteamLibrary
   } = useAppData();
+
+  // Their own settings page, by SteamID. /my/ only resolves if this browser
+  // happens to be signed in to Steam, which on a phone it very often is not -
+  // it lands on a login page instead of the setting they were sent to change.
+  const privacyUrl = session.steam_id
+    ? `https://steamcommunity.com/profiles/${session.steam_id}/edit/settings`
+    : "https://steamcommunity.com/my/edit/settings";
   const [markerChecked, setMarkerChecked] = useState(false);
   // Whether the library was empty when this card started work. A first import is
   // the one moment the product has someone's full attention and a finished
@@ -192,7 +200,7 @@ export function SteamImportProgressCard() {
       {steamLibraryPrivate ? (
         <div className={styles.privateFix}>
           <ol>
-            <li>Open <a href="https://steamcommunity.com/my/edit/settings" target="_blank" rel="noreferrer">Steam privacy settings</a></li>
+            <li>Open your <a href={privacyUrl} target="_blank" rel="noreferrer">Steam privacy settings</a></li>
             <li>Set <strong>Game details</strong> to <strong>Public</strong> — the only setting we read</li>
             <li>Come back and try again</li>
           </ol>
