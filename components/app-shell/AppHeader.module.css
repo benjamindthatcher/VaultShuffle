@@ -228,6 +228,54 @@
   background: rgba(15, 157, 112, 0.14);
 }
 
+.secureProfileAction {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(148, 98, 255, 0.24);
+  background: linear-gradient(115deg, rgba(100, 45, 184, 0.18), rgba(39, 75, 170, 0.12));
+}
+
+.secureProfileAction:hover {
+  border-color: rgba(177, 118, 255, 0.42);
+  background: linear-gradient(115deg, rgba(112, 51, 204, 0.28), rgba(42, 84, 193, 0.2));
+}
+
+.secureProfileIcon {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: #d59eff;
+  background: rgba(142, 77, 255, 0.16);
+}
+
+.secureProfileCopy {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.secureProfileCopy strong {
+  color: var(--vault-text);
+  font-size: 0.78rem;
+  line-height: 1.25;
+}
+
+.secureProfileCopy small {
+  color: var(--vault-text-muted);
+  font-size: 0.68rem;
+  font-weight: 550;
+  line-height: 1.35;
+}
+
+.secureProfileChevron {
+  color: rgba(213, 158, 255, 0.7);
+}
+
 .menuAction:disabled {
   cursor: wait;
   opacity: 0.58;

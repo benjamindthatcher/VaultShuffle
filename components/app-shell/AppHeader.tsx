@@ -110,8 +110,24 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
           <div className={styles.profilePopover}>
             <div className={styles.accountSummary}>
               <strong>{profileName}</strong>
-              <span>{isLive ? (session.account_type === "manual" ? "Public Steam library" : "Steam connected") : "Guest preview"}</span>
+              <span>{isLive ? (session.account_type === "manual" ? "Browser-only profile" : "Steam connected") : "Guest preview"}</span>
             </div>
+            {session.account_type === "manual" ? (
+              <Link
+                href="/account/secure-profile"
+                className={`${styles.menuAction} ${styles.secureProfileAction}`}
+                onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSecurityLinkClicked, {
+                  location: "profile_menu",
+                })}
+              >
+                <span className={styles.secureProfileIcon}><VaultIcon name="lock" size={17} /></span>
+                <span className={styles.secureProfileCopy}>
+                  <strong>Secure profile with Steam</strong>
+                  <small>Keep this Vault across devices</small>
+                </span>
+                <VaultIcon name="chevron-right" size={15} className={styles.secureProfileChevron} />
+              </Link>
+            ) : null}
             {/* Outside the signed-in branch: the guest catalogue carries the same
                 platform and Deck data, so someone evaluating the product on a Mac
                 or a Deck can see whether it would actually be any use to them. */}
@@ -149,7 +165,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                   {isSyncing ? "Refreshing from Steam…" : "Refresh from Steam"}
                 </button>
                 <button type="button" className={`${styles.menuAction} ${styles.dangerAction}`} onClick={() => void signOut()}>
-                  Sign out
+                  {session.account_type === "manual" ? "Sign out of this browser" : "Sign out"}
                 </button>
               </>
             ) : (

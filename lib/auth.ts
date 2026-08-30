@@ -4,11 +4,13 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { enforceAuthenticatedWriteRate } from "@/lib/rate-limit";
 import type { AppUser, SteamPlayerSummary } from "@/lib/types";
+import { asManualProfileSecurityError } from "@/lib/manual-profile-security";
 
 export const SESSION_COOKIE = "vault_session";
 const SESSION_DAYS = 30;
 const MANUAL_SESSION_DAYS = 365;
 const MANUAL_TOKEN_PREFIX = "manual.";
+const PROFILE_SECURITY_INTENT_MINUTES = 10;
 
 function describeSupabaseError(error: unknown, fallback: string) {
   if (!error) return fallback;
@@ -112,9 +114,10 @@ async function getManualProfileSession(token: string) {
   // API call on a product page into a database update.
   const staleBefore = new Date(Date.now() - 60 * 60 * 1000).toISOString();
   if (!data.last_seen_at || data.last_seen_at < staleBefore) {
+    const refreshedExpiry = new Date(Date.now() + MANUAL_SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const { error: seenError } = await supabase
       .from("manual_profile_sessions")
-      .update({ last_seen_at: new Date().toISOString() })
+      .update({ last_seen_at: new Date().toISOString(), expires_at: refreshedExpiry })
       .eq("id", data.id)
       .lt("last_seen_at", staleBefore);
     if (seenError) {
@@ -175,19 +178,16 @@ export async function createSessionForSteamId(steamId: string, profile?: SteamPl
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const token = crypto.randomBytes(32).toString("base64url");
 
   const { data: user, error: userError } = await supabase
-    .from("app_users")
-    .upsert(
-      {
-        steam_id: steamId,
-        ...(profile?.display_name ? { display_name: profile.display_name } : {}),
-        ...(profile?.avatar_url ? { avatar_url: profile.avatar_url } : {}),
-        last_login_at: now.toISOString(),
-        updated_at: now.toISOString()
-      },
-      { onConflict: "steam_id" }
-    )
+    .rpc("create_verified_steam_session", {
+      p_steam_id: steamId,
+      p_display_name: profile?.display_name ?? null,
+      p_avatar_url: profile?.avatar_url ?? null,
+      p_token_hash: hashToken(token),
+      p_expires_at: expiresAt.toISOString(),
+    })
     .select("id, steam_id, display_name, avatar_url")
     .single();
 
@@ -195,21 +195,75 @@ export async function createSessionForSteamId(steamId: string, profile?: SteamPl
     throw new Error(describeSupabaseError(userError, "Could not create Steam user."));
   }
 
-  const token = crypto.randomBytes(32).toString("base64url");
-  const { error: sessionError } = await supabase.from("sessions").insert({
-    user_id: user.id,
-    token_hash: hashToken(token),
-    expires_at: expiresAt.toISOString()
-  });
-
-  if (sessionError) {
-    throw new Error(describeSupabaseError(sessionError, "Could not create Steam session."));
-  }
-
   return {
     token,
     user: { ...(user as Omit<AppUser, "account_type">), account_type: "steam" as const } satisfies AppUser,
   };
+}
+
+export async function createManualProfileSecurityIntent(input: {
+  accountId: string;
+  manualSessionId: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + PROFILE_SECURITY_INTENT_MINUTES * 60 * 1000);
+  const { error } = await supabase.rpc("create_manual_profile_security_intent", {
+    p_source_account_id: input.accountId,
+    p_source_manual_session_id: input.manualSessionId,
+    p_token_hash: hashToken(token),
+    p_expires_at: expiresAt.toISOString(),
+  });
+
+  if (error) {
+    throw asManualProfileSecurityError(error, "link_intent_invalid");
+  }
+  return { token, expiresAt };
+}
+
+export async function completeManualProfileSecurity(input: {
+  intentToken: string;
+  manualSessionId: string;
+  verifiedSteamId: string;
+  profile?: SteamPlayerSummary | null;
+  openIdResponseNonce: string;
+}) {
+  const supabase = getSupabaseAdmin();
+  const token = crypto.randomBytes(32).toString("base64url");
+  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const { data, error } = await supabase
+    .rpc("complete_manual_profile_security", {
+      p_intent_token_hash: hashToken(input.intentToken),
+      p_manual_session_id: input.manualSessionId,
+      p_verified_steam_id: input.verifiedSteamId,
+      p_steam_display_name: input.profile?.display_name ?? null,
+      p_avatar_url: input.profile?.avatar_url ?? null,
+      p_new_session_token_hash: hashToken(token),
+      p_new_session_expires_at: expiresAt.toISOString(),
+      p_openid_response_nonce: input.openIdResponseNonce,
+    })
+    .single();
+
+  if (error || !data) {
+    throw asManualProfileSecurityError(error, "link_merge_failed");
+  }
+
+  const result = data as {
+    account_id: unknown;
+    merge_mode: unknown;
+    merged_from_account_id: unknown;
+  };
+  const mergeMode = String(result.merge_mode);
+  if (mergeMode !== "promoted" && mergeMode !== "merged_existing") {
+    throw asManualProfileSecurityError(null, "link_merge_failed");
+  }
+
+  return {
+    token,
+    accountId: String(result.account_id),
+    sourceAccountId: String(result.merged_from_account_id),
+    mergeMode,
+  } as const;
 }
 
 export async function createManualProfileSession(input: {
@@ -316,6 +370,13 @@ export function attachSessionCookie(response: NextResponse, token: string) {
     path: "/",
     maxAge: maxAgeDays * 24 * 60 * 60
   });
+  return response;
+}
+
+/** Refreshes the browser lifetime of an active manual-profile session. */
+export async function refreshCurrentManualSessionCookie(response: NextResponse) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (token?.startsWith(MANUAL_TOKEN_PREFIX)) attachSessionCookie(response, token);
   return response;
 }
 

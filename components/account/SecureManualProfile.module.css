@@ -1,0 +1,259 @@
+.page,
+.statePage {
+  width: min(920px, 100%);
+  margin: clamp(28px, 6vh, 76px) auto 0;
+}
+
+.page {
+  display: grid;
+  justify-items: center;
+}
+
+.intro {
+  max-width: 720px;
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.heroIcon,
+.stateIcon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(178, 111, 255, 0.5);
+  border-radius: 18px;
+  color: #d795ff;
+  background: radial-gradient(circle at 45% 35%, rgba(151, 70, 255, 0.4), rgba(30, 24, 78, 0.86));
+  box-shadow: 0 0 0 8px rgba(118, 66, 214, 0.08), 0 0 38px rgba(111, 64, 229, 0.2);
+}
+
+.label,
+.stateLabel {
+  margin: 24px 0 9px;
+  color: #d390ff;
+  font-size: 0.72rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.intro h1,
+.statePage h1 {
+  margin: 0;
+  color: var(--vault-text);
+  font-size: clamp(2.15rem, 5vw, 3.7rem);
+  font-weight: 900;
+  line-height: 1.02;
+  letter-spacing: -0.055em;
+  text-wrap: balance;
+}
+
+.lede {
+  max-width: 670px;
+  margin: 18px 0 0;
+  color: var(--vault-text-muted);
+  font-size: 1rem;
+  line-height: 1.65;
+  text-wrap: balance;
+}
+
+.error {
+  width: min(740px, 100%);
+  margin-top: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border: 1px solid rgba(255, 135, 164, 0.35);
+  border-radius: 13px;
+  color: #ffc6d4;
+  background: rgba(85, 24, 50, 0.4);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.error svg { flex: none; margin-top: 2px; }
+.error span { display: inline; }
+.error strong { margin-right: 5px; color: #ffe8ee; }
+
+.accessPath {
+  width: 100%;
+  margin-top: 38px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.accessStep {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 14px;
+  padding: 22px;
+  border: 1px solid rgba(139, 102, 222, 0.27);
+  border-radius: 18px;
+  background: rgba(13, 17, 43, 0.66);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.securedStep {
+  border-color: rgba(156, 99, 255, 0.4);
+  background: linear-gradient(135deg, rgba(64, 30, 110, 0.32), rgba(18, 36, 86, 0.42));
+}
+
+.stepIcon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 13px;
+  color: #cfa0ff;
+  background: rgba(140, 79, 228, 0.14);
+}
+
+.accessStep div { min-width: 0; }
+.accessStep small { color: #cd88ff; font-size: 0.67rem; font-weight: 800; letter-spacing: 0.11em; text-transform: uppercase; }
+.accessStep h2 { margin: 6px 0 5px; color: var(--vault-text); font-size: 1rem; line-height: 1.25; }
+.accessStep p { margin: 0; color: var(--vault-text-muted); font-size: 0.78rem; line-height: 1.5; }
+
+.pathLine {
+  position: relative;
+  display: grid;
+  place-items: center;
+  color: #c584ff;
+}
+
+.pathLine::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(130, 85, 230, 0.22), rgba(174, 102, 255, 0.75), rgba(76, 124, 255, 0.3));
+}
+
+.pathLine svg {
+  position: relative;
+  z-index: 1;
+  box-sizing: content-box;
+  padding: 6px;
+  border-radius: 50%;
+  background: var(--vault-ink);
+}
+
+.assurance {
+  width: min(740px, 100%);
+  margin-top: 24px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1px solid rgba(133, 106, 210, 0.22);
+  border-radius: 13px;
+  color: #c993ff;
+  background: rgba(12, 16, 39, 0.5);
+}
+
+.assurance svg { flex: none; margin-top: 1px; }
+.assurance p { margin: 0; color: var(--vault-text-muted); font-size: 0.8rem; line-height: 1.55; }
+.assurance strong { color: var(--vault-text); }
+
+.actions,
+.stateActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.actions { margin-top: 27px; }
+.stateActions { margin-top: 26px; }
+
+.primaryButton,
+.secondaryButton {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 0.84rem;
+  font-weight: 800;
+  transition: transform 160ms ease, filter 160ms ease, border-color 160ms ease, background-color 160ms ease;
+}
+
+.primaryButton {
+  border: 1px solid rgba(205, 115, 255, 0.55);
+  color: #fff;
+  background: linear-gradient(115deg, #8829eb, #6741ff 54%, #2879f5);
+  box-shadow: 0 14px 32px rgba(64, 49, 218, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.secondaryButton {
+  border: 1px solid rgba(151, 132, 210, 0.34);
+  color: var(--vault-text-muted);
+  background: rgba(11, 15, 37, 0.38);
+}
+
+.primaryButton:hover { transform: translateY(-2px); filter: brightness(1.08); }
+.secondaryButton:hover { border-color: rgba(183, 151, 255, 0.55); color: var(--vault-text); background: rgba(120, 76, 198, 0.1); }
+
+.optional {
+  margin: 15px 0 0;
+  color: var(--vault-text-soft);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.statePage {
+  min-height: min(610px, calc(100svh - var(--vault-header-height) - 90px));
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  text-align: center;
+}
+
+.statePage > p:not(.stateLabel) {
+  max-width: 620px;
+  margin: 18px 0 0;
+  color: var(--vault-text-muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.statePage > .primaryButton { margin-top: 26px; }
+.completeIcon { color: #86efbe; border-color: rgba(86, 217, 158, 0.4); background: radial-gradient(circle at 45% 35%, rgba(39, 184, 127, 0.3), rgba(23, 55, 66, 0.88)); }
+.loading { min-height: 520px; }
+
+@media (max-width: 720px) {
+  .page,
+  .statePage { margin-top: 18px; }
+  .accessPath { grid-template-columns: minmax(0, 1fr); gap: 0; margin-top: 28px; }
+  .pathLine { min-height: 42px; }
+  .pathLine::before { top: 0; bottom: 0; left: 50%; right: auto; width: 1px; height: auto; background: linear-gradient(180deg, rgba(130, 85, 230, 0.22), rgba(174, 102, 255, 0.75), rgba(76, 124, 255, 0.3)); }
+  .pathLine svg { transform: rotate(90deg); }
+}
+
+@media (max-width: 480px) {
+  .intro h1,
+  .statePage h1 { font-size: 2.4rem; }
+  .lede { font-size: 0.9rem; }
+  .accessStep { padding: 18px; grid-template-columns: 38px minmax(0, 1fr); gap: 11px; }
+  .stepIcon { width: 38px; height: 38px; }
+  .actions,
+  .stateActions { width: 100%; align-items: stretch; flex-direction: column; }
+  .primaryButton,
+  .secondaryButton { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton,
+  .secondaryButton { transition: none; }
+  .primaryButton:hover { transform: none; }
+}

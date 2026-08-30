@@ -1,0 +1,88 @@
+.notice {
+  width: min(var(--vault-list-width), 100%);
+  margin-inline: auto;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid rgba(153, 104, 255, 0.32);
+  border-radius: var(--vault-sheet-radius);
+  background:
+    linear-gradient(110deg, rgba(83, 43, 145, 0.16), rgba(32, 54, 130, 0.1)),
+    var(--vault-sheet-surface);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.icon {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(176, 113, 255, 0.25);
+  border-radius: 12px;
+  color: #d59eff;
+  background: rgba(142, 77, 255, 0.14);
+}
+
+.copy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.copy strong {
+  color: var(--vault-text);
+  font-size: 0.91rem;
+}
+
+.copy p {
+  margin: 0;
+  max-width: 92ch;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.48;
+}
+
+.copy q {
+  color: #dcb3ff;
+  font-weight: 700;
+}
+
+.notice button {
+  min-height: 36px;
+  padding: 8px 13px;
+  border: 1px solid rgba(178, 126, 255, 0.34);
+  border-radius: 999px;
+  color: var(--vault-text);
+  background: rgba(138, 77, 230, 0.13);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.notice button:hover {
+  border-color: rgba(203, 159, 255, 0.58);
+  background: rgba(138, 77, 230, 0.22);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 720px) {
+  .notice {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .notice button {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notice button { transition: none; }
+  .notice button:hover { transform: none; }
+}

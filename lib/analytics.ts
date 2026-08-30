@@ -37,6 +37,13 @@ export const ANALYTICS_EVENTS = {
   manualProfileCreated: "manual_profile_created",
   manualProfileCreationFailed: "manual_profile_creation_failed",
   manualProfileDashboardReached: "manual_profile_dashboard_reached",
+  manualProfileAccessNoticeShown: "manual_profile_access_notice_shown",
+  manualProfileAccessNoticeAcknowledged: "manual_profile_access_notice_acknowledged",
+  manualProfileSecurityLinkClicked: "manual_profile_security_link_clicked",
+  manualProfileSecurityViewed: "manual_profile_security_viewed",
+  manualProfileSecurityStarted: "manual_profile_security_started",
+  manualProfileSecurityErrorViewed: "manual_profile_security_error_viewed",
+  manualProfileSecurityCompleted: "manual_profile_security_completed",
   // The step between a finished first import and a first draw, which is where a
   // new account either becomes a user or does not.
   onboardingHandoffTaken: "onboarding_handoff_taken",

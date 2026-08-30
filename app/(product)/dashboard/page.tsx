@@ -10,6 +10,7 @@ import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBan
 import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
 import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
+import { useManualProfileAccessNotice } from "@/components/shared/ManualProfileAccessNotice";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ValueDial } from "@/components/dashboard/ValueDial";
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const enrichmentNotice = useLibraryEnrichmentNotice();
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
+  const manualProfileAccessNotice = useManualProfileAccessNotice();
 
   const stats = useMemo(() => buildBacklogStats(games), [games]);
 
@@ -125,6 +127,7 @@ export default function DashboardPage() {
               ambient news. */}
           <NoticeStack
             notices={[
+              { id: "manual-profile-access", node: manualProfileAccessNotice },
               { id: "enrichment", node: enrichmentNotice },
               { id: "completion", node: completionNotice },
               { id: "welcome", node: welcomeNotice }
