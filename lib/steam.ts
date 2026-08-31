@@ -3,6 +3,7 @@ import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import { steamOwnedGamesFromPayload } from "@/lib/steam-owned-games";
 import { recentlyPlayedAppIdsFromPayload } from "@/lib/steam-recent";
+import { fetchSteamResponse, readSteamJson } from "@/lib/steam-api-error";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
@@ -156,16 +157,12 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
     format: "json"
   });
 
-  const response = await fetch(`https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?${params.toString()}`, {
+  const response = await fetchSteamResponse("owned_games", `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?${params.toString()}`, {
     headers: { "User-Agent": "VaultShuffle/0.1" },
     cache: "no-store"
   });
 
-  if (!response.ok) {
-    throw new Error(`Steam library import failed with HTTP ${response.status}.`);
-  }
-
-  const payload = await response.json();
+  const payload = await readSteamJson(response, "owned_games");
   return steamOwnedGamesFromPayload(payload);
 }
 
@@ -180,26 +177,19 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
  * It reports membership of a window, not a moment. Callers must record it as
  * such - see lib/recency.ts - and must not turn it into a date.
  *
- * Secondary to the library import, so a failure here returns nothing rather than
- * throwing: an account whose recently-played list is private, empty, or briefly
- * unavailable must still import its library.
+ * Secondary to the library import. The caller catches failures separately so
+ * they can be logged without failing an otherwise successful import.
  */
 export { recentlyPlayedAppIdsFromPayload };
 
 export async function fetchRecentlyPlayedSteamAppIds(steamId: string, apiKey: string): Promise<number[]> {
   const params = new URLSearchParams({ key: apiKey, steamid: steamId, format: "json" });
 
-  try {
-    const response = await fetch(
+  const response = await fetchSteamResponse("recent_games",
       `https://api.steampowered.com/IPlayerService/GetRecentlyPlayedGames/v0001/?${params.toString()}`,
       { headers: { "User-Agent": "VaultShuffle/0.1" }, cache: "no-store" }
-    );
-    if (!response.ok) return [];
-    const payload = await response.json();
-    return recentlyPlayedAppIdsFromPayload(payload);
-  } catch {
-    return [];
-  }
+  );
+  return recentlyPlayedAppIdsFromPayload(await readSteamJson(response, "recent_games"));
 }
 
 

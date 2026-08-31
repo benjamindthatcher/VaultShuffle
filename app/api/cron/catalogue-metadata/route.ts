@@ -1,35 +1,24 @@
-import { NextResponse } from "next/server";
 import { countPendingCatalogueJobs, processCatalogueQueue, queueStaleCatalogueMetadata } from "@/lib/catalogue";
-import { withMetadataWorkerRun } from "@/lib/worker-runs";
+import { runNightlyWorker } from "@/lib/nightly-worker";
 
-export const maxDuration = 300;
+export const maxDuration = 120;
 
 export async function GET(request: Request) {
-  if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const result = await withMetadataWorkerRun("catalogue-metadata", async () => {
-      const deadlineAt = Date.now() + 275_000;
+  return runNightlyWorker(request, "catalogue-metadata", async () => {
+      const deadlineAt = Date.now() + 90_000;
 
       // Refreshing rows that already have metadata must not compete with games a
       // real user is currently staring at an empty card for. A large library can
       // queue well over a thousand first-time fetches, and topping the queue up
       // with stale refreshes every run kept it permanently ahead of the drain.
       const backlog = await countPendingCatalogueJobs();
-      const queued = backlog > 400 ? 0 : await queueStaleCatalogueMetadata(250);
+      const queued = backlog > 400 ? 0 : await queueStaleCatalogueMetadata(40);
       const totals = { claimed: 0, processed: 0, accepted: 0, rejected: 0, failed: 0, deferred: 0, rateLimited: false };
       let batches = 0;
 
-      // Steam throttles the store endpoint at roughly 200 lookups per five
-      // minutes. Running to that number means the last batch of every run is
-      // spent collecting failures and deferrals, so stop short of it: work that
-      // is deferred has to be claimed and retried later anyway.
-      // Each game now costs two Steam calls, not one: appdetails plus the deck
-      // compatibility endpoint. Halved so the run still lands under the same
-      // request budget it was tuned against.
-      const STEAM_LOOKUPS_PER_RUN = 80;
+      // A game can require Store metadata plus Deck compatibility. Keep an
+      // explicit game cap as well as a deadline; bulk backfills run locally.
+      const STEAM_LOOKUPS_PER_RUN = 40;
 
       while (Date.now() + 20_000 < deadlineAt && totals.processed < STEAM_LOOKUPS_PER_RUN) {
         const remaining = STEAM_LOOKUPS_PER_RUN - totals.processed;
@@ -46,10 +35,5 @@ export async function GET(request: Request) {
       }
 
       return { backlog, queued, batches, ...totals };
-    });
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("Shared Steam catalogue refresh failed.", error);
-    return NextResponse.json({ error: "Shared Steam catalogue refresh failed." }, { status: 500 });
-  }
+  });
 }

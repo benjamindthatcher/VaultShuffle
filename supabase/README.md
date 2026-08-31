@@ -1,40 +1,36 @@
-# Duration enrichment
+# Duration enrichment: local only
 
-Duration jobs can be processed by the authenticated `igdb-duration-worker` Edge Function or the protected server-side Vercel cron worker. The browser never contacts Twitch or IGDB; it only reads stored estimates.
+Duration lookup, matching and review run locally. Vercel serves stored estimates but does not contact IGDB/HLTB or drain duration queues. Existing estimates, evidence, overrides, queues and local scripts are preserved.
 
-## Link and deploy
+The old `/api/cron/durations` and `/api/durations/process` routes are removed. `npm run duration:admin -- process` refuses to invoke the legacy Supabase Edge Function. Its source remains for reference; do not deploy or schedule it. The production Supabase cron audit on 2026-08-31 found no active duration job, only API rate-limit cleanup.
 
-This checkout is not currently linked. Confirm the target, then run:
+## Local workflow
+
+1. Supply credentials in a private local environment, never in committed files or command output. Database reads/writeback use `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`; IGDB tools additionally need `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`.
+2. Run the existing checkpointed tools: `npm run duration:hltb -- --help` for HLTB, or `scripts/catalogue/fetch-igdb-durations-local.mjs` for local IGDB reports.
+3. Validate candidate evidence with `scripts/durations/validate-hltb-candidates.py`. Use `--include-matched` when validating matched candidates too; exact identity checks and review rules remain in force.
+4. Generate staged SQL using `scripts/durations/build-hltb-writeback-sql.mjs`, inspect it, then explicitly apply approved transactions to the intended database. Report generation itself does not apply writeback.
+5. Run the generated final verification and inspect coverage. Do not replace established estimates with ambiguous or missing matches.
+
+After producing a candidate report:
 
 ```bash
-npx supabase link --project-ref pfvblcopcmairdfeqdep
-npx supabase functions deploy igdb-duration-worker
+python3 scripts/durations/validate-hltb-candidates.py candidates.json --include-matched --output validated.json
+node scripts/durations/build-hltb-writeback-sql.mjs validated.json --output-directory reviewed-writeback --batch-size 100
 ```
 
-Configure `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET` in **Supabase Edge Functions > Secrets** and in the protected Vercel server environment when using both workers. Never expose either value through a `NEXT_PUBLIC_` variable.
+The output directory must be new or empty. Review before applying; neither command above writes to production.
 
-If configuring them from a private local terminal, use placeholders and paste the values only when running the command:
+## Queue inspection
 
-```bash
-npx supabase secrets set --project-ref pfvblcopcmairdfeqdep IGDB_CLIENT_ID="<paste locally>" IGDB_CLIENT_SECRET="<paste locally>"
-```
-
-## Schedule
-
-Create a Supabase Cron job every 10 minutes that POSTs `{ "batchSize": 4 }` to `/functions/v1/igdb-duration-worker`. Store the project service-role credential in Supabase Vault and send it as the bearer token. Never place the IGDB credentials in Cron SQL.
-
-## Administration
-
-All commands require server-side Supabase environment variables:
+These read-only commands still work with local server-side Supabase configuration:
 
 ```bash
-npm run duration:admin -- queue --steam-app-id 1086940
-npm run duration:admin -- backfill --limit 250
 npm run duration:admin -- counts
-npm run duration:admin -- retry
 npm run duration:admin -- ambiguous
 npm run duration:admin -- coverage
-npm run duration:admin -- process --limit 4
 ```
 
-Run the bounded backfill explicitly after deployment when existing catalogue rows need duration jobs.
+The explicit `queue`, `backfill` and `retry` commands still mutate queue state when intentionally invoked, but launch no hosted processing. A queued job is not an automatically running worker.
+
+Steam enrichment remains on [the nightly Vercel schedules](../docs/nightly-workers.md). No Supabase schema changes or duration-data deletion are required for this transition.

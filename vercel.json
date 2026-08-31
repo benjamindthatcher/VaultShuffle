@@ -6,16 +6,12 @@
       "schedule": "0 3 * * *"
     },
     {
-      "path": "/api/cron/steam-tags",
+      "path": "/api/cron/catalogue-metadata",
       "schedule": "0 4 * * *"
     },
     {
-      "path": "/api/cron/catalogue-metadata",
+      "path": "/api/cron/steam-tags",
       "schedule": "0 5 * * *"
-    },
-    {
-      "path": "/api/cron/durations",
-      "schedule": "0 7 * * *"
     },
     {
       "path": "/api/cron/genre-preferences",

@@ -1,5 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { hasCorroboratedOnlineLoop } from "@/lib/game-classification";
+import { steamRetryAfter } from "@/lib/steam-api-error";
 
 const STEAMSPY_MIN_INTERVAL_MS = 1_100;
 const TAG_REFRESH_AFTER_MS = 30 * 24 * 60 * 60 * 1_000;
@@ -8,13 +8,11 @@ const FAILED_RETRY_AFTER_MS = 7 * 24 * 60 * 60 * 1_000;
 type SteamTagQueueRow = {
   steam_appid: number;
   tags_failure_count: number | null;
-  genres: string[] | null;
-  categories: string[] | null;
-  main_story_minutes: number | null;
-  main_extras_minutes: number | null;
-  completionist_minutes: number | null;
-  duration_kind: "finite" | "endless" | "not-applicable" | "unknown" | null;
 };
+
+class SteamTagRateLimitError extends Error {
+  constructor(readonly retryAfterSeconds: number) { super("SteamSpy rate limit reached."); }
+}
 
 let nextSteamSpyRequestAt = 0;
 
@@ -56,7 +54,7 @@ export async function queueAllKnownSteamTags() {
   return count ?? 0;
 }
 
-export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() + 270_000) {
+export async function processSteamTagQueue(limit = 60, deadlineAt = Date.now() + 70_000) {
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.rpc("claim_steam_tag_jobs", {
     p_limit: clamp(limit, 1, 220)
@@ -66,16 +64,22 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
 
   let updated = 0;
   let failed = 0;
-  for (const row of rows) {
-    if (Date.now() + STEAMSPY_MIN_INTERVAL_MS >= deadlineAt) {
-      await releaseTagClaim(row.steam_appid);
-      continue;
+  let deferred = 0;
+  let rateLimited = false;
+  let consecutiveFailures = 0;
+  for (const [index, row] of rows.entries()) {
+    // Reserve a full request timeout and pacing interval, then release untouched
+    // claims together. Do not burn one DB round trip per deferred game.
+    if (Date.now() + 15_000 + STEAMSPY_MIN_INTERVAL_MS >= deadlineAt) {
+      const pending = rows.slice(index).map((entry) => entry.steam_appid);
+      await releaseTagClaims(pending);
+      deferred += pending.length;
+      break;
     }
 
     try {
       const tags = await fetchSteamCommunityTags(row.steam_appid);
       const checkedAt = new Date().toISOString();
-      const inferEndless = shouldClassifyAsEndless(row, tags);
       const { error: updateError } = await supabase
         .from("catalog_games")
         .update({
@@ -87,21 +91,22 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
           tags_next_attempt_at: null,
           tags_failure_count: 0,
           tags_last_error: null,
-          ...(inferEndless ? {
-            duration_kind: "endless",
-            duration_status: "ready",
-            duration_source: "steam-tags",
-            duration_source_game_id: null,
-            duration_source_updated_at: checkedAt,
-            duration_confidence: "medium"
-          } : {}),
           updated_at: checkedAt
         })
         .eq("steam_appid", row.steam_appid);
       if (updateError) throw updateError;
       updated += 1;
+      consecutiveFailures = 0;
     } catch (error) {
+      if (error instanceof SteamTagRateLimitError) {
+        const pending = rows.slice(index).map((entry) => entry.steam_appid);
+        await releaseTagClaims(pending, new Date(Date.now() + Math.max(30 * 60, error.retryAfterSeconds) * 1000).toISOString());
+        deferred += pending.length;
+        rateLimited = true;
+        break;
+      }
       failed += 1;
+      consecutiveFailures += 1;
       const failureCount = Number(row.tags_failure_count || 0) + 1;
       const terminal = failureCount >= 5;
       const checkedAt = new Date().toISOString();
@@ -119,6 +124,12 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
         })
         .eq("steam_appid", row.steam_appid);
       if (failureError) throw failureError;
+      if (consecutiveFailures >= 3) {
+        const pending = rows.slice(index + 1).map((entry) => entry.steam_appid);
+        await releaseTagClaims(pending);
+        deferred += pending.length;
+        break;
+      }
     }
   }
 
@@ -132,15 +143,10 @@ export async function processSteamTagQueue(limit = 180, deadlineAt = Date.now() 
     claimed: rows.length,
     updated,
     failed,
+    deferred,
+    rateLimited,
     remaining: count ?? 0
   };
-}
-
-function shouldClassifyAsEndless(row: SteamTagQueueRow, tags: Record<string, number>) {
-  if (row.duration_kind && row.duration_kind !== "unknown") return false;
-  if ([row.main_story_minutes, row.main_extras_minutes, row.completionist_minutes]
-    .some((minutes) => Number(minutes) > 0)) return false;
-  return hasCorroboratedOnlineLoop({ tags, genres: row.genres, categories: row.categories });
 }
 
 async function fetchSteamCommunityTags(steamAppId: number) {
@@ -159,7 +165,7 @@ async function fetchSteamCommunityTags(steamAppId: number) {
   });
 
   if (response.status === 429) {
-    throw new Error("SteamSpy rate limit reached.");
+    throw new SteamTagRateLimitError(steamRetryAfter(response.headers.get("Retry-After")));
   }
   if (!response.ok) {
     throw new Error(`SteamSpy returned HTTP ${response.status}.`);
@@ -188,7 +194,8 @@ async function waitForSteamSpyRateLimit() {
   nextSteamSpyRequestAt = Date.now() + STEAMSPY_MIN_INTERVAL_MS;
 }
 
-async function releaseTagClaim(steamAppId: number) {
+async function releaseTagClaims(steamAppIds: number[], retryAt = new Date().toISOString()) {
+  if (!steamAppIds.length) return;
   const supabase = getSupabaseAdmin();
   const now = new Date().toISOString();
   const { error } = await supabase
@@ -196,10 +203,10 @@ async function releaseTagClaim(steamAppId: number) {
     .update({
       tags_status: "pending",
       tags_processing_started_at: null,
-      tags_next_attempt_at: now,
+      tags_next_attempt_at: retryAt,
       updated_at: now
     })
-    .eq("steam_appid", steamAppId)
+    .in("steam_appid", steamAppIds)
     .eq("tags_status", "processing");
   if (error) throw error;
 }

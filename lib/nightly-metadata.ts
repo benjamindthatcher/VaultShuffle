@@ -1,13 +1,12 @@
-import { processDurationQueue } from "@/lib/duration-worker";
 import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
-import { fetchOwnedSteamGames } from "@/lib/steam";
-import { buildGuestCataloguePool } from "@/lib/guest-catalogue";
+import { fetchOwnedSteamGames, fetchRecentlyPlayedSteamAppIds } from "@/lib/steam";
+import { SteamApiError } from "@/lib/steam-api-error";
 import { syncSteamRecentWindow } from "@/lib/recency-sync";
 import { steamVisibilityFromGames } from "@/lib/steam-owned-games";
 import { capturePlaytimeSnapshot } from "@/lib/playtime-snapshots";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { formatMetadataWorkerError } from "@/lib/worker-runs";
+import { diagnosticFailure, diagnosticId } from "@/lib/diagnostics";
 
 type SteamUser = {
   id: string;
@@ -18,23 +17,30 @@ export async function refreshNightlyMetadata() {
   const apiKey = process.env.STEAM_WEB_API_KEY;
   if (!apiKey) throw new Error("STEAM_WEB_API_KEY is required for the nightly refresh.");
 
-  const users = await loadSteamUsers();
+  const deadlineAt = Date.now() + 90_000;
+  const previousCursor = await loadLibraryCursor();
+  const users = await loadSteamUsers(previousCursor);
   // A verified account and one or more manual profiles can point at the same
   // public Steam library. Read that library once per run, then apply the answer
   // to each independent VaultShuffle account.
   const libraryFetches = new Map<string, ReturnType<typeof fetchOwnedSteamGames>>();
-  const deadlineAt = Date.now() + 275_000;
-  const libraryDeadlineAt = Math.min(deadlineAt - 150_000, Date.now() + 90_000);
+  const recentFetches = new Map<string, ReturnType<typeof fetchRecentlyPlayedSteamAppIds>>();
   let librariesRefreshed = 0;
-  let librariesDeferred = 0;
+  let librariesAttempted = 0;
   let gamesRefreshed = 0;
-  const failures: Array<{ userId?: string; stage: string; error: string }> = [];
+  let rateLimited = false;
+  let lastAccountId = previousCursor;
+  let failed = 0;
+  const failures: Array<{ userId: string; stage: string; error: string }> = [];
+  function recordFailure(userId: string, stage: string, error: unknown) {
+    failed += 1;
+    // Keep the existing one-row run summary small; no library contents or raw
+    // upstream/SQL messages are retained in it.
+    if (failures.length < 20) failures.push({ userId, stage, error: String(diagnosticFailure(error).error_code ?? "worker_error") });
+  }
 
   for (let index = 0; index < users.length; index += 3) {
-    if (Date.now() + 20_000 >= libraryDeadlineAt) {
-      librariesDeferred = users.length - index;
-      break;
-    }
+    if (rateLimited || Date.now() + 30_000 >= deadlineAt) break;
 
     const batch = users.slice(index, index + 3);
     await Promise.all(batch.map(async (user) => {
@@ -49,22 +55,24 @@ export async function refreshNightlyMetadata() {
         try {
           await recordImportedSteamAppIds(user.id, appIds);
         } catch (error) {
-          failures.push({
-            userId: user.id,
-            stage: "catalogue-registration",
-            error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
-          });
+          recordFailure(user.id, "catalogue-registration", error);
         }
         // Runs before the upsert writes the new baseline, so window evidence is
         // judged against what we knew going in rather than what we just learned.
-        const recentWindow = await syncSteamRecentWindow(user.id, user.steam_id, apiKey);
+        let recentFetch = recentFetches.get(user.steam_id);
+        if (!recentFetch) {
+          recentFetch = rateLimited ? Promise.resolve([]) : fetchRecentlyPlayedSteamAppIds(user.steam_id, apiKey);
+          recentFetches.set(user.steam_id, recentFetch);
+        }
+        const recentWindow = await syncSteamRecentWindow(user.id, user.steam_id, apiKey, recentFetch);
         if (recentWindow.error) {
-          failures.push({ userId: user.id, stage: "recent-window", error: recentWindow.error });
+          recordFailure(user.id, "recent-window", { code: recentWindow.failure?.error_code });
+          rateLimited ||= recentWindow.failure?.upstream_status === 429;
         }
         const savedGames = await upsertSteamGames(user.id, ownedGames);
-        // Recorded every night so a change in someone's Steam privacy settings
-        // shows up on its own rather than being discovered by reading rows.
-        await recordSteamVisibility(user.id, steamVisibilityFromGames(ownedGames)).catch(() => undefined);
+        // Record visibility when this account's turn in the nightly sweep arrives.
+        await recordSteamVisibility(user.id, steamVisibilityFromGames(ownedGames))
+          .catch((error) => recordFailure(user.id, "visibility", error));
         // Written from the library we already have in hand, so this costs no extra
         // Steam calls. Steam exposes only a running total, so a day that is not
         // recorded tonight can never be recovered.
@@ -72,76 +80,71 @@ export async function refreshNightlyMetadata() {
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
       } catch (error) {
-        failures.push({
-          userId: user.id,
-          stage: "owned-library",
-          error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
-        });
+        rateLimited ||= error instanceof SteamApiError && error.upstreamStatus === 429;
+        recordFailure(user.id, "owned-library", error);
       }
     }));
-  }
-
-  const durations = [];
-  try {
-    while (Date.now() + 25_000 < deadlineAt) {
-      const result = await processDurationQueue(16, deadlineAt);
-      durations.push(result);
-      if (!result.claimed || result.deferred) break;
-    }
-  } catch (error) {
-    failures.push({
-      stage: "durations",
-      error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
-    });
-  }
-
-  // Recomputed here so no guest ever pays for it. Selection scans and sorts the
-  // whole catalogue, which took 32 seconds behind an hourly cache - one very
-  // slow first impression an hour for whoever arrived first.
-  let guestPoolSize = 0;
-  try {
-    guestPoolSize = await buildGuestCataloguePool();
-  } catch (error) {
-    failures.push({
-      stage: "guest-pool",
-      error: formatMetadataWorkerError(error, 500) ?? "Unknown worker error"
-    });
+    librariesAttempted += batch.length;
+    lastAccountId = batch[batch.length - 1].id;
   }
 
   return {
-    users: users.length,
-    guestPoolSize,
+    candidates: users.length,
+    candidateLimitReached: users.length === 150,
+    librariesAttempted,
     librariesRefreshed,
-    librariesDeferred,
+    librariesDeferred: users.length - librariesAttempted,
     gamesRefreshed,
-    durations,
+    lastAccountId,
+    rateLimited,
+    failed,
     failures
   };
 }
 
-async function loadSteamUsers() {
-  const supabase = getSupabaseAdmin();
-  const pageSize = 500;
+async function loadLibraryCursor() {
+  const { data, error } = await getSupabaseAdmin()
+    .from("metadata_worker_runs")
+    .select("summary")
+    .eq("worker_name", "nightly-metadata")
+    .in("status", ["succeeded", "partial"])
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return diagnosticId(data?.summary?.lastAccountId) ?? null;
+}
 
-  async function loadIdentityTable(table: "app_users" | "manual_steam_profiles") {
-    const users: SteamUser[] = [];
-    for (let from = 0; ; from += pageSize) {
-      const { data, error } = await supabase
-        .from(table)
-        .select("id, steam_id")
-        .not("steam_id", "is", null)
-        .range(from, from + pageSize - 1);
-      if (error) throw error;
-      const page = (data ?? []) as SteamUser[];
-      users.push(...page.filter((user) => Boolean(user.steam_id)));
-      if (page.length < pageSize) break;
-    }
-    return users;
+/** Bounded keyset scan across both identity tables, continuing next night. */
+async function loadSteamUsers(cursor: string | null) {
+  const supabase = getSupabaseAdmin();
+  const limit = 150;
+
+  async function loadIdentityTable(table: "app_users" | "manual_steam_profiles", wrap = false) {
+    let query = supabase
+      .from(table)
+      .select("id, steam_id")
+      .not("steam_id", "is", null)
+      .order("id", { ascending: true })
+      .limit(limit);
+    if (cursor) query = wrap ? query.lte("id", cursor) : query.gt("id", cursor);
+    const { data, error } = await query;
+    if (error) throw error;
+    return ((data ?? []) as SteamUser[]).filter((user) => Boolean(user.steam_id));
   }
 
-  const [verifiedUsers, manualProfiles] = await Promise.all([
+  const pages = await Promise.all([
     loadIdentityTable("app_users"),
     loadIdentityTable("manual_steam_profiles"),
   ]);
-  return [...verifiedUsers, ...manualProfiles];
+  const byId = (a: SteamUser, b: SteamUser) => a.id.localeCompare(b.id);
+  const users = pages.flat().sort(byId).slice(0, limit);
+  if (cursor && users.length < limit) {
+    const wrapped = await Promise.all([
+      loadIdentityTable("app_users", true),
+      loadIdentityTable("manual_steam_profiles", true),
+    ]);
+    users.push(...wrapped.flat().sort(byId).slice(0, limit - users.length));
+  }
+  return users;
 }

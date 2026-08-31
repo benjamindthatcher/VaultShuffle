@@ -15,4 +15,4 @@ npm run catalogue:fetch-top
 npm run catalogue:build-seed -- data/catalogue/steam-top-1000-owners-YYYY-MM-DD.json
 ```
 
-Generated seed SQL is an operational artifact and should be removed after review and application. User-library imports call `register_catalog_imports`, record one private user/AppID relationship, update the privacy-safe `users_that_imported` count, and immediately process up to 50 missing AppIDs through Steam's app metadata classifier. Protected `GET /api/catalogue/process` drains another batch every day through Vercel Cron using `CRON_SECRET`; `POST` also supports an explicit `CATALOGUE_INGEST_SECRET` for manual drains.
+Generated seed SQL is an operational artifact and should be removed after review and application. User-library imports register missing AppIDs for nightly enrichment; imports no longer start background catalogue workers. The protected nightly `/api/cron/catalogue-metadata` job drains the queue in bounded batches; `/api/catalogue/process` is retired. See [nightly worker policy](../../docs/nightly-workers.md). Duration enrichment and reviewed writeback are local-only.

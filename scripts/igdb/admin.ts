@@ -35,8 +35,7 @@ if (command === "queue") {
   ]);
   output(totalError || matchedError, { confirmedGames: total ?? 0, matchedEstimates: matched ?? 0 });
 } else if (command === "process") {
-  const { data, error } = await supabase.functions.invoke("igdb-duration-worker", { body: { batchSize: bounded(argument("--limit"), 4, 8) } });
-  output(error, data);
+  fail("Hosted duration processing is retired. Use the local duration enrichment and reviewed writeback workflow documented in supabase/README.md.");
 } else {
   fail("Commands: queue, backfill, counts, retry, ambiguous, coverage, process");
 }

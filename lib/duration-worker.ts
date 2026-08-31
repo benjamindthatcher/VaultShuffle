@@ -11,6 +11,9 @@ export async function processDurationQueue(
   limit = 8,
   deadlineAt = Number.POSITIVE_INFINITY
 ) {
+  // Historical implementation retained for reference; no web route imports it.
+  // Duration enrichment is an explicit local workflow, never a Vercel worker.
+  if (process.env.VERCEL) throw new Error("Duration processing is local-only.");
   const clientId = process.env.IGDB_CLIENT_ID;
   const clientSecret = process.env.IGDB_CLIENT_SECRET;
   if (!clientId || !clientSecret) throw new Error("Duration provider is not configured.");

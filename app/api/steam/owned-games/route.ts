@@ -1,12 +1,10 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { enforceRateLimit, releaseRateLimit } from "@/lib/rate-limit";
 import { fetchOwnedSteamGames } from "@/lib/steam";
-import { syncSteamRecentWindow } from "@/lib/recency-sync";
 import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
-import { processCatalogueQueue } from "@/lib/catalogue";
 import { getSteamImportProgress, processNextSteamImportBatch, stageSteamImport } from "@/lib/steam-import-jobs";
 
 export const maxDuration = 60;
@@ -41,7 +39,7 @@ export async function POST(request: Request) {
         message: "This Steam import is receiving too many batch requests. Please let the current import settle before resuming."
       });
       const result = await processNextSteamImportBatch(user.id);
-      scheduleInitialEnrichment(result.progress.status, user.id);
+      // Metadata misses stay queued for the bounded nightly workers.
       return NextResponse.json(
         {
           progress: result.progress,
@@ -93,20 +91,6 @@ export async function POST(request: Request) {
     }
     const progress = await stageSteamImport(user.id, importedGames);
 
-    // Bootstraps recency on the very first import, so a new account knows what
-    // its owner has been playing without waiting for our own observations to
-    // accumulate. Deliberately not awaited into the failure path: the library is
-    // what the user asked for, and this is a bonus on top of it.
-    const recentWindow = await syncSteamRecentWindow(user.id, user.steam_id, apiKey);
-    if (recentWindow.error) {
-      console.warn(JSON.stringify({
-        level: "warning",
-        message: "Could not apply Steam recently-played evidence",
-        route: "/api/steam/owned-games",
-        error: recentWindow.error
-      }));
-    }
-
     console.log(JSON.stringify({
       level: "info",
       message: "Steam library staged for bounded import",
@@ -136,16 +120,4 @@ export async function POST(request: Request) {
     }
     return jsonError(error, 502);
   }
-}
-
-function scheduleInitialEnrichment(status: string, userId: string) {
-  if (status !== "complete") return;
-  after(async () => {
-    const deadlineAt = Date.now() + 45_000;
-    // Queue claims are shared, and user imports are registered with elevated
-    // priority. A small first pass helps without extending the ownership job.
-    await processCatalogueQueue(20, undefined, deadlineAt).catch((error) => {
-      console.warn("Initial catalogue enrichment did not complete", { userId, error });
-    });
-  });
 }

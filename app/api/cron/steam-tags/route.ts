@@ -1,22 +1,17 @@
-import { NextResponse } from "next/server";
 import { processSteamTagQueue, queueAllKnownSteamTags } from "@/lib/steam-tags";
-import { withMetadataWorkerRun } from "@/lib/worker-runs";
+import { buildGuestCataloguePool } from "@/lib/guest-catalogue";
+import { runNightlyWorker } from "@/lib/nightly-worker";
 
-export const maxDuration = 300;
+export const maxDuration = 120;
 
 export async function GET(request: Request) {
-  if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  try {
-    const result = await withMetadataWorkerRun("steam-tags", async () => {
-      const queued = await queueAllKnownSteamTags();
-      return { queued, ...await processSteamTagQueue(220, Date.now() + 275_000) };
-    });
-    return NextResponse.json(result);
-  } catch (error) {
-    console.error("Steam community tag refresh failed.", error);
-    return NextResponse.json({ error: "Steam community tag refresh failed." }, { status: 500 });
-  }
+  return runNightlyWorker(request, "steam-tags", async () => {
+    const deadlineAt = Date.now() + 70_000;
+    const queued = await queueAllKnownSteamTags();
+    const tags = await processSteamTagQueue(60, deadlineAt);
+    // Materialise recommendations after the Steam enrichment stages, using
+    // already-stored duration estimates. This does not fetch duration data.
+    const guestPoolSize = await buildGuestCataloguePool();
+    return { queued, ...tags, guestPoolSize };
+  });
 }

@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchRecentlyPlayedSteamAppIds } from "@/lib/steam";
+import { diagnosticFailure, type DiagnosticProperties } from "@/lib/diagnostics";
 
 /**
  * Fold Steam's recently-played list into a user's recency evidence.
@@ -16,13 +17,14 @@ import { fetchRecentlyPlayedSteamAppIds } from "@/lib/steam";
 export async function syncSteamRecentWindow(
   userId: string,
   steamId: string,
-  apiKey: string
-): Promise<{ seen: number; applied: number; error: string | null }> {
+  apiKey: string,
+  preloadedAppIds?: Promise<number[]>
+): Promise<{ seen: number; applied: number; error: string | null; failure?: DiagnosticProperties }> {
   let appIds: number[] = [];
   try {
-    appIds = await fetchRecentlyPlayedSteamAppIds(steamId, apiKey);
+    appIds = await (preloadedAppIds ?? fetchRecentlyPlayedSteamAppIds(steamId, apiKey));
   } catch (error) {
-    return { seen: 0, applied: 0, error: messageFor(error) };
+    return { seen: 0, applied: 0, error: messageFor(error), failure: diagnosticFailure(error) };
   }
   if (!appIds.length) return { seen: 0, applied: 0, error: null };
 
@@ -34,7 +36,7 @@ export async function syncSteamRecentWindow(
     if (error) throw error;
     return { seen: appIds.length, applied: Number(data ?? 0), error: null };
   } catch (error) {
-    return { seen: appIds.length, applied: 0, error: messageFor(error) };
+    return { seen: appIds.length, applied: 0, error: messageFor(error), failure: diagnosticFailure(error) };
   }
 }
 
