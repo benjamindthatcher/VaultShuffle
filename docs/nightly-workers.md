@@ -36,7 +36,7 @@ The worker makes one attempt per selected account, shares identical pin requests
 
 Full-library **Refresh Steam data** still fetches an uncached owned-games response, stages and saves `hours_played` for every imported batch, then reloads `/api/app-data`. Pinned UI derives current hours from those same game rows while retaining the original pin baseline. The Steam import RPC now preserves higher saved hours/observed minutes against missing/zero/stale responses; this does not prevent explicit manual game edits. Display precision remains 0.1 hours. Full-library snapshots use saved Owned rows instead of untrusted response zeros.
 
-Apply `20260831174406_add_steam_playtime_refresh.sql` and `20260831175500_harden_pinned_playtime_scope_and_precision.sql` before deploying these callers. `supabase/tests/pinned_playtime.sql` verifies pin-only writes, cross-account isolation, unpin/re-scope races, consistent precision, baselines/player state, stale responses, full import refresh and snapshot totals in a rolled-back transaction. Browser roles have no access to the new service-role-only RPCs.
+Apply `20260831175217_add_steam_playtime_refresh.sql` and `20260831175537_harden_pinned_playtime_scope_and_precision.sql` before deploying these callers. `supabase/tests/pinned_playtime.sql` verifies pin-only writes, cross-account isolation, unpin/re-scope races, consistent precision, baselines/player state, stale responses, full import refresh and snapshot totals in a rolled-back transaction. Browser roles have no access to the new service-role-only RPCs.
 
 ## Library sweep and normal use
 
