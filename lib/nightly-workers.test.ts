@@ -23,15 +23,16 @@ function load(path: string, imports: Record<string, unknown>, globals: Record<st
   return sourceModule.exports;
 }
 
-test("Vercel retains the three daily Steam jobs and unchanged learning schedule, with no hosted duration entry points", () => {
+test("Vercel adds a pins-only daily job, retains the existing schedules and excludes hosted duration entry points", () => {
   const { crons } = JSON.parse(readFileSync(new URL("vercel.json", root), "utf8"));
   assert.deepEqual(crons, [
+    { path: "/api/cron/pinned-playtime", schedule: "0 1 * * *" },
     { path: "/api/cron/nightly-metadata", schedule: "0 3 * * *" },
     { path: "/api/cron/catalogue-metadata", schedule: "0 4 * * *" },
     { path: "/api/cron/steam-tags", schedule: "0 5 * * *" },
     { path: "/api/cron/genre-preferences", schedule: "0 6 * * *" },
   ]);
-  const steamPaths = ["nightly-metadata", "catalogue-metadata", "steam-tags"].map((name) => `/api/cron/${name}`);
+  const steamPaths = ["pinned-playtime", "nightly-metadata", "catalogue-metadata", "steam-tags"].map((name) => `/api/cron/${name}`);
   for (const path of steamPaths) assert.ok(crons.some((cron: { path: string }) => cron.path === path));
   for (const cron of crons) {
     assert.ok([...steamPaths, "/api/cron/genre-preferences"].includes(cron.path));

@@ -1,7 +1,7 @@
 import type { GamePayload, SteamPlayerSummary } from "@/lib/types";
 import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
-import { steamOwnedGamesFromPayload } from "@/lib/steam-owned-games";
+import { steamOwnedGamesFromPayload, steamPlaytimeFromPayload } from "@/lib/steam-owned-games";
 import { recentlyPlayedAppIdsFromPayload } from "@/lib/steam-recent";
 import { fetchSteamResponse, readSteamJson } from "@/lib/steam-api-error";
 
@@ -164,6 +164,22 @@ export async function fetchOwnedSteamGames(steamId: string, apiKey: string): Pro
 
   const payload = await readSteamJson(response, "owned_games");
   return steamOwnedGamesFromPayload(payload);
+}
+
+/** Pinned AppIDs only, filtered at Steam and again locally; never falls back to a library read. */
+export async function fetchPinnedSteamPlaytime(steamId: string, apiKey: string, appids: string[]) {
+  const selected = [...new Set(appids.filter((id) => /^[1-9][0-9]*$/.test(id)).map(Number)
+    .filter((id) => Number.isSafeInteger(id) && id > 0 && id <= 4_294_967_295))];
+  if (!selected.length) return [];
+  if (selected.length > 100) throw new Error("Too many pinned AppIDs in one request.");
+  const params = new URLSearchParams({ key: apiKey, format: "json", input_json: JSON.stringify({
+    steamid: steamId, include_appinfo: false, include_played_free_games: true, appids_filter: selected,
+  }) });
+  const response = await fetchSteamResponse("owned_games", `https://api.steampowered.com/IPlayerService/GetOwnedGames/v0001/?${params}`, {
+    headers: { "User-Agent": "VaultShuffle/0.1" }, cache: "no-store",
+  });
+  const allowed = new Set(selected.map(String));
+  return steamPlaytimeFromPayload(await readSteamJson(response, "owned_games")).filter((game) => allowed.has(game.steam_appid));
 }
 
 /**

@@ -6,6 +6,7 @@ Duration enrichment is local-only. Vercel's retained metadata jobs fetch Steam l
 
 | Route | Daily UTC schedule | Bounded work |
 | --- | --- | --- |
+| `/api/cron/pinned-playtime` | 01:00 | Pinned games only; up to 150 accounts with pins, 4 concurrent; 90-second work deadline, 120-second function limit |
 | `/api/cron/nightly-metadata` | 03:00 | Up to 150 accounts, 3 concurrent; 90-second work deadline, 120-second function limit |
 | `/api/cron/catalogue-metadata` | 04:00 | Up to 40 catalogue games; 90-second work deadline, 120-second function limit |
 | `/api/cron/steam-tags` | 05:00 | Up to 60 tag jobs; 70-second work deadline, then guest-pool materialisation; 120-second function limit |
@@ -16,7 +17,7 @@ The existing 06:00 UTC `genre-preferences` schedule is retained unchanged. It re
 
 ## Cost and retry controls
 
-These controls apply to the three Steam workers above. The retained recommendation-learning job keeps its existing execution behaviour.
+These controls apply to the four Steam workers above. The retained recommendation-learning job keeps its existing execution behaviour.
 
 - `CRON_SECRET` is required. Preview deployments refuse execution even with a valid secret. No query parameter overrides batch/time limits.
 - The existing atomic `consume_api_rate_limit` RPC reserves one run per worker per UTC day. This guards duplicate delivery, concurrent requests and repeated manual poking without new tables. Two-day cleanup already exists for these tiny reservation rows.
@@ -25,7 +26,17 @@ These controls apply to the three Steam workers above. The retained recommendati
 - Steam Store processing defers the rest of a batch on 429. SteamSpy now does the same, releases untouched claims in one DB update and stops after three consecutive errors.
 - One small `metadata_worker_runs` record remains per actual run. Library failure details are capped at 20 sanitized codes. Operational failures also use structured Vercel diagnostics; no per-game analytics flood is added.
 
-The three Steam functions have a combined six-minute *wall-time ceiling per admitted daily set*. This is not a CPU billing prediction. It excludes normal user requests and the retained recommendation-learning job.
+The four Steam functions have a combined eight-minute *wall-time ceiling per admitted daily set*. This is not a CPU billing prediction. It excludes normal user requests and the retained recommendation-learning job.
+
+## Pinned playtime
+
+The new `pinned-playtime` worker is strictly separate from the full-library sweep. It selects only accounts with current Owned library pins (the visible Playing next shelf), requests only their pinned AppIDs via Steam's `appids_filter`, and rechecks account ownership/current library pins inside `refresh_pinned_steam_playtime` before updating. It never imports a game, touches an unpinned row, changes `hours_at_pin`, runs catalogue/tag/duration enrichment, modifies quarantine or writes a full-library snapshot from a partial pin response. Observed-minute baselines use the full import's existing 0.1-hour precision so switching between workers cannot manufacture recency evidence.
+
+The worker makes one attempt per selected account, shares identical pin requests within the run, continues past individual failures, stops the next batch on Steam 429, and stops after three wholly failed batches. A saved cursor continues the next daily run if the time/account ceiling is reached. It is daily on the current Hobby plan, not real-time or hourly. The separate manual pin button does not invoke a cron.
+
+Full-library **Refresh Steam data** still fetches an uncached owned-games response, stages and saves `hours_played` for every imported batch, then reloads `/api/app-data`. Pinned UI derives current hours from those same game rows while retaining the original pin baseline. The Steam import RPC now preserves higher saved hours/observed minutes against missing/zero/stale responses; this does not prevent explicit manual game edits. Display precision remains 0.1 hours. Full-library snapshots use saved Owned rows instead of untrusted response zeros.
+
+Apply `20260831174406_add_steam_playtime_refresh.sql` and `20260831175500_harden_pinned_playtime_scope_and_precision.sql` before deploying these callers. `supabase/tests/pinned_playtime.sql` verifies pin-only writes, cross-account isolation, unpin/re-scope races, consistent precision, baselines/player state, stale responses, full import refresh and snapshot totals in a rolled-back transaction. Browser roles have no access to the new service-role-only RPCs.
 
 ## Library sweep and normal use
 

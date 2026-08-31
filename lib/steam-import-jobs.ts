@@ -148,7 +148,7 @@ async function finishSteamImport(
   games: GamePayload[]
 ) {
   await reconcileSteamOwnership(userId, games);
-  await capturePlaytimeSnapshot(userId, games);
+  await capturePlaytimeSnapshot(userId);
 
   const now = new Date().toISOString();
   const { data, error } = await getSupabaseAdmin()

@@ -76,7 +76,7 @@ export async function refreshNightlyMetadata() {
         // Written from the library we already have in hand, so this costs no extra
         // Steam calls. Steam exposes only a running total, so a day that is not
         // recorded tonight can never be recovered.
-        await capturePlaytimeSnapshot(user.id, ownedGames);
+        await capturePlaytimeSnapshot(user.id);
         librariesRefreshed += 1;
         gamesRefreshed += savedGames.length;
       } catch (error) {

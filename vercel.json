@@ -2,6 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "crons": [
     {
+      "path": "/api/cron/pinned-playtime",
+      "schedule": "0 1 * * *"
+    },
+    {
       "path": "/api/cron/nightly-metadata",
       "schedule": "0 3 * * *"
     },
