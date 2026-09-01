@@ -6,7 +6,6 @@ import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 import { approximateAge, describeRecency, type RecencyEvidence } from "./recency.ts";
 import { sessionLean, sessionabilityReason } from "./sessionability.ts";
-import { canClaimNeverPlayed, playtimeIsUnknown } from "./family-sharing.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -401,7 +400,7 @@ export function scoreVaultGame(
     // from 50 points to 33 and, through the softmax, roughly 28:1 odds to 9:1.
     // Choosing Something New made session and mood matter less, which is the
     // opposite of what picking a goal should do.
-    reasons.push(canClaimNeverPlayed(game) ? "Unplayed" : "Barely sampled");
+    reasons.push(game.hoursPlayed === 0 ? "Unplayed" : "Barely sampled");
   }
 
   if (goal === "finish") {
@@ -480,12 +479,7 @@ function moodPoints(strength: number) {
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {
   if (!goal || goal === "surprise") return true;
-  // A family game built from a public profile has no playtime we can read, so
-  // "show me something I have not played" cannot be answered for it. Same rule
-  // as the players and release-age filters in lib/global-filters.ts: a question
-  // of fact leaves out what it cannot answer rather than guessing, because the
-  // failure here is offering someone eighty hours of Elden Ring as a fresh start.
-  if (goal === "new") return game.status === "Not Started" && !playtimeIsUnknown(game) && game.hoursPlayed <= 0.5;
+  if (goal === "new") return game.status === "Not Started" && game.hoursPlayed <= 0.5;
   if (game.duration?.endless) return false;
   return game.status === "In Progress" || (game.completionPercent > 0 && game.completionPercent < 100);
 }
@@ -795,9 +789,9 @@ export function buildVaultMatchExplanation({
   if (goal === "new") {
     insights.push({
       kind: "goal",
-      strength: canClaimNeverPlayed(game) ? "perfect" : "strong",
-      headline: canClaimNeverPlayed(game) ? "Never played" : "Barely sampled",
-      detail: canClaimNeverPlayed(game)
+      strength: game.hoursPlayed === 0 ? "perfect" : "strong",
+      headline: game.hoursPlayed === 0 ? "Never played" : "Barely sampled",
+      detail: game.hoursPlayed === 0
         ? "It has been sitting in your library waiting for exactly this."
         : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
     });
