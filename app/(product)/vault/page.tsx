@@ -86,7 +86,7 @@ const EMPTY_GAME_IDS: string[] = [];
 const VAULT_SETUP_KEY = "vault-setup";
 
 export default function VaultPage() {
-  const { games, allGames, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, allGames, collections, vaultState, genrePreferences: learnedGenrePreferences, genrePreferenceGlobals: learnedGenreGlobals, gamePreferences, vaultHistory, isLive, recordVaultAction, recordVaultDraw, loadVaultHistory, recordDrawEvent, clearVaultHistory, updateGame, restoreGame, setGameCollection } = useAppData();
   const [session, setSession] = useState<VaultSessionId | null>(null);
   const [mood, setMood] = useState<VaultMoodId | null>(null);
   const [goal, setGoal] = useState<VaultGoalId | null>(null);
@@ -278,10 +278,11 @@ export default function VaultPage() {
         selectedGenres: activeGenres,
         snoozedIds,
         genrePreferences,
-        genrePreferenceGlobals
+        genrePreferenceGlobals,
+        gameVerdicts: gamePreferences
       });
     },
-    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, genrePreferences, genrePreferenceGlobals, ownedGames, snoozedIds]
+    [activeCollectionId, activeGenres, activeGoal, activeMood, activeSession, drawMode, gamePreferences, genrePreferences, genrePreferenceGlobals, ownedGames, snoozedIds]
   );
   const quickPool = useMemo(
     () => buildVaultPool({

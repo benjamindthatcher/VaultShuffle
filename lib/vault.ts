@@ -1,10 +1,12 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
+import { verdictBaseline, verdictFor, verdictPoints, type GameVerdicts } from "./game-verdict.ts";
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 import { approximateAge, describeRecency, type RecencyEvidence } from "./recency.ts";
 import { sessionLean, sessionabilityReason } from "./sessionability.ts";
+import { canClaimNeverPlayed, playtimeIsUnknown } from "./family-sharing.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -179,7 +181,8 @@ export function buildVaultPool({
   selectedGenres,
   snoozedIds,
   genrePreferences = null,
-  genrePreferenceGlobals = null
+  genrePreferenceGlobals = null,
+  gameVerdicts = null
 }: {
   games: DemoGame[];
   session: VaultSessionId | null;
@@ -190,6 +193,8 @@ export function buildVaultPool({
   snoozedIds: Set<string>;
   genrePreferences?: GenrePreferenceIndex | null;
   genrePreferenceGlobals?: GenrePreferenceIndex | null;
+  /** What everyone did with each specific game. See lib/game-verdict.ts. */
+  gameVerdicts?: GameVerdicts | null;
 }) {
   const collectionDraw = isCollectionDraw(selectedCollectionId);
   const canonicalSelectedGenres = collectionDraw ? [] : selectedGenres.map(canonicalGenre);
@@ -198,6 +203,9 @@ export function buildVaultPool({
   const preferenceContext: GenrePreferenceContextData | null = genrePreferences
     ? { index: genrePreferences, globals: genrePreferenceGlobals, genreWeights: buildGenreWeightIndex(games) }
     : null;
+  // Computed once per pool rather than per game: it is the average of the same
+  // table every entry is measured against.
+  const verdictReference = gameVerdicts ? verdictBaseline(gameVerdicts) : 0.5;
   const eligibility = getVaultEligibility({
     games,
     session,
@@ -216,7 +224,9 @@ export function buildVaultPool({
       collectionDraw ? null : goal,
       canonicalSelectedGenres,
       Date.now(),
-      preferenceContext
+      preferenceContext,
+      gameVerdicts,
+      verdictReference
     ))
     // Ordering is fit only. See VaultPoolEntry.preferencePoints.
     .sort((left, right) => {
@@ -347,7 +357,9 @@ export function scoreVaultGame(
   goal: VaultGoalId | null,
   selectedGenres: string[],
   now: number = Date.now(),
-  preferenceContext: GenrePreferenceContextData | null = null
+  preferenceContext: GenrePreferenceContextData | null = null,
+  verdicts: GameVerdicts | null = null,
+  verdictReference = 0.5
 ): VaultPoolEntry {
   let earnedPoints = 0;
   let availablePoints = 0;
@@ -389,7 +401,7 @@ export function scoreVaultGame(
     // from 50 points to 33 and, through the softmax, roughly 28:1 odds to 9:1.
     // Choosing Something New made session and mood matter less, which is the
     // opposite of what picking a goal should do.
-    reasons.push(game.hoursPlayed === 0 ? "Unplayed" : "Barely sampled");
+    reasons.push(canClaimNeverPlayed(game) ? "Unplayed" : "Barely sampled");
   }
 
   if (goal === "finish") {
@@ -424,7 +436,13 @@ export function scoreVaultGame(
   const appealName = appealLabel(appeal.kind);
   if (appealName) reasons.push(appealName);
 
-  return { game, score, preferencePoints: preference.points, appealPoints: appeal.points, reasons: reasons.slice(0, 4) };
+  // Folded into appeal rather than into taste: this is what everybody did with
+  // this game, not what you like, so it applies to every player and in both arms
+  // of the preference experiment. Zero until a game has been met enough times to
+  // have a verdict, which leaves its own merits deciding the pick.
+  const verdict = verdictPoints(verdictFor(verdicts, game.steamAppId), verdictReference);
+
+  return { game, score, preferencePoints: preference.points, appealPoints: appeal.points + verdict, reasons: reasons.slice(0, 4) };
 }
 
 export function vaultMatchLabel(score: number) {
@@ -462,7 +480,12 @@ function moodPoints(strength: number) {
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {
   if (!goal || goal === "surprise") return true;
-  if (goal === "new") return game.status === "Not Started" && game.hoursPlayed <= 0.5;
+  // A family game built from a public profile has no playtime we can read, so
+  // "show me something I have not played" cannot be answered for it. Same rule
+  // as the players and release-age filters in lib/global-filters.ts: a question
+  // of fact leaves out what it cannot answer rather than guessing, because the
+  // failure here is offering someone eighty hours of Elden Ring as a fresh start.
+  if (goal === "new") return game.status === "Not Started" && !playtimeIsUnknown(game) && game.hoursPlayed <= 0.5;
   if (game.duration?.endless) return false;
   return game.status === "In Progress" || (game.completionPercent > 0 && game.completionPercent < 100);
 }
@@ -772,9 +795,9 @@ export function buildVaultMatchExplanation({
   if (goal === "new") {
     insights.push({
       kind: "goal",
-      strength: game.hoursPlayed === 0 ? "perfect" : "strong",
-      headline: game.hoursPlayed === 0 ? "Never played" : "Barely sampled",
-      detail: game.hoursPlayed === 0
+      strength: canClaimNeverPlayed(game) ? "perfect" : "strong",
+      headline: canClaimNeverPlayed(game) ? "Never played" : "Barely sampled",
+      detail: canClaimNeverPlayed(game)
         ? "It has been sitting in your library waiting for exactly this."
         : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
     });

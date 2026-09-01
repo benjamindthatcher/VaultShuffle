@@ -44,6 +44,7 @@ type AppBootstrapPayload = {
   vaultState?: VaultState;
   genrePreferences?: GenrePreference[];
   genrePreferenceGlobals?: GenrePreference[];
+  gamePreferences?: Record<string, [number, number]>;
   playtime?: PlaytimeSummary;
   data_error?: boolean;
   guest_pool_source?: "live_catalogue" | "fallback";
@@ -62,6 +63,7 @@ const LEGACY_DEVICE_MODE_KEY = "vault-device-mode";
 
 const emptyVaultState: VaultState = { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null };
 const EMPTY_GENRE_PREFERENCES: GenrePreference[] = [];
+const EMPTY_GAME_PREFERENCES: Record<string, [number, number]> = {};
 const EMPTY_PLAYTIME: PlaytimeSummary = { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0, dailyGains: [] };
 
 type AppDataContextValue = {
@@ -71,6 +73,8 @@ type AppDataContextValue = {
   vaultState: VaultState;
   genrePreferences: GenrePreference[];
   genrePreferenceGlobals: GenrePreference[];
+  /** The population's verdict on specific games, keyed by Steam app id. */
+  gamePreferences: Record<string, [number, number]>;
   playtime: PlaytimeSummary;
   vaultHistory: VaultDraw[];
   isLive: boolean;
@@ -130,6 +134,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [liveVaultHistory, setLiveVaultHistory] = useState<VaultDraw[]>([]);
   const [liveGenrePreferences, setLiveGenrePreferences] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
   const [liveGenrePreferenceGlobals, setLiveGenrePreferenceGlobals] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
+  const [liveGamePreferences, setLiveGamePreferences] = useState<Record<string, [number, number]>>(EMPTY_GAME_PREFERENCES);
   const [livePlaytime, setLivePlaytime] = useState<PlaytimeSummary>(EMPTY_PLAYTIME);
   const [isLive, setIsLive] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -212,6 +217,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // means the learned term contributes nothing to their scores.
       setLiveGenrePreferences(bootstrap.genrePreferences ?? EMPTY_GENRE_PREFERENCES);
       setLiveGenrePreferenceGlobals(bootstrap.genrePreferenceGlobals ?? EMPTY_GENRE_PREFERENCES);
+      setLiveGamePreferences(bootstrap.gamePreferences ?? EMPTY_GAME_PREFERENCES);
       setLivePlaytime(bootstrap.playtime ?? EMPTY_PLAYTIME);
       return true;
     } catch (error) {
@@ -879,6 +885,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // Guests have no history to learn from, so they always draw unweighted.
       genrePreferences: isLive ? liveGenrePreferences : EMPTY_GENRE_PREFERENCES,
       genrePreferenceGlobals: isLive ? liveGenrePreferenceGlobals : EMPTY_GENRE_PREFERENCES,
+      gamePreferences: isLive ? liveGamePreferences : EMPTY_GAME_PREFERENCES,
       playtime: activePlaytime,
       vaultHistory: isLive ? liveVaultHistory : guestVaultHistory,
       isLive,

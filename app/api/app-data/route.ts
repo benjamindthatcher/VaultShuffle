@@ -3,9 +3,8 @@ import { listCollectionsWithMemberships } from "@/lib/collections";
 import { listGames } from "@/lib/games";
 import { getSessionPayload } from "@/lib/session-payload";
 import { getVaultState } from "@/lib/vault-state";
-import { listGenrePreferences, listGenrePreferenceGlobals } from "@/lib/genre-preference-worker";
+import { listGamePreferenceGlobals, listGenrePreferences, listGenrePreferenceGlobals } from "@/lib/genre-preference-worker";
 import { getPlaytimeSummary } from "@/lib/playtime-snapshots";
-import { listGuestCatalogueGames } from "@/lib/guest-catalogue";
 import { refreshCurrentManualSessionCookie } from "@/lib/auth";
 import { retryPendingPostHogAccountProfileMerges } from "@/lib/posthog-server";
 import { requestDiagnostics, reportServiceWarning } from "@/lib/diagnostics-server";
@@ -31,18 +30,12 @@ export async function GET(request: Request) {
     });
   }
 
+  // A guest bootstrap is just this session object - a couple of hundred bytes.
+  // The preview pool it used to carry was a megabyte and a half of the same
+  // games for everybody, rebuilt per visitor because nothing under /api can be
+  // publicly cached. It now lives at /guest-catalogue, which the CDN serves.
   if (!session.logged_in || !session.user_id) {
-    diagnostics.stage("guest_catalogue");
-    try {
-      return jsonWithSessionRefresh({
-        session,
-        games: await listGuestCatalogueGames(),
-        guest_pool_source: "live_catalogue"
-      });
-    } catch (error) {
-      diagnostics.event("warning", {}, error);
-      return jsonWithSessionRefresh({ session, data_error: true, guest_pool_source: "fallback" });
-    }
+    return jsonWithSessionRefresh({ session });
   }
 
   try {
@@ -56,6 +49,11 @@ export async function GET(request: Request) {
       getPlaytimeSummary(session.user_id)
     ]);
 
+    // After the games, because it is scoped to the ones this account owns.
+    const gamePreferences = await listGamePreferenceGlobals(
+      games.map((game) => Number(game.steam_appid))
+    );
+
     return jsonWithSessionRefresh({
       session,
       games,
@@ -64,6 +62,7 @@ export async function GET(request: Request) {
       vaultState,
       genrePreferences,
       genrePreferenceGlobals,
+      gamePreferences,
       playtime
     });
   } catch (error) {

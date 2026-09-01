@@ -566,6 +566,43 @@ async function replaceGlobals(
 }
 
 /** Population rates for the bootstrap payload. Empty on failure, like the rest. */
+/**
+ * The population's verdict on specific games, for the games one player owns.
+ *
+ * Scoped to their library rather than sent whole: the table covers 12,781 games
+ * and a payload of all of them would dwarf the library it is describing. Read
+ * for the games that could actually be drawn, and nothing else.
+ *
+ * Returned as a plain tuple map so the wire form stays small - this rides along
+ * with every app-data response.
+ */
+export async function listGamePreferenceGlobals(steamAppIds: number[]): Promise<Record<string, [number, number]>> {
+  const unique = [...new Set(steamAppIds.filter((appId) => Number.isFinite(appId) && appId > 0))];
+  if (!unique.length) return {};
+
+  const rates: Record<string, [number, number]> = {};
+  try {
+    for (let index = 0; index < unique.length; index += 200) {
+      const { data, error } = await getSupabaseAdmin()
+        .from("game_preference_globals")
+        .select("steam_appid, positive, total")
+        .in("steam_appid", unique.slice(index, index + 200));
+      if (error) throw error;
+
+      for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+        rates[String(row.steam_appid)] = [Number(row.positive) || 0, Number(row.total) || 0];
+      }
+    }
+    return rates;
+  } catch (error) {
+    // A missing verdict is the normal case for most games, so failing to read
+    // them is not a reason to fail the request: the scorer falls back to what
+    // each game is on its own.
+    console.error("Could not load global game preferences.", error);
+    return {};
+  }
+}
+
 export async function listGenrePreferenceGlobals(): Promise<GenrePreference[]> {
   try {
     const { data, error } = await getSupabaseAdmin()
