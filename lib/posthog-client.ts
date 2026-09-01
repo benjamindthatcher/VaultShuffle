@@ -1,5 +1,7 @@
 "use client";
 
+import { DIAGNOSTICS_COOKIE, diagnosticId } from "./diagnostics";
+
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 
 type PostHogClient = typeof import("posthog-js").default;
@@ -48,6 +50,24 @@ function applyProductUserIdentity(posthog: PostHogClient, identity: ProductUserI
   if (identity.avatarUrl) properties.steam_avatar_url = identity.avatarUrl;
 
   posthog.identify(identity.userId, properties);
+  syncDiagnosticConsent();
+}
+
+/** Only anonymous/account UUIDs and replay IDs, never the app session token. */
+function syncDiagnosticConsent() {
+  if (typeof document === "undefined") return;
+  const permitted = productAnalyticsMode() === "enabled" && configuredMode !== "disabled"
+    && navigator.doNotTrack !== "1" && !(navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl
+    && client && !client.has_opted_out_capturing();
+  const value = permitted
+    ? `enabled.${diagnosticId(client?.get_distinct_id()) ?? ""}.${diagnosticId(client?.get_session_id()) ?? ""}`
+    : "disabled";
+  document.cookie = `${DIAGNOSTICS_COOKIE}=${value}; Path=/; SameSite=Lax; Max-Age=86400${location.protocol === "https:" ? "; Secure" : ""}`;
+}
+
+export function diagnosticRequestHeaders(operationId?: string): Record<string, string> {
+  syncDiagnosticConsent();
+  return { "X-Vault-Operation-Id": diagnosticId(operationId) ?? crypto.randomUUID() };
 }
 
 async function loadClient() {
@@ -127,6 +147,7 @@ async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {
   if (!posthog) return null;
 
   applyProductAnalyticsMode(posthog, configuredMode);
+  syncDiagnosticConsent();
   return configuredMode === "disabled" ? null : posthog;
 }
 
@@ -136,6 +157,7 @@ export async function enableProductAnalytics() {
 
 export function disableProductAnalytics() {
   configuredMode = "disabled";
+  syncDiagnosticConsent();
   if (client) {
     applyProductAnalyticsMode(client, "disabled");
   } else if (clientPromise) {
@@ -162,6 +184,7 @@ export function identifyProductUser(identity: ProductUserIdentity) {
 export function clearProductUserIdentity() {
   pendingIdentity = null;
   if (client && configuredMode === "enabled") client.reset();
+  syncDiagnosticConsent();
 }
 
 export type CaptureOptions = { transport?: "XHR" | "sendBeacon" };
@@ -177,7 +200,7 @@ export function captureProductEvent(
   const ready = configuredMode === mode && client
     ? Promise.resolve(client)
     : setProductAnalyticsMode(mode);
-  void ready.then((posthog) => posthog?.capture(event, properties, options));
+  void ready.then((posthog) => { syncDiagnosticConsent(); posthog?.capture(event, properties, options); });
 }
 
 // Registered once per session so that every subsequent event can be segmented by

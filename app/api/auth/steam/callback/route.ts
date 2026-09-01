@@ -13,6 +13,9 @@ import {
 import { deliverPostHogAccountProfileMerge } from "@/lib/posthog-server";
 import { enforceRateLimit, RateLimitExceededError, requestFingerprint } from "@/lib/rate-limit";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
+import { requestDiagnostics, reportServiceWarning } from "@/lib/diagnostics-server";
+import { AUTH_TRACE_COOKIE, diagnosticId } from "@/lib/diagnostics";
+import { SteamApiError } from "@/lib/steam-api-error";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
 
@@ -33,8 +36,16 @@ export async function GET(request: NextRequest) {
   const baseUrl = siteBaseUrl(request);
   const securityIntentToken = request.cookies.get(MANUAL_PROFILE_SECURITY_COOKIE)?.value ?? "";
   const isSecurityFlow = Boolean(securityIntentToken);
+  const diagnostics = requestDiagnostics(request, isSecurityFlow ? "steam_link_callback" : "steam_sign_in_callback");
+  const flowId = diagnosticId(request.cookies.get(AUTH_TRACE_COOKIE)?.value);
+  diagnostics.event("started", { flow_id: flowId });
+  const finish = (response: NextResponse) => {
+    response.cookies.set(AUTH_TRACE_COOKIE, "", { path: "/api/auth/steam/callback", maxAge: 0 });
+    return diagnostics.response(response);
+  };
 
   try {
+    diagnostics.stage("callback_validation");
     await enforceRateLimit({
       bucket: "steam_auth_callback",
       identity: requestFingerprint(request),
@@ -44,25 +55,31 @@ export async function GET(request: NextRequest) {
     });
     if (url.searchParams.get("openid.mode") === "cancel") {
       if (isSecurityFlow) throw new ManualProfileSecurityError("steam_sign_in_cancelled");
-      throw new Error("Steam sign-in was cancelled.");
+      throw Object.assign(new Error("Steam sign-in was cancelled."), { code: "steam_sign_in_cancelled" });
     }
 
     if (!url.searchParams.get("openid.claimed_id")) {
-      throw new Error("Steam did not return a claimed identity.");
+      throw Object.assign(new Error("Steam did not return a claimed identity."), { code: "steam_identity_missing" });
     }
 
+    diagnostics.stage("steam_identity_verification");
     const valid = await verifySteamOpenId(url.searchParams);
     const steamId = steamIdFromOpenId(url.searchParams);
 
     if (!valid || !steamId) {
       if (isSecurityFlow) throw new ManualProfileSecurityError("steam_identity_unverified");
-      throw new Error("Steam sign-in could not be verified.");
+      throw Object.assign(new Error("Steam sign-in could not be verified."), { code: "steam_identity_unverified" });
     }
 
+    diagnostics.stage("steam_profile_metadata");
+    // Verified ownership does not depend on an optional avatar/name fetch.
     const profile = process.env.STEAM_WEB_API_KEY
-      ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY)
-      : null;
+      ? await fetchSteamPlayerSummary(steamId, process.env.STEAM_WEB_API_KEY).catch((error) => {
+          diagnostics.event("warning", { flow_id: flowId }, error);
+          return null;
+        }) : null;
 
+    diagnostics.stage(isSecurityFlow ? "account_merge" : "account_and_session_create");
     const secured = isSecurityFlow
       ? await secureManualProfile({
           securityIntentToken,
@@ -88,28 +105,35 @@ export async function GET(request: NextRequest) {
     });
 
     clearSecurityCookie(response);
-    return attachSessionCookie(response, secured.token);
+    if ("accountId" in secured) diagnostics.account(secured.accountId, "steam");
+    else diagnostics.account(secured.user.id, "steam");
+    diagnostics.event("succeeded", { flow_id: flowId, status: 307 });
+    return finish(attachSessionCookie(response, secured.token));
   } catch (error) {
     if (isSecurityFlow) {
       const securityError = asManualProfileSecurityError(error, "link_merge_failed");
-      console.error("Manual profile security callback failed:", securityError.code, describeError(error));
+      diagnostics.event("failed", { flow_id: flowId }, securityError);
       const response = NextResponse.redirect(
         `${baseUrl}/account/secure-profile?error=${encodeURIComponent(securityError.code)}`,
       );
       clearSecurityCookie(response);
-      return response;
+      return finish(response);
     }
 
     const detailedMessage = describeError(error);
-    const publicMessage = error instanceof RateLimitExceededError
+    const publicMessage = error instanceof SteamApiError
+      ? error.retryAfterSeconds
+        ? `${error.message} Try again in about ${Math.max(1, Math.ceil(error.retryAfterSeconds / 60))} minute${error.retryAfterSeconds > 60 ? "s" : ""}.`
+        : error.message
+      : error instanceof RateLimitExceededError
       ? `${error.message} Try again in about ${Math.max(1, Math.ceil(error.retryAfterSeconds / 60))} minute${error.retryAfterSeconds > 60 ? "s" : ""}.`
       : detailedMessage === "Steam sign-in was cancelled."
         ? detailedMessage
         : "Steam sign-in failed. Please try again.";
     const message = encodeURIComponent(publicMessage);
 
-    console.error("Steam callback failed:", detailedMessage);
-    return NextResponse.redirect(`${baseUrl}/?signin=${message}`);
+    diagnostics.event(error instanceof RateLimitExceededError || (error instanceof SteamApiError && error.code === "steam_rate_limited") ? "deferred" : "failed", { flow_id: flowId }, error);
+    return finish(NextResponse.redirect(`${baseUrl}/?signin=${message}`));
   }
 }
 
@@ -141,7 +165,7 @@ async function secureManualProfile(input: {
       });
     } catch (error) {
       // Identity analytics must never roll back a verified, atomic account merge.
-      console.warn("PostHog account-profile merge could not be delivered.", error);
+      reportServiceWarning(error, "account_analytics_merge", "initial_delivery");
     }
   }
 

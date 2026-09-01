@@ -8,13 +8,17 @@ import {
 } from "@/lib/manual-steam-profile";
 import { enforceRateLimit, requestFingerprint } from "@/lib/rate-limit";
 import { SteamProfileInputError } from "@/lib/steam-profile-input";
+import { requestDiagnostics } from "@/lib/diagnostics-server";
 
 const requestSchema = z.object({
   profile: z.string().trim().min(1, "Enter a Steam profile URL or ID.").max(300),
 }).strict();
 
 export async function POST(request: Request) {
+  const diagnostics = requestDiagnostics(request, "manual_profile_lookup");
+  diagnostics.event("started");
   try {
+    diagnostics.stage("validation_and_rate_limit");
     assertSameOrigin(request);
     await enforceRateLimit({
       bucket: "manual_profile_lookup",
@@ -24,8 +28,10 @@ export async function POST(request: Request) {
       message: "Too many Steam profiles were checked from this connection. Please wait before trying again.",
     });
     const input = requestSchema.parse(await readJsonBody(request, 1024));
-    const profile = await lookupManualSteamProfile(input.profile);
-    return NextResponse.json(
+    diagnostics.stage("steam_lookup");
+    const profile = await lookupManualSteamProfile(input.profile, diagnostics);
+    diagnostics.event("succeeded", { game_count: profile.gameCount });
+    return diagnostics.response(NextResponse.json(
       {
         profile: {
           display_name: profile.displayName,
@@ -36,19 +42,21 @@ export async function POST(request: Request) {
         lookup_token: signManualSteamProfileLookup(profile),
       },
       { headers: { "Cache-Control": "private, no-store, max-age=0" } },
-    );
+    ));
   } catch (error) {
     if (error instanceof SteamProfileInputError) {
-      return NextResponse.json({ error: error.message, code: error.code }, { status: 400 });
+      diagnostics.event("failed", { status: 400 }, error);
+      return diagnostics.response(NextResponse.json({ error: error.message, code: error.code }, { status: 400 }));
     }
     if (error instanceof ManualSteamProfileError) {
       const status = error.code === "profile_not_found"
         ? 404
-        : error.code === "library_private"
+        : ["library_private", "library_empty", "library_unavailable"].includes(error.code)
           ? 409
           : 502;
-      return NextResponse.json({ error: error.message, code: error.code }, { status });
+      diagnostics.event("failed", { status }, error);
+      return diagnostics.response(NextResponse.json({ error: error.message, code: error.code }, { status }));
     }
-    return jsonError(error, 502);
+    return jsonError(error, 502, diagnostics);
   }
 }

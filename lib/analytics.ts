@@ -50,6 +50,7 @@ export const ANALYTICS_EVENTS = {
   signedOut: "user_signed_out",
   steamLibrarySynced: "steam_library_synced",
   steamImportFailed: "steam_import_failed",
+  steamImportDeferred: "steam_import_deferred",
   pinnedPlaytimeRefreshStarted: "pinned_playtime_refresh_started",
   pinnedPlaytimeRefreshSucceeded: "pinned_playtime_refresh_succeeded",
   pinnedPlaytimeRefreshFailed: "pinned_playtime_refresh_failed",

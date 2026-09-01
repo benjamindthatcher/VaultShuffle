@@ -3,7 +3,7 @@ import { steamImageUrl } from "@/lib/images";
 import { normaliseSteamGenreLabel } from "@/lib/genres";
 import { steamOwnedGamesFromPayload, steamPlaytimeFromPayload } from "@/lib/steam-owned-games";
 import { recentlyPlayedAppIdsFromPayload } from "@/lib/steam-recent";
-import { fetchSteamResponse, readSteamJson } from "@/lib/steam-api-error";
+import { fetchSteamResponse, readSteamJson, SteamApiError } from "@/lib/steam-api-error";
 
 export const STEAM_OPENID_URL = "https://steamcommunity.com/openid/login";
 const PLAYER_CACHE_MS = 30 * 60 * 1000;
@@ -83,7 +83,7 @@ export async function verifySteamOpenId(searchParams: URLSearchParams) {
   const params = new URLSearchParams(searchParams);
   params.set("openid.mode", "check_authentication");
 
-  const response = await fetch(STEAM_OPENID_URL, {
+  const response = await fetchSteamResponse("openid_verify", STEAM_OPENID_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
@@ -93,7 +93,6 @@ export async function verifySteamOpenId(searchParams: URLSearchParams) {
     cache: "no-store"
   });
 
-  if (!response.ok) return false;
   const text = await response.text();
   return text.includes("is_valid:true");
 }
@@ -104,10 +103,10 @@ export function steamIdFromOpenId(searchParams: URLSearchParams) {
   return match?.[1] ?? "";
 }
 
-export async function fetchSteamPlayerSummary(steamId: string, apiKey: string): Promise<SteamPlayerSummary | null> {
+export async function fetchSteamPlayerSummary(steamId: string, apiKey: string, fresh = false): Promise<SteamPlayerSummary | null> {
   const cacheKey = `${apiKey.slice(0, 8)}:${steamId}`;
   const cached = playerCache.get(cacheKey);
-  if (cached && cached.expires > Date.now()) return cached.value;
+  if (!fresh && cached && cached.expires > Date.now()) return cached.value;
 
   const params = new URLSearchParams({
     key: apiKey,
@@ -115,23 +114,23 @@ export async function fetchSteamPlayerSummary(steamId: string, apiKey: string): 
     format: "json"
   });
 
-  const response = await fetch(`https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?${params.toString()}`, {
+  const response = await fetchSteamResponse("player_summary", `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v0002/?${params.toString()}`, {
     headers: { "User-Agent": "VaultShuffle/0.1" },
     cache: "no-store"
   });
 
-  if (!response.ok) return null;
-  const payload = await response.json();
+  const payload = await readSteamJson(response, "player_summary") as { response?: { players?: Array<Record<string, unknown>> } };
+  if (!Array.isArray(payload?.response?.players)) throw new SteamApiError("player_summary", "steam_invalid_response");
   const player = Array.isArray(payload?.response?.players) ? payload.response.players[0] : null;
   if (!player) {
-    playerCache.set(cacheKey, { expires: Date.now() + PLAYER_CACHE_MS, value: null });
     return null;
   }
 
   const summary = {
     steam_id: String(player.steamid ?? steamId),
     display_name: String(player.personaname ?? "").trim() || null,
-    avatar_url: String(player.avatarfull ?? player.avatarmedium ?? player.avatar ?? "").trim() || null
+    avatar_url: String(player.avatarfull ?? player.avatarmedium ?? player.avatar ?? "").trim() || null,
+    community_visibility_state: Number(player.communityvisibilitystate) || undefined,
   };
   playerCache.set(cacheKey, { expires: Date.now() + PLAYER_CACHE_MS, value: summary });
   return summary;

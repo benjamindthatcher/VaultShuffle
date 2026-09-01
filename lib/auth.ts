@@ -48,10 +48,9 @@ function hashToken(token: string) {
 export class SessionLookupError extends Error {
   readonly code = "session_lookup_failed";
 
-  constructor(detail: string) {
-    super("VaultShuffle could not verify your session just now. Please try again in a moment.");
+  constructor(cause: unknown) {
+    super("VaultShuffle could not verify your session just now. Please try again in a moment.", { cause });
     this.name = "SessionLookupError";
-    console.error(JSON.stringify({ level: "error", message: "Session lookup failed", detail }));
   }
 }
 
@@ -80,7 +79,7 @@ async function getVerifiedSteamSession(token: string) {
   // reported to the browser as 401 unauthorized while someone was signed in and
   // halfway through their first import. Every affected user in the logs hit this
   // during a Steam import that then completed perfectly.
-  if (error) throw new SessionLookupError(error.message);
+  if (error) throw new SessionLookupError(error);
   if (!data) return null;
 
   const appUser = Array.isArray(data.app_users) ? data.app_users[0] : data.app_users;
@@ -101,7 +100,7 @@ async function getManualProfileSession(token: string) {
     .gt("expires_at", new Date().toISOString())
     .maybeSingle();
 
-  if (error) throw new SessionLookupError(error.message);
+  if (error) throw new SessionLookupError(error);
   if (!data) return null;
 
   const manualProfile = Array.isArray(data.manual_steam_profiles)
@@ -192,7 +191,7 @@ export async function createSessionForSteamId(steamId: string, profile?: SteamPl
     .single();
 
   if (userError || !user) {
-    throw new Error(describeSupabaseError(userError, "Could not create Steam user."));
+    throw new Error("Could not create Steam user.", { cause: userError });
   }
 
   return {
@@ -290,7 +289,7 @@ export async function createManualProfileSession(input: {
     .single();
 
   if (error || !data) {
-    throw new Error(describeSupabaseError(error, "Could not create the VaultShuffle profile."));
+    throw new Error("Could not create the VaultShuffle profile.", { cause: error });
   }
 
   const row = data as {

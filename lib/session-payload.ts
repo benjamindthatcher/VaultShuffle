@@ -2,6 +2,7 @@ import { getCurrentSession, updateSteamUserProfile } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchSteamPlayerSummary } from "@/lib/steam";
 import type { SessionPayload } from "@/lib/types";
+import { reportServiceWarning } from "@/lib/diagnostics-server";
 
 export async function getSessionPayload(): Promise<SessionPayload> {
   const session = await getCurrentSession();
@@ -20,7 +21,10 @@ export async function getSessionPayload(): Promise<SessionPayload> {
           profile
             ? updateSteamUserProfile(initialUser.id, initialUser.account_type, profile)
             : initialUser
-        ))
+        )).catch((error) => {
+          reportServiceWarning(error, "session_metadata", "profile_refresh");
+          return initialUser;
+        })
       : Promise.resolve(initialUser),
     initialUser
       ? getSupabaseAdmin()
@@ -28,7 +32,10 @@ export async function getSessionPayload(): Promise<SessionPayload> {
           .select("steam_playtime_visible")
           .eq("id", initialUser.id)
           .maybeSingle()
-          .then(({ data }) => (data as SteamVisibilityRow | null) ?? null)
+          .then(({ data, error }) => {
+            if (error) reportServiceWarning(error, "session_metadata", "visibility_read");
+            return (data as SteamVisibilityRow | null) ?? null;
+          })
       : Promise.resolve(null),
   ]);
   user = updatedUser;

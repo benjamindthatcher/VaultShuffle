@@ -14,7 +14,11 @@ import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
 import type { PinnedPlaytimeResult } from "@/lib/pinned-playtime";
 import { mergePinnedPlaytime } from "@/lib/pinned-playtime-view";
-import { announceCooldown, CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
+import { CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
+import { requestJson as api } from "@/lib/api-client";
+import { withTransientRetry } from "@/lib/request-failure";
+import { diagnosticFailure, diagnosticId } from "@/lib/diagnostics";
+import { readStoredCooldown, saveCooldown, storedCooldownError } from "@/lib/cooldown-storage";
 import { RECORDED_FINALIST_LIMIT } from "@/lib/vault";
 import {
   IDLE_STEAM_IMPORT,
@@ -98,28 +102,6 @@ type AppDataContextValue = {
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
-
-async function api<T>(path: string, options: RequestInit = {}) {
-  const response = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
-    ...options
-  });
-
-  if (response.status === 401) {
-    throw new Error("unauthorized");
-  }
-
-  const payload = await response.json();
-  if (!response.ok) {
-    const cooldown = announceCooldown(response, payload);
-    if (cooldown) throw new CooldownError(cooldown.retryAfterSeconds, cooldown.message);
-    if (payload.code === "steam_library_private") {
-      throw new SteamLibraryPrivateError(payload.error || "Steam is not sharing your games.");
-    }
-    throw new Error(payload.error || "Request failed.");
-  }
-  return payload as T;
-}
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload>(guestSession);
@@ -385,32 +367,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return promise;
   }
 
-  /**
-   * One transient failure - a 401 from a cold function, a dropped connection -
-   * used to end the whole sync. The import itself runs on the server and carries
-   * on regardless, so giving up here reported a failure for something that was
-   * still working. Two more attempts, then let it through.
-   *
-   * A cooldown is never retried: it is a definite answer, not a blip.
-   */
-  async function withTransientRetry<T>(work: () => Promise<T>, attempts = 3): Promise<T> {
-    let lastError: unknown;
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      try {
-        return await work();
-      } catch (error) {
-        if (error instanceof CooldownError) throw error;
-        lastError = error;
-        if (attempt < attempts - 1) {
-          await new Promise((resolve) => window.setTimeout(resolve, 1200 * (attempt + 1)));
-        }
-      }
-    }
-    throw lastError;
-  }
-
   async function runSteamLibrarySync({ restart = true }: { restart?: boolean }) {
     if (!isLive) throw new Error("Connect a Steam library before syncing it.");
+    const savedCooldown = readStoredCooldown(session.user_id);
+    if (savedCooldown) {
+      setSteamImportCooldownUntil(savedCooldown.until);
+      setSteamImport((current) => ({ ...current, status: "failed", lastError: "Please give Steam a moment before trying again." }));
+      throw storedCooldownError(savedCooldown);
+    }
 
     setIsSyncing(true);
     setSteamImport((current) => ({
@@ -493,7 +457,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // Retry button in front of people that could not work until the window
       // passed, and they pressed it until they left.
       if (error instanceof CooldownError) {
-        setSteamImportCooldownUntil(Date.now() + error.retryAfterSeconds * 1000);
+        setSteamImportCooldownUntil(saveCooldown(session.user_id, error));
+        setSteamImport((current) => ({ ...(actual ?? current), status: "failed", lastError: error.message }));
+        trackEvent(ANALYTICS_EVENTS.steamImportDeferred, {
+          ...diagnosticFailure(error),
+          request_id: diagnosticId((error as CooldownError & { requestId?: string }).requestId),
+          first_import: liveGames.length === 0
+        });
         throw error;
       }
       if (error instanceof SteamLibraryPrivateError) setSteamLibraryPrivate(true);
@@ -508,7 +478,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // the Steam launch event stayed at zero for a month.
       if (!steamImportSaved) {
         trackEvent(ANALYTICS_EVENTS.steamImportFailed, {
-          reason: message,
+          ...diagnosticFailure(error),
+          request_id: diagnosticId((error as { requestId?: string })?.requestId),
           first_import: liveGames.length === 0
         });
       }

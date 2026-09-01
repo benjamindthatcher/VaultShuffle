@@ -37,16 +37,17 @@ export function readCooldown(response: Response, payload: RateLimitPayload): Coo
  * could not succeed - people pressed it until they gave up.
  */
 export class CooldownError extends Error {
-  readonly code = "rate_limited";
+  readonly code: "rate_limited" | "steam_rate_limited";
   // Declared and assigned rather than a constructor parameter property: this
   // module is loaded by the test runner under --experimental-strip-types, which
   // cannot compile those.
   readonly retryAfterSeconds: number;
 
-  constructor(retryAfterSeconds: number, message: string) {
+  constructor(retryAfterSeconds: number, message: string, code?: string) {
     super(message);
     this.name = "CooldownError";
     this.retryAfterSeconds = retryAfterSeconds;
+    this.code = code === "steam_rate_limited" ? code : "rate_limited";
   }
 }
 

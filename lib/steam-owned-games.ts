@@ -2,12 +2,15 @@ import type { GamePayload } from "./types.ts";
 import { SteamApiError } from "./steam-api-error.ts";
 
 export class SteamLibraryUnavailableError extends Error {
-  readonly code = "library_unavailable";
-  constructor() {
-    super(
-      "Steam accepted the sign-in but will not share your games. In Steam, open Profile > Edit Profile > Privacy Settings and set Game details to Public. That is the only setting VaultShuffle reads."
-    );
+  readonly code: "library_empty" | "library_unavailable" | "library_private";
+  constructor(code: "library_empty" | "library_unavailable" | "library_private" = "library_unavailable") {
+    super(code === "library_empty"
+      ? "Steam reports no games available to import for this profile. Check that this is the right profile and that it owns games."
+      : code === "library_private"
+        ? "This Steam profile is restricted. Set My profile and Game details to Public in Steam’s Privacy Settings, then check again."
+        : "Steam did not share a games list. This can happen when Game details are private or there are no visible games. Check the profile and Steam’s Privacy Settings, then try again.");
     this.name = "SteamLibraryUnavailableError";
+    this.code = code;
   }
 }
 
@@ -16,6 +19,8 @@ export function steamOwnedGamesFromPayload(
   importedOn = new Date().toLocaleDateString("en-GB")
 ): GamePayload[] {
   const response = isRecord(payload) && isRecord(payload.response) ? payload.response : null;
+  if (!response) throw new SteamApiError("owned_games", "steam_invalid_response");
+  if (response.games !== undefined && !Array.isArray(response.games)) throw new SteamApiError("owned_games", "steam_invalid_response");
   const games = response && Array.isArray(response.games) ? response.games : [];
 
   const importedGames = games.flatMap((item): GamePayload[] => {
@@ -42,7 +47,10 @@ export function steamOwnedGamesFromPayload(
     }];
   });
 
-  if (!importedGames.length) throw new SteamLibraryUnavailableError();
+  if (!importedGames.length) {
+    if (games.length || Number(response.game_count) > 0) throw new SteamApiError("owned_games", "steam_invalid_response");
+    throw new SteamLibraryUnavailableError(response.game_count === 0 ? "library_empty" : "library_unavailable");
+  }
   return importedGames;
 }
 

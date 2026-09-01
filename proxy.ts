@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { diagnosticRoute } from "@/lib/diagnostics";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
@@ -8,10 +9,14 @@ const INGEST_PREFIX = "/ingest";
 const POSTHOG_API_HOST = "https://eu.i.posthog.com";
 const POSTHOG_ASSET_HOST = "https://eu-assets.i.posthog.com";
 
-function apiError(error: string, status: number) {
+function apiError(error: string, status: number, request: NextRequest) {
+  const requestId = crypto.randomUUID();
+  // Guard rejections stay in operational logs, not a potentially high-volume
+  // PostHog stream of unauthenticated probes. Never log the submitted origin/body.
+  console.warn(JSON.stringify({ event: "request_rejected", status, route: diagnosticRoute(request.nextUrl.pathname), method: request.method, request_id: requestId }));
   return NextResponse.json(
     { error },
-    { status, headers: { "Cache-Control": "private, no-store, max-age=0" } }
+    { status, headers: { "Cache-Control": "private, no-store, max-age=0", "X-Request-Id": requestId } }
   );
 }
 
@@ -95,20 +100,27 @@ export function proxy(request: NextRequest) {
     const origin = request.headers.get("origin");
     const fetchSite = request.headers.get("sec-fetch-site");
     if (fetchSite === "cross-site" || !origin || !allowedOrigins(request).has(origin)) {
-      return apiError("Cross-site request blocked.", 403);
+      return apiError("Cross-site request blocked.", 403, request);
     }
 
     const contentLength = Number(request.headers.get("content-length") ?? 0);
     if (Number.isFinite(contentLength) && contentLength > MAX_API_BODY_BYTES) {
-      return apiError("Request body is too large.", 413);
+      return apiError("Request body is too large.", 413, request);
     }
 
     if (contentLength > 0 && !request.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
-      return apiError("Content-Type must be application/json.", 415);
+      return apiError("Content-Type must be application/json.", 415, request);
     }
   }
 
-  const response = NextResponse.next();
+  const requestHeaders = new Headers(request.headers);
+  // Overwrite, rather than trust, client-supplied routing/request metadata.
+  const requestId = crypto.randomUUID();
+  requestHeaders.set("x-vault-request-id", requestId);
+  requestHeaders.set("x-vault-route", diagnosticRoute(request.nextUrl.pathname));
+  requestHeaders.set("x-vault-method", request.method);
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  response.headers.set("X-Request-Id", requestId);
   if (request.nextUrl.pathname.startsWith("/api/")) {
     response.headers.set("Cache-Control", "private, no-store, max-age=0");
   }
