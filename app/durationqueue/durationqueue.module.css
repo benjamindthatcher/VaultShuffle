@@ -1,0 +1,9 @@
+.page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(24px, 5vw, 64px) 24px;
+  background:
+    radial-gradient(90% 60% at 50% 0%, rgba(124, 58, 237, 0.28), transparent 70%),
+    var(--vault-ink);
+}
