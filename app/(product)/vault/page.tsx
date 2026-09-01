@@ -46,6 +46,7 @@ import styles from "./vault.module.css";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
 type VaultSetupStep = "session" | "mood" | "goal";
+type VaultDetailsSurface = "pinned" | "history" | "pool";
 /**
  * The four panels of the setup, of which one is open at a time.
  *
@@ -98,6 +99,7 @@ export default function VaultPage() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [highlightedGameId, setHighlightedGameId] = useState<string | null>(null);
   const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
+  const [detailsSurface, setDetailsSurface] = useState<VaultDetailsSurface | null>(null);
   const [savingGameId, setSavingGameId] = useState<string | null>(null);
   const [sleepingGameId, setSleepingGameId] = useState<string | null>(null);
   const [sleepUndo, setSleepUndo] = useState<{ gameId: string; title: string; status: "Not Started" | "In Progress"; wasPinned: boolean } | null>(null);
@@ -330,7 +332,9 @@ export default function VaultPage() {
   // longer on screen.
   const pickDraw = drawSnapshot && currentPick && drawSnapshot.pickId === currentPick.id ? drawSnapshot : null;
 
-  const detailsGame = ownedGames.find((game) => game.id === detailsGameId) ?? null;
+  const detailsGame = ownedGames.find((game) => game.id === detailsGameId)
+    ?? allGames.find((game) => game.id === detailsGameId)
+    ?? null;
   const canDraw = collectionMode
     ? Boolean(collectionDraw && deck.length > 0)
     : Boolean(session && mood && goal && deck.length > 0);
@@ -745,7 +749,7 @@ export default function VaultPage() {
   }
 
   async function togglePin(id: string) {
-    const game = ownedGames.find((item) => item.id === id);
+    const game = ownedGames.find((item) => item.id === id) ?? allGames.find((item) => item.id === id);
     if (!game) return;
     if (vaultState.pinnedIds.includes(id)) {
       await recordVaultAction("unpinned", id);
@@ -801,6 +805,20 @@ export default function VaultPage() {
     if (game) trackCompletionUndone(game, "vault", isLive);
   }
 
+  function openGameDetails(gameId: string, surface: VaultDetailsSurface) {
+    setDetailsGameId(gameId);
+    setDetailsSurface(surface);
+    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
+      surface: `vault_${surface}`,
+      ...(surface === "pinned" ? { pin_slot: vaultState.pinnedIds.indexOf(gameId) + 1 } : {}),
+    });
+  }
+
+  function closeGameDetails() {
+    setDetailsGameId(null);
+    setDetailsSurface(null);
+  }
+
   return (
     <section className={styles.vaultPage}>
       <h1 className="visually-hidden">Vault</h1>
@@ -811,7 +829,7 @@ export default function VaultPage() {
           games={ownedGames}
           pins={vaultState.pins ?? []}
           pinnedIds={vaultState.pinnedIds}
-          onSelect={(gameId) => setDetailsGameId(gameId)}
+          onSelect={(gameId) => openGameDetails(gameId, "pinned")}
           onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
           compact
         />
@@ -946,7 +964,7 @@ export default function VaultPage() {
           onClear={clearVaultHistory}
           onViewDetails={(game) => {
             setDeckPanel(null);
-            setDetailsGameId(game.id);
+            openGameDetails(game.id, "history");
           }}
         />
       ) : null}
@@ -1109,7 +1127,7 @@ export default function VaultPage() {
             drawState={drawState}
             winner={drawWinner}
             highlightedId={highlightedGameId}
-            onSelect={setDetailsGameId}
+            onSelect={(gameId) => openGameDetails(gameId, "pool")}
             sleepingId={sleepingGameId}
             onSleep={(id) => void sleepPoolGame(id)}
             pinnedIds={vaultState.pinnedIds}
@@ -1136,11 +1154,17 @@ export default function VaultPage() {
       <LibraryDetailsDrawer
         game={detailsGame}
         previewMode={!isLive}
+        variant={detailsSurface === "pinned" ? "pinned" : "library"}
+        pin={(vaultState.pins ?? []).find((entry) => entry.gameId === detailsGame?.id)}
         collections={collections}
         saving={savingGameId === detailsGame?.id}
         pinSlot={detailsGame ? vaultState.pinnedIds.indexOf(detailsGame.id) + 1 || null : null}
         pinCount={vaultState.pinnedIds.length}
-        onTogglePin={() => { if (detailsGame) void togglePin(detailsGame.id); }}
+        onTogglePin={() => {
+          if (!detailsGame) return;
+          const removingSpotlight = detailsSurface === "pinned" && vaultState.pinnedIds.includes(detailsGame.id);
+          void togglePin(detailsGame.id).then(() => { if (removingSpotlight) closeGameDetails(); });
+        }}
         onManagePins={() => { if (detailsGame) setPinCandidate(detailsGame); }}
         onSave={async (patch) => {
           if (!detailsGame) return;
@@ -1155,7 +1179,7 @@ export default function VaultPage() {
           if (!detailsGame) return;
           await setGameCollection(detailsGame.id, collectionId, assigned);
         }}
-        onClose={() => setDetailsGameId(null)}
+        onClose={closeGameDetails}
         onComplete={() => detailsGame ? completeGame(detailsGame) : Promise.resolve()}
         onSleep={() => detailsGame ? sleepPoolGame(detailsGame.id) : Promise.resolve()}
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}

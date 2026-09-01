@@ -55,10 +55,98 @@
   object-fit: cover;
 }
 
+/* A pin is not another catalogue card. This variant is a little vault chamber
+   built around the same useful details, with the brighter edge and mint earned
+   progress reserved for the promise the player has actually kept. */
+.drawer[data-variant="pinned"] {
+  width: min(1080px, calc(100vw - 40px));
+  overflow: hidden auto;
+  border-color: rgba(182, 112, 255, 0.72);
+  background:
+    radial-gradient(circle at 84% 27%, rgba(68, 67, 196, 0.17), transparent 34%),
+    linear-gradient(145deg, rgba(9, 8, 30, 0.995), rgba(8, 11, 29, 0.995));
+  box-shadow:
+    0 0 0 5px rgba(84, 44, 153, 0.16),
+    0 0 46px rgba(128, 61, 255, 0.28),
+    0 36px 110px rgba(0, 0, 0, 0.72);
+  animation: pinnedChamberIn 300ms cubic-bezier(0.2, 0.9, 0.25, 1), pinnedBorderBloom 900ms ease-out;
+}
+
+.drawer[data-variant="pinned"] .hero {
+  height: clamp(172px, 24dvh, 215px);
+  aspect-ratio: auto;
+  border-bottom: 1px solid rgba(166, 101, 255, 0.5);
+}
+
+.drawer[data-variant="pinned"] .hero img {
+  filter: saturate(1.05) contrast(1.04);
+}
+
+.heroShade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(5, 3, 20, 0.76), transparent 30%, transparent 70%, rgba(5, 4, 19, 0.22)),
+    linear-gradient(0deg, rgba(8, 5, 25, 0.5), transparent 46%);
+  pointer-events: none;
+}
+
+.heroClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid rgba(241, 231, 255, 0.48);
+  border-radius: 50%;
+  background: rgba(5, 6, 20, 0.76);
+  color: #fff;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.34);
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.heroClose:hover {
+  border-color: #dca8ff;
+  background: rgba(54, 27, 101, 0.9);
+  transform: translateY(-1px);
+}
+
+.heroClose:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+}
+
 .body {
   display: grid;
   gap: 18px;
   padding: 24px;
+}
+
+.drawer[data-variant="pinned"] .body {
+  display: block;
+  padding: 0;
+}
+
+.pinnedLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 0.94fr) minmax(0, 1.06fr);
+  min-height: 368px;
+}
+
+.pinnedOverview {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  padding: 26px 28px 22px;
+  border-right: 1px solid rgba(160, 109, 235, 0.18);
+  background:
+    radial-gradient(circle at 8% 100%, rgba(78, 48, 147, 0.12), transparent 44%);
 }
 
 .header {
@@ -88,6 +176,256 @@
   color: var(--vault-text-muted);
   line-height: 1.7;
 }
+
+.pinnedLead {
+  max-width: 46ch;
+  margin: -3px 0 0;
+  color: var(--vault-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.spotlightStats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px 12px;
+  margin: 2px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(158, 115, 223, 0.2);
+}
+
+.spotlightStats > div {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  min-width: 0;
+}
+
+.spotlightStats > div:nth-child(even) {
+  padding-left: 14px;
+  border-left: 1px solid rgba(158, 115, 223, 0.16);
+}
+
+.spotlightStats svg {
+  margin-top: 1px;
+  color: #bd84ff;
+}
+
+.spotlightStats dt,
+.spotlightNotes > span {
+  color: #c28bff;
+  font-size: 0.68rem;
+  font-weight: 830;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.spotlightStats dd {
+  margin: 4px 0 0;
+  overflow: hidden;
+  color: rgba(244, 239, 255, 0.86);
+  font-size: 0.8rem;
+  font-weight: 680;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+}
+
+.spotlightNotes {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(158, 115, 223, 0.2);
+}
+
+.spotlightNotes > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spotlightNotes textarea {
+  width: 100%;
+  min-height: 58px;
+  padding: 10px 12px;
+  resize: vertical;
+  border: 1px solid rgba(167, 114, 238, 0.24);
+  border-radius: 11px;
+  background: rgba(12, 12, 36, 0.56);
+  color: var(--vault-text);
+  font: inherit;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.spotlightNotes textarea::placeholder { color: rgba(211, 199, 232, 0.48); }
+.spotlightNotes textarea:focus-visible { outline: 2px solid #c387ff; outline-offset: 2px; }
+
+.spotlightFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.spotlightFooter .metadataRow { min-width: 0; }
+.spotlightFooter .metadataRow span { padding: 5px 8px; font-size: 0.68rem; }
+.spotlightFooter .saveButton { flex: 0 0 auto; min-height: 40px; padding-inline: 15px; font-size: 0.76rem; }
+
+.commitment {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: 108px minmax(0, 1fr);
+  grid-template-areas:
+    "copy copy"
+    "gauge progress"
+    "facts facts"
+    "actions actions";
+  align-content: start;
+  gap: 15px 20px;
+  min-width: 0;
+  margin: 18px 18px 18px 0;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(177, 112, 255, 0.42);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 92% 18%, rgba(115, 68, 230, 0.2), transparent 32%),
+    linear-gradient(135deg, rgba(31, 18, 68, 0.82), rgba(10, 12, 35, 0.92));
+  box-shadow: inset 0 1px 0 rgba(238, 219, 255, 0.08), 0 18px 42px rgba(4, 2, 18, 0.3);
+}
+
+.commitment::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 31px, rgba(208, 174, 255, 0.025) 31px 32px),
+    repeating-linear-gradient(0deg, transparent 0 31px, rgba(208, 174, 255, 0.02) 31px 32px);
+  pointer-events: none;
+}
+
+.commitmentCopy { grid-area: copy; align-self: end; }
+.commitmentCopy h3 { margin: 7px 0 0; color: #fff; font-size: 1.4rem; letter-spacing: -0.025em; }
+.commitmentCopy > p:last-child { margin: 6px 0 0; color: var(--vault-text-muted); line-height: 1.45; }
+
+.pinnedGauge {
+  --pinned-before: 0%;
+  --pinned-progress: 0%;
+  position: relative;
+  grid-area: gauge;
+  align-self: center;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from -90deg, rgba(235, 219, 255, 0.32) 0 1deg, transparent 1deg 10deg),
+    conic-gradient(from -90deg,
+      #9c61e8 0 var(--pinned-before),
+      #6ee7b7 var(--pinned-before) var(--pinned-progress),
+      rgba(86, 58, 140, 0.28) var(--pinned-progress) 100%);
+  box-shadow: 0 0 0 1px rgba(190, 142, 255, 0.26), 0 0 25px rgba(124, 65, 224, 0.3);
+}
+
+.pinnedGauge::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid rgba(187, 141, 255, 0.26);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 32%, rgba(68, 39, 121, 0.88), rgba(9, 6, 25, 0.99) 72%);
+  box-shadow: inset 0 0 18px rgba(3, 1, 10, 0.84);
+}
+
+.pinnedGauge > span {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+
+.pinnedGauge strong { color: #fff; font-size: 1.65rem; line-height: 1; letter-spacing: -0.055em; }
+.pinnedGauge strong small { font-size: 0.52em; }
+.pinnedGauge em { margin-top: 4px; color: rgba(226, 215, 255, 0.64); font-size: 0.52rem; font-style: normal; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.pinnedGaugeOpen { color: #d4a5ff; background: repeating-conic-gradient(from -90deg, rgba(221, 190, 255, 0.42) 0 1deg, transparent 1deg 10deg), rgba(85, 46, 153, 0.28); }
+.pinnedGaugeOpen > svg { position: relative; z-index: 1; }
+
+.pinnedProgress { grid-area: progress; align-self: end; display: grid; gap: 8px; }
+.pinnedTrack {
+  position: relative;
+  height: 11px;
+  overflow: visible;
+  border-radius: 999px;
+  background:
+    repeating-linear-gradient(90deg, rgba(221, 203, 255, 0.08) 0 1px, transparent 1px 12.5%),
+    rgba(5, 4, 18, 0.92);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.68), inset 0 0 0 1px rgba(150, 120, 235, 0.2);
+}
+
+.pinnedBefore,
+.pinnedSince {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: inherit;
+  transform-origin: left center;
+  animation: pinnedProgressGrow 680ms cubic-bezier(0.2, 0.9, 0.25, 1) 160ms both;
+}
+
+.pinnedBefore { left: 0; background: linear-gradient(90deg, #7247b8, #a66bea); box-shadow: 0 0 10px rgba(160, 98, 232, 0.45); }
+.pinnedSince { background: linear-gradient(90deg, #45cd91, #8af0bd); box-shadow: 0 0 12px rgba(110, 231, 183, 0.55); animation-delay: 300ms; }
+.pinnedNotch { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; border-radius: 999px; background: rgba(244, 232, 255, 0.94); box-shadow: 0 0 8px rgba(211, 174, 255, 0.88); }
+
+.progressLegend { display: flex; flex-wrap: wrap; gap: 9px 18px; min-height: 18px; color: rgba(221, 211, 241, 0.68); font-size: 0.72rem; }
+.progressLegend span { display: inline-flex; align-items: center; gap: 6px; }
+.progressLegend i { width: 7px; height: 7px; border-radius: 50%; background: #9c61e8; box-shadow: 0 0 7px rgba(156, 97, 232, 0.6); }
+.progressLegend i[data-tone="since"] { background: #6ee7b7; box-shadow: 0 0 7px rgba(110, 231, 183, 0.6); }
+
+.openEndedNote { grid-area: progress; align-self: end; margin: 0; color: var(--vault-text-muted); font-size: 0.84rem; line-height: 1.5; }
+
+.commitmentFacts {
+  grid-area: facts;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0;
+  padding: 12px 0 0;
+  border-top: 1px solid rgba(155, 116, 221, 0.2);
+  list-style: none;
+}
+
+.commitmentFacts li { display: inline-flex; align-items: center; gap: 7px; color: rgba(226, 218, 244, 0.72); font-size: 0.78rem; }
+.commitmentFacts li svg { color: #b77bff; }
+.commitmentFacts li[data-positive="true"] { color: var(--vault-success); }
+.commitmentFacts li[data-positive="true"] svg { color: var(--vault-success); }
+
+.pinnedActions { grid-area: actions; display: grid; grid-template-columns: 1fr; gap: 10px; }
+.pinnedUtilities { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 8px; }
+.pinnedUtilities button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 48px;
+  padding: 0 12px;
+  border: 1px solid rgba(180, 126, 255, 0.34);
+  border-radius: 12px;
+  background: rgba(20, 18, 52, 0.76);
+  color: #d9c6ee;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 740;
+  cursor: pointer;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.pinnedUtilities button:hover:not(:disabled) { border-color: #b981ff; background: rgba(60, 35, 112, 0.76); color: #fff; transform: translateY(-1px); }
+.pinnedUtilities button:focus-visible { outline: 2px solid #e1bdff; outline-offset: 2px; }
+.pinnedUtilities button:disabled { cursor: not-allowed; opacity: 0.42; }
 
 .metadataRow {
   display: flex;
@@ -290,6 +628,21 @@
   opacity: 0.42;
 }
 
+@keyframes pinnedChamberIn {
+  from { opacity: 0; transform: translateY(14px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes pinnedBorderBloom {
+  0% { box-shadow: 0 0 0 1px rgba(186, 116, 255, 0.5), 0 0 0 rgba(128, 61, 255, 0), 0 36px 110px rgba(0, 0, 0, 0.72); }
+  55% { box-shadow: 0 0 0 7px rgba(114, 58, 205, 0.18), 0 0 62px rgba(148, 76, 255, 0.42), 0 36px 110px rgba(0, 0, 0, 0.72); }
+}
+
+@keyframes pinnedProgressGrow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 /* The extra width goes to the things that gain from it, rather than to a second
    column of arbitrary pairings. The four stats sit in one row instead of a 2x2
    block, and the prose keeps a readable measure instead of running the full
@@ -304,6 +657,12 @@
   .copy {
     max-width: 74ch;
   }
+}
+
+@media (max-width: 779px) {
+  .pinnedLayout { grid-template-columns: 1fr; }
+  .pinnedOverview { border-right: 0; }
+  .commitment { margin: 0 18px 18px; }
 }
 
 @media (max-width: 560px) {
@@ -331,8 +690,41 @@
   .statGrid div { padding: 12px; }
   .statGrid dd { margin-top: 6px; font-size: 0.98rem; }
   .actionRow { grid-template-columns: 1fr; }
+
+  .drawer[data-variant="pinned"] {
+    width: 100vw;
+    max-width: 100vw;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .drawer[data-variant="pinned"] .hero { height: 160px; }
+  .pinnedOverview { padding: 20px 18px 18px; }
+  .spotlightStats { gap: 13px 8px; }
+  .spotlightStats > div:nth-child(even) { padding-left: 9px; }
+  .spotlightFooter { align-items: flex-end; }
+  .commitment {
+    grid-template-columns: 84px minmax(0, 1fr);
+    margin: 0 14px 18px;
+    padding: 16px;
+    gap: 12px;
+  }
+  .commitmentCopy h3 { font-size: 1.15rem; }
+  .pinnedActions { grid-template-columns: 1fr; }
+  .pinnedUtilities { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pinnedUtilities button { min-height: 44px; padding-inline: 8px; font-size: 0.7rem; }
+  .commitmentFacts { gap: 8px 14px; }
+}
+
+@media (max-width: 390px) {
+  .spotlightStats { grid-template-columns: 1fr; }
+  .spotlightStats > div:nth-child(even) { padding-left: 0; border-left: 0; }
+  .commitment { grid-template-columns: 74px minmax(0, 1fr); }
+  .pinnedUtilities { grid-template-columns: 1fr; }
+  .pinnedUtilities button { justify-content: flex-start; padding-inline: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .drawer { animation: none; }
+  .drawer,
+  .pinnedBefore,
+  .pinnedSince { animation: none; }
 }

@@ -17,7 +17,7 @@ export type VaultIconName =
   | "chevron-down" | "close" | "back" | "check" | "external-link" | "menu-dots"
   | "manage-pins" | "collection-picker" | "undo" | "add" | "add-game" | "new-collection" | "refresh-prices"
   | "open-steam" | "play-now" | "pin" | "unpin" | "sleep" | "mark-completed" | "restore-active"
-  | "draw-again" | "draw-from-vault" | "snooze" | "details" | "clock" | "search" | "snooze-not-now" | "view-details"
+  | "draw-again" | "draw-from-vault" | "snooze" | "details" | "clock" | "playtime" | "search" | "snooze-not-now" | "view-details"
   | "all-collections" | "ready-to-review" | "actioned" | "no-review-needed" | "keep-active"
   | "privacy" | "terms" | "steam-data" | "contact" | "feedback" | "cookies"
   | "current-pick" | "trophy" | "shuffle" | "lock" | "id";

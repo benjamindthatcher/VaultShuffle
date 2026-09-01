@@ -37,6 +37,7 @@ export default function LibraryPage() {
   const [statusTab, setStatusTab] = useState<"active" | "slept" | "completed">("active");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [selectedSurface, setSelectedSurface] = useState<"recent" | "catalogue" | "pinned" | null>(null);
   const [savingGameId, setSavingGameId] = useState<string | null>(null);
   const [undoGameId, setUndoGameId] = useState<string | null>(null);
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
@@ -159,7 +160,10 @@ export default function LibraryPage() {
   // genres does not shuffle every time the tab changes.
   const filterGenres = useMemo(() => availableGenres(libraryGames), [libraryGames]);
 
-  const selectedGame = filteredGames.find((game) => game.id === selectedGameId) ?? libraryGames.find((game) => game.id === selectedGameId) ?? null;
+  const selectedGame = filteredGames.find((game) => game.id === selectedGameId)
+    ?? libraryGames.find((game) => game.id === selectedGameId)
+    ?? allGames.find((game) => game.id === selectedGameId)
+    ?? null;
   const celebratingGame = celebratingId ? games.find((game) => game.id === celebratingId) ?? null : null;
   // Pins outrank the global filters. A pinned game the filters have ruled out is
   // still pinned, and has to stay reachable here - otherwise the manage dialog
@@ -212,14 +216,26 @@ export default function LibraryPage() {
 
   async function toggleSelectedPin() {
     if (!selectedGame) return;
+    const removingPinnedSpotlight = selectedSurface === "pinned" && vaultState.pinnedIds.includes(selectedGame.id);
     await togglePin(selectedGame);
+    if (removingPinnedSpotlight) {
+      setSelectedGameId(null);
+      setSelectedSurface(null);
+    }
   }
 
   function openGame(gameId: string, surface: "recent" | "catalogue" | "pinned") {
     setSelectedGameId(gameId);
+    setSelectedSurface(surface);
     trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
       surface,
+      ...(surface === "pinned" ? { pin_slot: vaultState.pinnedIds.indexOf(gameId) + 1 } : {}),
     });
+  }
+
+  function closeGameDetails() {
+    setSelectedGameId(null);
+    setSelectedSurface(null);
   }
 
   return (
@@ -245,7 +261,7 @@ export default function LibraryPage() {
         pinnedIds={vaultState.pinnedIds}
         onSelect={(gameId) => openGame(gameId, "pinned")}
         onUnpin={(gameId) => {
-          const game = games.find((entry) => entry.id === gameId);
+          const game = allGames.find((entry) => entry.id === gameId);
           if (game) void togglePin(game);
         }}
         compact
@@ -380,6 +396,8 @@ export default function LibraryPage() {
       <LibraryDetailsDrawer
         game={selectedGame}
         previewMode={!isLive}
+        variant={selectedSurface === "pinned" ? "pinned" : "library"}
+        pin={(vaultState.pins ?? []).find((entry) => entry.gameId === selectedGame?.id)}
         collections={collections}
         saving={savingGameId === selectedGame?.id}
         onSave={async (patch) => {
@@ -395,7 +413,7 @@ export default function LibraryPage() {
           if (!selectedGame) return;
           await setGameCollection(selectedGame.id, collectionId, assigned);
         }}
-        onClose={() => setSelectedGameId(null)}
+        onClose={closeGameDetails}
         pinSlot={selectedGame ? vaultState.pinnedIds.indexOf(selectedGame.id) + 1 || null : null}
         pinCount={vaultState.pinnedIds.length}
         onTogglePin={() => void toggleSelectedPin()}

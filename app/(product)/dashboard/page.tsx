@@ -24,19 +24,33 @@ import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./dashboard.module.css";
 
+type DashboardDetailsSurface = "dashboard_guest" | "dashboard_pinned" | "dashboard_value" | "dashboard_finished";
+
 export default function DashboardPage() {
-  const { games, collections, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, allGames, collections, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction, updateGame, restoreGame, setGameCollection } = useAppData();
 
   // Every game on this page names a game, so every game on this page opens it.
   // These were flat tiles: the dashboard could tell you Palworld was your best
   // value for money and then offer no way to look at it.
   const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
+  const [detailsSurface, setDetailsSurface] = useState<DashboardDetailsSurface | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
-  const detailsGame = detailsGameId ? games.find((game) => game.id === detailsGameId) ?? null : null;
+  const detailsGame = detailsGameId
+    ? games.find((game) => game.id === detailsGameId) ?? allGames.find((game) => game.id === detailsGameId) ?? null
+    : null;
 
-  function openDetails(gameId: string, surface: string) {
+  function openDetails(gameId: string, surface: DashboardDetailsSurface) {
     setDetailsGameId(gameId);
-    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, { surface });
+    setDetailsSurface(surface);
+    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
+      surface,
+      ...(surface === "dashboard_pinned" ? { pin_slot: vaultState.pinnedIds.indexOf(gameId) + 1 } : {}),
+    });
+  }
+
+  function closeDetails() {
+    setDetailsGameId(null);
+    setDetailsSurface(null);
   }
   const enrichmentNotice = useLibraryEnrichmentNotice();
   const completionNotice = useCompletionClaimNotice();
@@ -79,6 +93,8 @@ export default function DashboardPage() {
     <LibraryDetailsDrawer
       game={detailsGame}
       previewMode={!isLive}
+      variant={detailsSurface === "dashboard_pinned" ? "pinned" : "library"}
+      pin={(vaultState.pins ?? []).find((entry) => entry.gameId === detailsGame?.id)}
       collections={collections}
       saving={savingNotes}
       onSave={async (patch) => {
@@ -94,12 +110,14 @@ export default function DashboardPage() {
         if (!detailsGame) return;
         await setGameCollection(detailsGame.id, collectionId, assigned);
       }}
-      onClose={() => setDetailsGameId(null)}
+      onClose={closeDetails}
       pinSlot={detailsGame ? vaultState.pinnedIds.indexOf(detailsGame.id) + 1 || null : null}
       pinCount={vaultState.pinnedIds.length}
       onTogglePin={() => {
         if (!detailsGame) return;
-        void recordVaultAction(vaultState.pinnedIds.includes(detailsGame.id) ? "unpinned" : "pinned", detailsGame.id);
+        const removingSpotlight = detailsSurface === "dashboard_pinned" && vaultState.pinnedIds.includes(detailsGame.id);
+        void recordVaultAction(vaultState.pinnedIds.includes(detailsGame.id) ? "unpinned" : "pinned", detailsGame.id)
+          .then(() => { if (removingSpotlight) closeDetails(); });
       }}
       onComplete={async () => {
         if (!detailsGame) return;
@@ -204,6 +222,7 @@ export default function DashboardPage() {
             games={games}
             pins={vaultState.pins ?? []}
             pinnedIds={vaultState.pinnedIds}
+            onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")}
             onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
             compact
           />
