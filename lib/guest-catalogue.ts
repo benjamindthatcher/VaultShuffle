@@ -40,12 +40,6 @@ type GuestCatalogueRow = {
   duration_confidence: Game["duration_confidence"];
   duration_kind: Game["duration_kind"];
   popularity_rank: number | null;
-  categories: string[] | null;
-  release_date: string | null;
-  platform_windows: boolean | null;
-  platform_mac: boolean | null;
-  platform_linux: boolean | null;
-  deck_compatibility: number | null;
 };
 
 /** An empty array is not null, and "Unknown" is not a genre. */
@@ -72,11 +66,8 @@ function fullyEnriched(row: GuestCatalogueRow) {
   return hasDuration;
 }
 
-// release_date, categories and the platform columns are here for the global
-// filters. Without them every filter reads "no" for every guest game and empties
-// the catalogue on the dashboard - which is the first thing a visitor sees.
 const FULL_ROW_COLUMNS =
-  "steam_appid,name,genres,categories,tags,short_description,capsule_url,header_url,review_positive,review_total,main_story_minutes,main_extras_minutes,completionist_minutes,duration_source,duration_source_updated_at,duration_confidence,duration_kind,popularity_rank,release_date,platform_windows,platform_mac,platform_linux,deck_compatibility";
+  "steam_appid,name,genres,tags,short_description,capsule_url,header_url,review_positive,review_total,main_story_minutes,main_extras_minutes,completionist_minutes,duration_source,duration_source_updated_at,duration_confidence,duration_kind,popularity_rank";
 
 /** Only what selection needs. See the note in loadCachedGuestCatalogue. */
 const CANDIDATE_COLUMNS = "steam_appid,genres,tags,popularity_rank,review_total";
@@ -276,12 +267,6 @@ function guestGameFromCatalogue(row: GuestCatalogueRow): Game {
     duration_confidence: row.duration_confidence,
     duration_kind: row.duration_kind,
     steam_tags: row.tags,
-    steam_categories: row.categories ?? null,
-    release_date: row.release_date ?? null,
-    platform_windows: row.platform_windows ?? null,
-    platform_mac: row.platform_mac ?? null,
-    platform_linux: row.platform_linux ?? null,
-    deck_compatibility: row.deck_compatibility ?? null,
     // Carried through, not just folded into the rating above. The reasoning
     // panel judges how a game is regarded from the raw counts - "Hidden gem",
     // "Everyone has played this" - and a rounded 0-10 cannot tell it whether 92%

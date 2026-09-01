@@ -66,12 +66,6 @@ export default function DashboardPage() {
           These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
         </GuestPreviewNotice>
 
-        {/* Guests get these too. The guest catalogue carries the same platform,
-            Deck and release data, so someone evaluating VaultShuffle on a Mac or
-            a Deck can see whether it would be any use to them before signing in -
-            which is what the control in the profile menu used to be for. */}
-        <GlobalFiltersPanel />
-
         <section className={styles.hero}>
           <p className={styles.heroLabel}>Guest catalogue ready</p>
           <p className={styles.heroValue}>{games.length}<span> popular Steam games</span></p>

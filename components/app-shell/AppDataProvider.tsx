@@ -83,8 +83,6 @@ type AppDataContextValue = {
   setGlobalFilters: (filters: GlobalFilters) => void;
   /** Owned games before the global filters ran, so the panel can show its effect. */
   unfilteredGameCount: number;
-  /** The bundled guest preview, which has no data for most global filters. */
-  guestCatalogueIsFallback: boolean;
   isLoading: boolean;
   isSyncing: boolean;
   steamImport: SteamImportProgress;
@@ -118,13 +116,6 @@ const AppDataContext = createContext<AppDataContextValue | null>(null);
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload>(guestSession);
   const [guestGames, setGuestGames] = useState<DemoGame[]>(guestFallbackGames);
-  /**
-   * True while a guest is looking at the bundled preview rather than the live
-   * catalogue. The fallback carries no release dates, categories or platform
-   * flags, so anything that filters on those can only answer "no" and would
-   * empty the page. It is not offered here rather than offered broken.
-   */
-  const [guestCatalogueIsFallback, setGuestCatalogueIsFallback] = useState(false);
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(() => guestPreviewCollection(guestFallbackGames.length));
   const [liveGames, setLiveGames] = useState<DemoGame[]>([]);
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>(() => mapLiveCollections([]));
@@ -194,9 +185,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           const mappedGuestGames = mapGuestGames(bootstrap.games);
           setGuestGames(mappedGuestGames);
           setGuestCollections(guestPreviewCollection(mappedGuestGames.length));
-          setGuestCatalogueIsFallback(bootstrap.guest_pool_source === "fallback");
         } else if (bootstrap.data_error) {
-          setGuestCatalogueIsFallback(true);
           setLoadError("The live guest catalogue is temporarily unavailable. A smaller preview is still ready.");
         }
         return false;
@@ -849,8 +838,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // The topmost layer. Everything downstream - the Vault's deck, the Library,
   // every count on the page - reads from this, so a global filter genuinely
   // removes a game from consideration rather than hiding it in one view.
+  //
+  // Signed-in only. The panel is not offered to guests, and the choices outlive
+  // a session in localStorage, so filtering the guest catalogue too would let
+  // someone sign out and find a preview quietly missing games with no control
+  // anywhere to explain it or put them back.
   const visibleGames = useMemo(
-    () => (isLive ? liveGames : guestGames).filter((game) => matchesGlobalFilters(game, globalFilters)),
+    () => isLive ? liveGames.filter((game) => matchesGlobalFilters(game, globalFilters)) : guestGames,
     [globalFilters, guestGames, isLive, liveGames]
   );
   const unfilteredGameCount = (isLive ? liveGames : guestGames).length;
@@ -871,7 +865,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       globalFilters,
       setGlobalFilters,
       unfilteredGameCount,
-      guestCatalogueIsFallback,
       setDeviceMode,
       games: visibleGames,
       collections: isLive ? liveCollections : guestCollections,
