@@ -13,6 +13,9 @@ import type { VaultMoodId } from "@/lib/demo-data";
  */
 const LOOKBACK_DAYS = 180;
 
+/** PostgREST caps a response at 1,000 rows, so every unbounded read pages. */
+const DECISION_PAGE_SIZE = 1000;
+
 /** Taste drifts, so evidence loses half its weight every this many days. */
 const RECENCY_HALF_LIFE_DAYS = 60;
 
@@ -82,7 +85,6 @@ type DrawRow = {
 type EventRow = { draw_id: string; event_type: string; created_at: string };
 type PurgeDecision = { userId: string; steamAppId: number; action: string; reviewedAt: string };
 
-const DECISION_PAGE_SIZE = 1000;
 
 /**
  * How each Purge verdict reads as taste. Sleeping matches the weight a Vault
@@ -122,13 +124,24 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   const supabase = getSupabaseAdmin();
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString();
 
-  const { data: drawData, error: drawError } = await supabase
-    .from("vault_draws")
-    .select("id, user_id, steam_appid, mood")
-    .gte("drawn_at", since);
-  if (drawError) throw drawError;
+  // Paged explicitly. PostgREST caps a response at 1,000 rows and says nothing
+  // about it, so this returned exactly 1,000 of the 2,064 draws in the window and
+  // the learner had been training on less than half its evidence - silently, and
+  // getting worse with every draw the product takes.
+  const draws: DrawRow[] = [];
+  for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
+    const { data: drawData, error: drawError } = await supabase
+      .from("vault_draws")
+      .select("id, user_id, steam_appid, mood")
+      .gte("drawn_at", since)
+      .order("drawn_at", { ascending: false })
+      .range(offset, offset + DECISION_PAGE_SIZE - 1);
+    if (drawError) throw drawError;
 
-  const draws = (drawData ?? []) as DrawRow[];
+    const page = (drawData ?? []) as DrawRow[];
+    draws.push(...page);
+    if (page.length < DECISION_PAGE_SIZE) break;
+  }
   const summary: GenrePreferenceRebuildSummary = {
     draws: draws.length,
     events: 0,
