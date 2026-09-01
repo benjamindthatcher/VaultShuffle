@@ -7,6 +7,14 @@
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
+}
+
+/* The 28px floor is for rows carrying a control, so a button cannot make one
+   heading taller than the plain ones beside it. A bare title needs no floor,
+   and on every section that had one it left nine pixels of dead space between
+   the words and the thing they name - a title floating above its module rather
+   than belonging to it. */
+.row:has(.action) {
   min-height: 28px;
 }
 
