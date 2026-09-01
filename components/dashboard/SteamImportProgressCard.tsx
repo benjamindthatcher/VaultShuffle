@@ -154,7 +154,7 @@ export function SteamImportProgressCard() {
   const title = steamLibraryPrivate
     ? "Steam is not sharing your games yet"
     : coolingDown
-    ? "Your library was refreshed a moment ago"
+    ? "Give Steam a moment"
     : fetching
     ? "Reading your Steam library"
     : failed
@@ -165,9 +165,9 @@ export function SteamImportProgressCard() {
           : "Your Steam library is ready"
         : "Building your dashboard";
   const detail = steamLibraryPrivate
-    ? "Your sign-in worked. Steam will not tell us what you own until Game details is public — it is the only setting we read, and it takes about twenty seconds."
+    ? (steamImport.lastError || "Your sign-in worked, but Steam did not share a games list. Check the profile and its Game details privacy setting, then try again.")
     : coolingDown
-    ? `Steam limits how often a library can be re-read. You can try again in ${waitLabel}.`
+    ? `This is a temporary request limit, not a rejected profile. You can try again in ${waitLabel}.`
     : fetching
     ? "Steam sends the ownership list once, then we save it in small batches."
     : failed

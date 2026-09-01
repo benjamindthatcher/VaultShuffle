@@ -3,6 +3,11 @@ import "server-only";
 import crypto from "node:crypto";
 import { fetchOwnedSteamGames, fetchSteamPlayerSummary } from "@/lib/steam";
 import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
+import { fetchSteamResponse, readSteamJson, SteamApiError } from "@/lib/steam-api-error";
+import { saveLibrarySnapshot } from "@/lib/steam-library-snapshot";
+import { steamSetupCache } from "@/lib/steam-setup-cache";
+import { diagnosticId } from "@/lib/diagnostics";
+import type { RequestDiagnostics } from "@/lib/diagnostics-server";
 import {
   canonicalSteamProfileUrl,
   isSteamId,
@@ -17,6 +22,7 @@ export type ManualSteamProfileLookup = {
   avatarUrl: string | null;
   gameCount: number;
   inputType: SteamProfileReference["inputType"];
+  snapshotId?: string;
 };
 
 export type ManualSteamProfileLookupToken = ManualSteamProfileLookup & {
@@ -29,6 +35,8 @@ export class ManualSteamProfileError extends Error {
     public readonly code:
       | "profile_not_found"
       | "library_private"
+      | "library_empty"
+      | "library_unavailable"
       | "steam_unavailable"
       | "lookup_expired"
       | "invalid_lookup",
@@ -65,9 +73,7 @@ async function steamIdForReference(reference: SteamProfileReference, apiKey: str
     url_type: "1",
     format: "json",
   });
-  let response: Response;
-  try {
-    response = await fetch(
+  const response = await fetchSteamResponse("resolve_vanity",
       `https://api.steampowered.com/ISteamUser/ResolveVanityURL/v0001/?${params.toString()}`,
       {
         headers: { "User-Agent": "VaultShuffle/0.1" },
@@ -75,20 +81,8 @@ async function steamIdForReference(reference: SteamProfileReference, apiKey: str
         signal: AbortSignal.timeout(12_000),
       },
     );
-  } catch {
-    throw new ManualSteamProfileError(
-      "steam_unavailable",
-      "Steam did not answer the profile lookup. Please try again.",
-    );
-  }
-
-  if (!response.ok) {
-    throw new ManualSteamProfileError(
-      "steam_unavailable",
-      "Steam did not answer the profile lookup. Please try again.",
-    );
-  }
-  const payload = await response.json() as { response?: { success?: number; steamid?: unknown } };
+  const payload = await readSteamJson(response, "resolve_vanity") as { response?: { success?: number; steamid?: unknown } };
+  if (![1, 42].includes(Number(payload?.response?.success))) throw new SteamApiError("resolve_vanity", "steam_invalid_response");
   const steamId = String(payload.response?.steamid ?? "");
   if (payload.response?.success !== 1 || !isSteamId(steamId)) {
     throw new ManualSteamProfileError(
@@ -99,16 +93,20 @@ async function steamIdForReference(reference: SteamProfileReference, apiKey: str
   return steamId;
 }
 
-export async function lookupManualSteamProfile(input: string): Promise<ManualSteamProfileLookup> {
+export async function lookupManualSteamProfile(input: string, diagnostics?: RequestDiagnostics): Promise<ManualSteamProfileLookup> {
   const reference = parseSteamProfileInput(input);
   const apiKey = steamApiKey();
+  diagnostics?.stage("resolve_profile_reference");
   const steamId = await steamIdForReference(reference, apiKey);
 
   try {
-    const [profile, games] = await Promise.all([
-      fetchSteamPlayerSummary(steamId, apiKey),
+    diagnostics?.stage("steam_profile_and_library");
+    const [profileResult, gamesResult] = await Promise.allSettled([
+      fetchSteamPlayerSummary(steamId, apiKey, true),
       fetchOwnedSteamGames(steamId, apiKey),
     ]);
+    if (profileResult.status === "rejected") throw profileResult.reason;
+    const profile = profileResult.value;
     if (!profile) {
       throw new ManualSteamProfileError(
         "profile_not_found",
@@ -116,7 +114,21 @@ export async function lookupManualSteamProfile(input: string): Promise<ManualSte
       );
     }
 
+    if (gamesResult.status === "rejected") {
+      if (gamesResult.reason instanceof SteamLibraryUnavailableError && profile.community_visibility_state && profile.community_visibility_state !== 3) {
+        throw new SteamLibraryUnavailableError("library_private");
+      }
+      throw gamesResult.reason;
+    }
+    const games = gamesResult.value;
+    diagnostics?.stage("setup_library_cache");
+    const snapshotId = await saveLibrarySnapshot(steamSetupCache(), steamId, games).catch(() => {
+      diagnostics?.event("warning", { error_code: "cache_unavailable", cache_result: "write_failed" });
+      return undefined;
+    });
+
     return {
+      ...(snapshotId ? { snapshotId } : {}),
       steamId,
       profileUrl: canonicalSteamProfileUrl(steamId),
       displayName: profile.display_name || "Steam player",
@@ -125,11 +137,11 @@ export async function lookupManualSteamProfile(input: string): Promise<ManualSte
       inputType: reference.inputType,
     };
   } catch (error) {
-    if (error instanceof ManualSteamProfileError) throw error;
+    if (error instanceof ManualSteamProfileError || error instanceof SteamApiError) throw error;
     if (error instanceof SteamLibraryUnavailableError) {
       throw new ManualSteamProfileError(
-        "library_private",
-        "That profile exists, but Steam is not sharing its games. Set Profile > Edit Profile > Privacy Settings > Game details to Public, then try again.",
+        error.code,
+        error.message,
       );
     }
     throw new ManualSteamProfileError(
@@ -192,6 +204,7 @@ function isLookupToken(value: unknown): value is ManualSteamProfileLookupToken {
     && isSteamId(String(token.steamId ?? ""))
     && token.profileUrl === canonicalSteamProfileUrl(String(token.steamId))
     && typeof token.displayName === "string"
+    && (token.snapshotId === undefined || Boolean(diagnosticId(token.snapshotId)))
     && token.displayName.length > 0
     && token.displayName.length <= 80
     && (token.avatarUrl === null || (typeof token.avatarUrl === "string" && token.avatarUrl.length <= 2048))

@@ -12,7 +12,13 @@ import type { VaultAction, VaultState } from "@/lib/vault-state";
 import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-history";
 import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
-import { announceCooldown, CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
+import type { PinnedPlaytimeResult } from "@/lib/pinned-playtime";
+import { mergePinnedPlaytime } from "@/lib/pinned-playtime-view";
+import { CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
+import { requestJson as api } from "@/lib/api-client";
+import { withTransientRetry } from "@/lib/request-failure";
+import { diagnosticFailure, diagnosticId } from "@/lib/diagnostics";
+import { readStoredCooldown, saveCooldown, storedCooldownError } from "@/lib/cooldown-storage";
 import { RECORDED_FINALIST_LIMIT } from "@/lib/vault";
 import {
   IDLE_STEAM_IMPORT,
@@ -77,6 +83,9 @@ type AppDataContextValue = {
   refresh: (options?: { quiet?: boolean }) => Promise<boolean>;
   checkSteamImport: () => Promise<SteamImportProgress>;
   syncSteamLibrary: (options?: { restart?: boolean }) => Promise<number>;
+  refreshPinnedPlaytime: () => Promise<PinnedPlaytimeResult>;
+  isRefreshingPinnedPlaytime: boolean;
+  pinnedRefreshAvailableAt: number | null;
   signOut: () => Promise<void>;
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
@@ -93,28 +102,6 @@ type AppDataContextValue = {
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
-
-async function api<T>(path: string, options: RequestInit = {}) {
-  const response = await fetch(path, {
-    headers: { "Content-Type": "application/json" },
-    ...options
-  });
-
-  if (response.status === 401) {
-    throw new Error("unauthorized");
-  }
-
-  const payload = await response.json();
-  if (!response.ok) {
-    const cooldown = announceCooldown(response, payload);
-    if (cooldown) throw new CooldownError(cooldown.retryAfterSeconds, cooldown.message);
-    if (payload.code === "steam_library_private") {
-      throw new SteamLibraryPrivateError(payload.error || "Steam is not sharing your games.");
-    }
-    throw new Error(payload.error || "Request failed.");
-  }
-  return payload as T;
-}
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload>(guestSession);
@@ -146,6 +133,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [deviceMode, setDeviceModeState] = useState<DeviceMode>("all");
   const [loadError, setLoadError] = useState<string | null>(null);
   const syncPromiseRef = useRef<Promise<number> | null>(null);
+  const pinnedRefreshPromiseRef = useRef<Promise<PinnedPlaytimeResult> | null>(null);
+  const [isRefreshingPinnedPlaytime, setIsRefreshingPinnedPlaytime] = useState(false);
+  const [pinnedRefreshAvailableAt, setPinnedRefreshAvailableAt] = useState<number | null>(null);
 
   /**
    * Send a write that the screen has already acted on.
@@ -304,9 +294,72 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  function refreshPinnedPlaytime() {
+    if (pinnedRefreshPromiseRef.current) return pinnedRefreshPromiseRef.current;
+    const promise = runPinnedPlaytimeRefresh();
+    pinnedRefreshPromiseRef.current = promise;
+    void promise.finally(() => {
+      if (pinnedRefreshPromiseRef.current === promise) pinnedRefreshPromiseRef.current = null;
+    }).catch(() => undefined);
+    return promise;
+  }
+
+  async function runPinnedPlaytimeRefresh(): Promise<PinnedPlaytimeResult> {
+    if (!isLive) throw new Error("Connect a Steam profile to refresh pinned playtime.");
+    // The refs change synchronously, unlike the rendered loading flags. That
+    // closes the tiny same-tab window where both buttons could be pressed
+    // before React painted either disabled state.
+    if (syncPromiseRef.current || isSyncing) throw new Error("Your library is already syncing. Please let it finish first.");
+    if (pinnedRefreshAvailableAt && pinnedRefreshAvailableAt > Date.now()) {
+      throw new CooldownError(
+        Math.ceil((pinnedRefreshAvailableAt - Date.now()) / 1000),
+        "Pinned playtime was just checked. Please wait a moment before refreshing again."
+      );
+    }
+
+    setIsRefreshingPinnedPlaytime(true);
+    trackEvent(ANALYTICS_EVENTS.pinnedPlaytimeRefreshStarted);
+    try {
+      const result = await api<PinnedPlaytimeResult>("/api/steam/pinned-playtime", {
+        method: "POST",
+        body: "{}"
+      });
+      const mapped = mapLiveGames(result.games, []);
+      // This is deliberately not a full bootstrap or import. Keep the shelf,
+      // pin baselines, collections and any in-flight player edits intact.
+      setLiveGames((current) => mergePinnedPlaytime(current, mapped));
+      setPinnedRefreshAvailableAt(Date.now() + Math.max(0, result.retryAfterSeconds) * 1000);
+      trackEvent(ANALYTICS_EVENTS.pinnedPlaytimeRefreshSucceeded, {
+        refreshed_count: result.refreshed,
+        skipped_count: result.skipped
+      });
+      return result;
+    } catch (error) {
+      if (error instanceof CooldownError) {
+        setPinnedRefreshAvailableAt(Date.now() + error.retryAfterSeconds * 1000);
+      } else if (!(error instanceof Error && error.message === "unauthorized")) {
+        // Do not encourage repeated Steam calls when a failure did not include a
+        // Retry-After. The saved values are untouched and a minute is cheap.
+        setPinnedRefreshAvailableAt(Date.now() + 60_000);
+      }
+      trackEvent(ANALYTICS_EVENTS.pinnedPlaytimeRefreshFailed, {
+        failure_kind: error instanceof CooldownError ? "cooldown" : "request_failed"
+      });
+      throw error;
+    } finally {
+      setIsRefreshingPinnedPlaytime(false);
+    }
+  }
+
   function syncSteamLibrary(options: { restart?: boolean } = {}) {
     if (syncPromiseRef.current) return syncPromiseRef.current;
-    const promise = runSteamLibrarySync(options);
+    const activePinRefresh = pinnedRefreshPromiseRef.current;
+    // A full sync requested during the short pin refresh waits for it rather
+    // than racing its final UI merge. The database is locked as well, but this
+    // keeps the same tab from briefly repainting an older snapshot.
+    const promise = activePinRefresh
+      ? activePinRefresh.catch(() => undefined).then(() => runSteamLibrarySync(options))
+      : runSteamLibrarySync(options);
     syncPromiseRef.current = promise;
     void promise.finally(() => {
       if (syncPromiseRef.current === promise) syncPromiseRef.current = null;
@@ -314,32 +367,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     return promise;
   }
 
-  /**
-   * One transient failure - a 401 from a cold function, a dropped connection -
-   * used to end the whole sync. The import itself runs on the server and carries
-   * on regardless, so giving up here reported a failure for something that was
-   * still working. Two more attempts, then let it through.
-   *
-   * A cooldown is never retried: it is a definite answer, not a blip.
-   */
-  async function withTransientRetry<T>(work: () => Promise<T>, attempts = 3): Promise<T> {
-    let lastError: unknown;
-    for (let attempt = 0; attempt < attempts; attempt += 1) {
-      try {
-        return await work();
-      } catch (error) {
-        if (error instanceof CooldownError) throw error;
-        lastError = error;
-        if (attempt < attempts - 1) {
-          await new Promise((resolve) => window.setTimeout(resolve, 1200 * (attempt + 1)));
-        }
-      }
-    }
-    throw lastError;
-  }
-
   async function runSteamLibrarySync({ restart = true }: { restart?: boolean }) {
     if (!isLive) throw new Error("Connect a Steam library before syncing it.");
+    const savedCooldown = readStoredCooldown(session.user_id);
+    if (savedCooldown) {
+      setSteamImportCooldownUntil(savedCooldown.until);
+      setSteamImport((current) => ({ ...current, status: "failed", lastError: "Please give Steam a moment before trying again." }));
+      throw storedCooldownError(savedCooldown);
+    }
 
     setIsSyncing(true);
     setSteamImport((current) => ({
@@ -422,7 +457,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // Retry button in front of people that could not work until the window
       // passed, and they pressed it until they left.
       if (error instanceof CooldownError) {
-        setSteamImportCooldownUntil(Date.now() + error.retryAfterSeconds * 1000);
+        setSteamImportCooldownUntil(saveCooldown(session.user_id, error));
+        setSteamImport((current) => ({ ...(actual ?? current), status: "failed", lastError: error.message }));
+        trackEvent(ANALYTICS_EVENTS.steamImportDeferred, {
+          ...diagnosticFailure(error),
+          request_id: diagnosticId((error as CooldownError & { requestId?: string }).requestId),
+          first_import: liveGames.length === 0
+        });
         throw error;
       }
       if (error instanceof SteamLibraryPrivateError) setSteamLibraryPrivate(true);
@@ -437,7 +478,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // the Steam launch event stayed at zero for a month.
       if (!steamImportSaved) {
         trackEvent(ANALYTICS_EVENTS.steamImportFailed, {
-          reason: message,
+          ...diagnosticFailure(error),
+          request_id: diagnosticId((error as { requestId?: string })?.requestId),
           first_import: liveGames.length === 0
         });
       }
@@ -796,6 +838,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       refresh: load,
       checkSteamImport,
       syncSteamLibrary,
+      refreshPinnedPlaytime,
+      isRefreshingPinnedPlaytime,
+      pinnedRefreshAvailableAt,
       signOut,
       createCollection,
       updateCollection,
@@ -810,7 +855,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [capabilities, session, isLive, isLoading, isSyncing, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

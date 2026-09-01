@@ -110,6 +110,7 @@ export type SessionPayload = {
 };
 
 export type SteamPlayerSummary = {
+  community_visibility_state?: number;
   steam_id: string;
   display_name: string | null;
   avatar_url: string | null;

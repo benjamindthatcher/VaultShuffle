@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { z } from "zod";
 import {
   attachSessionCookie,
@@ -11,6 +11,10 @@ import {
   verifyManualSteamProfileLookup,
 } from "@/lib/manual-steam-profile";
 import { enforceRateLimit, requestFingerprint } from "@/lib/rate-limit";
+import { requestDiagnostics } from "@/lib/diagnostics-server";
+import { steamSetupCache } from "@/lib/steam-setup-cache";
+import { deleteLibrarySnapshot, readLibrarySnapshot } from "@/lib/steam-library-snapshot";
+import { stageSteamImport } from "@/lib/steam-import-jobs";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
 const requestSchema = z.object({
@@ -19,16 +23,21 @@ const requestSchema = z.object({
 }).strict();
 
 export async function POST(request: Request) {
+  const diagnostics = requestDiagnostics(request, "manual_profile_create");
+  diagnostics.event("started");
   try {
+    diagnostics.stage("session_check");
     assertSameOrigin(request);
     const currentSession = await getCurrentSession();
     if (currentSession) {
-      return NextResponse.json(
+      diagnostics.event("failed", { status: 409, error_code: "session_exists" });
+      return diagnostics.response(NextResponse.json(
         { error: "You already have a VaultShuffle profile in this browser.", code: "session_exists" },
         { status: 409 },
-      );
+      ));
     }
 
+    diagnostics.stage("validation_and_rate_limit");
     await enforceRateLimit({
       bucket: "manual_profile_create",
       identity: requestFingerprint(request),
@@ -39,6 +48,7 @@ export async function POST(request: Request) {
 
     const input = requestSchema.parse(await readJsonBody(request, 8 * 1024));
     const lookup = verifyManualSteamProfileLookup(input.lookup_token);
+    diagnostics.stage("account_and_session_create");
     const { token, user } = await createManualProfileSession({
       steamId: lookup.steamId,
       profileUrl: lookup.profileUrl,
@@ -46,6 +56,24 @@ export async function POST(request: Request) {
       steamDisplayName: lookup.displayName,
       avatarUrl: lookup.avatarUrl,
     });
+
+    diagnostics.account(user.id, "manual");
+    // Account creation has succeeded. Cache/staging trouble must not hide its
+    // session cookie and make the person accidentally create another account.
+    diagnostics.stage("setup_library_handoff");
+    try {
+      const cache = steamSetupCache();
+      const games = await readLibrarySnapshot(cache, lookup.snapshotId, lookup.steamId);
+      if (games) {
+        await stageSteamImport(user.id, games);
+        diagnostics.event("succeeded", { cache_result: "hit", game_count: games.length });
+        if (lookup.snapshotId) after(() => deleteLibrarySnapshot(cache, lookup.snapshotId!, games.length).catch(() => undefined));
+      } else diagnostics.event("warning", { cache_result: "miss" });
+    } catch (error) {
+      diagnostics.event("warning", { cache_result: "handoff_failed" }, error);
+    }
+    diagnostics.stage("session_cookie_and_redirect");
+    diagnostics.event("succeeded", { game_count: lookup.gameCount });
 
     const response = NextResponse.json({
       ok: true,
@@ -71,12 +99,13 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: 5 * 60,
     });
-    return attachSessionCookie(response, token);
+    return diagnostics.response(attachSessionCookie(response, token));
   } catch (error) {
     if (error instanceof ManualSteamProfileError) {
       const status = error.code === "lookup_expired" || error.code === "invalid_lookup" ? 400 : 502;
-      return NextResponse.json({ error: error.message, code: error.code }, { status });
+      diagnostics.event("failed", { status }, error);
+      return diagnostics.response(NextResponse.json({ error: error.message, code: error.code }, { status }));
     }
-    return jsonError(error, 500);
+    return jsonError(error, 500, diagnostics);
   }
 }

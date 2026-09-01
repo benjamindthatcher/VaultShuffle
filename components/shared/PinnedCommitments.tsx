@@ -5,6 +5,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import type { VaultPin } from "@/lib/vault-state";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { PinnedPlaytimeRefresh } from "@/components/shared/PinnedPlaytimeRefresh";
 import { pinProgressBar, pinProgressHours } from "@/lib/completion-celebration";
 import styles from "./PinnedCommitments.module.css";
 
@@ -57,6 +58,7 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
         <span className={styles.slotDots} role="img" aria-label={`${pinned.length} of 3 pins used`}>
           {[0, 1, 2].map((slot) => <span key={slot} data-filled={slot < pinned.length || undefined} />)}
         </span>
+        <PinnedPlaytimeRefresh />
       </header>
       <ul className={styles.list}>
         {pinned.map((game) => {

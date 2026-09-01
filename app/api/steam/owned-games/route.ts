@@ -1,36 +1,42 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireSession, unauthorizedResponse, SessionRequiredError } from "@/lib/auth";
+import { requireSession, SessionRequiredError } from "@/lib/auth";
 import { jsonError, readJsonBody } from "@/lib/http";
 import { enforceRateLimit, releaseRateLimit } from "@/lib/rate-limit";
 import { fetchOwnedSteamGames } from "@/lib/steam";
 import { SteamLibraryUnavailableError } from "@/lib/steam-owned-games";
 import { getSteamImportProgress, processNextSteamImportBatch, stageSteamImport } from "@/lib/steam-import-jobs";
+import { requestDiagnostics } from "@/lib/diagnostics-server";
 
 export const maxDuration = 60;
 
 const requestSchema = z.object({ restart: z.boolean().optional() }).strict();
 
-export async function GET() {
+export async function GET(request: Request) {
+  const diagnostics = requestDiagnostics(request, "steam_import_status");
   try {
     const { user } = await requireSession();
-    return NextResponse.json({ progress: await getSteamImportProgress(user.id) });
+    diagnostics.account(user.id, user.account_type);
+    return diagnostics.response(NextResponse.json({ progress: await getSteamImportProgress(user.id) }));
   } catch (error) {
-    if (error instanceof SessionRequiredError) return unauthorizedResponse();
-    return jsonError(error, 502);
+    return jsonError(error, 502, diagnostics);
   }
 }
 
 export async function POST(request: Request) {
-  const startedAt = Date.now();
+  const diagnostics = requestDiagnostics(request, "steam_library_import");
   try {
+    diagnostics.stage("session_check");
     const { user } = await requireSession();
+    diagnostics.account(user.id, user.account_type);
+    diagnostics.stage("import_state");
     const body = requestSchema.parse(await readJsonBody(request, 1024));
     const restart = body.restart !== false;
 
     const existing = await getSteamImportProgress(user.id);
     const resumable = existing.total > existing.imported && (existing.status === "importing" || existing.status === "failed");
     if (!restart || resumable) {
+      diagnostics.stage("batch_rate_limit");
       await enforceRateLimit({
         bucket: "steam_import_batch",
         identity: `user:${user.id}`,
@@ -38,25 +44,27 @@ export async function POST(request: Request) {
         windowSeconds: 5 * 60,
         message: "This Steam import is receiving too many batch requests. Please let the current import settle before resuming."
       });
+      diagnostics.stage("save_import_batch");
       const result = await processNextSteamImportBatch(user.id);
-      // Metadata misses stay queued for the bounded nightly workers.
-      return NextResponse.json(
+      // Import registration queues metadata misses. Only the nightly workers
+      // enrich catalogue/recent activity; completing an import starts no worker.
+      // No per-game or status-poll events. Keep batch completion and errors.
+      if (result.progress.status === "complete") diagnostics.event("succeeded", { imported: result.progress.imported, total: result.progress.total, status: 200 });
+      return diagnostics.response(NextResponse.json(
         {
           progress: result.progress,
           ...(result.retryAfterSeconds ? { retry_after_seconds: result.retryAfterSeconds } : {})
         },
         { status: result.retryAfterSeconds ? 202 : 200 }
-      );
+      ));
     }
 
-    console.log(JSON.stringify({ level: "info", message: "Steam library staging started", route: "/api/steam/owned-games" }));
+    diagnostics.stage("steam_library_fetch");
+    diagnostics.event("started");
     const apiKey = process.env.STEAM_WEB_API_KEY;
 
     if (!apiKey) {
-      return NextResponse.json(
-        { error: "Steam library sync is temporarily unavailable. Please try again later." },
-        { status: 400 }
-      );
+      throw Object.assign(new Error("Steam API is not configured."), { code: "configuration_missing" });
     }
 
     // Importing is not refreshing. The one-per-five-minutes rule exists to stop
@@ -89,35 +97,25 @@ export async function POST(request: Request) {
       await releaseRateLimit(refreshLimit);
       throw error;
     }
+    diagnostics.stage("stage_import_job");
     const progress = await stageSteamImport(user.id, importedGames);
 
-    console.log(JSON.stringify({
-      level: "info",
-      message: "Steam library staged for bounded import",
-      route: "/api/steam/owned-games",
-      total: progress.total,
-      duration_ms: Date.now() - startedAt
-    }));
-    return NextResponse.json({ progress });
+    diagnostics.event("succeeded", { total: progress.total, status: 200 });
+    return diagnostics.response(NextResponse.json({ progress }));
   } catch (error) {
     if (error instanceof SessionRequiredError) {
-      return unauthorizedResponse();
+      return jsonError(error, 401, diagnostics);
     }
     if (error instanceof SteamLibraryUnavailableError) {
-      console.warn(JSON.stringify({
-        level: "warning",
-        message: "Steam returned no visible owned games",
-        route: "/api/steam/owned-games",
-        duration_ms: Date.now() - startedAt
-      }));
+      diagnostics.event("failed", { status: 409 }, error);
       // A code, so the browser never has to read the sentence to know what
       // this is. Reading messages to make decisions is what sent this whole
       // condition to a 401 in the first place.
-      return NextResponse.json(
-        { error: error.message, code: "steam_library_private" },
+      return diagnostics.response(NextResponse.json(
+        { error: error.message, code: error.code },
         { status: 409 }
-      );
+      ));
     }
-    return jsonError(error, 502);
+    return jsonError(error, 502, diagnostics);
   }
 }

@@ -3,10 +3,14 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { identifyProductUser } from "@/lib/posthog-client";
+import { requestJson } from "@/lib/api-client";
+import { CooldownError } from "@/lib/cooldown";
+import { readStoredCooldown, saveCooldown } from "@/lib/cooldown-storage";
+import { diagnosticId } from "@/lib/diagnostics";
 import styles from "./ManualSteamProfileSetup.module.css";
 
 type LookupProfile = {
@@ -36,15 +40,6 @@ type CreateResponse = {
   };
 };
 
-type ApiFailure = { error?: string; code?: string };
-
-class ClientApiError extends Error {
-  constructor(message: string, public readonly code: string) {
-    super(message);
-    this.name = "ClientApiError";
-  }
-}
-
 export function ManualSteamProfileSetup() {
   const router = useRouter();
   const [profileInput, setProfileInput] = useState("");
@@ -52,6 +47,25 @@ export function ManualSteamProfileSetup() {
   const [vaultName, setVaultName] = useState("");
   const [busy, setBusy] = useState<"lookup" | "create" | null>(null);
   const [error, setError] = useState("");
+  const [cooldownUntil, setCooldownUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const operationId = useRef("");
+  const cooldownSeconds = Math.max(0, Math.ceil((cooldownUntil - now) / 1000));
+
+  useEffect(() => {
+    const saved = readStoredCooldown("manual-setup");
+    if (saved) setCooldownUntil(saved.until);
+  }, []);
+  useEffect(() => {
+    if (!cooldownSeconds) return;
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
+  }, [cooldownSeconds]);
+
+  function postJson<T>(url: string, body: Record<string, string>) {
+    operationId.current ||= crypto.randomUUID();
+    return requestJson<T>(url, { method: "POST", headers: { "X-Vault-Operation-Id": operationId.current }, body: JSON.stringify(body) });
+  }
 
   useEffect(() => {
     const requestedSource = new URLSearchParams(window.location.search).get("from") || "direct";
@@ -61,7 +75,7 @@ export function ManualSteamProfileSetup() {
 
   async function findProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (busy) return;
+    if (busy || cooldownSeconds) return;
     setBusy("lookup");
     setError("");
     trackEvent(ANALYTICS_EVENTS.manualProfileLookupStarted, {
@@ -83,7 +97,8 @@ export function ManualSteamProfileSetup() {
     } catch (caught) {
       const failure = normaliseFailure(caught);
       setError(failure.message);
-      trackEvent(ANALYTICS_EVENTS.manualProfileLookupFailed, { reason: failure.code });
+      if (caught instanceof CooldownError) setCooldownUntil(saveCooldown("manual-setup", caught));
+      trackEvent(ANALYTICS_EVENTS.manualProfileLookupFailed, { reason: failure.code, request_id: failure.requestId, operation_id: operationId.current });
     } finally {
       setBusy(null);
     }
@@ -91,7 +106,7 @@ export function ManualSteamProfileSetup() {
 
   async function createProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!lookup || busy) return;
+    if (!lookup || busy || cooldownSeconds) return;
     setBusy("create");
     setError("");
     trackEvent(ANALYTICS_EVENTS.manualProfileCreationStarted, {
@@ -123,7 +138,8 @@ export function ManualSteamProfileSetup() {
     } catch (caught) {
       const failure = normaliseFailure(caught);
       setError(failure.message);
-      trackEvent(ANALYTICS_EVENTS.manualProfileCreationFailed, { reason: failure.code });
+      if (caught instanceof CooldownError) setCooldownUntil(saveCooldown("manual-setup", caught));
+      trackEvent(ANALYTICS_EVENTS.manualProfileCreationFailed, { reason: failure.code, request_id: failure.requestId, operation_id: operationId.current });
       setBusy(null);
     }
   }
@@ -188,9 +204,9 @@ export function ManualSteamProfileSetup() {
                     disabled={busy !== null}
                   />
                 </label>
-                <button className={styles.primaryAction} type="submit" disabled={busy !== null || !vaultName.trim()}>
+                <button className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !vaultName.trim()}>
                   <SiteGlyph name="open-vault" size={22} />
-                  <span>{busy === "create" ? "Creating your Vault…" : "Create my Vault"}</span>
+                  <span>{cooldownSeconds ? `Try again in ${cooldownSeconds}s` : busy === "create" ? "Creating your Vault…" : "Create my Vault"}</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </button>
                 <button className={styles.textAction} type="button" onClick={resetLookup} disabled={busy !== null}>
@@ -218,9 +234,9 @@ export function ManualSteamProfileSetup() {
                   </span>
                 </label>
                 <p className={styles.inputHint}>Profile link, custom profile name, or 17-digit Steam ID</p>
-                <button className={styles.primaryAction} type="submit" disabled={busy !== null || !profileInput.trim()}>
+                <button className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !profileInput.trim()}>
                   <SiteGlyph name="search" size={21} />
-                  <span>{busy === "lookup" ? "Checking Steam…" : "Find my library"}</span>
+                  <span>{cooldownSeconds ? `Try again in ${cooldownSeconds}s` : busy === "lookup" ? "Checking Steam…" : "Find my library"}</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </button>
               </form>
@@ -263,29 +279,13 @@ export function ManualSteamProfileSetup() {
   );
 }
 
-async function postJson<T>(url: string, body: Record<string, string>) {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const payload = await response.json() as T | ApiFailure;
-  if (!response.ok) {
-    const failure = payload as ApiFailure;
-    throw new ClientApiError(
-      failure.error || "That did not work. Please try again.",
-      failure.code || `http_${response.status}`,
-    );
-  }
-  return payload as T;
-}
-
 function normaliseFailure(value: unknown) {
   if (value && typeof value === "object") {
-    const failure = value as { message?: unknown; code?: unknown };
+    const failure = value as { message?: unknown; code?: unknown; requestId?: unknown };
     return {
       message: typeof failure.message === "string" ? failure.message : "That did not work. Please try again.",
       code: typeof failure.code === "string" ? failure.code : "unknown",
+      requestId: diagnosticId(failure.requestId),
     };
   }
   return { message: "That did not work. Please try again.", code: "unknown" };

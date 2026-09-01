@@ -4,7 +4,7 @@ import { enforceRateLimit, RateLimitExceededError } from "@/lib/rate-limit";
 import { withMetadataWorkerRun } from "@/lib/worker-runs";
 import { requestDiagnostics } from "@/lib/diagnostics-server";
 
-type NightlyWorker = "nightly-metadata" | "catalogue-metadata" | "steam-tags" | "genre-preferences";
+type NightlyWorker = "nightly-metadata" | "catalogue-metadata" | "steam-tags" | "genre-preferences" | "pinned-playtime";
 
 /** Authentication plus an atomic, shared daily budget. No in-memory lock or new table. */
 export async function runNightlyWorker<T>(request: Request, name: NightlyWorker, task: () => Promise<T>) {
