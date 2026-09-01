@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from "react";
 import type { DemoGame } from "@/lib/demo-data";
+import { useAppData } from "@/components/app-shell/AppDataProvider";
 import type { VaultPin } from "@/lib/vault-state";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
@@ -41,11 +42,19 @@ type Props = {
 };
 
 export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnpin, compact = false }: Props) {
+  // A pin outranks the global filters. Someone said "this is what I am playing
+  // next", and a filter set afterwards - five years or newer, single-player only
+  // - would otherwise retire that decision without saying so: the shelf would
+  // just be a game shorter. So the caller's list is asked first, which keeps
+  // whatever it enriched the game with, and the unfiltered library answers for
+  // anything the filters have ruled out.
+  const { allGames } = useAppData();
+
   // Defaulted because the state arrives from the API through an unchecked cast:
   // a server response missing this field should degrade to "no progress known",
   // never take the page down.
   const pinned = pinnedIds
-    .map((id) => games.find((game) => game.id === id))
+    .map((id) => games.find((game) => game.id === id) ?? allGames.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game));
   if (!pinned.length) return null;
 

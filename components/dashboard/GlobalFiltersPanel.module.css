@@ -199,12 +199,10 @@
   background: var(--vault-well-surface);
 }
 
-/* The chips divide their well between them rather than huddling at its left
-   end. It is one control per group, so the control should occupy its cell. */
 .choice,
 .choiceCurrent,
 .choiceOn {
-  flex: 1 1 auto;
+  flex: none;
   min-height: 30px;
   white-space: nowrap;
   padding: 0 10px;
@@ -297,6 +295,18 @@
 .switchOn .switchKnob {
   transform: translateX(12px);
   background: #ffffff;
+}
+
+/* Only at this width. It is the one size where every group fits on a single
+   line, so the chips can divide their well between them and each control fills
+   its cell. Below it they still wrap, and letting them grow there leaves a
+   trailing row of two stretched to the width of a row of three. */
+@media (min-width: 900px) {
+  .choice,
+  .choiceCurrent,
+  .choiceOn {
+    flex: 1 1 auto;
+  }
 }
 
 .choice:focus-visible,

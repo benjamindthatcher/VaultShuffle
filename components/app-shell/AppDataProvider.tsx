@@ -81,6 +81,11 @@ type AppDataContextValue = {
   setDeviceMode: (mode: DeviceMode) => void;
   globalFilters: GlobalFilters;
   setGlobalFilters: (filters: GlobalFilters) => void;
+  /**
+   * The library before the global filters ran, so the panel can show its effect
+   * and a pin can be resolved to a game the filters have ruled out.
+   */
+  allGames: DemoGame[];
   /** Owned games before the global filters ran, so the panel can show its effect. */
   unfilteredGameCount: number;
   isLoading: boolean;
@@ -843,11 +848,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // a session in localStorage, so filtering the guest catalogue too would let
   // someone sign out and find a preview quietly missing games with no control
   // anywhere to explain it or put them back.
+  const allGames = isLive ? liveGames : guestGames;
   const visibleGames = useMemo(
     () => isLive ? liveGames.filter((game) => matchesGlobalFilters(game, globalFilters)) : guestGames,
     [globalFilters, guestGames, isLive, liveGames]
   );
-  const unfilteredGameCount = (isLive ? liveGames : guestGames).length;
+  const unfilteredGameCount = allGames.length;
   const activePlaytime = isLive ? livePlaytime : EMPTY_PLAYTIME;
   const capabilities = useMemo(() => steamCapabilities({
     isLive,
@@ -864,6 +870,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       deviceMode: globalFilters.device,
       globalFilters,
       setGlobalFilters,
+      allGames,
       unfilteredGameCount,
       setDeviceMode,
       games: visibleGames,
