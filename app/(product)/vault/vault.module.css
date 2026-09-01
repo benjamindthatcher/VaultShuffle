@@ -624,10 +624,12 @@
   gap: 10px;
 }
 
+/* Two now, so each gets half the card rather than a third of it. Both are a
+   yes - play it, or commit to it - and neither is the consolation prize. */
 .resultActions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .actionsLabel {
@@ -654,26 +656,34 @@
   transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
-/* Each action is filled in the colour of what it does, matching the badges the
-   same states wear in Purge and the Library: green to play it, purple to put it
-   away, amber to keep it to hand. Colouring only the icon left three near
-   identical buttons whose difference you had to read to see. */
+/* Both wear the weight of a real call to action rather than a filled tile.
+   Steam takes the gradient the landing page uses for "Continue with Steam", so
+   the button that leads out of the app looks like the button that led into it. */
 .resultAction[data-action="steam"] {
-  --action-fill: #2f9e6b;
-  --action-edge: #43c98c;
+  border-color: rgba(127, 130, 255, 0.56);
+  background: linear-gradient(110deg, #792ee8, #286ef0);
+  box-shadow: 0 12px 30px rgba(58, 66, 219, 0.25);
 }
-.resultAction[data-action="snooze"] {
-  --action-fill: #6d4bc7;
-  --action-edge: #9d7cff;
-}
+
+/* Pin is the one people did not understand, so it is the one that is hardest to
+   miss: warmer than the Steam button, lifted a little higher, and carrying a
+   line that says what pinning is for. Pinning is how anything started here gets
+   followed afterwards, and "Pin" on its own never said so. */
 .resultAction[data-action="pin"] {
-  --action-fill: #b5762a;
-  --action-edge: #e0a34a;
+  border-color: rgba(255, 190, 108, 0.62);
+  background: linear-gradient(110deg, #c8761f, #e8a93c);
+  box-shadow: 0 14px 34px rgba(200, 118, 31, 0.34);
+}
+
+/* Already pinned: the job is done, so it stops shouting and reads as a state
+   you could undo rather than an offer being made again. */
+.resultAction[data-action="pin"][data-pinned] {
+  border-color: rgba(255, 190, 108, 0.42);
+  background: rgba(200, 118, 31, 0.18);
+  box-shadow: none;
 }
 
 .resultAction[data-action] {
-  border-color: var(--action-edge);
-  background: var(--action-fill);
   color: #fff;
 }
 
@@ -683,7 +693,10 @@
 }
 
 .resultAction:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(82, 39, 170, 0.24); }
-.resultAction[data-action]:hover { filter: brightness(1.12); }
+.resultAction[data-action]:hover { filter: brightness(1.1); }
+.resultAction[data-action="steam"]:hover { box-shadow: 0 16px 36px rgba(58, 66, 219, 0.36); }
+.resultAction[data-action="pin"]:hover { box-shadow: 0 18px 40px rgba(200, 118, 31, 0.44); }
+.resultAction[data-action="pin"][data-pinned]:hover { box-shadow: 0 12px 28px rgba(200, 118, 31, 0.2); }
 .resultActionPrimary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 26px rgba(0, 0, 0, 0.24); }
 
 .resultActionIcon {
@@ -712,9 +725,23 @@
 }
 
 .resultActionCopy small {
+  display: block;
   color: #9699b1;
   font-size: 0.72rem;
   line-height: 1.35;
+}
+
+/* On a filled button the muted grey disappeared into the gradient. Bright
+   enough to read as the reason for the button, quiet enough not to compete with
+   the label above it. */
+.resultAction[data-action] .resultActionCopy small {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.82);
+  font-weight: 600;
+}
+
+.resultAction[data-action="pin"][data-pinned] .resultActionCopy small {
+  color: rgba(255, 224, 184, 0.86);
 }
 
 .primaryAction {

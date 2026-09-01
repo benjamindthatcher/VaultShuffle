@@ -441,6 +441,18 @@ export default function VaultPage() {
   }, [deckEmptyUnexpectedly]);
 
   async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
+    // Whatever was open under the bar closes as the draw starts.
+    //
+    // Vault Lens and Draw History sit directly below the draw button and cover
+    // the card the result appears in. Opening one and then drawing looked like
+    // the button had done nothing at all - the page had not visibly changed -
+    // and people pressed it again. On a phone, where the panel is most of the
+    // screen, that is nearly every draw.
+    //
+    // The deck-empty effect can reopen the Lens straight afterwards, which is
+    // correct: that is the one case where there is something to explain.
+    setDeckPanel(null);
+
     // Quick Draw bypasses the setup gate on purpose: it exists for the visitor who
     // has not filled anything in and wants a game anyway.
     if (drawingRef.current || (!quick && !canDraw)) return;
@@ -748,11 +760,8 @@ export default function VaultPage() {
     setPinMessage(`${game.title} pinned in slot ${vaultState.pinnedIds.length + 1} of 3.`);
   }
 
-  async function snoozeCurrentPick() {
-    if (!currentPick) return;
-    await recordVaultAction("snoozed", currentPick.id);
-    setHighlightedGameId(null);
-  }
+  const isCurrentPickPinned = currentPick ? vaultState.pinnedIds.includes(currentPick.id) : false;
+  const pinsFull = vaultState.pinnedIds.length >= 3;
 
   async function sleepPoolGame(gameId: string) {
     const game = ownedGames.find((item) => item.id === gameId);
@@ -1034,20 +1043,32 @@ export default function VaultPage() {
               </div>
             </div> : null}
 
-            {/* Three, deliberately, and unlabelled: filled in the colour of what
-                they do, they do not need a heading above them. Draw Again lives
-                in the bar directly above this card where it stays visible
-                alongside the pick, completion has its own sweep, and details are
-                a click away on any deck card. */}
+            {/* Two, and both of them a yes.
+                Snooze is gone: it said "not this one" on the screen whose whole
+                job is to hand you one, and the reroll in the bar above already
+                does that without spending a decision. Setting a game aside for
+                good is the Library's job now.
+                Both carry a second line, because neither button is obvious on
+                its own - "Pin" in particular was a word with no reason attached,
+                and pinning is how anything you start gets followed afterwards. */}
             <div className={styles.resultActions}>
               <a href={steamPlayIsLaunch ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={steamPlayIsLaunch ? undefined : "_blank"} rel={steamPlayIsLaunch ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
-                <VaultResultActionIcon name="open-steam" /><span className={styles.resultActionCopy}><strong>{steamPlayIsLaunch ? "Open on Steam" : "View on Steam"}</strong></span>
+                <VaultResultActionIcon name="open-steam" />
+                <span className={styles.resultActionCopy}>
+                  <strong>{steamPlayIsLaunch ? "Open on Steam" : "View on Steam"}</strong>
+                  <small>{steamPlayIsLaunch ? "Play it tonight" : "Take a closer look"}</small>
+                </span>
               </a>
-              <button type="button" className={styles.resultAction} data-action="snooze" onClick={() => { if (currentDrawId) void recordDrawEvent(currentDrawId, "hidden_for_session", drawEventAnalytics()); void snoozeCurrentPick(); }}>
-                <VaultResultActionIcon name="snooze-not-now" /><span className={styles.resultActionCopy}><strong>Snooze</strong></span>
-              </button>
-              <button type="button" className={styles.resultAction} data-action="pin" onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, vaultState.pinnedIds.includes(currentPick.id) ? "unpinned" : "pinned", drawEventAnalytics()); }}>
-                <VaultResultActionIcon name="pin" /><span className={styles.resultActionCopy}><strong>{vaultState.pinnedIds.includes(currentPick.id) ? "Pinned" : vaultState.pinnedIds.length >= 3 ? "Pins full" : "Pin"}</strong></span>
+              <button type="button" className={styles.resultAction} data-action="pin" data-pinned={isCurrentPickPinned || undefined} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, isCurrentPickPinned ? "unpinned" : "pinned", drawEventAnalytics()); }}>
+                <VaultResultActionIcon name="pin" />
+                <span className={styles.resultActionCopy}>
+                  <strong>{isCurrentPickPinned ? "Pinned" : pinsFull ? "Pins full" : "Pin this pick"}</strong>
+                  <small>{isCurrentPickPinned
+                    ? "Your progress is being tracked"
+                    : pinsFull
+                      ? "Swap one out to pin this"
+                      : "Track your progress on it"}</small>
+                </span>
               </button>
             </div>
           </div>

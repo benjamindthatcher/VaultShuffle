@@ -13,7 +13,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/vault", label: "Vault" },
   { href: "/library", label: "Library" },
-    { href: "/collections", label: "Collections" }
+  { href: "/collections", label: "Collections" }
 ];
 
 type AppHeaderProps = {
