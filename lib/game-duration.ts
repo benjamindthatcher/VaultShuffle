@@ -51,3 +51,27 @@ export function formatGameDuration(duration?: GameDurationEstimate | null) {
   const estimate = estimatedTimeToBeatMinutes(duration);
   return estimate ? `${formatDurationEstimate(estimate)} estimated` : null;
 }
+
+/**
+ * How much of a game is left, from its estimate and how far through it is.
+ *
+ * "Current estimate" named a number without giving it, on the one card whose
+ * job is to show someone how a game they committed to is going. This is the
+ * number: what is actually still ahead of them.
+ *
+ * Null whenever it cannot be said honestly - an endless game has no end to be
+ * short of, an unestimated one has nothing to subtract from, and a game at or
+ * past its estimate has nothing left to promise.
+ */
+export function formatRemainingDuration(duration: GameDurationEstimate | null | undefined, completionPercent: number) {
+  if (duration?.endless) return null;
+  const total = estimatedTimeToBeatMinutes(duration);
+  if (!total) return null;
+
+  const done = Math.min(100, Math.max(0, Number(completionPercent) || 0));
+  const remaining = total * (1 - done / 100);
+  // Under a few minutes there is no useful number left to give, and rounding
+  // would print "0h left" on something all but finished.
+  if (remaining < 6) return null;
+  return `~${formatDurationEstimate(remaining)} left`;
+}

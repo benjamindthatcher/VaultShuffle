@@ -5,6 +5,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import type { VaultPin } from "@/lib/vault-state";
 import { Artwork } from "@/components/shared/Artwork";
+import { formatRemainingDuration } from "@/lib/game-duration";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { PinnedPlaytimeRefresh } from "@/components/shared/PinnedPlaytimeRefresh";
 import { pinProgressBar, pinProgressHours } from "@/lib/completion-celebration";
@@ -81,8 +82,11 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
             "--pin-before": `${bar.atPin ?? bar.percent}%`,
             "--pin-progress": `${bar.percent}%`
           } as CSSProperties : undefined;
+          // What is left, rather than the fact that an estimate exists. Falls
+          // back to naming the estimate only when the hours cannot be given.
+          const remainingLabel = formatRemainingDuration(game.duration, bar?.percent ?? game.completionPercent);
           const progressCue = earnedPercent === null
-            ? "Current estimate"
+            ? remainingLabel ?? "Current estimate"
             : earnedPercent > 0
               ? `+${earnedPercent}% since pinning`
               : progress?.started

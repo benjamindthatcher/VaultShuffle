@@ -4,8 +4,7 @@ import {
   completionFromDuration,
   estimatedTimeToBeatMinutes,
   formatGameDuration,
-  getPreferredDurationMinutes
-} from "./game-duration.ts";
+  getPreferredDurationMinutes, formatRemainingDuration } from "./game-duration.ts";
 
 test("uses the average of every available estimate rounded to an hour", () => {
   const duration = {
@@ -60,4 +59,32 @@ test("returns null when no positive duration exists", () => {
 test("derives progress from the averaged duration instead of stale stored percentages", () => {
   assert.equal(completionFromDuration(17.5, { mainStoryMinutes: 2_580 }), 41);
   assert.equal(completionFromDuration(10.1, { mainStoryMinutes: 780 }), 78);
+});
+
+test("remaining time is what is left, not the whole estimate", () => {
+  const hundredHours = { mainStoryMinutes: 6000 };
+  assert.equal(formatRemainingDuration(hundredHours, 0), "~100h left");
+  assert.equal(formatRemainingDuration(hundredHours, 25), "~75h left");
+  assert.equal(formatRemainingDuration(hundredHours, 90), "~10h left");
+});
+
+test("nothing is promised where nothing can be said honestly", () => {
+  // No end to be short of.
+  assert.equal(formatRemainingDuration({ mainStoryMinutes: 6000, endless: true }, 10), null);
+  // Nothing to subtract from.
+  assert.equal(formatRemainingDuration(undefined, 10), null);
+  assert.equal(formatRemainingDuration({}, 10), null);
+  // Finished, or so close that the number would round to a lie.
+  assert.equal(formatRemainingDuration({ mainStoryMinutes: 6000 }, 100), null);
+  assert.equal(formatRemainingDuration({ mainStoryMinutes: 600 }, 99.5), null);
+});
+
+test("a percentage outside 0-100 cannot invent time", () => {
+  // completionPercent comes from Steam and from our own estimates, so it is not
+  // guaranteed to be in range. It must never read as more time left than the
+  // game has, nor as negative time.
+  const tenHours = { mainStoryMinutes: 600 };
+  assert.equal(formatRemainingDuration(tenHours, -50), "~10h left");
+  assert.equal(formatRemainingDuration(tenHours, 150), null);
+  assert.equal(formatRemainingDuration(tenHours, Number.NaN), "~10h left");
 });
