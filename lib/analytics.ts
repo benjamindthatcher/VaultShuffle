@@ -98,6 +98,12 @@ export const ANALYTICS_EVENTS = {
   globalFiltersChanged: "global_filters_changed",
   librarySearched: "library_searched",
   libraryFiltered: "library_filtered",
+  /**
+   * Waking or restoring several games at once from the Library's decided
+   * shelves. This is the work Purge used to do in bulk, measured where it now
+   * happens.
+   */
+  libraryBulkRestored: "library_bulk_restored",
   libraryGameOpened: "library_game_opened",
   gameSteamOpened: "game_steam_opened",
 

@@ -22,15 +22,25 @@ type GameCardProps = {
   onUnpin?: () => void;
   pinned?: boolean;
   showProgress?: boolean;
+  /**
+   * Turns the card into a picker rather than a link. Used on the shelves where
+   * every game has already been decided - slept and completed - so the useful
+   * thing to do with them is act on several at once. Active games stay clickable
+   * for their details, which is what that shelf is actually for.
+   */
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 };
 
-export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, onUnpin, pinned = false, showProgress = false }: GameCardProps) {
+export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, onUnpin, pinned = false, showProgress = false, selectable = false, selected = false, onToggleSelect }: GameCardProps) {
   const steamLink = useSteamPlayLink(game.steamAppId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuShellRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const isList = layout === "list";
+  const isActiveGame = game.status !== "Completed" && game.status !== "Slept";
   const durationLabel = formatGameDuration(game.duration);
 
   useEffect(() => {
@@ -107,7 +117,23 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
   }
 
   return <article className={`${styles.cardShell}${menuOpen ? ` ${styles.cardShellMenuOpen}` : ""}`}>
-    <button type="button" className={isList ? `${styles.card} ${styles.cardList}` : styles.card} onClick={onClick}>{content}</button>
+    {/* The whole card ticks the box. Hitting an 18px square exactly is a poor way
+        to work down a grid of thirty, and on these shelves there is nothing else
+        the card could mean. Details are still on the menu. */}
+    <button
+      type="button"
+      className={isList ? `${styles.card} ${styles.cardList}` : styles.card}
+      onClick={selectable ? onToggleSelect : onClick}
+      aria-pressed={selectable ? selected : undefined}
+      data-selected={selectable && selected ? "" : undefined}
+    >
+      {selectable ? (
+        <span className={styles.selectMark} aria-hidden="true">
+          {selected ? <VaultIcon name="check" size={14} /> : null}
+        </span>
+      ) : null}
+      {content}
+    </button>
     {onUnpin ? <button
       type="button"
       className={styles.unpinButton}
@@ -115,20 +141,35 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
       title="Unpin"
       onClick={(event) => { event.stopPropagation(); onUnpin(); }}
     ><VaultIcon name="close" size={15} /></button> : null}
-    {/* Marking a game finished is the most common thing anyone does with a
-        library card - 543 opens of the details drawer produced 381 completions,
-        while filtering and searching together managed 132. It was three taps
-        behind "view info" and two behind this menu; it is one now.
+    {/* The two things you can say about a game you are not going to open
+        tonight, side by side under its face.
+        Completing is the most common act on this page - 543 opens of the details
+        drawer produced 381 completions against 132 filters and searches - and
+        sleeping is what Purge existed to collect. Both were behind a menu or
+        another page; both are one tap now.
         Active games only: a finished or sleeping game has different work to do,
         and that stays in the menu. */}
-    {onComplete && game.status !== "Completed" && game.status !== "Slept" ? (
-      <button
-        type="button"
-        className={styles.quickComplete}
-        onClick={(event) => { event.stopPropagation(); onComplete(); }}
-      >
-        <VaultIcon name="mark-completed" size={16} />Complete
-      </button>
+    {isActiveGame && (onSleep || onComplete) ? (
+      <div className={styles.quickActions}>
+        {onSleep ? (
+          <button
+            type="button"
+            className={styles.quickSleep}
+            onClick={(event) => { event.stopPropagation(); onSleep(); }}
+          >
+            <VaultIcon name="sleep" size={16} />Sleep
+          </button>
+        ) : null}
+        {onComplete ? (
+          <button
+            type="button"
+            className={styles.quickComplete}
+            onClick={(event) => { event.stopPropagation(); onComplete(); }}
+          >
+            <VaultIcon name="mark-completed" size={16} />Complete
+          </button>
+        ) : null}
+      </div>
     ) : null}
     {(onComplete || onRestore || onSleep || onTogglePin) ? <div ref={menuShellRef} className={styles.menuShell}>
       <button type="button" className={styles.menuTrigger} aria-label={`Actions for ${game.title}`} aria-expanded={menuOpen} onClick={toggleMenu}><VaultIcon name="menu-dots" size={20} /></button>

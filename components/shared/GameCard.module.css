@@ -237,24 +237,65 @@
 
 /* Sits under the card rather than on it: the artwork is what people scan, and a
    button floating over it costs a game its face. The shell is only a positioning
-   context, so the button is a sibling of the card and stacks beneath it. */
-.cardShell:has(> .quickComplete) { display: grid; gap: 8px; }
+   context, so the row is a sibling of the card and stacks beneath it. */
+.cardShell:has(> .quickActions) { display: grid; gap: 8px; }
 
+/* An even split. Neither answer is the one we are steering towards - putting a
+   game to sleep is as useful an outcome as finishing it - so neither button gets
+   more of the card than the other. */
+.quickActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+/* A single button spans the row rather than sitting half-width beside a gap,
+   which is what a completed or sleeping card would otherwise show. */
+.quickActions > :only-child {
+  grid-column: 1 / -1;
+}
+
+.quickSleep,
 .quickComplete {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  /* A thumb target, on the page where this is pressed most. */
+  gap: 7px;
+  /* A thumb target, on the page where these are pressed most. */
   min-height: 44px;
-  padding: 0 14px;
-  border: 1px solid rgba(110, 231, 183, 0.34);
+  padding: 0 10px;
   border-radius: 11px;
-  background: rgba(110, 231, 183, 0.1);
-  color: #b6f4d4;
+  border-style: solid;
+  border-width: 1px;
   font-size: 0.84rem;
   font-weight: 750;
+  /* Two words of different lengths in equal columns: keep them on one line and
+     let the box do the giving, rather than wrapping "Complete" at 320px. */
+  white-space: nowrap;
   transition: background 140ms ease, border-color 140ms ease;
+}
+
+.quickSleep svg,
+.quickComplete svg {
+  flex: none;
+}
+
+/* Purple, as it is everywhere else in the app that means "set this aside". */
+.quickSleep {
+  border-color: rgba(168, 85, 247, 0.34);
+  background: rgba(168, 85, 247, 0.12);
+  color: #dcbcff;
+}
+
+.quickSleep:hover {
+  border-color: rgba(168, 85, 247, 0.62);
+  background: rgba(168, 85, 247, 0.22);
+}
+
+.quickComplete {
+  border-color: rgba(110, 231, 183, 0.34);
+  background: rgba(110, 231, 183, 0.1);
+  color: #b6f4d4;
 }
 
 .quickComplete:hover {
@@ -262,6 +303,77 @@
   background: rgba(110, 231, 183, 0.2);
 }
 
+.quickSleep:focus-visible,
+.quickComplete:focus-visible {
+  outline: 2px solid #c08bff;
+  outline-offset: 2px;
+}
+
+/* Under about 360px the two labels plus their icons cannot share a line without
+   one of them being cut. The icons go rather than the words. */
+@media (max-width: 360px) {
+  .quickSleep,
+  .quickComplete {
+    gap: 0;
+    padding: 0 8px;
+    font-size: 0.8rem;
+  }
+
+  .quickSleep svg,
+  .quickComplete svg {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .quickSleep,
   .quickComplete { transition: none; }
+}
+
+/* ------------------------------------------------------- selection */
+
+/* The tick is positioned against the card, so the card has to be the containing
+   block. Without this it would escape to the shell and land on the shelf. */
+.card:has(> .selectMark) {
+  position: relative;
+}
+
+/* The tick sits on the artwork, top-left, opposite the actions menu. Absolute
+   rather than in the flow so it does not shift the card's contents when
+   selection is switched on for a shelf. */
+.selectMark {
+  position: absolute;
+  z-index: 2;
+  top: 10px;
+  left: 10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid rgba(226, 215, 255, 0.55);
+  border-radius: 7px;
+  /* Dark enough to read as an empty box against pale artwork, which plain
+     translucency was not. */
+  background: rgba(6, 9, 24, 0.72);
+  color: #ffffff;
+  backdrop-filter: blur(2px);
+  transition: background 120ms ease, border-color 120ms ease;
+}
+
+.card[data-selected] .selectMark {
+  border-color: transparent;
+  background: var(--vault-accent);
+}
+
+/* The card itself has to say it is chosen too. A 24px tick in the corner of a
+   grid of thirty is easy to lose, and "which of these did I pick" is the whole
+   question this shelf is asking. */
+.card[data-selected] {
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+  box-shadow: var(--vault-tile-selected-shadow);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .selectMark { transition: none; }
 }

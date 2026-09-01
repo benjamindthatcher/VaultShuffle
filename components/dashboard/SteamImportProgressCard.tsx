@@ -213,12 +213,12 @@ export function SteamImportProgressCard() {
           {steamImport.total >= PURGE_SUGGESTION_MIN_GAMES ? (
             <Link
               className={styles.handoffSecondary}
-              href="/purge"
+              href="/library?tab=active"
               onClick={() => {
                 setJustFinished(false);
                 trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, {
                   games: steamImport.total,
-                  destination: "purge"
+                  destination: "library"
                 });
               }}
             >

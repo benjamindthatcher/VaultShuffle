@@ -153,3 +153,121 @@
     font-size: 0.72rem;
   }
 }
+
+/* ---------------------------------------------- bulk selection (slept/done) */
+
+/* The tidy-up controls for the shelves where every game has already been
+   decided. This is the work Purge used to do on its own page, on the page that
+   already holds the games. */
+.bulkRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
+}
+
+.bulkCheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  /* A thumb target: the label is the hit area, not the 16px box inside it. */
+  min-height: 40px;
+  color: var(--vault-text);
+  font-size: 0.84rem;
+  font-weight: 680;
+  cursor: pointer;
+}
+
+.bulkCheck input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--vault-accent);
+}
+
+.bulkActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.bulkCount {
+  color: var(--vault-text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.bulkClear,
+.bulkRestore {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--vault-card-border);
+  font-size: 0.82rem;
+  font-weight: 720;
+  white-space: nowrap;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.bulkClear {
+  background: transparent;
+  color: var(--vault-text-muted);
+}
+
+.bulkClear:hover {
+  border-color: var(--vault-border-strong);
+  color: var(--vault-text);
+}
+
+/* Green, as waking a game or moving it back is putting it into play - the same
+   thing the Vault's own confirmations mean. */
+.bulkRestore {
+  border-color: rgba(110, 231, 183, 0.34);
+  background: rgba(110, 231, 183, 0.12);
+  color: #b6f4d4;
+}
+
+.bulkRestore:hover:not(:disabled) {
+  border-color: rgba(110, 231, 183, 0.62);
+  background: rgba(110, 231, 183, 0.22);
+}
+
+.bulkRestore:disabled {
+  opacity: 0.65;
+}
+
+.bulkCheck:focus-within,
+.bulkClear:focus-visible,
+.bulkRestore:focus-visible {
+  outline: 2px solid #c08bff;
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* On a phone the count and its two buttons cannot share a line with the
+   select-all. The actions take their own row and the button fills it, which is
+   also the easiest thing to hit. */
+@media (max-width: 560px) {
+  .bulkActions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .bulkRestore {
+    flex: 1 1 auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bulkClear,
+  .bulkRestore { transition: none; }
+}

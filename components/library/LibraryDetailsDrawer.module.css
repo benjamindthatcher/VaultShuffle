@@ -8,17 +8,39 @@
   background: rgba(1, 4, 18, 0.72);
 }
 
+/* Centred, not pinned to an edge.
+   As a 520px column down the right-hand side this used the screen badly: a
+   narrow strip of detail beside a wide sheet of dimmed page, with the artwork
+   squeezed and the stats stacked two-by-two in a gutter. It is the same content
+   given the middle of the screen and enough width to lay itself out.
+   inset + auto margins centre on both axes without transforms, so the box stays
+   on the pixel grid and the text stays sharp. */
 .drawer {
   position: fixed;
-  right: 0;
-  top: 0;
+  inset: 0;
   z-index: 40;
-  width: min(520px, 100vw);
-  height: 100dvh;
+  margin: auto;
+  width: min(920px, calc(100vw - 40px));
+  height: max-content;
+  max-height: calc(100dvh - 48px);
   overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid rgba(150, 110, 255, 0.22);
+  border-radius: 20px;
   background: rgba(7, 10, 26, 0.98);
-  border-left: 1px solid rgba(150, 110, 255, 0.22);
-  box-shadow: -24px 0 54px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.6);
+  animation: detailsIn 160ms ease-out;
+}
+
+@keyframes detailsIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* The artwork is the top of a rounded box now, not the top of a full-height
+   column, so it has to be clipped to the same radius. */
+.drawer > .hero:first-child {
+  border-radius: 19px 19px 0 0;
 }
 
 .hero {
@@ -268,7 +290,49 @@
   opacity: 0.42;
 }
 
-@media (max-width: 520px) {
-  .statGrid { grid-template-columns: 1fr; }
+/* The extra width goes to the things that gain from it, rather than to a second
+   column of arbitrary pairings. The four stats sit in one row instead of a 2x2
+   block, and the prose keeps a readable measure instead of running the full
+   920px - a line that long is harder to read, not easier. */
+@media (min-width: 780px) {
+  .body { padding: 28px; }
+
+  .statGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .copy {
+    max-width: 74ch;
+  }
+}
+
+@media (max-width: 560px) {
+  .drawer {
+    width: 100vw;
+    max-width: 100vw;
+    /* Anchored to the bottom on a phone: a centred box leaves dead space above
+       and below, and the actions belong within reach of a thumb rather than
+       floating in the middle of the screen. */
+    margin: auto auto 0;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+  }
+
+  .drawer > .hero:first-child {
+    border-radius: 19px 19px 0 0;
+  }
+
+  .body { padding: 20px; }
+  .title { font-size: 1.6rem; }
+  .statGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .statGrid div { padding: 12px; }
+  .statGrid dd { margin-top: 6px; font-size: 0.98rem; }
   .actionRow { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drawer { animation: none; }
 }

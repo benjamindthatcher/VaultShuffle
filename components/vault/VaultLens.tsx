@@ -40,7 +40,7 @@ export function VaultLens({ stages, selectedCollection, selectedGenres, snoozedC
         {selectedCollection ? <button type="button" onClick={onUseEntireVault}>Use Entire Vault</button> : null}
         {snoozedCount ? <button type="button" onClick={onClearSnoozes}>Clear Snoozes ({snoozedCount})</button> : null}
         <Link href="/library?tab=slept">View Slept</Link>
-        {activeCount >= 40 ? <Link className={`${shell.trailing} ${styles.purge}`} href="/purge">Want a more focused backlog? Open Purge</Link> : null}
+        {activeCount >= 40 ? <Link className={`${shell.trailing} ${styles.purge}`} href="/library?tab=active">Want a more focused backlog? Tidy it in the Library</Link> : null}
       </div>
     </div>;
 }

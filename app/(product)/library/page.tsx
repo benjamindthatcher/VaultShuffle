@@ -13,6 +13,7 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { EMPTY_LIBRARY_FILTERS, availableGenres, matchesLibraryFilters, type LibraryFilters } from "@/lib/library-filters";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { Artwork } from "@/components/shared/Artwork";
+import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { recencySortKey } from "@/lib/recency";
@@ -28,7 +29,7 @@ const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
 };
 
 export default function LibraryPage() {
-  const { games, collections, vaultState, isLive, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
+  const { games, allGames, collections, vaultState, isLive, updateGame, restoreGame, setGameCollection, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_LIBRARY_FILTERS);
   const [sort, setSort] = useState("hours");
@@ -40,6 +41,13 @@ export default function LibraryPage() {
   const [undoGameId, setUndoGameId] = useState<string | null>(null);
   const [celebratingId, setCelebratingId] = useState<string | null>(null);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
+  /**
+   * Selection only exists on the decided shelves. Purge used to be where a
+   * backlog got sorted in bulk; this is that, on the page that already holds the
+   * games.
+   */
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   useEffect(() => {
     if (!query) return;
@@ -52,7 +60,14 @@ export default function LibraryPage() {
   }, [isLive, query]);
   const undoTimerRef = useRef<number | null>(null);
 
+  // A different shelf is a different set of games, so whatever was ticked on the
+  // last one must not carry over and be acted on here.
   useEffect(() => {
+    setSelectedIds([]);
+  }, [statusTab]);
+
+  useEffect(() => {
+    setSelectedIds([]);
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
     if (requestedTab === "slept" || requestedTab === "completed" || requestedTab === "active") setStatusTab(requestedTab);
 
@@ -146,12 +161,48 @@ export default function LibraryPage() {
 
   const selectedGame = filteredGames.find((game) => game.id === selectedGameId) ?? libraryGames.find((game) => game.id === selectedGameId) ?? null;
   const celebratingGame = celebratingId ? games.find((game) => game.id === celebratingId) ?? null : null;
+  // Pins outrank the global filters. A pinned game the filters have ruled out is
+  // still pinned, and has to stay reachable here - otherwise the manage dialog
+  // offers two of three pins and the third can be neither replaced nor removed.
   const pinnedGames = vaultState.pinnedIds
-    .map((id) => libraryGames.find((game) => game.id === id))
+    .map((id) => libraryGames.find((game) => game.id === id) ?? allGames.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game))
     .filter((game) => game.status !== "Slept" && game.status !== "Completed");
   const visiblePinnedGames = statusTab === "active" ? pinnedGames.filter((game) => filteredGames.some((item) => item.id === game.id)) : [];
   const ordinaryGames = filteredGames.filter((game) => !visiblePinnedGames.some((pinned) => pinned.id === game.id));
+
+  // Active is a shelf you browse; slept and completed are shelves you tidy.
+  const selectionMode = statusTab !== "active";
+  // Scoped to what is on screen, so "select all" and the count can never claim
+  // more than the current search and filters are actually showing.
+  const selected = new Set(selectedIds.filter((id) => ordinaryGames.some((game) => game.id === id)));
+  const allShownSelected = ordinaryGames.length > 0 && ordinaryGames.every((game) => selected.has(game.id));
+
+  function toggleSelected(gameId: string) {
+    setSelectedIds((current) => current.includes(gameId)
+      ? current.filter((id) => id !== gameId)
+      : [...current, gameId]);
+  }
+
+  /**
+   * Wake or restore everything ticked.
+   *
+   * Sequential rather than parallel: this is the same write budget the
+   * completion sweep has to live inside, and thirty games fired at once is how
+   * that gets spent in one go.
+   */
+  async function restoreSelected() {
+    const ids = ordinaryGames.filter((game) => selected.has(game.id)).map((game) => game.id);
+    if (!ids.length) return;
+    setBulkBusy(true);
+    try {
+      for (const id of ids) await restoreGame(id);
+      trackEvent(ANALYTICS_EVENTS.libraryBulkRestored, { from: statusTab, count: ids.length });
+      setSelectedIds([]);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
 
   async function togglePin(game: DemoGame) {
     if (vaultState.pinnedIds.includes(game.id)) await recordVaultAction("unpinned", game.id);
@@ -265,8 +316,50 @@ export default function LibraryPage() {
             onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value }); }}
           />
         </div>
+        {/* Sits directly above the grid it fills, rather than at the foot of it:
+            ticking "select all 31" and then scrolling past all 31 to reach the
+            button that acts on them was how the old page did this. */}
+        {selectionMode && ordinaryGames.length ? (
+          <div className={styles.bulkRow}>
+            <label className={styles.bulkCheck}>
+              <input
+                type="checkbox"
+                checked={allShownSelected}
+                ref={(node) => {
+                  if (!node) return;
+                  node.indeterminate = selected.size > 0 && !allShownSelected;
+                }}
+                onChange={(event) => setSelectedIds(event.target.checked
+                  ? ordinaryGames.map((game) => game.id)
+                  : [])}
+              />
+              <span>Select all {ordinaryGames.length}</span>
+            </label>
+
+            {selected.size ? (
+              <div className={styles.bulkActions}>
+                <span className={styles.bulkCount}>{selected.size} selected</span>
+                <button type="button" className={styles.bulkClear} onClick={() => setSelectedIds([])}>Clear</button>
+                <button
+                  type="button"
+                  className={styles.bulkRestore}
+                  disabled={bulkBusy}
+                  onClick={() => void restoreSelected()}
+                >
+                  <VaultIcon name="restore-active" size={15} />
+                  {bulkBusy
+                    ? "Working…"
+                    : statusTab === "slept"
+                      ? `Wake ${selected.size} back up`
+                      : `Move ${selected.size} back to active`}
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
         <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>
-          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} /> : (
+          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
             <div className={styles.placeholderGrid}>
               <PlaceholderSlots
                 count={4}

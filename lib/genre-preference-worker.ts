@@ -73,6 +73,8 @@ type DrawRow = {
 type EventRow = { draw_id: string; event_type: string; created_at: string };
 type PurgeDecision = { userId: string; steamAppId: number; action: string; reviewedAt: string };
 
+const DECISION_PAGE_SIZE = 1000;
+
 /**
  * How each Purge verdict reads as taste. Sleeping matches the weight a Vault
  * "slept" carries, because it is the same decision. "Keep" is a deliberate
@@ -422,45 +424,52 @@ export async function listGenrePreferenceGlobals(): Promise<GenrePreference[]> {
  * cancel itself out instead of recording where the player actually landed.
  */
 async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promise<PurgeDecision[]> {
-  const { data, error } = await supabase
-    .from("purge_reviews")
-    .select("user_id, game_id, action, reviewed_at")
-    .gte("reviewed_at", since)
-    .order("reviewed_at", { ascending: false });
-  if (error) throw error;
+  // Read from the ownership row, not from purge_reviews.
+  //
+  // purge_reviews was written by one page, and that page is gone: sleeping and
+  // finishing happen in the Library now. Both verdicts are already recorded on
+  // user_games as the timestamp of the decision, so reading them here means the
+  // learner keeps its strongest negative signal, costs no extra write on the
+  // action itself, and counts a decision wherever in the app it was made.
+  //
+  // The catalogue AppID is on this row too, so the second lookup that
+  // purge_reviews needed to turn a game id into genres is gone with it.
+  const latest = new Map<string, PurgeDecision>();
 
-  const latest = new Map<string, { userId: string; gameId: string; action: string; reviewedAt: string }>();
-  for (const row of (data ?? []) as Array<Record<string, unknown>>) {
-    const key = `${String(row.user_id)}::${String(row.game_id)}`;
-    if (latest.has(key)) continue;
-    latest.set(key, {
-      userId: String(row.user_id),
-      gameId: String(row.game_id),
-      action: String(row.action),
-      reviewedAt: String(row.reviewed_at)
-    });
-  }
-  if (!latest.size) return [];
+  for (const [column, action] of [["slept_at", "sleep"], ["completed_at", "complete"]] as const) {
+    // Paged explicitly: PostgREST caps a response at 1,000 rows, and a night's
+    // worth of decisions across every account can pass that without erroring.
+    for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
+      const { data, error } = await supabase
+        .from("user_games")
+        .select(`user_id, catalog_steam_appid, ${column}`)
+        .gte(column, since)
+        .order(column, { ascending: false })
+        .range(offset, offset + DECISION_PAGE_SIZE - 1);
+      if (error) throw error;
 
-  // purge_reviews keys on the ownership row, so the catalogue AppID has to be
-  // looked up before any of it can be turned into genres.
-  const gameIds = [...new Set([...latest.values()].map((decision) => decision.gameId))];
-  const appIdByGameId = new Map<string, number>();
-  for (let index = 0; index < gameIds.length; index += 200) {
-    const { data: rows, error: gamesError } = await supabase
-      .from("user_games")
-      .select("id, catalog_steam_appid")
-      .in("id", gameIds.slice(index, index + 200));
-    if (gamesError) throw gamesError;
-    for (const row of (rows ?? []) as Array<Record<string, unknown>>) {
-      const appId = Number(row.catalog_steam_appid);
-      if (Number.isFinite(appId) && appId > 0) appIdByGameId.set(String(row.id), appId);
+      const rows = (data ?? []) as Array<Record<string, unknown>>;
+      for (const row of rows) {
+        const steamAppId = Number(row.catalog_steam_appid);
+        const decidedAt = row[column];
+        if (!Number.isFinite(steamAppId) || steamAppId <= 0 || typeof decidedAt !== "string") continue;
+
+        // One verdict per game per user: a game that was slept and later
+        // finished should teach the later of the two, not both.
+        const key = `${String(row.user_id)}::${steamAppId}`;
+        const held = latest.get(key);
+        if (held && held.reviewedAt >= decidedAt) continue;
+        latest.set(key, {
+          userId: String(row.user_id),
+          steamAppId,
+          action,
+          reviewedAt: decidedAt
+        });
+      }
+
+      if (rows.length < DECISION_PAGE_SIZE) break;
     }
   }
 
-  return [...latest.values()].flatMap((decision) => {
-    const steamAppId = appIdByGameId.get(decision.gameId);
-    if (!steamAppId) return [];
-    return [{ userId: decision.userId, steamAppId, action: decision.action, reviewedAt: decision.reviewedAt }];
-  });
+  return [...latest.values()];
 }

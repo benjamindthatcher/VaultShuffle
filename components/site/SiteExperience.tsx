@@ -95,7 +95,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const consentBannerRef = useRef<HTMLDivElement>(null);
   const hideFooter = pathname.startsWith("/auth") || pathname.startsWith("/setup/");
-  const isAppPage = ["/vault", "/library", "/purge", "/collections"].some(
+  const isAppPage = ["/vault", "/library", "/collections"].some(
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 

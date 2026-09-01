@@ -14,6 +14,11 @@ type LibraryGameGridProps = {
   onSleep: (gameId: string) => void;
   onTogglePin: (game: DemoGame) => void;
   pinnedIds: string[];
+  /** Set on the decided shelves - slept and completed - where the card picks
+   *  rather than opens. Absent on active, which stays a way into the details. */
+  selectable?: boolean;
+  selectedIds?: Set<string>;
+  onToggleSelect?: (gameId: string) => void;
 };
 
 /**
@@ -30,7 +35,7 @@ type LibraryGameGridProps = {
 const INITIAL_RENDER_COUNT = 60;
 const RENDER_BATCH = 60;
 
-export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onSleep, onTogglePin, pinnedIds = [] }: LibraryGameGridProps) {
+export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onSleep, onTogglePin, pinnedIds = [], selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
   const [renderCount, setRenderCount] = useState(INITIAL_RENDER_COUNT);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -84,6 +89,9 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
             onTogglePin={game.status !== "Completed" && game.status !== "Slept" ? () => onTogglePin(game) : undefined}
             pinned={pinnedIds.includes(game.id)}
             showProgress
+            selectable={selectable}
+            selected={selectedIds?.has(game.id) ?? false}
+            onToggleSelect={() => onToggleSelect?.(game.id)}
           />
         ))}
       </div>
