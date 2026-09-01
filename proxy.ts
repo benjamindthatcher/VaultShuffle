@@ -132,7 +132,12 @@ export const config = {
   matcher: [
     "/",
     "/api/:path*",
-    "/ingest/:path*",
+    // PostHog's own JS bundles and remote config are public, cacheable GETs that
+    // carry nothing worth stripping, so they are rewritten by next.config instead.
+    // Routing-layer rewrites cost no Fluid CPU and can be served from the CDN,
+    // whereas anything this matcher covers runs the proxy on every single request.
+    // Only the endpoints that carry a request body stay here, for the cookie strip.
+    "/ingest(/(?!static/|array/).*)?",
     "/dashboard",
     "/stats",
     "/vault",

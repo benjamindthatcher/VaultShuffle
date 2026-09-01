@@ -186,6 +186,12 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       reviewTotal: game.review_total ?? null,
       durationStatus: game.duration_status ?? null,
       tagsStatus: game.tags_status ?? null,
+      accessSource: game.access_source ?? "owned",
+      familyOwnerSteamId: game.family_owner_steam_id ?? null,
+      // Filled in by withFamilyOwnerNames once the family roster has loaded; the
+      // library and the roster are two different requests and either can land
+      // first.
+      familyOwnerName: null,
       moodTags: moodTagsFromScores(moodScores),
       moodScores,
       completedAt: game.completed_at,
@@ -212,6 +218,32 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       }
     };
   });
+}
+
+/**
+ * Put a name to the shelf a shared game came from.
+ *
+ * Kept apart from mapLiveGames because the library and the family roster arrive
+ * in separate requests, in either order. A game whose owner is not in the roster
+ * keeps a null name and its badge falls back to "a family member" rather than
+ * printing a 17-digit Steam ID at somebody.
+ */
+export function withFamilyOwnerNames(
+  games: DemoGame[],
+  members: Array<{ steamId: string; displayName: string }>
+): DemoGame[] {
+  if (!members.length) return games;
+  const names = new Map(members.map((member) => [member.steamId, member.displayName]));
+  let changed = false;
+  const named = games.map((game) => {
+    const name = game.familyOwnerSteamId ? names.get(game.familyOwnerSteamId) ?? null : null;
+    if (name === (game.familyOwnerName ?? null)) return game;
+    changed = true;
+    return { ...game, familyOwnerName: name };
+  });
+  // Same array identity when nothing changed, so this cannot churn every memo
+  // downstream of it on each render.
+  return changed ? named : games;
 }
 
 export function mapGuestGames(games: Game[]): DemoGame[] {

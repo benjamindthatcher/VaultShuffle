@@ -171,10 +171,40 @@ test("a stored shape from an older release cannot empty the library", () => {
   assert.deepEqual(parseGlobalFilters("[]"), DEFAULT_GLOBAL_FILTERS);
   assert.deepEqual(parseGlobalFilters('{"device":"nintendo","players":"solo"}'), DEFAULT_GLOBAL_FILTERS);
 
+  // A shape stored before Steam Families existed carries no access value, and
+  // must come back as "all" - falling back to anything narrower would hide games
+  // the player never asked to hide, on a filter they have never seen.
   assert.deepEqual(
     parseGlobalFilters('{"device":"deck","players":"coop","releaseAge":"classic","gameType":"endless","hidePoorlyReviewed":true}'),
-    { device: "deck", players: "coop", releaseAge: "classic", gameType: "endless", hidePoorlyReviewed: true }
+    { device: "deck", players: "coop", releaseAge: "classic", gameType: "endless", access: "all", hidePoorlyReviewed: true }
   );
+  assert.equal(parseGlobalFilters('{"access":"borrowed"}').access, "all");
+  assert.equal(parseGlobalFilters('{"access":"family"}').access, "family");
   // Anything short of an explicit true leaves the toggle off.
   assert.equal(parseGlobalFilters('{"hidePoorlyReviewed":"yes"}').hidePoorlyReviewed, false);
+});
+
+test("the access filter separates what you own from what a family lends", () => {
+  const mine = game({ accessSource: "owned" });
+  const lent = game({ accessSource: "family" });
+  // A row written before the feature existed has no access source at all, and
+  // must be treated as owned rather than dropped out of both sides.
+  const legacy = game({ accessSource: undefined });
+
+  assert.equal(matchesGlobalFilters(mine, filters({ access: "owned" }), now), true);
+  assert.equal(matchesGlobalFilters(legacy, filters({ access: "owned" }), now), true);
+  assert.equal(matchesGlobalFilters(lent, filters({ access: "owned" }), now), false);
+
+  assert.equal(matchesGlobalFilters(lent, filters({ access: "family" }), now), true);
+  assert.equal(matchesGlobalFilters(mine, filters({ access: "family" }), now), false);
+  assert.equal(matchesGlobalFilters(legacy, filters({ access: "family" }), now), false);
+
+  for (const entry of [mine, lent, legacy]) {
+    assert.equal(matchesGlobalFilters(entry, DEFAULT_GLOBAL_FILTERS, now), true);
+  }
+});
+
+test("access counts as an active filter and clears with the rest", () => {
+  assert.equal(activeGlobalFilterCount(filters({ access: "family" })), 1);
+  assert.equal(activeGlobalFilterCount(filters({ access: "all" })), 0);
 });

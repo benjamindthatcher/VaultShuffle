@@ -1,0 +1,289 @@
+/* Same sheet, radius and type scale as the other dashboard panels, so an
+   experimental feature does not announce itself by looking foreign. The one
+   deliberate difference is the Experimental chip in the heading. */
+.card {
+  display: grid;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
+}
+
+/* --------------------------------------------------------------- header */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.headingGroup {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: var(--vault-text);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.heading svg {
+  color: #c08bff;
+  flex: none;
+}
+
+.experimental {
+  padding: 2px 7px;
+  border: 1px solid rgba(192, 139, 255, 0.4);
+  border-radius: 999px;
+  color: #c08bff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.subheading strong {
+  color: var(--vault-text);
+}
+
+.subheading {
+  margin: 0;
+  max-width: 70ch;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.count {
+  flex: none;
+  display: grid;
+  gap: 1px;
+  margin: 0;
+  text-align: right;
+}
+
+.countValue {
+  color: var(--vault-text);
+  font-size: 1.3rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.countLabel {
+  color: var(--vault-text-muted);
+  font-size: 0.7rem;
+}
+
+/* ---------------------------------------------------------------- notes */
+
+.okNote,
+.errorNote {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.okNote {
+  border: 1px solid rgba(120, 220, 160, 0.32);
+  background: rgba(120, 220, 160, 0.09);
+  color: var(--vault-text);
+}
+
+.errorNote {
+  border: 1px solid rgba(255, 132, 132, 0.36);
+  background: rgba(255, 132, 132, 0.09);
+  color: var(--vault-text);
+}
+
+/* ---------------------------------------------------------------- tiers */
+
+/* -------------------------------------------------------------- members */
+
+.members {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.member {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: 10px;
+}
+
+.avatar,
+.avatarFallback {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.avatarFallback {
+  display: grid;
+  place-items: center;
+  background: rgba(192, 139, 255, 0.12);
+  color: #c08bff;
+}
+
+.memberBody {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.memberName {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--vault-text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memberName:hover {
+  text-decoration: underline;
+}
+
+.memberName svg {
+  flex: none;
+  color: var(--vault-text-muted);
+}
+
+.memberMeta {
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+}
+
+.remove {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  color: var(--vault-text-muted);
+  cursor: pointer;
+}
+
+.remove:hover:not(:disabled) {
+  border-color: rgba(255, 132, 132, 0.4);
+  color: #ff8484;
+}
+
+.remove:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ------------------------------------------------------------- controls */
+
+.addRow {
+  display: grid;
+  gap: 6px;
+}
+
+.addLabel {
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Stacks on a phone. The input needs the whole width to show a profile URL,
+   and traffic here is mobile-majority. */
+.addControls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.input {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 9px 11px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--vault-text);
+  font-size: 0.82rem;
+}
+
+.input:disabled {
+  opacity: 0.55;
+}
+
+.textarea {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: 9px;
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--vault-text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.74rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.primary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 14px;
+  border-radius: 9px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.primary {
+  border: 1px solid rgba(192, 139, 255, 0.5);
+  background: rgba(192, 139, 255, 0.16);
+  color: var(--vault-text);
+}
+
+.secondary {
+  justify-self: start;
+  border: 1px solid var(--vault-sheet-border);
+  background: none;
+  color: var(--vault-text-muted);
+}
+
+.primary:disabled,
+.secondary:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hint {
+  margin: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}

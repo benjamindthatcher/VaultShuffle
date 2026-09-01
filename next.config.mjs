@@ -51,8 +51,39 @@ const nextConfig = {
       { source: "/wishlist", destination: "/vault", permanent: true }
     ];
   },
+  /**
+   * The PostHog reverse proxy is split in two. Event, replay and flag traffic
+   * stays in proxy.ts, because those requests carry the visitor's cookies and
+   * the httpOnly session token has to be stripped before it leaves our origin.
+   *
+   * PostHog's script bundles and remote config are public GETs for static files,
+   * so they have nothing to strip and belong here instead: a rewrite is resolved
+   * by the Edge Network's routing layer, which costs no Fluid Active CPU and,
+   * unlike a proxy rewrite, can be served from the CDN. Routing Middleware is
+   * billed on the same Active CPU meter as functions, and a fresh visitor pulls
+   * roughly nine of these bundles - they were the single largest source of
+   * proxy invocations on this project.
+   */
+  async rewrites() {
+    return {
+      beforeFiles: [
+        { source: "/ingest/static/:path*", destination: "https://eu-assets.i.posthog.com/static/:path*" },
+        { source: "/ingest/array/:path*", destination: "https://eu-assets.i.posthog.com/array/:path*" }
+      ]
+    };
+  },
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Honour PostHog's own Cache-Control on the proxied bundles rather than
+      // imposing our own, so a PostHog release is picked up on their schedule.
+      // Older Vercel projects ignore upstream cache headers on external rewrites
+      // unless this opt-in is present; on newer ones it is already the default.
+      {
+        source: "/ingest/:path(static|array)/:rest*",
+        headers: [{ key: "x-vercel-enable-rewrite-caching", value: "1" }]
+      }
+    ];
   },
   images: {
     remotePatterns: [

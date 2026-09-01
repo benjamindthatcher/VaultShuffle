@@ -13,6 +13,7 @@ import { formatGameDuration } from "@/lib/game-duration";
 import { buildPinnedRunSummary } from "@/lib/pinned-run";
 import { progressLabel } from "@/lib/progress-display";
 import type { VaultPin } from "@/lib/vault-state";
+import { familyProvenance, isFamilyAccess } from "@/lib/family-sharing";
 import styles from "./LibraryDetailsDrawer.module.css";
 
 type LibraryDetailsDrawerProps = {
@@ -124,6 +125,9 @@ export function LibraryDetailsDrawer({
   const isPinnedSpotlight = variant === "pinned";
   const relatedCollections = collections.filter((collection) => game.collectionIds.includes(collection.id));
   const durationLabel = formatGameDuration(game.duration);
+  // The card carries an icon; this is the one place with room to say what it
+  // means. One line, not a panel. See lib/family-sharing.ts.
+  const familyLine = familyProvenance(game);
   const pinLabel = pinSlot ? "Unpin game" : pinCount >= 3 ? "Manage pins" : "Pin game";
   const pinHandler = pinSlot || pinCount < 3 ? onTogglePin : onManagePins;
   const pinnedRun = isPinnedSpotlight ? buildPinnedRunSummary(game, pin) : null;
@@ -163,15 +167,30 @@ export function LibraryDetailsDrawer({
         tabIndex={-1}
       >
         <div className={styles.hero}>
-          <Artwork src={game.bannerUrl} sizes="(max-width: 520px) 100vw, 980px" priority />
           {isPinnedSpotlight ? (
             <>
+              <Artwork
+                src={game.bannerUrl}
+                className={styles.heroAmbient}
+                sizes="(max-width: 520px) 100vw, 1080px"
+              />
+              <span className={styles.heroArtworkFrame}>
+                <Artwork
+                  src={game.bannerUrl}
+                  className={styles.heroArtwork}
+                  sizes="(max-width: 520px) 100vw, 1080px"
+                  fit="contain"
+                  priority
+                />
+              </span>
               <span className={styles.heroShade} aria-hidden="true" />
               <button ref={closeButtonRef} type="button" className={styles.heroClose} onClick={onClose} aria-label="Close game details">
                 <VaultIcon name="close" size={20} />
               </button>
             </>
-          ) : null}
+          ) : (
+            <Artwork src={game.bannerUrl} sizes="(max-width: 520px) 100vw, 980px" priority />
+          )}
         </div>
 
         <div className={styles.body}>
@@ -194,7 +213,7 @@ export function LibraryDetailsDrawer({
                   </div>
                   <div>
                     <VaultIcon name="playtime" size={18} />
-                    <span><dt>Playtime (all time)</dt><dd>{`${game.hoursPlayed}h`}</dd></span>
+                    <span><dt>Playtime (all time)</dt><dd>{isFamilyAccess(game.accessSource) ? "Not available" : `${game.hoursPlayed}h`}</dd></span>
                   </div>
                   <div>
                     <VaultIcon name="clock" size={18} />
@@ -323,6 +342,12 @@ export function LibraryDetailsDrawer({
               </div>
 
               <p className={styles.copy} id={descriptionId}>{game.description}</p>
+              {familyLine ? (
+                <p className={styles.familyNotice}>
+                  <VaultIcon name="family" size={16} />
+                  <span>{familyLine}</span>
+                </p>
+              ) : null}
               {game.status === "Completed" || game.status === "Slept" ? (
                 <div className={styles.quickActions} role="group" aria-label={`${game.status} game actions`}>
                   <button type="button" title="Restore to Active" aria-label="Restore to Active" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={30} /></button>
@@ -346,7 +371,7 @@ export function LibraryDetailsDrawer({
               <dl className={styles.statGrid}>
                 <div><dt>Status</dt><dd>{game.status}</dd></div>
                 <div><dt>Progress</dt><dd>{progressLabel(game)}</dd></div>
-                <div><dt>Playtime</dt><dd>{`${game.hoursPlayed}h`}</dd></div>
+                <div><dt>Playtime</dt><dd>{isFamilyAccess(game.accessSource) ? "Not available" : `${game.hoursPlayed}h`}</dd></div>
                 <div><dt>How long to beat</dt><dd>{durationLabel ?? "Not available"}</dd></div>
               </dl>
 

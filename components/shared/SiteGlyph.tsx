@@ -113,6 +113,9 @@ function glyph(name: string): ReactNode {
     case "shield": case "privacy": return <><path d="M12 3 5 6v5c0 4.3 2.8 8.2 7 10 4.2-1.8 7-5.7 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></>;
     case "guest": case "user": return <><circle cx="12" cy="8" r="3"/><path d="M6 20v-2a6 6 0 0 1 12 0v2"/></>;
     case "players": return <><circle cx="10" cy="8" r="3"/><path d="M4 20v-2a6 6 0 0 1 12 0v2M17 6a3 3 0 0 1 0 6m3 8v-2a5 5 0 0 0-3-4.6"/></>;
+    // Two figures of different heights, which is what separates a family from
+    // the "players" glyph above - that one is a multiplayer lobby.
+    case "family": return <><circle cx="8" cy="7" r="2.6"/><path d="M3.5 20v-2.5A4.5 4.5 0 0 1 8 13a4.5 4.5 0 0 1 4.5 4.5V20"/><circle cx="16.5" cy="10" r="2.1"/><path d="M13.5 20v-1.8a3 3 0 0 1 3-3 3 3 0 0 1 3 3V20"/></>;
     case "id": return <><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="8" cy="11" r="2"/><path d="M13 10h5M13 14h4"/></>;
     case "browser": return <><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18M7 6.5h.01M10 6.5h.01"/></>;
     case "terms": return <><path d="M6 3h9l4 4v14H6V3Z"/><path d="M15 3v5h5M9 12h7m-7 4h7"/></>;

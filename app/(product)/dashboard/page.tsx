@@ -19,6 +19,7 @@ import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/
 import { PageHeading } from "@/components/shared/PageHeading";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { GlobalFiltersPanel } from "@/components/dashboard/GlobalFiltersPanel";
+import { FamilySharingCard } from "@/components/family/FamilySharingCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -231,6 +232,12 @@ export default function DashboardPage() {
               below this panel is counted from the games it leaves in play. */}
           <GlobalFiltersPanel />
 
+          {/* Sits with the filters rather than in an account screen: both answer
+              "what is even on the table", and adding a family member changes the
+              pool the same way a filter does. Renders nothing at all unless
+              NEXT_PUBLIC_FAMILY_SHARING is set - see lib/family-flag.ts. */}
+          <FamilySharingCard />
+
           <ValueDial
             percent={stats.valueCompletedPercent}
             completedValue={formatMoney(stats.completedValueCents, stats.currency)}
@@ -250,7 +257,17 @@ export default function DashboardPage() {
                   ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`
                   : "No play recorded yesterday"}
             />
-            <StatCard label="Games completed" value={`${stats.completedPercent}%`} note={`${stats.completedGames} of ${stats.totalGames}`} />
+            {/* Names the gap rather than leaving it. Every figure in this panel
+                is about the shelf you paid for, so a library that also holds
+                family games will not add up to the Library's count unless the
+                difference is stated. */}
+            <StatCard
+              label="Games completed"
+              value={`${stats.completedPercent}%`}
+              note={stats.familyGames
+                ? `${stats.completedGames} of ${stats.totalGames} owned · ${stats.familyGames} family not counted`
+                : `${stats.completedGames} of ${stats.totalGames}`}
+            />
             <StatCard label="Never opened" value={stats.unplayedGames} note={`worth ${formatMoney(stats.unplayedValueCents, stats.currency)}`} />
             <StatCard
               label="Best value"

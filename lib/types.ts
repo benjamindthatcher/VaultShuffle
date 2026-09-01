@@ -63,6 +63,14 @@ export type Game = {
   deck_compatibility?: number | null;
   is_quarantined?: boolean;
   quarantine_reason?: string | null;
+  /**
+   * How the account can play this: owned outright, or through a family member's
+   * library. Absent on rows that predate the feature, which are all owned.
+   * See lib/family-sharing.ts.
+   */
+  access_source?: import("@/lib/family-sharing").AccessSource | null;
+  family_owner_steam_id?: string | null;
+  family_verified_at?: string | null;
   created_at?: string;
   updated_at?: string;
 };

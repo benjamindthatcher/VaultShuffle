@@ -76,6 +76,15 @@ export type DemoGame = {
   /** Where catalogue enrichment has got to, so "still processing" can mean it. */
   durationStatus?: string | null;
   tagsStatus?: string | null;
+  /**
+   * How this game is playable: owned outright, or reachable through a family
+   * member's Steam library. Absent means owned - every game that predates the
+   * feature is. Playtime is meaningless on a family row; see
+   * lib/family-sharing.ts.
+   */
+  accessSource?: import("@/lib/family-sharing").AccessSource;
+  familyOwnerName?: string | null;
+  familyOwnerSteamId?: string | null;
 };
 
 export const demoCollections: DemoCollection[] = [

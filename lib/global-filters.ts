@@ -1,4 +1,5 @@
 import type { DemoGame } from "./demo-data.ts";
+import { isFamilyAccess } from "./family-sharing.ts";
 
 /**
  * Global filters: the layer above everything else.
@@ -24,11 +25,23 @@ export type ReleaseAge = "any" | "recent" | "modern" | "established" | "classic"
 
 export type GameType = "all" | "finite" | "endless";
 
+/**
+ * Owned outright, or reachable through a Steam family.
+ *
+ * Belongs at this layer rather than in the Library toolbar for the same reason
+ * device does: "I am not borrowing my partner's account tonight" is a standing
+ * fact about what is on the table, not a way of looking at a list. Defaults to
+ * "all" - somebody who went to the trouble of adding a family member wants the
+ * games - and only appears at all once there is a family game to filter.
+ */
+export type AccessMode = "all" | "owned" | "family";
+
 export type GlobalFilters = {
   device: DeviceMode;
   players: "any" | PlayerMode;
   releaseAge: ReleaseAge;
   gameType: GameType;
+  access: AccessMode;
   /** Hide games the crowd has actually judged poorly. See matchesRating. */
   hidePoorlyReviewed: boolean;
 };
@@ -38,6 +51,7 @@ export const DEFAULT_GLOBAL_FILTERS: GlobalFilters = {
   players: "any",
   releaseAge: "any",
   gameType: "all",
+  access: "all",
   hidePoorlyReviewed: false
 };
 
@@ -127,6 +141,12 @@ function matchesGameType(game: DemoGame, want: GameType) {
 const MIN_REVIEWS_TO_JUDGE = 50;
 const POOR_RATIO = 0.6;
 
+function matchesAccess(game: DemoGame, want: AccessMode) {
+  if (want === "all") return true;
+  const family = isFamilyAccess(game.accessSource);
+  return want === "family" ? family : !family;
+}
+
 function matchesRating(game: DemoGame, hidePoorlyReviewed: boolean) {
   if (!hidePoorlyReviewed) return true;
   const total = game.reviewTotal ?? 0;
@@ -140,6 +160,7 @@ export function matchesGlobalFilters(game: DemoGame, filters: GlobalFilters, now
     && matchesPlayers(game, filters.players)
     && matchesReleaseAge(game, filters.releaseAge, now)
     && matchesGameType(game, filters.gameType)
+    && matchesAccess(game, filters.access)
     && matchesRating(game, filters.hidePoorlyReviewed);
 }
 
@@ -148,6 +169,7 @@ export function isDefaultGlobalFilters(filters: GlobalFilters) {
     && filters.players === "any"
     && filters.releaseAge === "any"
     && filters.gameType === "all"
+    && filters.access === "all"
     && !filters.hidePoorlyReviewed;
 }
 
@@ -158,6 +180,7 @@ export function activeGlobalFilterCount(filters: GlobalFilters) {
   if (filters.players !== "any") count += 1;
   if (filters.releaseAge !== "any") count += 1;
   if (filters.gameType !== "all") count += 1;
+  if (filters.access !== "all") count += 1;
   if (filters.hidePoorlyReviewed) count += 1;
   return count;
 }
@@ -189,6 +212,7 @@ export function parseGlobalFilters(raw: string | null | undefined): GlobalFilter
     players: pick(value.players, ["any", "single", "coop", "multi"] as const, "any"),
     releaseAge: pick(value.releaseAge, ["any", "recent", "modern", "established", "classic"] as const, "any"),
     gameType: pick(value.gameType, ["all", "finite", "endless"] as const, "all"),
+    access: pick(value.access, ["all", "owned", "family"] as const, "all"),
     hidePoorlyReviewed: value.hidePoorlyReviewed === true
   };
 }

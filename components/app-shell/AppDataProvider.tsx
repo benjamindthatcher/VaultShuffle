@@ -4,7 +4,9 @@ import { steamCapabilities, type SteamCapabilities } from "@/lib/steam-capabilit
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
-import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames } from "@/lib/app-view-model";
+import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames, withFamilyOwnerNames } from "@/lib/app-view-model";
+import { FAMILY_SHARING_ENABLED } from "@/lib/family-flag";
+import type { FamilyImportCounts } from "@/lib/family-sharing";
 import { ANALYTICS_EVENTS, VAULT_ACTION_EVENT_NAMES, VAULT_DRAW_EVENT_NAMES, setAnalyticsAudience, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
@@ -25,6 +27,7 @@ import {
 } from "@/lib/global-filters";
 import { CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
 import { requestJson as api } from "@/lib/api-client";
+import { abandonSession, announceSessionProvider, publishSession } from "@/lib/analytics-session";
 import { withTransientRetry } from "@/lib/request-failure";
 import { diagnosticFailure, diagnosticId } from "@/lib/diagnostics";
 import { readStoredCooldown, saveCooldown, storedCooldownError } from "@/lib/cooldown-storage";
@@ -47,6 +50,12 @@ type AppBootstrapPayload = {
   gamePreferences?: Record<string, [number, number]>;
   playtime?: PlaytimeSummary;
   data_error?: boolean;
+  guest_pool_source?: "live_catalogue" | "fallback";
+};
+
+/** Served by /guest-catalogue rather than the bootstrap, so that the CDN can cache it. */
+type GuestCataloguePayload = {
+  games?: Game[];
   guest_pool_source?: "live_catalogue" | "fallback";
 };
 
@@ -106,6 +115,18 @@ type AppDataContextValue = {
   isRefreshingPinnedPlaytime: boolean;
   pinnedRefreshAvailableAt: number | null;
   signOut: () => Promise<void>;
+  /**
+   * Steam Families. Empty and inert unless NEXT_PUBLIC_FAMILY_SHARING is set -
+   * see lib/family-flag.ts. The roster is fetched separately from the library
+   * rather than added to /api/app-data, because every account would pay for a
+   * query that almost none of them need.
+   */
+  familyEnabled: boolean;
+  familyMembers: FamilyMember[];
+  familyBusy: boolean;
+  addFamilyMember: (profile: string) => Promise<FamilyMemberAddOutcome>;
+  removeFamilyMember: (memberId: string) => Promise<void>;
+  recheckFamilyLibrary: () => Promise<FamilyImportCounts>;
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
@@ -118,6 +139,24 @@ type AppDataContextValue = {
   loadVaultHistory: () => Promise<void>;
   recordDrawEvent: (drawId: string, eventType: VaultDrawEventType, analytics?: Record<string, unknown>) => Promise<void>;
   clearVaultHistory: () => Promise<void>;
+};
+
+export type FamilyMember = {
+  id: string;
+  steamId: string;
+  displayName: string;
+  avatarUrl: string | null;
+  profileUrl: string;
+  librarySeen: number;
+  gamesImported: number;
+  lastSyncedAt: string | null;
+  lastError: string | null;
+};
+
+export type FamilyMemberAddOutcome = {
+  member: FamilyMember;
+  counts: FamilyImportCounts;
+  summary: string;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -155,6 +194,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const syncPromiseRef = useRef<Promise<number> | null>(null);
   const pinnedRefreshPromiseRef = useRef<Promise<PinnedPlaytimeResult> | null>(null);
   const [isRefreshingPinnedPlaytime, setIsRefreshingPinnedPlaytime] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
+  const [familyBusy, setFamilyBusy] = useState(false);
   const [pinnedRefreshAvailableAt, setPinnedRefreshAvailableAt] = useState<number | null>(null);
 
   /**
@@ -188,14 +229,23 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       const bootstrap = await api<AppBootstrapPayload>("/api/app-data");
       const nextSession = bootstrap.session;
       setSession(nextSession);
+      // Hands the session to the analytics identity sync, which would otherwise
+      // fetch the identical payload from /api/session a second time.
+      publishSession(nextSession);
 
       if (!nextSession.logged_in) {
         setIsLive(false);
-        if (bootstrap.games?.length) {
-          const mappedGuestGames = mapGuestGames(bootstrap.games);
+        // Fetched separately from the bootstrap so it can come off the CDN
+        // rather than out of a function. Its failure is survivable on its own -
+        // the bundled fallback pool is already on screen - so it must not take
+        // the rest of the guest boot down with it.
+        try {
+          const catalogue = await api<GuestCataloguePayload>("/guest-catalogue");
+          const mappedGuestGames = mapGuestGames(catalogue.games ?? []);
+          if (!mappedGuestGames.length) throw new Error("Guest catalogue was empty.");
           setGuestGames(mappedGuestGames);
           setGuestCollections(guestPreviewCollection(mappedGuestGames.length));
-        } else if (bootstrap.data_error) {
+        } catch {
           setLoadError("The live guest catalogue is temporarily unavailable. A smaller preview is still ready.");
         }
         return false;
@@ -233,9 +283,17 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       }
       return false;
     } finally {
+      // Releases the analytics identity sync whether or not a session arrived,
+      // so a failed bootstrap makes it fall back to its own request now rather
+      // than after a timeout. A no-op once publishSession has already run.
+      abandonSession();
       if (!quiet) setIsLoading(false);
     }
   }
+
+  // Announced before the session is known, so that SiteFrame can tell one is on
+  // its way and wait for it instead of making a second request for it.
+  useEffect(() => announceSessionProvider(), []);
 
   useEffect(() => {
     void load();
@@ -303,6 +361,85 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }, [isLoading, session.account_type, session.user_id]);
 
+  /**
+   * The Steam Families roster.
+   *
+   * Fetched on its own rather than folded into /api/app-data: almost nobody has
+   * a family, and the bootstrap request is on the hot path for everybody. When
+   * the flag is off this never runs at all and every family value below stays
+   * at its empty default.
+   */
+  async function loadFamily() {
+    if (!FAMILY_SHARING_ENABLED || !isLive) return;
+    try {
+      const payload = await api<{ members?: FamilyMember[] }>("/api/family");
+      setFamilyMembers(payload.members ?? []);
+    } catch {
+      // The roster is an enhancement on top of a library that already loaded.
+      // Failing to read it must not take the dashboard down with it.
+    }
+  }
+
+  useEffect(() => {
+    if (!FAMILY_SHARING_ENABLED || !isLive) return;
+    void loadFamily();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLive, session.user_id]);
+
+  /**
+   * Every family write re-reads the library afterwards.
+   *
+   * These change which games exist, not just a field on one of them, so the
+   * optimistic pattern the rest of this file uses does not apply - there is
+   * nothing sensible to draw until the server says what the shelf now holds.
+   */
+  async function withFamilyWrite<T>(run: () => Promise<T>): Promise<T> {
+    setFamilyBusy(true);
+    try {
+      const result = await run();
+      await Promise.all([loadFamily(), load({ quiet: true })]);
+      return result;
+    } finally {
+      setFamilyBusy(false);
+    }
+  }
+
+  async function addFamilyMember(profile: string) {
+    return withFamilyWrite(async () => {
+      const payload = await api<FamilyMemberAddOutcome>("/api/family", {
+        method: "POST",
+        body: JSON.stringify({ profile })
+      });
+      trackEvent(ANALYTICS_EVENTS.familyMemberAdded, {
+        library_seen: payload.counts.seen,
+        imported: payload.counts.importable,
+        excluded: payload.counts.excluded,
+        pending: payload.counts.pending,
+        already_owned: payload.counts.alreadyOwned
+      });
+      return payload;
+    });
+  }
+
+  async function removeFamilyMember(memberId: string) {
+    await withFamilyWrite(async () => {
+      const payload = await api<{ removed: number }>(`/api/family/${memberId}`, { method: "DELETE" });
+      trackEvent(ANALYTICS_EVENTS.familyMemberRemoved, { removed: payload.removed });
+      return payload;
+    });
+  }
+
+  async function recheckFamilyLibrary() {
+    return withFamilyWrite(async () => {
+      const payload = await api<{ counts: FamilyImportCounts }>("/api/family/sync", { method: "POST" });
+      trackEvent(ANALYTICS_EVENTS.familyLibraryRechecked, {
+        imported: payload.counts.importable,
+        pending: payload.counts.pending
+      });
+      return payload.counts;
+    });
+  }
+
   function setGlobalFilters(next: GlobalFilters) {
     setGlobalFiltersState(next);
     try {
@@ -320,6 +457,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       players: next.players,
       release_age: next.releaseAge,
       game_type: next.gameType,
+      access: next.access,
       hide_poorly_reviewed: next.hidePoorlyReviewed,
       active_count: activeGlobalFilterCount(next)
     });
@@ -854,10 +992,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // a session in localStorage, so filtering the guest catalogue too would let
   // someone sign out and find a preview quietly missing games with no control
   // anywhere to explain it or put them back.
-  const allGames = isLive ? liveGames : guestGames;
+  // A shared game says whose shelf it came from. The roster and the library are
+  // two requests and either can land first, so the name is overlaid here rather
+  // than baked in at map time. Identity is preserved when nothing changes, so
+  // this cannot churn the memos below it.
+  const namedLiveGames = useMemo(
+    () => withFamilyOwnerNames(liveGames, familyMembers),
+    [liveGames, familyMembers]
+  );
+  const allGames = isLive ? namedLiveGames : guestGames;
   const visibleGames = useMemo(
-    () => isLive ? liveGames.filter((game) => matchesGlobalFilters(game, globalFilters)) : guestGames,
-    [globalFilters, guestGames, isLive, liveGames]
+    () => isLive ? namedLiveGames.filter((game) => matchesGlobalFilters(game, globalFilters)) : guestGames,
+    [globalFilters, guestGames, isLive, namedLiveGames]
   );
   const unfilteredGameCount = allGames.length;
   const activePlaytime = isLive ? livePlaytime : EMPTY_PLAYTIME;
@@ -903,6 +1049,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       isRefreshingPinnedPlaytime,
       pinnedRefreshAvailableAt,
       signOut,
+      familyEnabled: FAMILY_SHARING_ENABLED,
+      familyMembers,
+      familyBusy,
+      addFamilyMember,
+      removeFamilyMember,
+      recheckFamilyLibrary,
       createCollection,
       updateCollection,
       removeCollection,
@@ -916,7 +1068,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, globalFilters, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, globalFilters, liveGames, namedLiveGames, familyMembers, familyBusy, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

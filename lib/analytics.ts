@@ -51,6 +51,13 @@ export const ANALYTICS_EVENTS = {
   steamLibrarySynced: "steam_library_synced",
   steamImportFailed: "steam_import_failed",
   steamImportDeferred: "steam_import_deferred",
+  // Steam Families. Experimental and flag-gated, so these exist mainly to answer
+  // one question before it ships: does anybody actually add a family member, and
+  // do the games they get out of it change what they draw.
+  familyCardViewed: "family_card_viewed",
+  familyMemberAdded: "family_member_added",
+  familyMemberRemoved: "family_member_removed",
+  familyLibraryRechecked: "family_library_rechecked",
   pinnedPlaytimeRefreshStarted: "pinned_playtime_refresh_started",
   pinnedPlaytimeRefreshSucceeded: "pinned_playtime_refresh_succeeded",
   pinnedPlaytimeRefreshFailed: "pinned_playtime_refresh_failed",

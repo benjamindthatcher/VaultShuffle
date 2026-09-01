@@ -8,6 +8,7 @@ import { Artwork } from "@/components/shared/Artwork";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
 import { formatGameDuration } from "@/lib/game-duration";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { isFamilyAccess } from "@/lib/family-sharing";
 import styles from "./GameCard.module.css";
 
 type GameCardProps = {
@@ -42,6 +43,9 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
   const isList = layout === "list";
   const isActiveGame = game.status !== "Completed" && game.status !== "Slept";
   const durationLabel = formatGameDuration(game.duration);
+  // One icon, no label. A shared game should be recognisable at a glance without
+  // turning the card into a disclaimer - the details panel explains it.
+  const isFamily = isFamilyAccess(game.accessSource);
 
   useEffect(() => {
     if (!menuOpen) return;
@@ -91,6 +95,14 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
     <>
       <div className={isList ? `${styles.artwork} ${styles.artworkList}` : styles.artwork}>
         <Artwork src={game.bannerUrl} sizes={isList ? "260px" : "(max-width: 720px) 100vw, 33vw"} />
+        {isFamily ? (
+          <span
+            className={styles.familyMark}
+            title={game.familyOwnerName ? `Shared from ${game.familyOwnerName}'s library` : "Shared from a family library"}
+          >
+            <VaultIcon name="family" size={13} />
+          </span>
+        ) : null}
       </div>
       <div className={styles.body}>
         <div className={styles.topRow}>
@@ -99,7 +111,13 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
         </div>
         <p className={styles.copy}>{game.description}</p>
         <div className={styles.metaRow}>
-          <span>{game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}{durationLabel ? ` · ${durationLabel}` : ""}</span>
+          {/* "Fresh pick" is a claim about the player, and on a family game the
+              only hours that exist belong to whoever owns it. Saying nothing is
+              better than "No playtime data" on every shared card - the row just
+              carries the length instead. */}
+          <span>{isFamily
+            ? durationLabel || "Family library"
+            : `${game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}${durationLabel ? ` · ${durationLabel}` : ""}`}</span>
           {isList ? (
             <span className={styles.listState}>
               <span className={styles.status}>{game.status}</span>

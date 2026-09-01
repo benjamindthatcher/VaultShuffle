@@ -8,6 +8,7 @@ import {
   isDefaultGlobalFilters,
   type GlobalFilters
 } from "@/lib/global-filters";
+import { isFamilyAccess } from "@/lib/family-sharing";
 import styles from "./GlobalFiltersPanel.module.css";
 
 /**
@@ -27,7 +28,7 @@ import styles from "./GlobalFiltersPanel.module.css";
  * count it produces in the header beside the button that resets it.
  */
 
-type GroupKey = "releaseAge" | "players" | "gameType" | "device";
+type GroupKey = "releaseAge" | "players" | "gameType" | "device" | "access";
 
 type Choice<T extends string> = { id: T; label: string };
 
@@ -58,8 +59,19 @@ const DEVICE: Choice<GlobalFilters["device"]>[] = [
   { id: "deck", label: "Steam Deck" }
 ];
 
+const ACCESS: Choice<GlobalFilters["access"]>[] = [
+  { id: "all", label: "All" },
+  { id: "owned", label: "Only mine" },
+  { id: "family", label: "Family only" }
+];
+
 export function GlobalFiltersPanel() {
-  const { globalFilters, setGlobalFilters, games, unfilteredGameCount } = useAppData();
+  const { globalFilters, setGlobalFilters, games, allGames, unfilteredGameCount } = useAppData();
+
+  // Only offered once there is something to filter. A library with no shared
+  // games would get a control whose every option produces the same list, which
+  // is worse than no control - it implies a distinction that is not there.
+  const hasFamilyGames = allGames.some((game) => isFamilyAccess(game.accessSource));
 
   const activeCount = activeGlobalFilterCount(globalFilters);
   const isDefault = isDefaultGlobalFilters(globalFilters);
@@ -147,6 +159,7 @@ export function GlobalFiltersPanel() {
         {renderGroup("players", "How you play", PLAYERS, "mid")}
         {renderGroup("gameType", "Game type", GAME_TYPE)}
         {renderGroup("device", "Device", DEVICE)}
+        {hasFamilyGames ? renderGroup("access", "Library", ACCESS) : null}
 
         <div className={styles.group}>
           <span className={styles.groupLabel} id="global-filter-reviews">

@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
+import { promoteFamilyGamesToOwned } from "@/lib/family-games";
 import { capturePlaytimeSnapshot } from "@/lib/playtime-snapshots";
 import {
   IDLE_STEAM_IMPORT,
@@ -102,6 +103,10 @@ export async function processNextSteamImportBatch(userId: string): Promise<Steam
     const appIds = batch.flatMap((game) => game.steam_appid ? [String(game.steam_appid)] : []);
     await recordImportedSteamAppIds(userId, appIds).catch(() => ({ queued: 0 }));
     await upsertSteamGames(userId, batch);
+    // Buying a game you already had through the family upgrades the row in
+    // place, so its notes, collections, pins and completion history survive the
+    // purchase rather than being orphaned beside a new one.
+    await promoteFamilyGamesToOwned(userId, appIds);
 
     const nextImported = Math.min(job.total_games, job.imported_games + batch.length);
     if (nextImported >= job.total_games) {
@@ -175,6 +180,12 @@ async function finishSteamImport(
  * Steam is authoritative for ownership. Rows that disappeared from its latest
  * complete response are retained as Wishlist rows so notes and completion history
  * are not destroyed, but they immediately leave every owned-library read model.
+ *
+ * Only OWNED rows. Family games are reachable through somebody else's library
+ * and are never in GetOwnedGames, so an unguarded sweep here would retire every
+ * one of them on the next refresh - see lib/family-sharing.ts. Their own
+ * lifecycle is handled by the family import, which is the only thing that knows
+ * whether access still exists.
  */
 async function reconcileSteamOwnership(userId: string, games: GamePayload[]) {
   const currentAppIds = new Set(games.flatMap((game) => game.steam_appid ? [String(game.steam_appid)] : []));
@@ -187,6 +198,7 @@ async function reconcileSteamOwnership(userId: string, games: GamePayload[]) {
       .select("id, catalog_steam_appid")
       .eq("user_id", userId)
       .eq("ownership", "Owned")
+      .eq("access_source", "owned")
       .order("id", { ascending: true })
       .range(from, from + pageSize - 1);
     if (error) throw error;

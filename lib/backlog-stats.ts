@@ -1,4 +1,5 @@
 import type { DemoGame } from "./demo-data.ts";
+import { isFamilyAccess } from "./family-sharing.ts";
 
 /**
  * What a backlog is worth, and how much of it you have actually got value out of.
@@ -35,6 +36,14 @@ export type BacklogStats = {
   latestCompletion: { title: string; completedAt: string } | null;
   /** How many owned games we have a price for, so the UI can be honest about gaps. */
   pricedGames: number;
+  /**
+   * Games reachable through Steam Families, counted but deliberately excluded
+   * from every figure above. Nobody paid for them, so they cannot be part of
+   * what a shelf is worth, and their playtime is somebody else's or unknown, so
+   * they cannot be part of what has been got out of it. Reported separately so
+   * the dashboard can say why the count differs from the Library's.
+   */
+  familyGames: number;
 };
 
 const EMPTY: BacklogStats = {
@@ -50,7 +59,8 @@ const EMPTY: BacklogStats = {
   unplayedValueCents: 0,
   bestValue: null,
   latestCompletion: null,
-  pricedGames: 0
+  pricedGames: 0,
+  familyGames: 0
 };
 
 /** Regular store price, ignoring whatever today's discount happens to be. */
@@ -63,8 +73,13 @@ function priceCents(game: DemoGame) {
 }
 
 export function buildBacklogStats(games: DemoGame[], currency = "USD"): BacklogStats {
-  const owned = games.filter((game) => game.ownership === "Owned");
-  if (!owned.length) return { ...EMPTY, currency };
+  // Owned means owned here, not "on the shelf". Every number below is either
+  // money or time-against-money, and a family game contributes neither: nobody
+  // paid for it, and on an inferred row a zero-hour figure means "never told"
+  // rather than "never played". See lib/family-sharing.ts.
+  const owned = games.filter((game) => game.ownership === "Owned" && !isFamilyAccess(game.accessSource));
+  const familyGames = games.filter((game) => isFamilyAccess(game.accessSource)).length;
+  if (!owned.length) return { ...EMPTY, currency, familyGames };
 
   let libraryValueCents = 0;
   let completedValueCents = 0;
@@ -121,7 +136,8 @@ export function buildBacklogStats(games: DemoGame[], currency = "USD"): BacklogS
     unplayedValueCents,
     bestValue,
     latestCompletion,
-    pricedGames
+    pricedGames,
+    familyGames
   };
 }
 

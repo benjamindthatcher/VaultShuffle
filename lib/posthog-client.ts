@@ -89,7 +89,13 @@ async function loadClient() {
       persistence: "localStorage+cookie",
       opt_out_capturing_by_default: false,
       person_profiles: "identified_only",
-      autocapture: true,
+      // VaultShuffle names every interaction worth measuring as its own event, so
+      // autocapture only added an untyped duplicate of them - it was 41% of all
+      // events on its own, and dead/rage clicks another 7%, all of it proxied
+      // through our own origin. Turning both off also stops $rageclick and
+      // $dead_swipe, which are emitted by these same two modules.
+      autocapture: false,
+      capture_dead_clicks: false,
       capture_exceptions: true,
       capture_performance: {
         network_timing: true,
@@ -133,9 +139,14 @@ function applyProductAnalyticsMode(posthog: PostHogClient, mode: ProductAnalytic
   if (consentStatus === "denied") posthog.opt_in_capturing();
   if (pendingIdentity) applyProductUserIdentity(posthog, pendingIdentity);
 
-  // Explicitly override PostHog replay sampling / trigger gates: if analytics
-  // are enabled, VaultShuffle records the session by default.
-  posthog.startSessionRecording(true);
+  // Re-arms replay after an opt-out, which sets disable_session_recording.
+  //
+  // Deliberately called with no argument. Passing `true` is shorthand for
+  // { sampling: true, linked_flag: true }, which overrides those gates and makes
+  // every session record regardless of the trigger groups configured in PostHog.
+  // Without the override the recorder buffers and only keeps a session that
+  // matches a trigger group, which is what keeps replay affordable at scale.
+  posthog.startSessionRecording();
 }
 
 async function setProductAnalyticsMode(mode: ProductAnalyticsMode) {

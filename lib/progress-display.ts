@@ -7,10 +7,19 @@ import type { GameDurationEstimate } from "./types.ts";
  */
 export const ENDLESS_PROGRESS_SYMBOL = "∞";
 
+/**
+ * A family game's playtime belongs to whoever owns it, and progress here is
+ * inferred from playtime. Printing 0% would be a claim we cannot support - and
+ * the one that would most annoy someone who has actually played it.
+ * See lib/family-sharing.ts.
+ */
+export const UNKNOWN_PROGRESS_SYMBOL = "—";
+
 type ProgressLike = {
   status?: string | null;
   completionPercent?: number | null;
   duration?: GameDurationEstimate | null;
+  accessSource?: "owned" | "family";
 };
 
 /**
@@ -25,8 +34,10 @@ type ProgressLike = {
  * is the player stating a fact rather than the app inferring one.
  */
 export function progressLabel(game: ProgressLike): string {
+  // Marking it complete is the player stating a fact, and outranks not knowing.
   if (game.status === "Completed") return "100%";
   if (game.duration?.endless) return ENDLESS_PROGRESS_SYMBOL;
+  if (game.accessSource === "family") return UNKNOWN_PROGRESS_SYMBOL;
   return `${Math.max(0, Math.round(Number(game.completionPercent ?? 0)))}%`;
 }
 

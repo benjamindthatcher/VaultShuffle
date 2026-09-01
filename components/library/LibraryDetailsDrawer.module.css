@@ -78,21 +78,51 @@
   border-bottom: 1px solid rgba(166, 101, 255, 0.5);
 }
 
-.drawer[data-variant="pinned"] .hero img {
+/* The header at its own shape, whole, with the blurred copy behind filling the
+   rest of the chamber.
+   This was 140% of the hero's height, which at a 215px hero made the frame
+   641x300 inside a box that is 215 tall and hides its overflow - 21px off the
+   top and 63px off the bottom, so the art the frame exists to show complete was
+   losing more than a quarter of its height. Steam headers are 460x215, so at
+   the hero's full height the frame is exactly their native size: nothing is
+   cropped and nothing is upscaled. */
+.drawer[data-variant="pinned"] .heroArtworkFrame {
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 50%;
+  height: 100%;
+  aspect-ratio: 460 / 215;
+  display: block;
+  transform: translateX(-50%);
+  /* Softens the join where the sharp art meets the blur it sits on. */
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 5%, #000 95%, transparent);
+}
+
+.drawer[data-variant="pinned"] .heroArtwork {
   filter: saturate(1.05) contrast(1.04);
+}
+
+.drawer[data-variant="pinned"] .heroAmbient {
+  opacity: 0.72;
+  filter: blur(18px) saturate(1.16) brightness(0.56);
+  transform: scale(1.24);
 }
 
 .heroShade {
   position: absolute;
+  z-index: 2;
   inset: 0;
   background:
-    linear-gradient(90deg, rgba(5, 3, 20, 0.76), transparent 30%, transparent 70%, rgba(5, 4, 19, 0.22)),
-    linear-gradient(0deg, rgba(8, 5, 25, 0.5), transparent 46%);
+    linear-gradient(90deg, rgba(5, 3, 20, 0.46), transparent 30%, transparent 70%, rgba(5, 4, 19, 0.28)),
+    linear-gradient(0deg, rgba(8, 5, 25, 0.38), transparent 46%);
   pointer-events: none;
 }
 
 .heroClose {
   position: absolute;
+  z-index: 3;
   top: 16px;
   right: 16px;
   display: grid;
@@ -698,6 +728,15 @@
   }
 
   .drawer[data-variant="pinned"] .hero { height: 160px; }
+  .drawer[data-variant="pinned"] .heroArtworkFrame {
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: auto;
+    transform: none;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
   .pinnedOverview { padding: 20px 18px 18px; }
   .spotlightStats { gap: 13px 8px; }
   .spotlightStats > div:nth-child(even) { padding-left: 9px; }
@@ -727,4 +766,23 @@
   .drawer,
   .pinnedBefore,
   .pinnedSince { animation: none; }
+}
+
+/* What the icon on the card means, in one line. Styled as information rather
+   than a warning: a shared game is a good thing to find in your library, and
+   the only genuinely cautionary part - that its playtime is not yours - is in
+   the sentence itself. */
+.familyNotice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.familyNotice svg {
+  flex: none;
+  color: #ffc46a;
 }

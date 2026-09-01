@@ -6,6 +6,7 @@ import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 import { approximateAge, describeRecency, type RecencyEvidence } from "./recency.ts";
 import { sessionLean, sessionabilityReason } from "./sessionability.ts";
+import { canClaimNeverPlayed, playtimeIsUnknown } from "./family-sharing.ts";
 
 export const MAX_VAULT_GENRES = 3;
 /**
@@ -400,7 +401,9 @@ export function scoreVaultGame(
     // from 50 points to 33 and, through the softmax, roughly 28:1 odds to 9:1.
     // Choosing Something New made session and mood matter less, which is the
     // opposite of what picking a goal should do.
-    reasons.push(game.hoursPlayed === 0 ? "Unplayed" : "Barely sampled");
+    reasons.push(playtimeIsUnknown(game)
+      ? "From the family shelf"
+      : canClaimNeverPlayed(game) ? "Unplayed" : "Barely sampled");
   }
 
   if (goal === "finish") {
@@ -479,7 +482,18 @@ function moodPoints(strength: number) {
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {
   if (!goal || goal === "surprise") return true;
-  if (goal === "new") return game.status === "Not Started" && game.hoursPlayed <= 0.5;
+  // Family games belong here more than anywhere else. Their playtime is unknown
+  // rather than zero, so strictly we cannot prove one is unplayed - but a game
+  // off somebody else's shelf is usually the most genuinely new thing in the
+  // library, and excluding the unknown would cut the best content out of the one
+  // mode built for it.
+  //
+  // The rule the players and release-age filters follow does not transfer: those
+  // ask a question about the game, this one asks about the player, and the prior
+  // on "have I played my partner's copy of this" is no. What is still not
+  // allowed is calling it never played while offering it - see the reason and
+  // insight this goal produces.
+  if (goal === "new") return game.status === "Not Started" && (playtimeIsUnknown(game) || game.hoursPlayed <= 0.5);
   if (game.duration?.endless) return false;
   return game.status === "In Progress" || (game.completionPercent > 0 && game.completionPercent < 100);
 }
@@ -789,11 +803,18 @@ export function buildVaultMatchExplanation({
   if (goal === "new") {
     insights.push({
       kind: "goal",
-      strength: game.hoursPlayed === 0 ? "perfect" : "strong",
-      headline: game.hoursPlayed === 0 ? "Never played" : "Barely sampled",
-      detail: game.hoursPlayed === 0
-        ? "It has been sitting in your library waiting for exactly this."
-        : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
+      strength: playtimeIsUnknown(game) || canClaimNeverPlayed(game) ? "perfect" : "strong",
+      // A family game gets its provenance instead of a playtime claim. It is the
+      // true thing we can say, and it is the more interesting one anyway: this
+      // is a game they can play and probably forgot they had access to.
+      headline: playtimeIsUnknown(game)
+        ? "From the family shelf"
+        : canClaimNeverPlayed(game) ? "Never played" : "Barely sampled",
+      detail: playtimeIsUnknown(game)
+        ? "Shared from a family library, so it has never sat on your own shelf being ignored."
+        : canClaimNeverPlayed(game)
+          ? "It has been sitting in your library waiting for exactly this."
+          : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
     });
   }
 

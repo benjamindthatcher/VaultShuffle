@@ -17,6 +17,7 @@ import {
   identifyProductUser,
 } from "@/lib/posthog-client";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { awaitSession, hasSessionProvider } from "@/lib/analytics-session";
 import styles from "./SiteExperience.module.css";
 
 type AnalyticsChoice = "enabled" | "disabled" | null;
@@ -57,15 +58,33 @@ export function SiteExperience({ children }: { children: ReactNode }) {
   );
 }
 
+/**
+ * The session this needs is the same getSessionPayload() the app shell has
+ * already asked for, so on a product page it is taken from there rather than
+ * fetched again. On a marketing page nothing announces a shell and this falls
+ * back to its own request, exactly as before.
+ */
+async function loadAnalyticsSession(): Promise<AnalyticsSession | null> {
+  if (hasSessionProvider()) {
+    const shared = await awaitSession();
+    if (shared) return shared;
+    // The bootstrap failed or never resolved. Identity is worth one request of
+    // its own rather than leaving a signed-in person anonymous for the session.
+  }
+
+  const response = await fetch("/api/session", { cache: "no-store" });
+  if (!response.ok) return null;
+  return await response.json() as AnalyticsSession;
+}
+
 async function syncProductAnalyticsIdentity() {
   try {
-    const response = await fetch("/api/session", { cache: "no-store" });
-    if (!response.ok) {
+    const session = await loadAnalyticsSession();
+    if (!session) {
       clearProductUserIdentity();
       return;
     }
 
-    const session = await response.json() as AnalyticsSession;
     if (session.logged_in && session.account_type !== "guest" && session.user_id && session.steam_id) {
       identifyProductUser({
         userId: session.user_id,
