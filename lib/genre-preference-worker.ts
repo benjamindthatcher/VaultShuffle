@@ -129,6 +129,7 @@ export type GenrePreferenceRebuildSummary = {
   users: number;
   rows: number;
   globalRows: number;
+  gameRows: number;
   deletedRows: number;
 };
 
@@ -169,6 +170,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     users: 0,
     rows: 0,
     globalRows: 0,
+    gameRows: 0,
     deletedRows: 0
   };
   const drawsById = new Map(draws.map((draw) => [draw.id, draw]));
@@ -186,6 +188,10 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
   // user -> "context::genre" -> tally
   const tallies = new Map<string, Map<string, Tally>>();
+  // steam_appid -> tally, across everyone. What people do with one specific
+  // game, which is the thing no amount of tag resolution can reach: the VR
+  // edition and the beta demo share every tag with something worth playing.
+  const gameTallies = new Map<number, Tally>();
   const eventsByDraw = new Map<string, EventRow[]>();
   for (const event of events) {
     const bucket = eventsByDraw.get(event.draw_id);
@@ -225,6 +231,10 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
         if (!signal.moodOnly) addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, positive, total);
         if (draw.mood) addTally(userTallies, `${draw.mood}::${genre}`, positive, total);
       }
+
+      // Mood-scoped signals say something about the evening rather than the
+      // game, so they are not evidence about the game itself.
+      if (!signal.moodOnly) addGameTally(gameTallies, Number(draw.steam_appid), positive, total);
     }
   }
 
@@ -247,6 +257,12 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
     // No mood context: a Purge decision is about the game, not about the evening
     // the player happened to be having.
+    // A decision is the strongest thing said about a game: someone was looking
+    // at exactly this one and chose its fate. It is the bulk of the per-game
+    // evidence, and the reason unplayable editions and dead demos are visible
+    // at all.
+    addGameTally(gameTallies, decision.steamAppId, signal.positive * decay, signal.total * decay);
+
     for (const genre of [...genres, BASELINE_GENRE]) {
       addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, signal.positive * decay, signal.total * decay);
     }
@@ -270,6 +286,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
   summary.deletedRows = await replacePreferences(supabase, rows);
   summary.globalRows = await replaceGlobals(supabase, rows);
+  summary.gameRows = await replaceGameGlobals(supabase, gameTallies, new Date().toISOString());
   return summary;
 }
 
@@ -307,6 +324,48 @@ async function fetchEvents(supabase: AdminClient, drawIds: string[]) {
     events.push(...((data ?? []) as EventRow[]));
   }
   return events;
+}
+
+function addGameTally(tallies: Map<number, Tally>, steamAppId: number, positive: number, total: number) {
+  if (!Number.isFinite(steamAppId) || steamAppId <= 0 || total <= 0) return;
+  const held = tallies.get(steamAppId);
+  if (held) {
+    held.positive += positive;
+    held.total += total;
+    return;
+  }
+  tallies.set(steamAppId, { positive, total });
+}
+
+/**
+ * The population's view of each individual game.
+ *
+ * Written whole and then swept, like the genre globals: a game whose evidence
+ * has all aged out of the window must stop being judged on it rather than keep
+ * a verdict nobody is making any more.
+ */
+async function replaceGameGlobals(supabase: AdminClient, tallies: Map<number, Tally>, rebuiltAt: string) {
+  const rows = [...tallies.entries()].map(([steamAppId, tally]) => ({
+    steam_appid: steamAppId,
+    positive: tally.positive,
+    total: tally.total,
+    updated_at: rebuiltAt
+  }));
+
+  for (let index = 0; index < rows.length; index += 500) {
+    const { error } = await supabase
+      .from("game_preference_globals")
+      .upsert(rows.slice(index, index + 500), { onConflict: "steam_appid" });
+    if (error) throw error;
+  }
+
+  const { error: deleteError } = await supabase
+    .from("game_preference_globals")
+    .delete()
+    .lt("updated_at", rebuiltAt);
+  if (deleteError) throw deleteError;
+
+  return rows.length;
 }
 
 async function fetchGenres(supabase: AdminClient, appIds: number[]) {
