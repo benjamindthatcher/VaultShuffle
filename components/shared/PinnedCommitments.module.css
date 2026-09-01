@@ -1,5 +1,39 @@
 .panel, .compact { display: grid; gap: 10px; }
-.header { display: flex; align-items: center; gap: 12px; }
+.header { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.refreshButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  margin-left: auto;
+  padding: 8px 13px;
+  border: 1px solid rgba(177, 119, 255, 0.4);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(99, 49, 170, 0.22), rgba(32, 22, 64, 0.82));
+  box-shadow: inset 0 1px 0 rgba(230, 211, 255, 0.06);
+  color: #dcbcff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 160ms, background 160ms, box-shadow 160ms;
+}
+.refreshButton:hover:not(:disabled) {
+  border-color: #be82ff;
+  background: linear-gradient(135deg, rgba(121, 65, 201, 0.4), rgba(50, 30, 85, 0.9));
+  box-shadow: 0 0 15px rgba(142, 73, 237, 0.18), inset 0 1px 0 rgba(230, 211, 255, 0.1);
+  color: #f5eaff;
+}
+.refreshButton:focus-visible { outline: 2px solid #e1bdff; outline-offset: 3px; }
+.refreshButton:disabled { cursor: default; color: #a79abb; border-color: rgba(177, 119, 255, 0.2); }
+.refreshIcon { display: inline-flex; }
+.refreshIcon[data-spinning="true"] { animation: pinRefreshSpin 1s linear infinite; }
+.refreshFeedback { flex-basis: 100%; margin: 0; color: var(--vault-success); font-size: 0.76rem; line-height: 1.5; }
+.refreshFeedback:empty { display: none; }
+.refreshFeedback[data-error="true"] { color: #e7bfca; }
+@keyframes pinRefreshSpin { to { transform: rotate(360deg); } }
 .label { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--vault-text); font-size: 1.08rem; font-weight: 800; letter-spacing: -0.01em; }
 .count { color: #d58cff; font-size: 0.84rem; font-weight: 700; }
 .slotDots { display: flex; gap: 5px; margin-left: 4px; }
@@ -231,11 +265,16 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .refreshIcon[data-spinning="true"] { animation: none; }
+  .refreshButton { transition: none; }
   .trackBefore,
   .trackSince { animation: none; }
 }
 
 @media (max-width: 340px) {
+  .refreshButton { padding-inline: 10px; font-size: 0.74rem; }
+  .header { column-gap: 8px; }
+  .slotDots { display: none; }
   .progressInstrument { grid-template-columns: minmax(0, 1fr) 56px; }
   .progressGauge { width: 56px; }
 }
