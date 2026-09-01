@@ -52,6 +52,11 @@ export type Game = {
   duration_kind?: "finite" | "endless" | "not-applicable" | "unknown" | null;
   /** Full weighted SteamSpy tag map from the shared catalogue. */
   steam_tags?: Record<string, number> | null;
+  /**
+   * Steam's own category strings - "Single-player", "Co-op", "Multi-player".
+   * Distinct from steam_tags, which are crowd votes and cannot be filtered on.
+   */
+  steam_categories?: string[] | null;
   platform_windows?: boolean | null;
   platform_mac?: boolean | null;
   platform_linux?: boolean | null;

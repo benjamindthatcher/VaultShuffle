@@ -4,6 +4,7 @@ import { describeRecency, UNKNOWN_RECENCY } from "@/lib/recency";
 import { sessionabilityScore } from "@/lib/sessionability";
 import { splitGenres, steamTagGenreLabels, steamTagLabels, topLevelGenresFor } from "@/lib/genres";
 import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
+import { playerModesFromCategories } from "@/lib/global-filters";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import type { CollectionMembership } from "@/lib/collections";
@@ -198,6 +199,8 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         linux: Boolean(game.platform_linux)
       },
       deckCompatibility: game.deck_compatibility ?? null,
+      releaseDate: game.release_date ?? null,
+      playerModes: playerModesFromCategories(game.steam_categories),
       duration: {
         mainStoryMinutes: game.main_story_minutes,
         mainExtrasMinutes: game.main_extras_minutes,

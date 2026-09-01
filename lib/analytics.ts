@@ -90,6 +90,12 @@ export const ANALYTICS_EVENTS = {
 
   // Library
   deviceModeChanged: "device_mode_changed",
+  /**
+   * Supersedes device_mode_changed: device is now one of five global filters and
+   * this event carries all of them, so the panel can be read as a whole rather
+   * than one control at a time.
+   */
+  globalFiltersChanged: "global_filters_changed",
   librarySearched: "library_searched",
   libraryFiltered: "library_filtered",
   libraryGameOpened: "library_game_opened",

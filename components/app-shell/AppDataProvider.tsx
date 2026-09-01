@@ -14,6 +14,15 @@ import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
 import type { PinnedPlaytimeResult } from "@/lib/pinned-playtime";
 import { mergePinnedPlaytime } from "@/lib/pinned-playtime-view";
+import {
+  DEFAULT_GLOBAL_FILTERS,
+  activeGlobalFilterCount,
+  isDefaultGlobalFilters,
+  matchesGlobalFilters,
+  parseGlobalFilters,
+  type DeviceMode,
+  type GlobalFilters
+} from "@/lib/global-filters";
 import { CooldownError, SteamLibraryPrivateError } from "@/lib/cooldown";
 import { requestJson as api } from "@/lib/api-client";
 import { withTransientRetry } from "@/lib/request-failure";
@@ -40,19 +49,16 @@ type AppBootstrapPayload = {
   guest_pool_source?: "live_catalogue" | "fallback";
 };
 
-export type DeviceMode = "all" | "mac" | "deck";
-const DEVICE_MODE_KEY = "vault-device-mode";
+/** Re-exported so existing consumers keep importing this from one place. */
+export type { DeviceMode } from "@/lib/global-filters";
 
 /**
- * Steam Deck compatibility, as Steam resolves it: 3 verified, 2 playable,
- * 1 unsupported, 0 unknown. Unknown is excluded rather than assumed playable —
- * the point of the mode is confidence that a pick will actually run.
+ * Device mode used to be the only global filter and had a key of its own. The
+ * panel now carries four more, so they are stored together - and the old key is
+ * read once on load so nobody's Deck or Mac mode is silently forgotten.
  */
-function matchesDeviceMode(game: DemoGame, mode: DeviceMode) {
-  if (mode === "all") return true;
-  if (mode === "mac") return Boolean(game.platforms?.mac);
-  return (game.deckCompatibility ?? 0) >= 2;
-}
+const GLOBAL_FILTERS_KEY = "vault-global-filters";
+const LEGACY_DEVICE_MODE_KEY = "vault-device-mode";
 
 const emptyVaultState: VaultState = { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null };
 const EMPTY_GENRE_PREFERENCES: GenrePreference[] = [];
@@ -73,6 +79,12 @@ type AppDataContextValue = {
   capabilities: SteamCapabilities;
   deviceMode: DeviceMode;
   setDeviceMode: (mode: DeviceMode) => void;
+  globalFilters: GlobalFilters;
+  setGlobalFilters: (filters: GlobalFilters) => void;
+  /** Owned games before the global filters ran, so the panel can show its effect. */
+  unfilteredGameCount: number;
+  /** The bundled guest preview, which has no data for most global filters. */
+  guestCatalogueIsFallback: boolean;
   isLoading: boolean;
   isSyncing: boolean;
   steamImport: SteamImportProgress;
@@ -106,6 +118,13 @@ const AppDataContext = createContext<AppDataContextValue | null>(null);
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload>(guestSession);
   const [guestGames, setGuestGames] = useState<DemoGame[]>(guestFallbackGames);
+  /**
+   * True while a guest is looking at the bundled preview rather than the live
+   * catalogue. The fallback carries no release dates, categories or platform
+   * flags, so anything that filters on those can only answer "no" and would
+   * empty the page. It is not offered here rather than offered broken.
+   */
+  const [guestCatalogueIsFallback, setGuestCatalogueIsFallback] = useState(false);
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(() => guestPreviewCollection(guestFallbackGames.length));
   const [liveGames, setLiveGames] = useState<DemoGame[]>([]);
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>(() => mapLiveCollections([]));
@@ -130,7 +149,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   // can do is say so plainly and point at the setting.
   const [steamLibraryPrivate, setSteamLibraryPrivate] = useState(false);
   const [playHistoryMissing, setPlayHistoryMissing] = useState(false);
-  const [deviceMode, setDeviceModeState] = useState<DeviceMode>("all");
+  const [globalFilters, setGlobalFiltersState] = useState<GlobalFilters>(DEFAULT_GLOBAL_FILTERS);
   const [loadError, setLoadError] = useState<string | null>(null);
   const syncPromiseRef = useRef<Promise<number> | null>(null);
   const pinnedRefreshPromiseRef = useRef<Promise<PinnedPlaytimeResult> | null>(null);
@@ -175,7 +194,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           const mappedGuestGames = mapGuestGames(bootstrap.games);
           setGuestGames(mappedGuestGames);
           setGuestCollections(guestPreviewCollection(mappedGuestGames.length));
+          setGuestCatalogueIsFallback(bootstrap.guest_pool_source === "fallback");
         } else if (bootstrap.data_error) {
+          setGuestCatalogueIsFallback(true);
           setLoadError("The live guest catalogue is temporarily unavailable. A smaller preview is still ready.");
         }
         return false;
@@ -239,10 +260,19 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(DEVICE_MODE_KEY);
-      if (saved === "mac" || saved === "deck") setDeviceModeState(saved);
+      const saved = localStorage.getItem(GLOBAL_FILTERS_KEY);
+      if (saved) {
+        setGlobalFiltersState(parseGlobalFilters(saved));
+        return;
+      }
+      // Nothing stored under the new key, so carry across whatever the old
+      // device-only one held rather than resetting someone's Deck mode.
+      const legacy = localStorage.getItem(LEGACY_DEVICE_MODE_KEY);
+      if (legacy === "mac" || legacy === "deck") {
+        setGlobalFiltersState({ ...DEFAULT_GLOBAL_FILTERS, device: legacy });
+      }
     } catch {
-      // Private browsing can disable storage; the mode just will not persist.
+      // Private browsing can disable storage; the filters just will not persist.
     }
   }, []);
 
@@ -273,15 +303,31 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     });
   }, [isLoading, session.account_type, session.user_id]);
 
-  function setDeviceMode(mode: DeviceMode) {
-    setDeviceModeState(mode);
+  function setGlobalFilters(next: GlobalFilters) {
+    setGlobalFiltersState(next);
     try {
-      if (mode === "all") localStorage.removeItem(DEVICE_MODE_KEY);
-      else localStorage.setItem(DEVICE_MODE_KEY, mode);
+      if (isDefaultGlobalFilters(next)) {
+        localStorage.removeItem(GLOBAL_FILTERS_KEY);
+        localStorage.removeItem(LEGACY_DEVICE_MODE_KEY);
+      } else {
+        localStorage.setItem(GLOBAL_FILTERS_KEY, JSON.stringify(next));
+      }
     } catch {
-      // Storage being unavailable must not stop the filter working this session.
+      // Storage being unavailable must not stop the filters working this session.
     }
-    trackEvent(ANALYTICS_EVENTS.deviceModeChanged, { mode });
+    trackEvent(ANALYTICS_EVENTS.globalFiltersChanged, {
+      device: next.device,
+      players: next.players,
+      release_age: next.releaseAge,
+      game_type: next.gameType,
+      hide_poorly_reviewed: next.hidePoorlyReviewed,
+      active_count: activeGlobalFilterCount(next)
+    });
+  }
+
+  /** Kept so the header's Deck/Mac control can move without changing behaviour. */
+  function setDeviceMode(mode: DeviceMode) {
+    setGlobalFilters({ ...globalFilters, device: mode });
   }
 
   async function checkSteamImport() {
@@ -800,10 +846,14 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     trackEvent(ANALYTICS_EVENTS.vaultHistoryCleared);
   }
 
+  // The topmost layer. Everything downstream - the Vault's deck, the Library,
+  // every count on the page - reads from this, so a global filter genuinely
+  // removes a game from consideration rather than hiding it in one view.
   const visibleGames = useMemo(
-    () => (isLive ? liveGames : guestGames).filter((game) => matchesDeviceMode(game, deviceMode)),
-    [deviceMode, guestGames, isLive, liveGames]
+    () => (isLive ? liveGames : guestGames).filter((game) => matchesGlobalFilters(game, globalFilters)),
+    [globalFilters, guestGames, isLive, liveGames]
   );
+  const unfilteredGameCount = (isLive ? liveGames : guestGames).length;
   const activePlaytime = isLive ? livePlaytime : EMPTY_PLAYTIME;
   const capabilities = useMemo(() => steamCapabilities({
     isLive,
@@ -817,7 +867,11 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       session,
       playHistoryMissing,
       capabilities,
-      deviceMode,
+      deviceMode: globalFilters.device,
+      globalFilters,
+      setGlobalFilters,
+      unfilteredGameCount,
+      guestCatalogueIsFallback,
       setDeviceMode,
       games: visibleGames,
       collections: isLive ? liveCollections : guestCollections,
@@ -855,7 +909,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       recordDrawEvent,
       clearVaultHistory
     }),
-    [capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, deviceMode, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, globalFilters, liveGames, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

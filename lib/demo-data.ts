@@ -61,6 +61,10 @@ export type DemoGame = {
   duration?: import("@/lib/types").GameDurationEstimate;
   platforms?: { windows: boolean; mac: boolean; linux: boolean };
   deckCompatibility?: number | null;
+  /** Release day, for the release-age global filter. */
+  releaseDate?: string | null;
+  /** How this one can be played, from Steam's categories. See lib/global-filters.ts. */
+  playerModes?: import("@/lib/global-filters").PlayerMode[];
   /** Steam review counts, used for the hype and hidden-gem terms. */
   /** Steam store prices, in cents, at whatever the catalogue last saw. */
   priceInitial?: number | null;

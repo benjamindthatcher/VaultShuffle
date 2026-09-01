@@ -23,7 +23,7 @@ type AppHeaderProps = {
 
 export function AppHeader({ variant = "product" }: AppHeaderProps) {
   const pathname = usePathname();
-  const { session, isLive, isLoading, isSyncing, syncSteamLibrary, signOut, deviceMode, setDeviceMode } = useAppData();
+  const { session, isLive, isLoading, isSyncing, syncSteamLibrary, signOut } = useAppData();
   const profileMenuRef = useRef<HTMLDetailsElement>(null);
   const profileName = session.display_name || (isLive ? "Steam user" : "Guest");
   const profileInitial = profileName.trim().charAt(0).toUpperCase() || "G";
@@ -128,31 +128,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                 <VaultIcon name="chevron-right" size={15} className={styles.secureProfileChevron} />
               </Link>
             ) : null}
-            {/* Outside the signed-in branch: the guest catalogue carries the same
-                platform and Deck data, so someone evaluating the product on a Mac
-                or a Deck can see whether it would actually be any use to them. */}
-            <div className={styles.menuGroup} role="group" aria-label="Device mode">
-              <p className={styles.menuGroupLabel}>Device mode</p>
-              <p className={styles.menuGroupHint}>Hide games that will not run on the machine you are playing on.</p>
-              <div className={styles.deviceModes}>
-                {([
-                  { id: "all", label: "All games" },
-                  { id: "mac", label: "Mac only" },
-                  { id: "deck", label: "Steam Deck" }
-                ] as const).map((mode) => (
-                  <button
-                    key={mode.id}
-                    type="button"
-                    className={deviceMode === mode.id ? styles.deviceModeOn : styles.deviceMode}
-                    aria-pressed={deviceMode === mode.id}
-                    onClick={() => setDeviceMode(mode.id)}
-                  >
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {isLive ? (
               <>
                 <button

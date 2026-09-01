@@ -17,6 +17,7 @@ import { ValueDial } from "@/components/dashboard/ValueDial";
 import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
 import { PageHeading } from "@/components/shared/PageHeading";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
+import { GlobalFiltersPanel } from "@/components/dashboard/GlobalFiltersPanel";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -64,6 +65,12 @@ export default function DashboardPage() {
         <GuestPreviewNotice feature="Dashboard" icon="details" catalogueSize={games.length}>
           These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
         </GuestPreviewNotice>
+
+        {/* Guests get these too. The guest catalogue carries the same platform,
+            Deck and release data, so someone evaluating VaultShuffle on a Mac or
+            a Deck can see whether it would be any use to them before signing in -
+            which is what the control in the profile menu used to be for. */}
+        <GlobalFiltersPanel />
 
         <section className={styles.hero}>
           <p className={styles.heroLabel}>Guest catalogue ready</p>
@@ -144,6 +151,10 @@ export default function DashboardPage() {
             onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
             compact
           />
+
+          {/* Above the standing report, because it governs it: every number
+              below this panel is counted from the games it leaves in play. */}
+          <GlobalFiltersPanel />
 
           <ValueDial
             percent={stats.valueCompletedPercent}

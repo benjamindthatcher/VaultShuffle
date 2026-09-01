@@ -1,0 +1,157 @@
+.panel {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-sheet-surface);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.headingGroup {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+  color: var(--vault-text);
+  font-size: 1.02rem;
+  font-weight: 700;
+}
+
+.heading svg {
+  color: #c08bff;
+  flex: none;
+}
+
+.subheading {
+  margin: 0;
+  max-width: 62ch;
+  color: var(--vault-text-muted);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.clear {
+  flex: none;
+  min-height: 40px;
+  margin-left: auto;
+  padding: 0 14px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: 10px;
+  background: transparent;
+  color: #d58cff;
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.clear:hover {
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+}
+
+.row {
+  display: grid;
+  gap: 7px;
+}
+
+.rowLabel {
+  color: var(--vault-text-soft, var(--vault-text-muted));
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Wrapping rather than columns. Release age has five options and "Single-player"
+   is a long label; a grid with any sensible minimum column width overflows a
+   phone, which is the bug this panel exists to avoid creating. */
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.choice,
+.choiceOn {
+  /* A thumb target. These are pressed on phones more than anywhere else. */
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 11px;
+  background: var(--vault-card-surface);
+  color: var(--vault-text-muted);
+  font-size: 0.84rem;
+  font-weight: 650;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.choice:hover {
+  border-color: var(--vault-border-strong);
+  color: var(--vault-text);
+}
+
+.choiceOn {
+  border-color: var(--vault-tile-selected-border);
+  background: var(--vault-tile-selected-surface);
+  color: var(--vault-text);
+  box-shadow: var(--vault-tile-selected-shadow);
+}
+
+.choice:focus-visible,
+.choiceOn:focus-visible,
+.clear:focus-visible {
+  outline: 2px solid #c08bff;
+  outline-offset: 2px;
+}
+
+.summary {
+  margin: 0;
+  padding-top: 2px;
+  color: var(--vault-text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .choice,
+  .choiceOn {
+    transition: none;
+  }
+}
+
+/* On a phone the heading and its Clear button cannot share a line: "Global
+   filters" plus the explainer needs the full width, and the button was being
+   squeezed to a sliver beside it. */
+@media (max-width: 560px) {
+  .panel {
+    padding: 15px;
+    gap: 13px;
+  }
+
+  .header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .clear {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .choice,
+  .choiceOn {
+    padding: 0 12px;
+    font-size: 0.8rem;
+  }
+}
