@@ -1,7 +1,8 @@
 "use client";
 
 import { featureAvailable } from "@/lib/steam-capabilities";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
@@ -24,7 +25,19 @@ import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./dashboard.module.css";
 
 export default function DashboardPage() {
-  const { games, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction } = useAppData();
+  const { games, collections, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction, updateGame, restoreGame, setGameCollection } = useAppData();
+
+  // Every game on this page names a game, so every game on this page opens it.
+  // These were flat tiles: the dashboard could tell you Palworld was your best
+  // value for money and then offer no way to look at it.
+  const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
+  const [savingNotes, setSavingNotes] = useState(false);
+  const detailsGame = detailsGameId ? games.find((game) => game.id === detailsGameId) ?? null : null;
+
+  function openDetails(gameId: string, surface: string) {
+    setDetailsGameId(gameId);
+    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, { surface });
+  }
   const enrichmentNotice = useLibraryEnrichmentNotice();
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
@@ -57,6 +70,52 @@ export default function DashboardPage() {
     featured: games.slice(0, 12)
   }), [games]);
 
+  // Declared once and rendered by both branches: the guest view returns
+  // early, so a panel written only into the signed-in tree never mounts for a
+  // guest and their cards would open nothing.
+  // It is the same panel the Library opens, so a game looks and behaves the
+  // same wherever it is met.
+  const detailsPanel = (
+    <LibraryDetailsDrawer
+      game={detailsGame}
+      previewMode={!isLive}
+      collections={collections}
+      saving={savingNotes}
+      onSave={async (patch) => {
+        if (!detailsGame) return;
+        setSavingNotes(true);
+        try {
+          await updateGame(detailsGame.id, patch);
+        } finally {
+          setSavingNotes(false);
+        }
+      }}
+      onToggleCollection={async (collectionId, assigned) => {
+        if (!detailsGame) return;
+        await setGameCollection(detailsGame.id, collectionId, assigned);
+      }}
+      onClose={() => setDetailsGameId(null)}
+      pinSlot={detailsGame ? vaultState.pinnedIds.indexOf(detailsGame.id) + 1 || null : null}
+      pinCount={vaultState.pinnedIds.length}
+      onTogglePin={() => {
+        if (!detailsGame) return;
+        void recordVaultAction(vaultState.pinnedIds.includes(detailsGame.id) ? "unpinned" : "pinned", detailsGame.id);
+      }}
+      onComplete={async () => {
+        if (!detailsGame) return;
+        await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      }}
+      onRestore={async () => {
+        if (!detailsGame) return;
+        await restoreGame(detailsGame.id);
+      }}
+      onSleep={async () => {
+        if (!detailsGame) return;
+        await updateGame(detailsGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null });
+      }}
+    />
+  );
+
   if (!isLive) {
     return (
       <div className={styles.page}>
@@ -84,6 +143,7 @@ export default function DashboardPage() {
           <ol className={`${styles.cardGrid} ${styles.guestGrid}`}>
             {guestSummary.featured.map((game) => (
               <li key={game.id} className={styles.gameCard}>
+                <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_guest")} aria-label={`Open ${game.title}`} />
                 <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                 <strong className={styles.cardTitle}>{game.title}</strong>
                 <small className={styles.cardMeta}>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
@@ -102,6 +162,8 @@ export default function DashboardPage() {
             Try a Vault draw<VaultIcon name="chevron-right" size={16} />
           </Link>
         </section>
+
+        {detailsPanel}
       </div>
     );
   }
@@ -184,6 +246,7 @@ export default function DashboardPage() {
               <ol className={styles.podium}>
                 {bestValueGames.slice(0, 3).map(({ game, centsPerHour }, index) => (
                   <li key={game.id} className={styles.podiumCard} data-place={index + 1}>
+                    <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_value")} aria-label={`Open ${game.title}`} />
                     <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 300px" /></span>
                     <span className={styles.place}>
                       <VaultIcon name="trophy" size={18} />
@@ -204,6 +267,7 @@ export default function DashboardPage() {
               <ol className={styles.cardGrid}>
                 {recentCompletions.map((game) => (
                   <li key={game.id} className={styles.gameCard}>
+                    <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_finished")} aria-label={`Open ${game.title}`} />
                     <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
                     <strong className={styles.cardTitle}>{game.title}</strong>
                     <small className={styles.cardMeta}>{new Date(String(game.completedAt)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small>
@@ -220,6 +284,8 @@ export default function DashboardPage() {
           </section>
         </>
       )}
+
+      {detailsPanel}
     </div>
   );
 }

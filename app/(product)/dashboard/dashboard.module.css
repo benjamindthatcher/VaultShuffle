@@ -73,3 +73,43 @@
 
 @media (max-width: 620px) {
 }
+
+/* ------------------------------------------------- opening a game from here */
+
+/* Every card on this page names a game, so every card opens it. The hit area is
+   a transparent button stretched over the card rather than a wrapper around its
+   contents: these are grid cards whose rows are positioned, and wrapping them in
+   a button would have collapsed that layout. It sits under the text it covers,
+   so selection and the artwork are untouched. */
+.gameCard,
+.podiumCard {
+  position: relative;
+}
+
+.cardOpen {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--vault-card-radius);
+  background: transparent;
+  cursor: pointer;
+}
+
+/* The card reacts, not the invisible button on top of it. */
+.gameCard:has(.cardOpen:hover),
+.podiumCard:has(.cardOpen:hover) {
+  border-color: rgba(175, 126, 255, 0.44);
+}
+
+.gameCard:has(.cardOpen:focus-visible),
+.podiumCard:has(.cardOpen:focus-visible) {
+  outline: 2px solid #c08bff;
+  outline-offset: 2px;
+}
+
+.cardOpen:focus-visible {
+  outline: none;
+}
