@@ -14,6 +14,29 @@ import type { VaultMoodId } from "@/lib/demo-data";
  */
 const LOOKBACK_DAYS = 180;
 
+/**
+ * Playing a game is an opinion nobody had to state.
+ *
+ * Decisions and draw reactions only exist where someone stopped to give one, and
+ * a game released last week has neither - nor enough reviews for its own merits
+ * to say much. Hours are the signal that is always there: 8,051 games have two
+ * or more players with real time in them, against 3,641 with any decision.
+ *
+ * Weak on purpose. It is inferred rather than said, so it nudges a game the
+ * evidence has not reached yet and gets out of the way once that evidence
+ * arrives.
+ *
+ * Two hours is the floor: below that a game was launched and abandoned, which is
+ * not a verdict either way. From there it reads as endorsement in proportion to
+ * the time given - bouncing off at two hours counts against a game, twenty hours
+ * counts fully for it. Owning something and never opening it says nothing at
+ * all, and is not counted: that is the normal state of a backlog and the reason
+ * this product exists.
+ */
+const PLAYTIME_WEIGHT = 0.5;
+const PLAYTIME_MIN_HOURS = 2;
+const PLAYTIME_FULL_HOURS = 20;
+
 /** PostgREST caps a response at 1,000 rows, so every unbounded read pages. */
 const DECISION_PAGE_SIZE = 1000;
 
@@ -130,6 +153,7 @@ export type GenrePreferenceRebuildSummary = {
   rows: number;
   globalRows: number;
   gameRows: number;
+  playtimeRows: number;
   deletedRows: number;
 };
 
@@ -171,6 +195,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     rows: 0,
     globalRows: 0,
     gameRows: 0,
+    playtimeRows: 0,
     deletedRows: 0
   };
   const drawsById = new Map(draws.map((draw) => [draw.id, draw]));
@@ -286,6 +311,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
   summary.deletedRows = await replacePreferences(supabase, rows);
   summary.globalRows = await replaceGlobals(supabase, rows);
+  summary.playtimeRows = await addPlaytimeSignal(supabase, gameTallies);
   summary.gameRows = await replaceGameGlobals(supabase, gameTallies, new Date().toISOString());
   return summary;
 }
@@ -366,6 +392,43 @@ async function replaceGameGlobals(supabase: AdminClient, tallies: Map<number, Ta
   if (deleteError) throw deleteError;
 
   return rows.length;
+}
+
+/**
+ * Fold everyone's hours into the per-game view.
+ *
+ * Paged on `id` rather than the app id: paging on a non-unique column can repeat
+ * or skip rows across page boundaries, and this is the largest read the rebuild
+ * makes.
+ */
+async function addPlaytimeSignal(supabase: AdminClient, gameTallies: Map<number, Tally>) {
+  let counted = 0;
+
+  for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("user_games")
+      .select("id, catalog_steam_appid, hours_played")
+      .gte("hours_played", PLAYTIME_MIN_HOURS)
+      .not("catalog_steam_appid", "is", null)
+      .order("id")
+      .range(offset, offset + DECISION_PAGE_SIZE - 1);
+    if (error) throw error;
+
+    const page = (data ?? []) as Array<Record<string, unknown>>;
+    for (const row of page) {
+      const steamAppId = Number(row.catalog_steam_appid);
+      const hours = Number(row.hours_played);
+      if (!Number.isFinite(steamAppId) || steamAppId <= 0 || !Number.isFinite(hours)) continue;
+
+      const endorsement = Math.min(1, Math.max(0, (hours - PLAYTIME_MIN_HOURS) / (PLAYTIME_FULL_HOURS - PLAYTIME_MIN_HOURS)));
+      addGameTally(gameTallies, steamAppId, PLAYTIME_WEIGHT * endorsement, PLAYTIME_WEIGHT);
+      counted += 1;
+    }
+
+    if (page.length < DECISION_PAGE_SIZE) break;
+  }
+
+  return counted;
 }
 
 async function fetchGenres(supabase: AdminClient, appIds: number[]) {

@@ -27,3 +27,16 @@ create table if not exists public.game_preference_globals (
 -- The rebuild sweeps rows it did not touch, the same way the genre tables do.
 create index if not exists game_preference_globals_updated_at_idx
   on public.game_preference_globals (updated_at);
+
+-- Matched to genre_preference_globals, which is the table this sits beside.
+--
+-- Row-level security on with no policy: nothing reaches this through the anon or
+-- authenticated keys at all. Only the server, which holds the service role and
+-- bypasses RLS, reads or writes it - and the service role still needs the grants
+-- below, since bypassing RLS is not the same as being allowed near the table.
+alter table public.game_preference_globals enable row level security;
+
+grant select, insert, update, delete, truncate, references, trigger
+  on public.game_preference_globals to service_role;
+grant select, insert, update, delete, truncate, references, trigger
+  on public.game_preference_globals to postgres;
