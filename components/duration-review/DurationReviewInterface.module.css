@@ -207,6 +207,30 @@
 
 .form button:disabled { opacity: 0.48; }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.form .secondaryButton {
+  min-width: 76px;
+  border-color: var(--vault-border);
+  background: transparent;
+  color: var(--vault-text-muted);
+}
+
+.form .textButton {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #ffb5d0;
+  font-size: inherit;
+  text-decoration: underline;
+}
+
 .complete {
   display: grid;
   justify-items: center;
@@ -232,6 +256,9 @@
   .form { padding: 20px 18px; }
   .formFooter { align-items: stretch; flex-direction: column; }
   .form button { width: 100%; }
+  .form .textButton { width: auto; }
+  .actions { width: 100%; }
+  .actions button { flex: 1 1 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

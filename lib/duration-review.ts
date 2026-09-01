@@ -20,6 +20,7 @@ export type DurationReviewGame = {
 
 export type DurationReviewQueueState = {
   game: DurationReviewGame | null;
+  games: DurationReviewGame[];
   total: number;
   reviewed: number;
   remaining: number;
@@ -76,7 +77,7 @@ function asQueueGame(row: Record<string, unknown>): DurationReviewGame {
 export async function getDurationReviewQueueState(): Promise<DurationReviewQueueState> {
   const supabase = getSupabaseAdmin();
   const baseColumns = "steam_appid,name,header_url,capsule_url,duration_status,duration_kind,duration_source,users_that_imported,review_total";
-  const [totalResult, remainingResult, gameResult] = await Promise.all([
+  const [totalResult, remainingResult, gamesResult] = await Promise.all([
     supabase.from("catalog_duration_review_queue").select("steam_appid", { count: "exact", head: true }),
     supabase.from("catalog_duration_review_queue").select("steam_appid", { count: "exact", head: true }).is("reviewed_at", null),
     supabase
@@ -86,21 +87,31 @@ export async function getDurationReviewQueueState(): Promise<DurationReviewQueue
       .order("users_that_imported", { ascending: false, nullsFirst: false })
       .order("review_total", { ascending: false, nullsFirst: false })
       .order("steam_appid", { ascending: true })
-      .limit(1)
-      .maybeSingle(),
+      .limit(100),
   ]);
 
-  const error = totalResult.error || remainingResult.error || gameResult.error;
+  const error = totalResult.error || remainingResult.error || gamesResult.error;
   if (error) throw new Error("Could not load the duration review queue.", { cause: error });
 
   const total = totalResult.count ?? 0;
   const remaining = remainingResult.count ?? 0;
+  const games = (gamesResult.data ?? []).map((row) => asQueueGame(row as Record<string, unknown>));
   return {
-    game: gameResult.data ? asQueueGame(gameResult.data as Record<string, unknown>) : null,
+    game: games[0] ?? null,
+    games,
     total,
     reviewed: Math.max(0, total - remaining),
     remaining,
   };
+}
+
+export async function undoDurationReview(steamAppId: number) {
+  const { error } = await getSupabaseAdmin()
+    .from("catalog_duration_reviews")
+    .delete()
+    .eq("steam_appid", steamAppId);
+
+  if (error) throw new Error("Could not undo this duration review.", { cause: error });
 }
 
 export async function saveDurationReview(

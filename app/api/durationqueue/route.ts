@@ -4,6 +4,7 @@ import {
   getDurationReviewQueueState,
   hasDurationQueueAccess,
   saveDurationReview,
+  undoDurationReview,
 } from "@/lib/duration-review";
 
 export const runtime = "nodejs";
@@ -43,9 +44,31 @@ export async function POST(request: Request) {
 
   try {
     await saveDurationReview(parsed.data);
-    return privateResponse(await getDurationReviewQueueState());
+    return privateResponse({ ok: true });
   } catch (error) {
     console.error("Duration review could not be saved", error);
     return privateResponse({ error: "That response was not saved. Try again." }, 500);
+  }
+}
+
+export async function DELETE(request: Request) {
+  if (!await hasDurationQueueAccess()) return privateResponse({ error: "Not found." }, 404);
+
+  let payload: unknown;
+  try {
+    payload = await request.json();
+  } catch {
+    return privateResponse({ error: "That undo request could not be read." }, 400);
+  }
+
+  const parsed = durationReviewSubmissionSchema.pick({ steamAppId: true }).safeParse(payload);
+  if (!parsed.success) return privateResponse({ error: "That game could not be undone." }, 400);
+
+  try {
+    await undoDurationReview(parsed.data.steamAppId);
+    return privateResponse({ ok: true });
+  } catch (error) {
+    console.error("Duration review could not be undone", error);
+    return privateResponse({ error: "That review could not be undone." }, 500);
   }
 }
