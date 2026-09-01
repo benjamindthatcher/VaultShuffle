@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { enforceAuthenticatedWriteRate } from "@/lib/rate-limit";
 import type { AppUser, SteamPlayerSummary } from "@/lib/types";
@@ -8,6 +8,16 @@ import { asManualProfileSecurityError } from "@/lib/manual-profile-security";
 
 export const SESSION_COOKIE = "vault_session";
 const SESSION_DAYS = 30;
+
+/**
+ * How long a visit stands before the next request counts as coming back.
+ *
+ * Every authenticated request passes through the session lookup, so writing on
+ * each one would put a database write behind every page load and every poll. An
+ * hour is far finer than "did they come back?" needs, and matches the window
+ * manual profiles already use for last_seen_at.
+ */
+const VISIT_THROTTLE_MS = 60 * 60 * 1000;
 const MANUAL_SESSION_DAYS = 365;
 const MANUAL_TOKEN_PREFIX = "manual.";
 const PROFILE_SECURITY_INTENT_MINUTES = 10;
@@ -48,10 +58,9 @@ function hashToken(token: string) {
 export class SessionLookupError extends Error {
   readonly code = "session_lookup_failed";
 
-  constructor(detail: string) {
-    super("VaultShuffle could not verify your session just now. Please try again in a moment.");
+  constructor(cause: unknown) {
+    super("VaultShuffle could not verify your session just now. Please try again in a moment.", { cause });
     this.name = "SessionLookupError";
-    console.error(JSON.stringify({ level: "error", message: "Session lookup failed", detail }));
   }
 }
 
@@ -60,9 +69,58 @@ export async function getCurrentSession() {
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
-  return token.startsWith(MANUAL_TOKEN_PREFIX)
-    ? getManualProfileSession(token)
-    : getVerifiedSteamSession(token);
+  const session = token.startsWith(MANUAL_TOKEN_PREFIX)
+    ? await getManualProfileSession(token)
+    : await getVerifiedSteamSession(token);
+
+  // Both branches key on app_accounts.id - app_users.id and
+  // manual_steam_profiles.id are both that same id - so one call covers the
+  // Steam cohort and the browser-profile cohort alike.
+  if (session) recordVisit(session.user.id);
+  return session;
+}
+
+/**
+ * Note that an account is here.
+ *
+ * last_login_at cannot answer "are they still using this" any more: sessions
+ * last a month and a signed-in visitor is redirected off the landing page, so
+ * someone can come back every day for weeks without touching the sign-in path.
+ *
+ * The throttle is the update's own WHERE clause rather than a read followed by
+ * a write: one statement, no round trip to find out whether to make it, and two
+ * concurrent requests cannot both count as separate visits. It has to allow NULL
+ * explicitly, because a bare "less than" never matches a null column and the
+ * first visit on an account would go unrecorded.
+ *
+ * Deferred with `after` so it lands once the response has gone: nobody waits on
+ * their visit being written, and a failure here must never break reading a
+ * session. That is why the error is logged and swallowed.
+ */
+function recordVisit(accountId: string) {
+  const staleBefore = new Date(Date.now() - VISIT_THROTTLE_MS).toISOString();
+
+  try {
+    after(async () => {
+      const { error } = await getSupabaseAdmin()
+        .from("app_accounts")
+        .update({ last_visited_at: new Date().toISOString() })
+        .eq("id", accountId)
+        .or(`last_visited_at.is.null,last_visited_at.lt.${staleBefore}`);
+
+      if (error) {
+        console.warn(JSON.stringify({
+          level: "warning",
+          message: "Could not update last visited time",
+          account_id: accountId,
+          detail: error.message,
+        }));
+      }
+    });
+  } catch {
+    // `after` only exists inside a request. A script or worker that reads a
+    // session simply does not record a visit.
+  }
 }
 
 async function getVerifiedSteamSession(token: string) {
@@ -80,7 +138,7 @@ async function getVerifiedSteamSession(token: string) {
   // reported to the browser as 401 unauthorized while someone was signed in and
   // halfway through their first import. Every affected user in the logs hit this
   // during a Steam import that then completed perfectly.
-  if (error) throw new SessionLookupError(error.message);
+  if (error) throw new SessionLookupError(error);
   if (!data) return null;
 
   const appUser = Array.isArray(data.app_users) ? data.app_users[0] : data.app_users;
@@ -101,7 +159,7 @@ async function getManualProfileSession(token: string) {
     .gt("expires_at", new Date().toISOString())
     .maybeSingle();
 
-  if (error) throw new SessionLookupError(error.message);
+  if (error) throw new SessionLookupError(error);
   if (!data) return null;
 
   const manualProfile = Array.isArray(data.manual_steam_profiles)
@@ -192,7 +250,7 @@ export async function createSessionForSteamId(steamId: string, profile?: SteamPl
     .single();
 
   if (userError || !user) {
-    throw new Error(describeSupabaseError(userError, "Could not create Steam user."));
+    throw new Error("Could not create Steam user.", { cause: userError });
   }
 
   return {
@@ -290,7 +348,7 @@ export async function createManualProfileSession(input: {
     .single();
 
   if (error || !data) {
-    throw new Error(describeSupabaseError(error, "Could not create the VaultShuffle profile."));
+    throw new Error("Could not create the VaultShuffle profile.", { cause: error });
   }
 
   const row = data as {
