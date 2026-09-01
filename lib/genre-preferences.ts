@@ -108,9 +108,31 @@ export function buildGenrePreferenceIndex(preferences: GenrePreference[]): Genre
  */
 const NON_GAMEPLAY_LEARNING_TAGS = new Set(["indie", "free to play", "free-to-play", "freetoplay"]);
 
+/**
+ * What one game teaches, as a set of keys the learner tallies against.
+ *
+ * This used to return only the top-level genre, and the resolution that cost is
+ * the whole reason the model says so little: across two thousand draws the
+ * entire spread between the best and worst of the eight buckets was seven
+ * percentage points. Everything is Action or Adventure, so nothing is.
+ *
+ * The specific labels come back too. They are already on every game - the view
+ * model puts up to eight Steam tag labels on `genres` alongside the coarse ones
+ * - so this reads better evidence out of data the client is already carrying,
+ * with nothing new to fetch or store.
+ *
+ * Both levels are kept rather than swapping one for the other. A tag is sharp
+ * but thin, a top-level genre is blunt but always has evidence behind it, and
+ * the adjustment averages over whatever matched: the coarse key answers when a
+ * game's tags are unfamiliar, and the sharp ones decide when they are not.
+ * buildGenreWeightIndex already discounts by how common a key is, so the broad
+ * ones cannot drown out the distinctive ones just by turning up more often.
+ */
 export function preferenceGenresFor(genres: string[], title = ""): string[] {
   const gameplayOnly = genres.filter((genre) => !NON_GAMEPLAY_LEARNING_TAGS.has(genre.trim().toLowerCase()));
-  return topLevelGenresFor(gameplayOnly.join(" / "), title).map(canonicalPreferenceGenre);
+  const topLevel = topLevelGenresFor(gameplayOnly.join(" / "), title);
+  const keys = [...topLevel, ...gameplayOnly].map(canonicalPreferenceGenre).filter(Boolean);
+  return [...new Set(keys)];
 }
 
 export function canonicalPreferenceGenre(value: string) {

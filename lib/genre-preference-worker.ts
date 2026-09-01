@@ -40,6 +40,15 @@ const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
   pinned: { positive: 1, total: 1 },
 
   disliked: { positive: 0, total: 2 },
+  // Snoozing was the most common thing anyone did with a pick - 177 of 423
+  // recorded reactions - and it scored nothing at all, so the largest single
+  // body of evidence the product had taught the model nothing. It is a
+  // deliberate no about this game tonight, which is weaker than "Not really"
+  // and stronger than clicking draw again.
+  //
+  // The button that produced it has since been retired in favour of the reroll,
+  // so this earns from the history rather than from anything new.
+  hidden_for_session: { positive: 0, total: 1.5 },
   // Sleeping a game is the most deliberate rejection the product offers: it is a
   // decision about the game itself, not about tonight.
   slept: { positive: 0, total: 3 },

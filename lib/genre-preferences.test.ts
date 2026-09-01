@@ -177,8 +177,20 @@ test("an empty index is inert", () => {
   assert.equal(adjustment.reason, null);
 });
 
-test("preference keys collapse onto top-level genres", () => {
-  assert.deepEqual(preferenceGenresFor(["Roguelike", "Fantasy", "Action"], "Hades"), ["action", "rpg"]);
+test("preference keys keep the specific labels as well as the coarse ones", () => {
+  // Collapsing to top level was why the model could say so little: across two
+  // thousand draws the whole spread between the eight buckets was seven points.
+  // The tag labels are already on the game, so both levels are tallied - the
+  // coarse key answers when a game's tags are unfamiliar, the sharp ones decide
+  // when they are not.
+  assert.deepEqual(preferenceGenresFor(["Roguelike", "Fantasy", "Action"], "Hades"), ["action", "rpg", "roguelike", "fantasy"]);
+});
+
+test("a funding model is still not a taste, however specific the keys get", () => {
+  // Indie and Free to Play describe how a game was paid for, not how it plays.
+  // Widening the axis must not smuggle them back in as learnable keys.
+  assert.deepEqual(preferenceGenresFor(["Action", "Indie", "Shooter", "Fast-Paced"], "Doom"), ["action", "shooter", "fast-paced"]);
+  assert.deepEqual(preferenceGenresFor(["Free to Play"], "x"), []);
 });
 
 test("a brand-new user inherits the population's view before earning their own", () => {

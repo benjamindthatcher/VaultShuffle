@@ -30,6 +30,14 @@ test("launching, pinning, sleeping and completing all count as stated opinions",
   }
 });
 
-test("an unrelated event does not suppress the bare reroll", () => {
-  assert.equal(statesAnOpinion(["hidden_for_session", "drew_again"]), false);
+test("snoozing states an opinion, so the reroll after it is not a second no", () => {
+  // Snoozing and then drawing again is one rejection said twice. Counted
+  // separately it turned a single no into two pieces of negative evidence, the
+  // same double-count "Not really" plus a reroll used to cause.
+  assert.equal(statesAnOpinion(["hidden_for_session", "drew_again"]), true);
+});
+
+test("an event that says nothing about the pick does not suppress the bare reroll", () => {
+  assert.equal(statesAnOpinion(["unpinned", "drew_again"]), false);
+  assert.equal(statesAnOpinion(["drew_again"]), false);
 });
