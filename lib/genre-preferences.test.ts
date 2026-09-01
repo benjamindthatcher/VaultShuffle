@@ -9,8 +9,7 @@ import {
   preferenceGenresFor,
   shrunkRate,
   VAULT_PREFERENCE_MAX_POINTS,
-  type GenrePreference
-} from "./genre-preferences.ts";
+  type GenrePreference, capDecisionsPerUser } from "./genre-preferences.ts";
 
 function toIndex(rows: Array<Partial<GenrePreference> & { genre: string }>) {
   return buildGenrePreferenceIndex(rows.map((row) => ({
@@ -242,4 +241,35 @@ test("Free to Play is not learned as a taste for Casual games", () => {
 
 test("a game genuinely tagged Casual still learns as Casual", () => {
   assert.ok(preferenceGenresFor(["Casual", "Indie"], "A Short Hike").includes("casual"));
+});
+
+test("one bulk tidy-up cannot outvote the rest of the population", () => {
+  // The completion sweep clears a backlog in a sitting: the median account has
+  // marked 21 games, one has marked 443. Uncapped, that account carries twenty
+  // ordinary ones and the taste it describes is a weekend of tidying.
+  const bulk = Array.from({ length: 200 }, (_, index) => ({
+    userId: "tidier",
+    reviewedAt: `2026-08-${String((index % 28) + 1).padStart(2, "0")}T00:00:00.000Z`
+  }));
+  const ordinary = [
+    { userId: "someone", reviewedAt: "2026-08-30T00:00:00.000Z" },
+    { userId: "someone", reviewedAt: "2026-08-31T00:00:00.000Z" }
+  ];
+
+  const capped = capDecisionsPerUser([...bulk, ...ordinary], 50);
+  assert.equal(capped.filter((row) => row.userId === "tidier").length, 50);
+  // An account under the cap is untouched.
+  assert.equal(capped.filter((row) => row.userId === "someone").length, 2);
+});
+
+test("what survives the cap is what someone thinks now", () => {
+  const decisions = [
+    { userId: "u", reviewedAt: "2026-01-01T00:00:00.000Z", tag: "old" },
+    { userId: "u", reviewedAt: "2026-08-01T00:00:00.000Z", tag: "recent" },
+    { userId: "u", reviewedAt: "2026-04-01T00:00:00.000Z", tag: "middle" }
+  ];
+
+  assert.deepEqual(capDecisionsPerUser(decisions, 2).map((row) => row.tag), ["recent", "middle"]);
+  assert.deepEqual(capDecisionsPerUser(decisions, 0), []);
+  assert.equal(capDecisionsPerUser([], 50).length, 0);
 });

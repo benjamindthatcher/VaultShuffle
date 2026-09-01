@@ -365,3 +365,33 @@ function preferenceReason(
   const context = strongest.moodScoped && mood ? ` when ${moodLabel(mood)}` : "";
   return `${genre} lands well for you${context}`;
 }
+
+/**
+ * Keep only each account's most recent decisions.
+ *
+ * The completion sweep is built for clearing a backlog in bulk: the median
+ * account has marked 21 games finished, one has marked 443. Ungated, that single
+ * account outweighs twenty ordinary ones in the population view, and what it
+ * describes is a weekend of tidying rather than twenty people's taste.
+ *
+ * Newest first, so what survives the cap is what someone thinks now rather than
+ * whatever happened to be at the top of their library.
+ */
+export function capDecisionsPerUser<T extends { userId: string; reviewedAt: string }>(
+  decisions: readonly T[],
+  limit: number
+): T[] {
+  if (limit <= 0) return [];
+
+  const byUser = new Map<string, T[]>();
+  for (const decision of decisions) {
+    const held = byUser.get(decision.userId);
+    if (held) held.push(decision); else byUser.set(decision.userId, [decision]);
+  }
+
+  const kept: T[] = [];
+  for (const forUser of byUser.values()) {
+    kept.push(...[...forUser].sort((left, right) => right.reviewedAt.localeCompare(left.reviewedAt)).slice(0, limit));
+  }
+  return kept;
+}

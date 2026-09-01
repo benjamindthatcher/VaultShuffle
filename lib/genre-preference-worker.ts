@@ -2,7 +2,7 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { statesAnOpinion } from "@/lib/draw-signal-precedence";
-import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
+import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
 import { steamTagGenreLabels } from "@/lib/genres";
 import type { VaultDrawEventType } from "@/lib/vault-history";
 import type { VaultMoodId } from "@/lib/demo-data";
@@ -94,12 +94,30 @@ type PurgeDecision = { userId: string; steamAppId: number; action: string; revie
  */
 const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
   // Matched to the draw-side weight: sleeping is the clearest rejection there is,
-  // reached deliberately through a review rather than in passing.
+  // reached deliberately through a review rather than in passing. This is the
+  // signal the learner was missing entirely, so it keeps its full weight.
   sleep: { positive: 0, total: 3 },
   keep: { positive: 1, total: 2 },
   pin: { positive: 2, total: 2 },
-  complete: { positive: 2, total: 2 }
+  // Finishing something is real evidence and weaker than choosing it tonight.
+  // At 2/2 it was the strongest positive the model had, and once completions
+  // were read from the ownership row there were 11,494 of them against 414 draw
+  // reactions - so the model was mostly learning what people had already played
+  // rather than what makes a good pick, which for a discovery tool argues in a
+  // circle. Counted once, not twice.
+  complete: { positive: 1, total: 1 }
 };
+
+/**
+ * The most decisions any one account contributes to a rebuild.
+ *
+ * The completion sweep is built for clearing a backlog in bulk: the median
+ * account has marked 21 games, one has marked 443. Ungated, that single account
+ * outweighs twenty ordinary ones in the population view, and the taste it
+ * describes is a weekend of tidying rather than twenty people's preferences.
+ * Newest first, so what survives the cap is what they think now.
+ */
+const MAX_DECISIONS_PER_USER = 50;
 type CatalogRow = { steam_appid: number | string; name: string | null; genres: string[] | null; tags: Record<string, number> | null };
 type Tally = { positive: number; total: number };
 
@@ -500,5 +518,5 @@ async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promis
     }
   }
 
-  return [...latest.values()];
+  return capDecisionsPerUser([...latest.values()], MAX_DECISIONS_PER_USER);
 }
