@@ -3,6 +3,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { statesAnOpinion } from "@/lib/draw-signal-precedence";
 import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
+import { steamTagGenreLabels } from "@/lib/genres";
 import type { VaultDrawEventType } from "@/lib/vault-history";
 import type { VaultMoodId } from "@/lib/demo-data";
 
@@ -99,7 +100,7 @@ const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
   pin: { positive: 2, total: 2 },
   complete: { positive: 2, total: 2 }
 };
-type CatalogRow = { steam_appid: number | string; name: string | null; genres: string[] | null };
+type CatalogRow = { steam_appid: number | string; name: string | null; genres: string[] | null; tags: Record<string, number> | null };
 type Tally = { positive: number; total: number };
 
 export type GenrePreferenceRebuildSummary = {
@@ -297,12 +298,18 @@ async function fetchGenres(supabase: AdminClient, appIds: number[]) {
   for (let index = 0; index < unique.length; index += 200) {
     const { data, error } = await supabase
       .from("catalog_games")
-      .select("steam_appid, name, genres")
+      .select("steam_appid, name, genres, tags")
       .in("steam_appid", unique.slice(index, index + 200));
     if (error) throw error;
 
     for (const row of (data ?? []) as CatalogRow[]) {
-      const genres = preferenceGenresFor(row.genres ?? [], row.name ?? "")
+      // The same labels the client builds in normaliseGenres: the stored genres
+      // plus the game's Steam tags. Without the tags this side, widening the key
+      // set did nothing here - the worker was still handing it the eight coarse
+      // genre strings, so it learned eight coarse keys and the scorer looked up
+      // sharp ones that had never been written.
+      const labels = [...(row.genres ?? []), ...steamTagGenreLabels(row.tags, 8)];
+      const genres = preferenceGenresFor(labels, row.name ?? "")
         .map(canonicalPreferenceGenre);
       if (genres.length) genresByAppId.set(Number(row.steam_appid), genres);
     }
