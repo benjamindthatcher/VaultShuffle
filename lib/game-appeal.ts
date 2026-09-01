@@ -37,6 +37,21 @@ export type GameAppeal = {
 export const MAX_APPEAL_POINTS = 6;
 
 /**
+ * How far the negative side reaches, deliberately further than the positive one.
+ *
+ * Being adored should not outrank whether a game suits the evening - that is
+ * what MAX_APPEAL_POINTS keeps in check. Being disliked by most of the people
+ * who actually played it is a different claim: there is no session, mood or goal
+ * that makes a panned game a good use of an evening, so it should be genuinely
+ * unlikely rather than marginally so.
+ *
+ * At the selection temperature of 15 this puts a fully panned game at roughly
+ * 45% of the odds of an equally fitting one. The flat -3 it replaces was 82%,
+ * which is a rounding error.
+ */
+export const MAX_APPEAL_PENALTY = 12;
+
+/**
  * Below this a percentage is noise rather than a verdict — three positive reviews
  * is 100% and means nothing.
  */
@@ -62,17 +77,25 @@ export function gameAppeal(input: GameAppealInput): GameAppeal {
   const obscurity = clamp((3.6 - volume) / 2, 0, 1);
   const hiddenGem = trusted ? quality * obscurity : 0;
 
-  let points = 4 * hype + 4 * hiddenGem;
-  // A game most people disliked is a poor way to spend an evening, and saying so
-  // is more useful than silently ranking it alongside everything else.
-  if (trusted && positivity !== null && positivity < 0.55) points -= 3;
+  // A slope rather than a cliff. One threshold at 55% demoted a game liked by
+  // 54% exactly as hard as one liked by 15%, and those are not the same game.
+  // Disapproval starts counting at 65% and is total at 35% or below.
+  const panned = positivity === null ? 0 : clamp((0.65 - positivity) / 0.3, 0, 1);
+  // Weighted by how many people are saying it, on the same log scale as reach.
+  // Twenty reviews is barely a verdict and two thousand is one; below twenty
+  // nothing is claimed at all, which is the floor that keeps a small good game
+  // from being condemned by a handful of opinions.
+  const panConfidence = clamp((volume - 1.3) / 2, 0, 1);
+  const disliked = panned * panConfidence;
+
+  let points = 4 * hype + 4 * hiddenGem - MAX_APPEAL_PENALTY * disliked;
 
   return {
     hype,
     hiddenGem,
     positivity,
     reviewTotal,
-    points: clamp(points, -MAX_APPEAL_POINTS, MAX_APPEAL_POINTS),
+    points: clamp(points, -MAX_APPEAL_PENALTY, MAX_APPEAL_POINTS),
     kind: appealKind({ hype, hiddenGem, positivity, trusted })
   };
 }
