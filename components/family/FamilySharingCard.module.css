@@ -371,6 +371,48 @@
   opacity: 0.85;
 }
 
+/* Asking before deleting. Inline on the tile rather than a modal: the question
+   is about this one person, and the answer is one tap either way. */
+.confirm {
+  flex: none;
+  display: flex;
+  gap: 6px;
+}
+
+.confirmYes,
+.confirmNo {
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirmYes {
+  border: 1px solid rgba(255, 132, 132, 0.5);
+  background: rgba(255, 132, 132, 0.14);
+  color: #ffb3b3;
+}
+
+.confirmYes:hover:not(:disabled) {
+  background: rgba(255, 132, 132, 0.22);
+}
+
+.confirmYes:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.confirmNo {
+  border: 1px solid var(--vault-sheet-border);
+  background: none;
+  color: var(--vault-text-muted);
+}
+
+.confirmCopy {
+  color: #ffb3b3;
+}
+
 /* The real badge, inline, so "marked like this" is a demonstration rather than a
    promise. Nudged down a touch to sit on the text baseline. */
 .markSample {

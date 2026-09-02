@@ -67,6 +67,11 @@ export function FamilySharingCard() {
   } = useAppData();
 
   const [profileInput, setProfileInput] = useState("");
+  // Which member is asking "are you sure". Removing one deletes every game only
+  // they provide, and the database cascades that to those games' pins, snoozes
+  // and collection memberships - none of which come back if the member is added
+  // again. That is too much to hang on one unlabelled X.
+  const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const viewedRef = useRef(false);
 
@@ -157,22 +162,46 @@ export function FamilySharingCard() {
                     <VaultIcon name="external-link" size={13} />
                   </a>
                   <span className={styles.memberMeta}>
-                    <strong>{member.gamesImported}</strong> shareable of {member.librarySeen} public
+                    {confirmingId === member.id
+                      ? <span className={styles.confirmCopy}>Removes up to {member.gamesImported} games</span>
+                      : <><strong>{member.gamesImported}</strong> shareable of {member.librarySeen} public</>}
                   </span>
                 </span>
-                <button
-                  type="button"
-                  className={styles.remove}
-                  disabled={familyBusy}
-                  aria-label={`Remove ${member.displayName}`}
-                  title={`Remove ${member.displayName}`}
-                  onClick={() => run(async () => {
-                    await removeFamilyMember(member.id);
-                    return `${member.displayName} was removed. Games another member also shares are still there.`;
-                  })}
-                >
-                  <VaultIcon name="close" size={15} />
-                </button>
+                {confirmingId === member.id ? (
+                  <span className={styles.confirm}>
+                    <button
+                      type="button"
+                      className={styles.confirmYes}
+                      disabled={familyBusy}
+                      onClick={() => {
+                        setConfirmingId(null);
+                        void run(async () => {
+                          const result = await removeFamilyMember(member.id);
+                          const kept = result.retained
+                            ? ` ${result.retained} stayed, shared by someone else too.`
+                            : "";
+                          return `${result.displayName} removed — ${result.removed} ${result.removed === 1 ? "game" : "games"} left your library.${kept}`;
+                        });
+                      }}
+                    >
+                      Remove
+                    </button>
+                    <button type="button" className={styles.confirmNo} onClick={() => setConfirmingId(null)}>
+                      Cancel
+                    </button>
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.remove}
+                    disabled={familyBusy}
+                    aria-label={`Remove ${member.displayName}`}
+                    title={`Remove ${member.displayName}`}
+                    onClick={() => setConfirmingId(member.id)}
+                  >
+                    <VaultIcon name="close" size={15} />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

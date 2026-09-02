@@ -345,20 +345,42 @@ async function runFamilyImport(
   return { totals, byMember };
 }
 
-export async function removeFamilyMember(userId: string, memberId: string) {
+export type FamilyMemberRemoval = {
+  /** Games deleted outright, because nobody else in the family provides them. */
+  removed: number;
+  /** Games another remaining member also shares, so access continues. */
+  retained: number;
+  displayName: string;
+};
+
+/**
+ * Stop borrowing from one person.
+ *
+ * Three things happen, in an order that matters:
+ *
+ *  1. Games another remaining member also shares are worked out first, and kept.
+ *     Access has not gone; only one route to it has.
+ *  2. Everything else of theirs leaves. A row the player actually engaged with -
+ *     a note on it, or marked Completed or Slept - is retired rather than
+ *     deleted, so their own record of having played something survives losing
+ *     the ability to play it. The rest is deleted, and the database cascades
+ *     that to its pins, snoozes and collection memberships.
+ *  3. The remaining members are re-planned. Without this, a game that stays
+ *     because two people had it keeps pointing at the one who left, and its card
+ *     would go from naming an owner to saying "a family member" for no visible
+ *     reason. Costs a catalogue read and no Steam call.
+ */
+export async function removeFamilyMember(userId: string, memberId: string): Promise<FamilyMemberRemoval> {
   const members = await loadMemberRows(userId);
   const target = members.find((member) => member.id === memberId);
   if (!target) throw new FamilyMemberError("not_found", "That family member is no longer on your account.");
 
-  // Games another remaining member also shares stay. Access has not gone; only
-  // one route to it has.
-  const retained = new Set(
-    members
-      .filter((member) => member.id !== memberId)
-      .flatMap((member) => (member.candidate_appids ?? []).map(String))
-  );
+  const others = members.filter((member) => member.id !== memberId);
+  const retainedAppIds = new Set(others.flatMap((member) => (member.candidate_appids ?? []).map(String)));
+  const theirs = new Set((target.candidate_appids ?? []).map(String));
+  const retained = [...theirs].filter((appId) => retainedAppIds.has(appId)).length;
 
-  const removed = await removeFamilyMemberGames(userId, target.steam_id, [...retained]);
+  const removed = await removeFamilyMemberGames(userId, target.steam_id, [...retainedAppIds]);
 
   const { error } = await getSupabaseAdmin()
     .from("user_family_members")
@@ -367,7 +389,10 @@ export async function removeFamilyMember(userId: string, memberId: string) {
     .eq("user_id", userId);
   if (error) throw error;
 
-  return { removed };
+  // Re-attribute what stayed to somebody who is still here.
+  if (others.length) await runFamilyImport(userId, others);
+
+  return { removed, retained, displayName: target.display_name };
 }
 
 type CatalogueFact = {

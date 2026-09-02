@@ -125,7 +125,7 @@ type AppDataContextValue = {
   familyMembers: FamilyMember[];
   familyBusy: boolean;
   addFamilyMember: (profile: string) => Promise<FamilyMemberAddOutcome>;
-  removeFamilyMember: (memberId: string) => Promise<void>;
+  removeFamilyMember: (memberId: string) => Promise<FamilyRemovalOutcome>;
   recheckFamilyLibrary: () => Promise<FamilyImportCounts>;
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
@@ -151,6 +151,12 @@ export type FamilyMember = {
   gamesImported: number;
   lastSyncedAt: string | null;
   lastError: string | null;
+};
+
+export type FamilyRemovalOutcome = {
+  removed: number;
+  retained: number;
+  displayName: string;
 };
 
 export type FamilyMemberAddOutcome = {
@@ -422,9 +428,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function removeFamilyMember(memberId: string) {
-    await withFamilyWrite(async () => {
-      const payload = await api<{ removed: number }>(`/api/family/${memberId}`, { method: "DELETE" });
-      trackEvent(ANALYTICS_EVENTS.familyMemberRemoved, { removed: payload.removed });
+    return withFamilyWrite(async () => {
+      const payload = await api<FamilyRemovalOutcome>(`/api/family/${memberId}`, { method: "DELETE" });
+      trackEvent(ANALYTICS_EVENTS.familyMemberRemoved, {
+        removed: payload.removed,
+        retained: payload.retained
+      });
       return payload;
     });
   }

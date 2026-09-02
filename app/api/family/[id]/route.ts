@@ -23,9 +23,9 @@ export async function DELETE(request: Request, context: RouteContext) {
     assertSameOrigin(request);
     const [{ user }, { id }] = await Promise.all([requireWriteSession(), context.params]);
     diagnostics.account(user.id, user.account_type);
-    const { removed } = await removeFamilyMember(user.id, id);
-    diagnostics.event("succeeded", { removed, status: 200 });
-    return diagnostics.response(NextResponse.json({ ok: true, removed }));
+    const result = await removeFamilyMember(user.id, id);
+    diagnostics.event("succeeded", { removed: result.removed, retained: result.retained, status: 200 });
+    return diagnostics.response(NextResponse.json({ ok: true, ...result }));
   } catch (error) {
     return familyError(error, diagnostics);
   }
