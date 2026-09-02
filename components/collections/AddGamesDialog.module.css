@@ -105,7 +105,14 @@
   box-shadow: var(--vault-tile-selected-shadow);
 }
 
+/* The artwork has to be positioned for the image inside it to fill it.
+   Without this the image took its size from .card instead - the nearest
+   ancestor that is positioned, for the sake of the tick in its corner - so it
+   covered the whole tile including the padding and the title row beneath. The
+   tile is far taller than a 460x215 header, so `cover` cropped the sides off
+   every game, which is exactly where a Steam header keeps its title. */
 .art {
+  position: relative;
   display: block;
   overflow: hidden;
   aspect-ratio: 460 / 215;
