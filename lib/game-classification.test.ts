@@ -6,7 +6,8 @@ import {
   hasEndlessDurationShape,
   hasStrongReplayabilitySignals,
   isStoryDriven,
-  isEndlessGame
+  isEndlessGame,
+  endlessVerdict
 } from "./game-classification.ts";
 
 test("finite progress is derived from the averaged duration rather than stale stored progress", () => {
@@ -148,4 +149,209 @@ test("team-based co-op alone is not persisted as endless", () => {
     genres: ["RPG", "Strategy"],
     categories: ["Multi-player", "PvP"]
   }), true);
+});
+
+test("the competitive loop is read from tag share, not from a single-player category", () => {
+  // Rainbow Six Siege: HowLongToBeat records a 3h19 "story", so the catalogue
+  // called it finite. Its tags are 91% competitive against its top tag, and it
+  // lists Single-player like almost every game on Steam does.
+  const siege = endlessVerdict({
+    tags: {
+      FPS: 9892, PvP: 9194, Tactical: 9103, Multiplayer: 9103, "e-sports": 9102,
+      Competitive: 9007, Shooter: 9091, Action: 8949, "Hero Shooter": 8901
+    },
+    genres: ["Action"],
+    categories: ["Single-player", "Multi-player", "PvP", "Online PvP", "Co-op"],
+    mainStoryMinutes: 199,
+    completionistMinutes: null
+  });
+  assert.equal(siege.endless, true);
+  assert.ok(siege.witnesses.includes("competitive-loop"));
+
+  // Rocket League, the same shape at a lower share: Competitive is 69% of its
+  // top tag. It takes the largest popularity boost in the "has an ending" filter.
+  const rocketLeague = endlessVerdict({
+    tags: {
+      Multiplayer: 6610, "Football (Soccer)": 5241, Competitive: 4577, Sports: 4018,
+      Racing: 3889, "Team-Based": 3425, "Online Co-Op": 2876, "Fast-Paced": 2208
+    },
+    genres: ["Action", "Sports"],
+    categories: ["Single-player", "Multi-player", "PvP", "Online PvP"],
+    mainStoryMinutes: 280,
+    completionistMinutes: null
+  });
+  assert.equal(rocketLeague.endless, true);
+  assert.ok(rocketLeague.witnesses.includes("competitive-loop"));
+});
+
+test("a competitive tag without an official multiplayer category is not enough", () => {
+  const verdict = endlessVerdict({
+    tags: { Strategy: 1000, Competitive: 900 },
+    genres: ["Strategy"],
+    categories: ["Single-player"],
+    mainStoryMinutes: 600,
+    completionistMinutes: 1200
+  });
+  assert.equal(verdict.endless, false);
+});
+
+test("a loot loop needs the loot and the genre to agree", () => {
+  // Last Epoch: an ARPG treadmill recorded as a 22.8h campaign. This is the case
+  // the launch feedback named directly.
+  const lastEpoch = endlessVerdict({
+    tags: {
+      "Action RPG": 412, Loot: 348, "Hack and Slash": 300, RPG: 272, Isometric: 206,
+      Multiplayer: 199, Action: 133, "Co-op": 122
+    },
+    genres: ["RPG", "Action"],
+    categories: ["Single-player", "Multi-player", "Co-op"],
+    mainStoryMinutes: 1370,
+    completionistMinutes: 5056
+  });
+  assert.equal(lastEpoch.endless, true);
+  assert.ok(lastEpoch.witnesses.includes("loot-loop"));
+
+  // Elden Ring drops loot and is an Action RPG, but is neither built around the
+  // loop nor tagged for it. It has an ending and must keep one.
+  const eldenRing = endlessVerdict({
+    tags: {
+      "Souls-like": 6994, "Open World": 5078, "Dark Fantasy": 4953, RPG: 4707,
+      Difficult: 4595, "Action RPG": 3584, "Third Person": 3403, Multiplayer: 3395
+    },
+    genres: ["Action", "RPG"],
+    categories: ["Single-player", "Multi-player", "PvP", "Co-op"],
+    mainStoryMinutes: 3605,
+    completionistMinutes: 8170
+  });
+  assert.equal(eldenRing.endless, false);
+  assert.deepEqual(eldenRing.witnesses, []);
+});
+
+test("a story rich game is never promoted, whatever else fires", () => {
+  const verdict = endlessVerdict({
+    tags: { "Action RPG": 1000, Loot: 900, "Hack and Slash": 850, "Story Rich": 800 },
+    genres: ["RPG"],
+    categories: ["Single-player", "Multi-player"],
+    mainStoryMinutes: 1200,
+    completionistMinutes: 2000
+  });
+  assert.equal(verdict.endless, false);
+  assert.equal(verdict.vetoedBy, "story-driven");
+  assert.ok(verdict.witnesses.includes("loot-loop"));
+});
+
+test("loot plus a shooter is a campaign, not a treadmill", () => {
+  // Borderlands 2 carries Loot as its single top tag and finishes with credits.
+  // It has no Hack and Slash tag at all and Action RPG sits at 0.18, which is
+  // what separates it from Diablo. Requiring only loot promoted all four
+  // Borderlands games.
+  const borderlands = endlessVerdict({
+    tags: {
+      Loot: 2400, Shooter: 2280, Action: 2256, Multiplayer: 1872, "Co-op": 1848,
+      "Looter Shooter": 1776, FPS: 1704, RPG: 1368, "First-Person": 1320,
+      Funny: 1248, Comedy: 1200, "Action RPG": 432
+    },
+    genres: ["Action", "RPG"],
+    categories: ["Single-player", "Multi-player", "Co-op"],
+    mainStoryMinutes: 1806,
+    completionistMinutes: 7794
+  });
+  assert.equal(borderlands.endless, false);
+
+  // Diablo IV is the same family of tags at the intersection that matters.
+  const diablo = endlessVerdict({
+    tags: { "Action RPG": 1000, "Hack and Slash": 780, Loot: 720, Singleplayer: 450 },
+    genres: ["Action", "RPG"],
+    categories: ["Single-player", "Multi-player", "Co-op"],
+    mainStoryMinutes: 1800,
+    completionistMinutes: 13608
+  });
+  assert.equal(diablo.endless, true);
+  assert.ok(diablo.witnesses.includes("loot-loop"));
+});
+
+test("a sandbox the crowd plays alone is a sandbox with an ending", () => {
+  // Subnautica: Open World Survival Craft on 100% of its top tag's votes, and a
+  // real ending. The existing Story Rich veto does not reach it - it carries no
+  // such tag - so a dominant Singleplayer identity is what tells it from Valheim.
+  const subnautica = endlessVerdict({
+    tags: {
+      "Open World Survival Craft": 1000, Survival: 990, Horror: 880, "Open World": 830,
+      Underwater: 830, Exploration: 810, Crafting: 690, "Base-Building": 670,
+      Singleplayer: 660, Adventure: 560, "First-Person": 550
+    },
+    genres: ["Action", "Adventure", "Indie"],
+    categories: ["Single-player"],
+    mainStoryMinutes: 1776,
+    completionistMinutes: 3108
+  });
+  assert.equal(subnautica.endless, false);
+
+  // Valheim carries the same decisive tag and no Singleplayer tag at all.
+  const valheim = endlessVerdict({
+    tags: {
+      "Open World Survival Craft": 2379, Survival: 2100, Crafting: 1900,
+      "Base-Building": 1700, Multiplayer: 1600, Exploration: 1500
+    },
+    genres: ["Action", "Adventure"],
+    categories: ["Single-player", "Multi-player", "Co-op"],
+    mainStoryMinutes: 4956,
+    completionistMinutes: 8868
+  });
+  assert.equal(valheim.endless, true);
+  assert.ok(valheim.witnesses.includes("decisive-tags"));
+
+  // A clicker is solo and endless by definition, and must not be argued out of
+  // it - the solo test applies only to the sandbox signals.
+  const cookieClicker = endlessVerdict({
+    tags: { Clicker: 1000, Incremental: 950, Singleplayer: 900, Casual: 700 },
+    genres: ["Casual", "Simulation"],
+    categories: ["Single-player"]
+  });
+  assert.equal(cookieClicker.endless, true);
+  assert.ok(cookieClicker.witnesses.includes("decisive-tags"));
+});
+
+test("a person's ruling outranks every rule", () => {
+  const verdict = endlessVerdict({
+    tags: { MOBA: 1000, Competitive: 950 },
+    genres: ["Action"],
+    categories: ["Multi-player"],
+    manualOverride: true
+  });
+  assert.equal(verdict.endless, false);
+  assert.equal(verdict.vetoedBy, "manual-override");
+});
+
+test("the lowered completion ratio catches a co-op grind without touching a long RPG", () => {
+  // Deep Rock Galactic: 44.7h story against 480h completionist, a ratio of 10.7.
+  // The old threshold of 12 called this a campaign.
+  const deepRock = endlessVerdict({
+    tags: { Dwarf: 6515, "Co-op": 2547, PvE: 2152, FPS: 2008, "Class-Based": 1802 },
+    genres: ["Action"],
+    categories: ["Single-player", "Multi-player", "Co-op"],
+    mainStoryMinutes: 2683,
+    completionistMinutes: 28798
+  });
+  assert.equal(deepRock.endless, true);
+  assert.ok(deepRock.witnesses.includes("duration-shape"));
+
+  // Black Myth: Wukong is 1.8, Elden Ring 2.3. Neither comes near 6.
+  assert.equal(hasEndlessDurationShape({ mainStoryMinutes: 2274, completionistMinutes: 4060 }), false);
+  assert.equal(hasEndlessDurationShape({ mainStoryMinutes: 3605, completionistMinutes: 8170 }), false);
+});
+
+test("our own hours can convict a game the tags and durations miss", () => {
+  const base = {
+    tags: { Strategy: 1000, RTS: 660 },
+    genres: ["Strategy"],
+    categories: ["Single-player", "Multi-player"],
+    mainStoryMinutes: 300
+  };
+
+  assert.equal(endlessVerdict({ ...base, medianOwnerHours: 60, engagedOwners: 40 }).endless, true);
+  // Too few players for the median to mean anything.
+  assert.equal(endlessVerdict({ ...base, medianOwnerHours: 60, engagedOwners: 4 }).endless, false);
+  // Played twice over, which is a replay rather than a treadmill.
+  assert.equal(endlessVerdict({ ...base, medianOwnerHours: 10, engagedOwners: 40 }).endless, false);
 });

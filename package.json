@@ -17,6 +17,7 @@
     "catalogue:merge-popular": "node scripts/catalogue/merge-popular-catalogues.mjs",
     "catalogue:build-seed": "node scripts/catalogue/build-seed-sql.mjs",
     "catalogue:import-durations": "node scripts/catalogue/import-duration-estimates.mjs",
+    "catalogue:reclassify-endless": "node --experimental-strip-types scripts/catalogue/reclassify-endless.mjs",
     "igdb:lookup": "node --experimental-strip-types scripts/igdb/lookup.ts",
     "duration:admin": "node --experimental-strip-types scripts/igdb/admin.ts",
     "duration:hltb": "python3 scripts/durations/enrich-hltb.py",

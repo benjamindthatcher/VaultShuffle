@@ -55,8 +55,14 @@ function dominantSignals(tags: ReplayabilityMetadata["tags"]) {
  * A completion time far beyond the story length means the length is not a
  * completion at all — it is score chasing or a live-service grind. Counter-Strike 2
  * reports 1h story against 186h completionist; the median across the library is 2.6.
+ *
+ * Lowered from 12 against the real catalogue. At 12 this caught almost nothing that
+ * HowLongToBeat had already answered: Deep Rock Galactic sits at 10.7 (44.7h story,
+ * 480h completionist) and was called finite, which is where "well past the end
+ * credits" came from. Elden Ring is 2.3 and Black Myth: Wukong 1.8, so 6 leaves a
+ * wide margin above a long RPG.
  */
-const ENDLESS_COMPLETION_RATIO = 12;
+const ENDLESS_COMPLETION_RATIO = 6;
 
 /**
  * A story-driven game is never endless on duration or tags alone.
@@ -300,6 +306,168 @@ export function hasCorroboratedOnlineLoop(metadata: ReplayabilityMetadata) {
   );
 
   return officialMmo || officialPvp || distinctiveLoop || competitiveLoop || sandboxLoop;
+}
+
+/**
+ * Why a game is judged to have no finish line, and on what evidence.
+ *
+ * The rules above are used one at a time by callers that each ask a slightly
+ * different question. This asks the single question the product actually needs -
+ * "does this game end?" - and says which witness answered, so a reclassification
+ * can be reviewed by rule rather than as an undifferentiated list of app ids.
+ *
+ * It exists because the catalogue's answer was never really being computed. A
+ * HowLongToBeat match writes `duration_kind = 'finite'`, and HLTB has a main-story
+ * figure for almost everything, including games with no story: Rainbow Six Siege
+ * is recorded at 3h19. Across owned games every one of the 16,292 HLTB matches is
+ * finite and all 787 endless rows came from the hand-curated promotion list, which
+ * only ever touched rows HLTB had failed to match. So the tags were never asked.
+ *
+ * Deliberately does NOT read `duration_kind`: this is the opinion that a stored
+ * verdict should be checked against, so taking the stored verdict as input would
+ * make it agree with itself.
+ */
+export type EndlessWitness =
+  | "decisive-tags"
+  | "competitive-loop"
+  | "loot-loop"
+  | "duration-shape"
+  | "played-past-the-end";
+
+export type EndlessVerdict = {
+  endless: boolean;
+  /** Every rule that fired, for review and for the reason string. */
+  witnesses: EndlessWitness[];
+  /** Set when a rule fired but something outranked it. */
+  vetoedBy: "story-driven" | "manual-override" | null;
+};
+
+/**
+ * Community tags are votes, so share of the top tag is the only honest reading of
+ * one. Rainbow Six Siege carries "Competitive" on 91% of its top tag's votes;
+ * Elden Ring does not carry it at all. Presence alone would catch both.
+ */
+const COMPETITIVE_LOOP_TAGS = new Set([
+  "competitive", "e-sports", "esports", "pvp", "moba", "battle royale", "hero shooter"
+]);
+const COMPETITIVE_LOOP_SHARE = 0.5;
+
+/**
+ * The ARPG case, which is the one people actually complained about: Diablo, Path
+ * of Exile and Last Epoch are loot treadmills filed as campaigns.
+ *
+ * All three tags are required, because loot plus a shooter is a different game.
+ * Borderlands 2 carries Loot as its single top tag and is a finite co-op campaign
+ * with credits - it has no Hack and Slash tag at all and Action RPG sits at 0.18.
+ * The isometric ARPG treadmill is the intersection: Diablo IV is 0.72/1.00/0.78,
+ * Last Epoch 0.84/1.00/0.73, Torchlight II 0.71/0.97/0.88.
+ */
+const LOOT_LOOP_REQUIRED = ["loot", "hack and slash"] as const;
+const LOOT_LOOP_GENRE_TAGS = new Set(["action rpg", "arpg"]);
+const LOOT_LOOP_SHARE = 0.55;
+
+/**
+ * Decisive tags that describe a sandbox rather than a service.
+ *
+ * These need one more question asked of them, because the tag does not separate
+ * "world you live in" from "world you finish". Subnautica carries Open World
+ * Survival Craft on 100% of its top tag's votes and has a real ending; Valheim
+ * carries the same tag and does not. What tells them apart is who the crowd thinks
+ * the game is for - see SOLO_IDENTITY_SHARE.
+ *
+ * Not applied to the rest of the decisive list: a clicker is solo and endless by
+ * definition, and Cookie Clicker must not be argued out of it.
+ */
+const SANDBOX_DECISIVE_SIGNALS = new Set([
+  "open world survival craft", "colony sim", "automation"
+]);
+
+/**
+ * A dominant "Singleplayer" tag means the crowd reads the game as a solo
+ * experience, which for a sandbox almost always means a designed ending.
+ * Subnautica is 0.66 and Cult of the Lamb 0.80; Valheim and Terraria do not carry
+ * the tag at all.
+ */
+const SOLO_IDENTITY_SHARE = 0.65;
+
+/**
+ * Our own evidence, which nobody else has: how long the people who own a game
+ * actually play it, against how long it claims to be.
+ *
+ * Needs a real number of players before it says anything - one person with 400
+ * hours in a 5-hour game is a completionist, not a verdict - and a wide multiple,
+ * because plenty of finite games are replayed.
+ */
+const PLAYED_PAST_THE_END_MULTIPLE = 8;
+const PLAYED_PAST_THE_END_MIN_PLAYERS = 10;
+
+export function endlessVerdict(input: ReplayabilityMetadata & {
+  mainStoryMinutes?: number | null;
+  completionistMinutes?: number | null;
+  /** Median hours among owners who actually launched it. See the constants above. */
+  medianOwnerHours?: number | null;
+  engagedOwners?: number | null;
+  /** A person has already ruled on this game; never overturn that automatically. */
+  manualOverride?: boolean;
+}): EndlessVerdict {
+  const witnesses: EndlessWitness[] = [];
+  const shares = weightedTagSignals(input.tags);
+  const categories = new Set(normaliseSignals(input.categories));
+  const shareOf = (tag: string) => shares.get(tag) ?? 0;
+
+  // A sandbox the crowd reads as a solo game is a sandbox with an ending, so the
+  // decisive tag is not decisive on its own. Only vetoes when every decisive
+  // signal present is a sandbox one: a game that is also an MMO keeps the verdict.
+  const dominant = dominantSignals(input.tags);
+  const sandboxOnly = [...dominant].some((signal) => SANDBOX_DECISIVE_SIGNALS.has(signal))
+    && ![...dominant].some((signal) => DECISIVE_ENDLESS_SIGNALS.has(signal) && !SANDBOX_DECISIVE_SIGNALS.has(signal));
+  const soloIdentity = shareOf("singleplayer") >= SOLO_IDENTITY_SHARE
+    || shareOf("single player") >= SOLO_IDENTITY_SHARE;
+
+  if (hasStrongReplayabilitySignals(input) && !(sandboxOnly && soloIdentity)) {
+    witnesses.push("decisive-tags");
+  }
+
+  // Multi-player is a fact Steam states, not a vote, so it is the corroboration
+  // the tag share is measured against. Single-player is NOT a veto here: Rocket
+  // League, Rainbow Six Siege, Deep Rock Galactic and Age of Empires II all list
+  // it, because they all ship something you can do alone.
+  const competitive = [...COMPETITIVE_LOOP_TAGS].some((tag) => shareOf(tag) >= COMPETITIVE_LOOP_SHARE);
+  if (competitive && categories.has("multi-player")) witnesses.push("competitive-loop");
+
+  const lootLoop = LOOT_LOOP_REQUIRED.every((tag) => shareOf(tag) >= LOOT_LOOP_SHARE)
+    && [...LOOT_LOOP_GENRE_TAGS].some((tag) => shareOf(tag) >= LOOT_LOOP_SHARE);
+  if (lootLoop) witnesses.push("loot-loop");
+
+  if (hasEndlessDurationShape(input)) witnesses.push("duration-shape");
+
+  const storyHours = Number(input.mainStoryMinutes ?? 0) / 60;
+  const median = Number(input.medianOwnerHours ?? 0);
+  const players = Number(input.engagedOwners ?? 0);
+  if (
+    storyHours > 0 && median > 0
+    && players >= PLAYED_PAST_THE_END_MIN_PLAYERS
+    && median >= storyHours * PLAYED_PAST_THE_END_MULTIPLE
+  ) {
+    witnesses.push("played-past-the-end");
+  }
+
+  if (!witnesses.length) return { endless: false, witnesses, vetoedBy: null };
+  // A person's ruling outranks every rule here, and a story outranks the rest -
+  // isStoryDriven already makes its own exception for persistent online worlds,
+  // so Final Fantasy XI stays endless while Black Myth: Wukong does not become it.
+  if (input.manualOverride) return { endless: false, witnesses, vetoedBy: "manual-override" };
+  if (isStoryDriven(input.tags)) return { endless: false, witnesses, vetoedBy: "story-driven" };
+
+  return { endless: true, witnesses, vetoedBy: null };
+}
+
+export function endlessWitnessLabel(witness: EndlessWitness) {
+  if (witness === "decisive-tags") return "Tagged as a genre that does not end";
+  if (witness === "competitive-loop") return "Built around competitive multiplayer";
+  if (witness === "loot-loop") return "A loot loop rather than a campaign";
+  if (witness === "duration-shape") return "Completion time far beyond its story";
+  return "Owners play far past its stated length";
 }
 
 function weightedTagSignals(tags: ReplayabilityMetadata["tags"]) {
