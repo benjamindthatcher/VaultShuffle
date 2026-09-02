@@ -55,15 +55,15 @@ export async function POST(request: Request) {
 
     const input = addSchema.parse(await readJsonBody(request, 4 * 1024));
     diagnostics.stage("steam_profile_and_library");
-    const { member, counts } = await addFamilyMember(user.id, user.steam_id, input.profile);
+    const { member, counts, truncated } = await addFamilyMember(user.id, user.steam_id, input.profile);
 
-    diagnostics.event("succeeded", { imported: counts.importable, seen: counts.seen, status: 200 });
-    return diagnostics.response(NextResponse.json({
-      ok: true,
-      member,
-      counts,
-      summary: describeFamilyImport(counts, member?.displayName ?? "That profile")
-    }));
+    diagnostics.event("succeeded", { imported: counts.importable, seen: counts.seen, truncated, status: 200 });
+    // A shelf big enough to hit the cap is told about it. Silently reading the
+    // first five thousand and reporting that as the whole library would be the
+    // one number on this screen that was simply untrue.
+    const summary = describeFamilyImport(counts, member?.displayName ?? "That profile")
+      + (truncated ? ` Their library is larger than we read — ${truncated} more games were not checked.` : "");
+    return diagnostics.response(NextResponse.json({ ok: true, member, counts, truncated, summary }));
   } catch (error) {
     return familyError(error, diagnostics);
   }

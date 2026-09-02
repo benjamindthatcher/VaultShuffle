@@ -77,7 +77,15 @@ export class FamilyMemberError extends Error {
   }
 }
 
-/** A whole Steam library, capped so one enormous shelf cannot flood the queue. */
+/**
+ * A whole Steam library, capped so one enormous shelf cannot flood the queue.
+ *
+ * Real libraries get close to this - one account here holds 4,741 games - so the
+ * cap is not theoretical, and a shelf that hits it is reported rather than
+ * quietly shortened. Timing says the ceiling could be higher (a 5,000-game add
+ * costs about ten seconds against a sixty-second limit); it stays here until
+ * something actually needs it raised.
+ */
 const MAX_CANDIDATES = 5000;
 
 function steamApiKey() {
@@ -128,6 +136,8 @@ async function steamIdForReference(reference: SteamProfileReference, apiKey: str
 export type FamilyMemberAddResult = {
   member: FamilyMember;
   counts: FamilyImportCounts;
+  /** Games beyond MAX_CANDIDATES that were not read. Zero for almost everybody. */
+  truncated: number;
 };
 
 /**
@@ -177,7 +187,9 @@ export async function addFamilyMember(
     throw asFamilyError(gamesResult.reason);
   }
 
-  const library = gamesResult.value.slice(0, MAX_CANDIDATES);
+  const wholeLibrary = gamesResult.value;
+  const library = wholeLibrary.slice(0, MAX_CANDIDATES);
+  const truncated = wholeLibrary.length - library.length;
   const now = new Date().toISOString();
 
   const { data, error } = await getSupabaseAdmin()
@@ -219,7 +231,7 @@ export async function addFamilyMember(
   const member = (await listFamilyMembers(userId)).find((entry) => entry.steamId === steamId);
   if (!member) throw new FamilyMemberError("not_found", "That family member could not be saved. Please try again.");
 
-  return { member, counts: byMember.get(inserted.id) ?? totals };
+  return { member, counts: byMember.get(inserted.id) ?? totals, truncated };
 }
 
 /**
