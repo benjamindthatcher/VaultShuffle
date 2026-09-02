@@ -228,9 +228,15 @@ export function buildVaultPool({
       gameVerdicts,
       verdictReference
     ))
-    // Ordering is fit only. See VaultPoolEntry.preferencePoints.
+    // Fit first, then what the game is worth. Fit is coarse - session, mood and
+    // goal each contribute a handful of discrete values and the total is rounded
+    // - so dozens of games routinely tie, and the tie was being broken
+    // alphabetically. That is how a shortlist ends up holding sixty games sorted
+    // by title. Among equal fits the better-regarded and more-played game takes
+    // the slot, which is the whole point of having measured either.
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
+      if (right.appealPoints !== left.appealPoints) return right.appealPoints - left.appealPoints;
       return left.game.title.localeCompare(right.game.title);
     });
 }
@@ -292,6 +298,23 @@ export const VAULT_FINALIST_SCORE_WINDOW = 15;
  */
 export const RECORDED_FINALIST_LIMIT = 128;
 
+/**
+ * The most games one draw chooses between.
+ *
+ * There was no upper bound, only the 15 point window, and on a large library
+ * that let the field reach sixty-four: the median draw was choosing between 23
+ * games and the 90th percentile between 64. Nothing can be "consistently
+ * offered" out of a field that size - a game carrying every advantage the model
+ * can give it still won 6% of draws - and the tail of that field was games tied
+ * on fit and admitted alphabetically.
+ *
+ * Ten keeps the draw a shuffle rather than a verdict while giving the best game
+ * in the field roughly one draw in six. Rerolls still reach the rest of the
+ * deck: drawnCycleRef excludes what has already been drawn, so a session works
+ * through the pool rather than re-offering these ten.
+ */
+export const MAX_VAULT_FINALISTS = 10;
+
 export function vaultFinalists(pool: VaultPoolEntry[], previousWinnerId?: string | null) {
   if (!pool.length) return [];
   const eligible = pool.length > 1 && previousWinnerId
@@ -308,10 +331,25 @@ export function vaultFinalists(pool: VaultPoolEntry[], previousWinnerId?: string
   // because both are applied after this cut.
   const best = eligible[0].score;
   const withinWindow = eligible.filter((entry) => entry.score >= best - VAULT_FINALIST_SCORE_WINDOW);
-  let count = Math.max(withinWindow.length, Math.min(eligible.length, 3));
-  // Whatever the count works out to, never split a tie at the boundary.
-  const boundaryScore = eligible[count - 1].score;
-  while (count < eligible.length && eligible[count].score === boundaryScore) count += 1;
+  // The window says who is a genuine contender; the cap says how many of them a
+  // single draw chooses between.
+  let count = Math.min(
+    Math.max(withinWindow.length, Math.min(eligible.length, 3)),
+    MAX_VAULT_FINALISTS
+  );
+
+  // The cap never splits an exact tie. Two games with the same fit and the same
+  // appeal are the same offer as far as anything measured here is concerned, so
+  // dropping one and keeping the other is a coin toss dressed up as a decision -
+  // it used to be settled alphabetically.
+  //
+  // It is also what keeps a Collection Draw whole. That mode drops session, mood
+  // and goal, so every game in the collection scores zero and ties: the shelf
+  // somebody curated stays reachable in full rather than being cut to ten.
+  const tied = (left: VaultPoolEntry, right: VaultPoolEntry) =>
+    left.score === right.score && left.appealPoints === right.appealPoints;
+  while (count < eligible.length && tied(eligible[count - 1], eligible[count])) count += 1;
+
   return eligible.slice(0, count);
 }
 

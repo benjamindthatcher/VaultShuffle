@@ -518,6 +518,45 @@ test("finalists keep every game tied at the cut, not the alphabetically early on
   assert.equal(vaultFinalists(pool).length, 35);
 });
 
+test("a guided draw chooses between ten, not sixty", () => {
+  // The window had no upper bound, so on a large library the median draw was
+  // choosing between 23 games and the 90th percentile between 64. Nothing can be
+  // consistently offered out of a field that size.
+  const pool = Array.from({ length: 60 }, (_, index) => ({
+    game: { ...makeGame(), id: `g-${index}`, title: `Game ${String(index).padStart(2, "0")}` },
+    score: 90 - index * 0.1,
+    appealPoints: 0,
+    preferencePoints: 0,
+    reasons: []
+  })) as unknown as Parameters<typeof vaultFinalists>[0];
+
+  assert.equal(vaultFinalists(pool).length, 10);
+});
+
+test("among equal fits the better game takes the slot, not the earlier title", () => {
+  // Fit is coarse and ties are routine, so the tiebreak decides most shortlists.
+  // It used to be alphabetical, which is how a sixty-game field ended up sorted
+  // by name. Appeal carries the population's verdict and how played a game is.
+  const pool = Array.from({ length: 30 }, (_, index) => ({
+    game: { ...makeGame(), id: `g-${index}`, title: `Game ${String(index).padStart(2, "0")}` },
+    score: 87,
+    // The alphabetically last games are the well-regarded ones.
+    appealPoints: index,
+    preferencePoints: 0,
+    reasons: []
+  })) as unknown as Parameters<typeof vaultFinalists>[0];
+
+  const finalists = vaultFinalists([...pool].sort((left, right) =>
+    right.score - left.score
+    || right.appealPoints - left.appealPoints
+    || left.game.title.localeCompare(right.game.title)));
+
+  assert.equal(finalists.length, 10);
+  // The best-regarded ten, not Game 00 through Game 09.
+  assert.equal(finalists[0].game.id, "g-29");
+  assert.ok(finalists.every((entry) => entry.appealPoints >= 20));
+});
+
 test("finalists still exclude a genuinely worse fit", () => {
   const pool = [
     ...Array.from({ length: 6 }, (_, index) => ({

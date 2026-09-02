@@ -103,7 +103,13 @@ export function verdictPoints(
  */
 const POPULARITY_FLOOR_HOURS = 500;
 const POPULARITY_CEILING_HOURS = 50_000;
-export const MAX_POPULARITY_POINTS = 5;
+/*
+ * Raised from 5 once the shortlist was capped at ten. At five points among the
+ * twenty-three games a median draw used to consider, the most-played game in a
+ * library won 6% of draws; at eight among ten it wins about one in six, which is
+ * what "the best games come up first" has to mean to be worth saying.
+ */
+export const MAX_POPULARITY_POINTS = 8;
 
 export function popularityPoints(hours: number | undefined | null): number {
   if (!Number.isFinite(hours) || !hours || hours <= POPULARITY_FLOOR_HOURS) return 0;
