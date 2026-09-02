@@ -56,6 +56,7 @@ const GAME_TYPE: Choice<GlobalFilters["gameType"]>[] = [
 const DEVICE: Choice<GlobalFilters["device"]>[] = [
   { id: "all", label: "Any device" },
   { id: "mac", label: "Mac" },
+  { id: "linux", label: "Linux" },
   { id: "deck", label: "Steam Deck" }
 ];
 

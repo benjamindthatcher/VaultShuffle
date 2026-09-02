@@ -145,6 +145,30 @@ test("Deck mode wants confidence, not the benefit of the doubt", () => {
   assert.equal(matchesGlobalFilters(windowsOnly, filters({ device: "mac" }), now), false);
 });
 
+test("a native Linux build is a different question from Deck support", () => {
+  // The Deck runs most Windows games through Proton, so "Deck playable" and
+  // "has a Linux build" are neither the same set nor one inside the other.
+  // Someone on a desktop Linux machine is asking the second question.
+  const linuxOnly = game({ platforms: { windows: true, mac: false, linux: true }, deckCompatibility: 0 });
+  const deckOnly = game({ platforms: { windows: true, mac: false, linux: false }, deckCompatibility: 3 });
+
+  assert.equal(matchesGlobalFilters(linuxOnly, filters({ device: "linux" }), now), true);
+  assert.equal(matchesGlobalFilters(deckOnly, filters({ device: "linux" }), now), false);
+  // ...and the reverse, so neither is standing in for the other.
+  assert.equal(matchesGlobalFilters(deckOnly, filters({ device: "deck" }), now), true);
+  assert.equal(matchesGlobalFilters(linuxOnly, filters({ device: "deck" }), now), false);
+
+  // A game with no platform data is not claimed to run anywhere in particular.
+  assert.equal(matchesGlobalFilters(game({ platforms: undefined }), filters({ device: "linux" }), now), false);
+  assert.equal(matchesGlobalFilters(game({ platforms: undefined }), filters({ device: "all" }), now), true);
+});
+
+test("linux survives a round trip through storage", () => {
+  assert.equal(parseGlobalFilters('{"device":"linux"}').device, "linux");
+  // An unknown device still falls back rather than hiding the whole library.
+  assert.equal(parseGlobalFilters('{"device":"amiga"}').device, "all");
+});
+
 test("filters combine, so every one of them has to pass", () => {
   const chosen = filters({ device: "mac", players: "single", releaseAge: "modern", gameType: "finite" });
   assert.equal(activeGlobalFilterCount(chosen), 4);

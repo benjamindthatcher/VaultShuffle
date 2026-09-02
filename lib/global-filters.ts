@@ -17,7 +17,7 @@ import { isFamilyAccess } from "./family-sharing.ts";
  */
 
 /** Steam Deck and Mac, which used to live alone in the Steam player card. */
-export type DeviceMode = "all" | "mac" | "deck";
+export type DeviceMode = "all" | "mac" | "linux" | "deck";
 
 export type PlayerMode = "single" | "coop" | "multi";
 
@@ -95,6 +95,11 @@ export function playerModesFromCategories(categories: string[] | null | undefine
 function matchesDevice(game: DemoGame, mode: DeviceMode) {
   if (mode === "all") return true;
   if (mode === "mac") return Boolean(game.platforms?.mac);
+  // A native Linux build, which is a different question from Deck: the Deck
+  // runs most Windows games through Proton, so "verified" and "has a Linux
+  // build" are neither the same set nor one inside the other. Someone on a
+  // desktop Linux machine wants this one.
+  if (mode === "linux") return Boolean(game.platforms?.linux);
   return (game.deckCompatibility ?? 0) >= 2;
 }
 
@@ -208,7 +213,7 @@ export function parseGlobalFilters(raw: string | null | undefined): GlobalFilter
     allowed.includes(field as T) ? (field as T) : fallback;
 
   return {
-    device: pick(value.device, ["all", "mac", "deck"] as const, "all"),
+    device: pick(value.device, ["all", "mac", "linux", "deck"] as const, "all"),
     players: pick(value.players, ["any", "single", "coop", "multi"] as const, "any"),
     releaseAge: pick(value.releaseAge, ["any", "recent", "modern", "established", "classic"] as const, "any"),
     gameType: pick(value.gameType, ["all", "finite", "endless"] as const, "all"),
