@@ -111,22 +111,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
               <strong>{profileName}</strong>
               <span>{isLive ? (session.account_type === "manual" ? "Browser-only profile" : "Steam connected") : "Guest preview"}</span>
             </div>
-            {session.account_type === "manual" ? (
-              <Link
-                href="/account/secure-profile"
-                className={`${styles.menuAction} ${styles.secureProfileAction}`}
-                onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSecurityLinkClicked, {
-                  location: "profile_menu",
-                })}
-              >
-                <span className={styles.secureProfileIcon}><VaultIcon name="lock" size={17} /></span>
-                <span className={styles.secureProfileCopy}>
-                  <strong>Secure profile with Steam</strong>
-                  <small>Keep this Vault across devices</small>
-                </span>
-                <VaultIcon name="chevron-right" size={15} className={styles.secureProfileChevron} />
-              </Link>
-            ) : null}
             {isLive ? (
               <>
                 <button

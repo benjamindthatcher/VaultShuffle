@@ -1,75 +1,43 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef } from "react";
+import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./ManualProfileAccessNotice.module.css";
 
-const STORAGE_KEY_PREFIX = "vaultshuffle:manual-profile-access-notice:v1";
-const STORAGE_EVENT = "vaultshuffle:manual-profile-access-notice-changed";
-
-function subscribeToAcknowledgement(onStoreChange: () => void) {
-  window.addEventListener("storage", onStoreChange);
-  window.addEventListener(STORAGE_EVENT, onStoreChange);
-  return () => {
-    window.removeEventListener("storage", onStoreChange);
-    window.removeEventListener(STORAGE_EVENT, onStoreChange);
-  };
-}
-
-function readAcknowledgement(storageKey: string) {
-  if (!storageKey) return true;
-  try {
-    return window.localStorage.getItem(storageKey) === "1";
-  } catch {
-    return false;
-  }
-}
-
 /**
- * A one-time explanation for profiles created from a public Steam URL.
+ * What a profile made from a public Steam URL needs to know, and the way out of
+ * it, in one place at the foot of the dashboard.
  *
- * The account data is durable; access is not recoverable while its browser
- * cookie is the only credential. This notice makes that distinction without
- * turning it into an upgrade prompt. The optional action remains in the profile
- * menu after this explanation is dismissed.
+ * This used to be a dismissible notice at the top of the page pointing at a link
+ * buried in the profile menu - so the explanation and the action it described
+ * were two different places, and acknowledging the explanation removed the only
+ * thing that mentioned the action at all. The account data is durable; access is
+ * not recoverable while a browser cookie is the only credential, and that stays
+ * true however many times it has been read.
+ *
+ * So it is permanent rather than dismissible, and it carries the link itself.
+ * At the bottom of the dashboard because it is a standing fact about the
+ * account rather than something to act on tonight - the page's own work comes
+ * first.
  */
-export function useManualProfileAccessNotice() {
+export function ManualProfileAccessNotice() {
   const { session, isLoading } = useAppData();
-  const [dismissedForVisit, setDismissedForVisit] = useState<string | null>(null);
-  const shownFor = useRef<string | null>(null);
   const isManualProfile = session.account_type === "manual" && Boolean(session.user_id);
-  const storageKey = isManualProfile ? `${STORAGE_KEY_PREFIX}:${session.user_id}` : "";
-  const getSnapshot = useCallback(() => readAcknowledgement(storageKey), [storageKey]);
-  const storedAcknowledgement = useSyncExternalStore(subscribeToAcknowledgement, getSnapshot, () => true);
-  const acknowledged = storedAcknowledgement || dismissedForVisit === storageKey;
+  const shownFor = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isLoading && isManualProfile && !acknowledged && shownFor.current !== storageKey) {
-      shownFor.current = storageKey;
-      trackEvent(ANALYTICS_EVENTS.manualProfileAccessNoticeShown, {
-        account_type: "manual",
-        identity_verified: false,
-      });
-    }
-  }, [acknowledged, isLoading, isManualProfile, storageKey]);
-
-  if (isLoading || !isManualProfile || acknowledged) return null;
-
-  function acknowledge() {
-    try {
-      window.localStorage.setItem(storageKey, "1");
-      window.dispatchEvent(new Event(STORAGE_EVENT));
-    } catch {
-      // The in-memory state is enough to honour the action for this visit.
-    }
-    setDismissedForVisit(storageKey);
-    trackEvent(ANALYTICS_EVENTS.manualProfileAccessNoticeAcknowledged, {
+    if (isLoading || !isManualProfile || shownFor.current === session.user_id) return;
+    shownFor.current = session.user_id;
+    trackEvent(ANALYTICS_EVENTS.manualProfileAccessNoticeShown, {
       account_type: "manual",
       identity_verified: false,
     });
-  }
+  }, [isLoading, isManualProfile, session.user_id]);
+
+  if (isLoading || !isManualProfile) return null;
 
   return (
     <section className={styles.notice} aria-label="Browser-only profile access">
@@ -79,14 +47,19 @@ export function useManualProfileAccessNotice() {
         <p>
           Everything you do here is saved, but this is a browser-only profile—this browser is currently
           your only key. If its session is cleared or expires, you may not be able to get back to this Vault.
-          When you’re ready, <q>Secure profile with Steam</q> will always be waiting in your profile menu.
+          Connecting Steam keeps it, and takes a moment.
         </p>
       </div>
-      <button type="button" onClick={acknowledge}>Acknowledge</button>
+      <Link
+        href="/account/secure-profile"
+        className={styles.action}
+        onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSecurityLinkClicked, {
+          location: "dashboard_footer",
+        })}
+      >
+        Secure profile with Steam
+        <VaultIcon name="chevron-right" size={15} />
+      </Link>
     </section>
   );
-}
-
-export function ManualProfileAccessNotice() {
-  return useManualProfileAccessNotice();
 }

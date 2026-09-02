@@ -11,7 +11,7 @@ import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBan
 import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
 import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
-import { useManualProfileAccessNotice } from "@/components/shared/ManualProfileAccessNotice";
+import { ManualProfileAccessNotice } from "@/components/shared/ManualProfileAccessNotice";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ValueDial } from "@/components/dashboard/ValueDial";
@@ -56,7 +56,6 @@ export default function DashboardPage() {
   const enrichmentNotice = useLibraryEnrichmentNotice();
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
-  const manualProfileAccessNotice = useManualProfileAccessNotice();
 
   const stats = useMemo(() => buildBacklogStats(games), [games]);
 
@@ -209,7 +208,6 @@ export default function DashboardPage() {
               ambient news. */}
           <NoticeStack
             notices={[
-              { id: "manual-profile-access", node: manualProfileAccessNotice },
               { id: "enrichment", node: enrichmentNotice },
               { id: "completion", node: completionNotice },
               { id: "welcome", node: welcomeNotice }
@@ -318,6 +316,12 @@ export default function DashboardPage() {
               </div>
             )}
           </section>
+
+          {/* Last on the page. It is a standing fact about the account rather
+              than something to act on tonight, so the dashboard's own work comes
+              first - and it renders nothing at all for a Steam-connected
+              account. */}
+          <ManualProfileAccessNotice />
         </>
       )}
 

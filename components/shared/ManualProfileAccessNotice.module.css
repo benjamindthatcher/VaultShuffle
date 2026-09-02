@@ -49,25 +49,36 @@
   font-weight: 700;
 }
 
-.notice button {
-  min-height: 36px;
-  padding: 8px 13px;
-  border: 1px solid rgba(178, 126, 255, 0.34);
+/* The action itself, not a way to make the explanation go away. It used to be
+   "Acknowledge", which removed the only thing on the page that mentioned
+   securing the profile at all. */
+.action {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 40px;
+  padding: 8px 15px;
+  border: 1px solid rgba(178, 126, 255, 0.42);
   border-radius: 999px;
   color: var(--vault-text);
-  background: rgba(138, 77, 230, 0.13);
+  background: rgba(138, 77, 230, 0.18);
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 750;
   white-space: nowrap;
   cursor: pointer;
   transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
 }
 
-.notice button:hover {
-  border-color: rgba(203, 159, 255, 0.58);
-  background: rgba(138, 77, 230, 0.22);
+.action:hover {
+  border-color: rgba(203, 159, 255, 0.62);
+  background: rgba(138, 77, 230, 0.28);
   transform: translateY(-1px);
+}
+
+.action:focus-visible {
+  outline: 2px solid #c08bff;
+  outline-offset: 2px;
 }
 
 @media (max-width: 720px) {
@@ -76,13 +87,13 @@
     align-items: start;
   }
 
-  .notice button {
+  .action {
     grid-column: 2;
     justify-self: start;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .notice button { transition: none; }
-  .notice button:hover { transform: none; }
+  .action { transition: none; }
+  .action:hover { transform: none; }
 }
