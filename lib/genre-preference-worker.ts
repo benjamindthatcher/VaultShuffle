@@ -61,12 +61,26 @@ type Signal = {
  *
  * Weights are relative, and get scaled by recency before they are accumulated.
  */
+/**
+ * The weights the recommender runs at, unless the database says otherwise.
+ *
+ * These are the fallback, not the source of truth: algorithm_weights carries the
+ * live values so they can be tuned with an update statement and a nightly run
+ * rather than a deploy. Kept here so a rebuild still works if that table is
+ * unreachable, and so the intended shape is readable in one place.
+ */
 const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
-  opened_on_steam: { positive: 2, total: 2 },
+  // Launching it is the strongest thing anyone can say about a pick: they took
+  // the recommendation. It used to be worth the same as a thumbs-up.
+  opened_on_steam: { positive: 3, total: 3 },
   liked: { positive: 2, total: 2 },
-  pinned: { positive: 1, total: 1 },
+  // Committing to play something next, which was worth half of a launch.
+  pinned: { positive: 2, total: 2 },
 
-  disliked: { positive: 0, total: 2 },
+  // Both deliberate rejections carry more than they did: these are the two
+  // moments someone tells us a pick was wrong, and they were quieter than a
+  // thumbs-up was loud.
+  disliked: { positive: 0, total: 3 },
   // Snoozing was the most common thing anyone did with a pick - 177 of 423
   // recorded reactions - and it scored nothing at all, so the largest single
   // body of evidence the product had taught the model nothing. It is a
@@ -78,15 +92,62 @@ const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
   hidden_for_session: { positive: 0, total: 1.5 },
   // Sleeping a game is the most deliberate rejection the product offers: it is a
   // decision about the game itself, not about tonight.
-  slept: { positive: 0, total: 3 },
+  slept: { positive: 0, total: 4 },
   reroll_not_interested: { positive: 0, total: 2 },
   reroll_wrong_mood: { positive: 0, total: 1, moodOnly: true },
 
   // The bare reroll is the weakest signal there is: it is also just how the
   // product is used. It counts for something, but barely, and only when the draw
   // carries no more explicit opinion — see statesAnOpinion.
-  drew_again: { positive: 0, total: 0.5 }
+  // Doubled from 0.5: it is now the only way to reject a pick at all, since the
+  // snooze button that carried 42% of every recorded reaction has been retired.
+  drew_again: { positive: 0, total: 1 }
 };
+
+/**
+ * Live weights, read once per rebuild.
+ *
+ * A key is "event:<draw event>", "decision:<action>" or "playtime:per_owner".
+ * Anything the table does not name keeps the fallback above, so a partial table
+ * is safe and a typo cannot silently zero a signal.
+ */
+async function loadWeightOverrides(supabase: AdminClient) {
+  const overrides = new Map<string, Signal>();
+  try {
+    const { data, error } = await supabase
+      .from("algorithm_weights")
+      .select("key, positive, total");
+    if (error) throw error;
+
+    for (const row of (data ?? []) as Array<Record<string, unknown>>) {
+      const key = String(row.key);
+      const positive = Number(row.positive);
+      const total = Number(row.total);
+      if (!Number.isFinite(positive) || !Number.isFinite(total) || total < 0) continue;
+      overrides.set(key, { positive, total });
+    }
+  } catch (error) {
+    // The fallback weights are a working recommender. Failing the whole rebuild
+    // because the tuning table could not be read would be the worse outcome.
+    console.warn(JSON.stringify({
+      level: "warning",
+      message: "Could not load algorithm weights; using built-in defaults",
+      detail: error instanceof Error ? error.message : String(error)
+    }));
+  }
+  return overrides;
+}
+
+function withOverrides<T extends Record<string, Signal>>(base: T, prefix: string, overrides: Map<string, Signal>): T {
+  const merged = { ...base } as Record<string, Signal>;
+  for (const name of Object.keys(base)) {
+    const override = overrides.get(`${prefix}:${name}`);
+    // moodOnly is a property of what the signal means, not of its strength, so
+    // it is never something the tuning table gets to change.
+    if (override) merged[name] = { ...base[name], ...override };
+  }
+  return merged as T;
+}
 
 /**
  * Reasons that describe something other than genre. Present so they are visibly
@@ -119,7 +180,7 @@ const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
   // Matched to the draw-side weight: sleeping is the clearest rejection there is,
   // reached deliberately through a review rather than in passing. This is the
   // signal the learner was missing entirely, so it keeps its full weight.
-  sleep: { positive: 0, total: 3 },
+  sleep: { positive: 0, total: 4 },
   keep: { positive: 1, total: 2 },
   pin: { positive: 2, total: 2 },
   // Finishing something is real evidence and weaker than choosing it tonight.
@@ -166,6 +227,10 @@ export type GenrePreferenceRebuildSummary = {
  */
 export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildSummary> {
   const supabase = getSupabaseAdmin();
+  const weightOverrides = await loadWeightOverrides(supabase);
+  const eventSignals = withOverrides(EVENT_SIGNALS as Record<string, Signal>, "event", weightOverrides);
+  const decisionSignals = withOverrides(PURGE_SIGNALS, "decision", weightOverrides);
+  const playtimeWeight = weightOverrides.get("playtime:per_owner")?.total ?? PLAYTIME_WEIGHT;
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString();
 
   // Paged explicitly. PostgREST caps a response at 1,000 rows and says nothing
@@ -237,7 +302,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     for (const event of drawEvents) {
       const eventType = event.event_type as VaultDrawEventType;
       if (eventType === "drew_again" && hasStatedOpinion) continue;
-      const signal = EVENT_SIGNALS[eventType];
+      const signal = eventSignals[eventType];
       if (!signal) continue;
 
       const decay = recencyWeight(event.created_at);
@@ -269,7 +334,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   // learner's "slept" weight had never once fired, and the same action taught the
   // model or not depending on which page it happened on.
   for (const decision of purgeDecisions) {
-    const signal = PURGE_SIGNALS[decision.action];
+    const signal = decisionSignals[decision.action];
     if (!signal) continue;
     const genres = genresByAppId.get(decision.steamAppId);
     if (!genres?.length) continue;
@@ -311,8 +376,9 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
   summary.deletedRows = await replacePreferences(supabase, rows);
   summary.globalRows = await replaceGlobals(supabase, rows);
-  summary.playtimeRows = await addPlaytimeSignal(supabase, gameTallies);
-  summary.gameRows = await replaceGameGlobals(supabase, gameTallies, new Date().toISOString());
+  const gameHours = new Map<number, number>();
+  summary.playtimeRows = await addPlaytimeSignal(supabase, gameTallies, gameHours, playtimeWeight);
+  summary.gameRows = await replaceGameGlobals(supabase, gameTallies, gameHours, new Date().toISOString());
   return summary;
 }
 
@@ -370,11 +436,17 @@ function addGameTally(tallies: Map<number, Tally>, steamAppId: number, positive:
  * has all aged out of the window must stop being judged on it rather than keep
  * a verdict nobody is making any more.
  */
-async function replaceGameGlobals(supabase: AdminClient, tallies: Map<number, Tally>, rebuiltAt: string) {
+async function replaceGameGlobals(
+  supabase: AdminClient,
+  tallies: Map<number, Tally>,
+  hours: Map<number, number>,
+  rebuiltAt: string
+) {
   const rows = [...tallies.entries()].map(([steamAppId, tally]) => ({
     steam_appid: steamAppId,
     positive: tally.positive,
     total: tally.total,
+    total_hours: hours.get(steamAppId) ?? 0,
     updated_at: rebuiltAt
   }));
 
@@ -401,7 +473,12 @@ async function replaceGameGlobals(supabase: AdminClient, tallies: Map<number, Ta
  * or skip rows across page boundaries, and this is the largest read the rebuild
  * makes.
  */
-async function addPlaytimeSignal(supabase: AdminClient, gameTallies: Map<number, Tally>) {
+async function addPlaytimeSignal(
+  supabase: AdminClient,
+  gameTallies: Map<number, Tally>,
+  gameHours: Map<number, number>,
+  playtimeWeight: number
+) {
   let counted = 0;
 
   for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
@@ -421,7 +498,13 @@ async function addPlaytimeSignal(supabase: AdminClient, gameTallies: Map<number,
       if (!Number.isFinite(steamAppId) || steamAppId <= 0 || !Number.isFinite(hours)) continue;
 
       const endorsement = Math.min(1, Math.max(0, (hours - PLAYTIME_MIN_HOURS) / (PLAYTIME_FULL_HOURS - PLAYTIME_MIN_HOURS)));
-      addGameTally(gameTallies, steamAppId, PLAYTIME_WEIGHT * endorsement, PLAYTIME_WEIGHT);
+      addGameTally(gameTallies, steamAppId, playtimeWeight * endorsement, playtimeWeight);
+      // The hours themselves, not a rate. A rate cannot tell 50,000 hours from
+      // 5,000 - it is capped at 1 either way - which is why popularity needs an
+      // absolute number of its own. Every hour counts here, including the ones
+      // below the endorsement floor: someone bounced off at 30 minutes still
+      // says the game is played.
+      gameHours.set(steamAppId, (gameHours.get(steamAppId) ?? 0) + hours);
       counted += 1;
     }
 
@@ -576,21 +659,25 @@ async function replaceGlobals(
  * Returned as a plain tuple map so the wire form stays small - this rides along
  * with every app-data response.
  */
-export async function listGamePreferenceGlobals(steamAppIds: number[]): Promise<Record<string, [number, number]>> {
+export async function listGamePreferenceGlobals(steamAppIds: number[]): Promise<Record<string, [number, number, number]>> {
   const unique = [...new Set(steamAppIds.filter((appId) => Number.isFinite(appId) && appId > 0))];
   if (!unique.length) return {};
 
-  const rates: Record<string, [number, number]> = {};
+  const rates: Record<string, [number, number, number]> = {};
   try {
     for (let index = 0; index < unique.length; index += 200) {
       const { data, error } = await getSupabaseAdmin()
         .from("game_preference_globals")
-        .select("steam_appid, positive, total")
+        .select("steam_appid, positive, total, total_hours")
         .in("steam_appid", unique.slice(index, index + 200));
       if (error) throw error;
 
       for (const row of (data ?? []) as Array<Record<string, unknown>>) {
-        rates[String(row.steam_appid)] = [Number(row.positive) || 0, Number(row.total) || 0];
+        rates[String(row.steam_appid)] = [
+          Number(row.positive) || 0,
+          Number(row.total) || 0,
+          Number(row.total_hours) || 0
+        ];
       }
     }
     return rates;

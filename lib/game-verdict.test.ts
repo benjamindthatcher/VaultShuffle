@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MAX_VERDICT_PENALTY, MAX_VERDICT_POINTS, verdictBaseline, verdictFor, verdictPoints } from "./game-verdict.ts";
+import { MAX_POPULARITY_POINTS, MAX_VERDICT_PENALTY, MAX_VERDICT_POINTS, hoursFor, popularityPoints, verdictBaseline, verdictFor, verdictPoints } from "./game-verdict.ts";
 
 const BASELINE = 0.6;
 
@@ -59,4 +59,48 @@ test("a game at the population average is left where it is", () => {
   // be moved in either direction, however much evidence there is.
   const average = verdictPoints([60, 100], 0.6);
   assert.ok(Math.abs(average) < 0.01, `expected no push, got ${average}`);
+});
+
+test("popularity keeps climbing where the rate flattens out", () => {
+  // The whole reason this term exists. The verdict beside it is a rate, capped
+  // at 1, so on live data a 50,000 hour game and a 5,000 hour game both landed
+  // at about 1.12x the odds. Hours are absolute and have to keep going.
+  const at5k = popularityPoints(5_000);
+  const at50k = popularityPoints(50_000);
+  assert.ok(at50k > at5k * 1.5, `50k must clearly beat 5k, got ${at5k} vs ${at50k}`);
+  assert.equal(at50k, MAX_POPULARITY_POINTS);
+});
+
+test("a few hundred hours is not a verdict", () => {
+  // Across every player, a few hundred hours is a handful of people. Below the
+  // floor a game is not pushed at all - it is left to its own merits.
+  assert.equal(popularityPoints(500), 0);
+  assert.equal(popularityPoints(120), 0);
+  assert.equal(popularityPoints(0), 0);
+  assert.equal(popularityPoints(undefined), 0);
+  assert.equal(popularityPoints(null), 0);
+  // Nonsense must not become a boost.
+  assert.equal(popularityPoints(Number.NaN), 0);
+  assert.equal(popularityPoints(-5_000), 0);
+});
+
+test("popularity rises with each tenfold increase and then stops", () => {
+  const points = [1_000, 5_000, 20_000, 50_000].map(popularityPoints);
+  for (let index = 1; index < points.length; index += 1) {
+    assert.ok(points[index] > points[index - 1], `expected ${points[index]} > ${points[index - 1]}`);
+  }
+  // Past the ceiling it is already pushing as hard as it can, so a runaway
+  // outlier cannot drown out everything else in a library.
+  assert.equal(popularityPoints(500_000), MAX_POPULARITY_POINTS);
+  assert.equal(popularityPoints(5_000_000), MAX_POPULARITY_POINTS);
+});
+
+test("hours are read from the verdict a game carries, or default to none", () => {
+  assert.equal(hoursFor({ "440": [10, 20, 9_000] }, 440), 9_000);
+  // A verdict written before hours existed must read as no claim, not as zero
+  // hours being meaningful.
+  assert.equal(hoursFor({ "440": [10, 20] }, 440), 0);
+  assert.equal(hoursFor({}, 440), 0);
+  assert.equal(hoursFor(null, 440), 0);
+  assert.equal(hoursFor({ "440": [10, 20, 9_000] }, null), 0);
 });

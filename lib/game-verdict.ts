@@ -14,7 +14,7 @@ import { shrunkRate } from "./genre-preferences.ts";
  * in both arms of the preference experiment.
  */
 
-export type GameVerdict = [positive: number, total: number];
+export type GameVerdict = [positive: number, total: number, hours?: number];
 export type GameVerdicts = Record<string, GameVerdict>;
 
 /**
@@ -85,6 +85,36 @@ export function verdictPoints(
   const difference = logit(rate) - logit(baseline);
   const bound = difference < 0 ? MAX_VERDICT_PENALTY : MAX_VERDICT_POINTS;
   return bound * Math.tanh(difference / VERDICT_LOG_ODDS_SCALE);
+}
+
+/**
+ * How hard a game is played, across everybody, as an absolute quantity.
+ *
+ * The verdict beside this is a rate, and a rate cannot answer "how popular": it
+ * is capped at 1 by construction, so 50,000 hours and 5,000 hours score the
+ * same. Measured on live data both landed at about 1.12x the odds, which is why
+ * the best games in a library were never actually being pushed forward.
+ *
+ * Logarithmic, so it behaves the way popularity does. Nothing below the floor -
+ * a few hundred hours across every player is a handful of people, not a verdict
+ * - then it climbs steeply, and by the ceiling a game is being pushed as hard as
+ * this term can push. Between those two it roughly doubles its effect for every
+ * tenfold increase in hours.
+ */
+const POPULARITY_FLOOR_HOURS = 500;
+const POPULARITY_CEILING_HOURS = 50_000;
+export const MAX_POPULARITY_POINTS = 5;
+
+export function popularityPoints(hours: number | undefined | null): number {
+  if (!Number.isFinite(hours) || !hours || hours <= POPULARITY_FLOOR_HOURS) return 0;
+  const span = Math.log10(POPULARITY_CEILING_HOURS) - Math.log10(POPULARITY_FLOOR_HOURS);
+  const reached = Math.log10(hours) - Math.log10(POPULARITY_FLOOR_HOURS);
+  return MAX_POPULARITY_POINTS * Math.min(1, reached / span);
+}
+
+export function hoursFor(verdicts: GameVerdicts | null | undefined, steamAppId: number | null | undefined) {
+  if (!verdicts || !steamAppId) return 0;
+  return verdicts[String(steamAppId)]?.[2] ?? 0;
 }
 
 export function verdictFor(verdicts: GameVerdicts | null | undefined, steamAppId: number | null | undefined) {

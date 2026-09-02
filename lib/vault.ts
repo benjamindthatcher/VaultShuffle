@@ -1,7 +1,7 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
 import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
-import { verdictBaseline, verdictFor, verdictPoints, type GameVerdicts } from "./game-verdict.ts";
+import { hoursFor, popularityPoints, verdictBaseline, verdictFor, verdictPoints, type GameVerdicts } from "./game-verdict.ts";
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
 import { approximateAge, describeRecency, type RecencyEvidence } from "./recency.ts";
@@ -442,7 +442,13 @@ export function scoreVaultGame(
   // this game, not what you like, so it applies to every player and in both arms
   // of the preference experiment. Zero until a game has been met enough times to
   // have a verdict, which leaves its own merits deciding the pick.
-  const verdict = verdictPoints(verdictFor(verdicts, game.steamAppId), verdictReference);
+  // Two separate questions about the same game: how people treat it, and how
+  // much it is played. The first is a rate and says "unlike other games"; the
+  // second is an absolute quantity and says "a lot of people are putting real
+  // hours into this". A rate cannot carry the second - it is capped at 1 - which
+  // is why the most-played games in a library were only getting a 12% nudge.
+  const verdict = verdictPoints(verdictFor(verdicts, game.steamAppId), verdictReference)
+    + popularityPoints(hoursFor(verdicts, game.steamAppId));
 
   return { game, score, preferencePoints: preference.points, appealPoints: appeal.points + verdict, reasons: reasons.slice(0, 4) };
 }
