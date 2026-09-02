@@ -379,22 +379,14 @@
 }
 
 /* A family game is marked, not captioned. A small glyph in the corner of the
-   artwork is enough to recognise one while scanning a grid; the details panel
-   is where the sentence lives. The earlier version was a text pill with two
-   variants, which existed only to separate two sources of family data - there
-   is one now, so there is one mark. */
-.familyMark {
+   artwork is enough to recognise one while scanning a grid; the details panel is
+   where the sentence lives.
+   Only the placement lives here - the mark itself is components/shared/
+   FamilyMark, because the Family library card shows the same thing as a legend
+   and the two must not drift. */
+.familyMarkSlot {
   position: absolute;
   left: 7px;
   bottom: 7px;
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1px solid rgba(255, 196, 106, 0.5);
-  border-radius: 999px;
-  background: rgba(24, 18, 8, 0.82);
-  color: #ffc46a;
-  backdrop-filter: blur(3px);
   pointer-events: none;
 }

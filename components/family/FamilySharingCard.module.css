@@ -1,10 +1,15 @@
 /* Same sheet, radius and type scale as the other dashboard panels, so an
    experimental feature does not announce itself by looking foreign. The one
-   deliberate difference is the Experimental chip in the heading. */
+   deliberate difference is the Experimental chip in the heading.
+
+   The card is wide - full dashboard width - and the first version ignored that:
+   a 70ch paragraph on the left, a full-width input under it, and half the card
+   empty. It now works in two columns, with the thing you can do on the left and
+   the small print beside it rather than stacked in front of it. */
 .card {
   display: grid;
   gap: 16px;
-  padding: 16px;
+  padding: 16px 18px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: var(--vault-sheet-radius);
   background: var(--vault-sheet-surface);
@@ -14,15 +19,9 @@
 
 .header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
-}
-
-.headingGroup {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
 }
 
 .heading {
@@ -51,36 +50,35 @@
   text-transform: uppercase;
 }
 
-.subheading strong {
-  color: var(--vault-text);
-}
-
-.subheading {
-  margin: 0;
-  max-width: 70ch;
-  color: var(--vault-text-muted);
-  font-size: 0.78rem;
-  line-height: 1.45;
-}
-
+/* The one number that says the feature is doing something. Right-aligned in the
+   header so it reads as a running total rather than a label on the copy. */
 .count {
   flex: none;
   display: grid;
-  gap: 1px;
+  gap: 0;
   margin: 0;
   text-align: right;
+  line-height: 1.1;
 }
 
 .countValue {
   color: var(--vault-text);
-  font-size: 1.3rem;
+  font-size: 1.45rem;
   font-weight: 700;
-  line-height: 1;
 }
 
 .countLabel {
   color: var(--vault-text-muted);
   font-size: 0.7rem;
+}
+
+/* Shared small-caps label for the two sub-sections. */
+.sectionLabel {
+  color: var(--vault-text-muted);
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
 }
 
 /* ---------------------------------------------------------------- notes */
@@ -106,12 +104,51 @@
   color: var(--vault-text);
 }
 
-/* ---------------------------------------------------------------- tiers */
-
 /* -------------------------------------------------------------- members */
 
+.memberBlock {
+  display: grid;
+  gap: 9px;
+}
+
+.memberHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Re-check belongs with the people it re-checks, not marooned at the bottom of
+   the card under an unrelated form. */
+.recheck {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: 8px;
+  background: none;
+  color: var(--vault-text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.recheck:hover:not(:disabled) {
+  color: var(--vault-text);
+  border-color: rgba(192, 139, 255, 0.45);
+}
+
+.recheck:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Members are small and there are at most five, so they tile rather than
+   stacking full-width - one person should not occupy a whole dashboard row. */
 .members {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 320px));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -121,17 +158,18 @@
 .member {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 8px 10px;
+  gap: 10px;
+  padding: 8px 9px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: 10px;
+  background: rgba(0, 0, 0, 0.12);
 }
 
 .avatar,
 .avatarFallback {
   flex: none;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 8px;
   object-fit: cover;
 }
@@ -145,7 +183,7 @@
 
 .memberBody {
   display: grid;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
   flex: 1;
 }
@@ -177,12 +215,17 @@
   font-size: 0.72rem;
 }
 
+.memberMeta strong {
+  color: var(--vault-text);
+  font-weight: 600;
+}
+
 .remove {
   flex: none;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   border: 1px solid transparent;
   border-radius: 8px;
   background: none;
@@ -200,11 +243,32 @@
   cursor: default;
 }
 
-/* ------------------------------------------------------------- controls */
+/* ------------------------------------------------------- body: two columns */
+
+/* The offer and its control on the left, the small print beside it. Equal
+   columns: the input needs room for a profile URL, and three lines of
+   expectation need room not to wrap into six. */
+.body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 26px;
+  align-items: start;
+  padding-top: 14px;
+  border-top: 1px solid var(--vault-sheet-border);
+}
 
 .addRow {
   display: grid;
-  gap: 6px;
+  gap: 7px;
+  align-content: start;
+}
+
+/* Leads with what the feature gives, not what it withholds. */
+.pitch {
+  margin: 0 0 2px;
+  color: var(--vault-text);
+  font-size: 0.84rem;
+  line-height: 1.45;
 }
 
 .addLabel {
@@ -213,8 +277,7 @@
   font-weight: 600;
 }
 
-/* Stacks on a phone. The input needs the whole width to show a profile URL,
-   and traffic here is mobile-majority. */
+/* Wraps rather than shrinking the input to nothing on a narrow column. */
 .addControls {
   display: flex;
   flex-wrap: wrap;
@@ -222,61 +285,45 @@
 }
 
 .input {
-  flex: 1 1 220px;
+  flex: 1 1 200px;
   min-width: 0;
   padding: 9px 11px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: 9px;
-  background: rgba(0, 0, 0, 0.16);
+  background: rgba(0, 0, 0, 0.22);
   color: var(--vault-text);
   font-size: 0.82rem;
+}
+
+.input:focus-visible {
+  outline: none;
+  border-color: rgba(192, 139, 255, 0.6);
 }
 
 .input:disabled {
   opacity: 0.55;
 }
 
-.textarea {
-  width: 100%;
-  padding: 10px 11px;
-  border: 1px solid var(--vault-sheet-border);
-  border-radius: 9px;
-  background: rgba(0, 0, 0, 0.16);
-  color: var(--vault-text);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 0.74rem;
-  line-height: 1.5;
-  resize: vertical;
-}
-
-.primary,
-.secondary {
+.primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  padding: 9px 14px;
+  padding: 9px 16px;
+  border: 1px solid rgba(192, 139, 255, 0.5);
   border-radius: 9px;
+  background: rgba(192, 139, 255, 0.16);
+  color: var(--vault-text);
   font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 }
 
-.primary {
-  border: 1px solid rgba(192, 139, 255, 0.5);
-  background: rgba(192, 139, 255, 0.16);
-  color: var(--vault-text);
+.primary:hover:not(:disabled) {
+  background: rgba(192, 139, 255, 0.24);
 }
 
-.secondary {
-  justify-self: start;
-  border: 1px solid var(--vault-sheet-border);
-  background: none;
-  color: var(--vault-text-muted);
-}
-
-.primary:disabled,
-.secondary:disabled {
+.primary:disabled {
   opacity: 0.45;
   cursor: default;
 }
@@ -286,4 +333,70 @@
   color: var(--vault-text-muted);
   font-size: 0.72rem;
   line-height: 1.4;
+}
+
+/* ----------------------------------------------------------- expectations */
+
+/* Reference, not a warning. These are the three things that are true about a
+   family game, and they sit beside the control rather than blocking it - a rule
+   in place of a panel, so the aside reads as support and not as an alert. */
+.expect {
+  display: grid;
+  gap: 9px;
+  padding-left: 20px;
+  border-left: 1px solid var(--vault-sheet-border);
+}
+
+.expectList {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.expectList li {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.expectList svg {
+  flex: none;
+  margin-top: 1px;
+  color: #c08bff;
+  opacity: 0.85;
+}
+
+/* The real badge, inline, so "marked like this" is a demonstration rather than a
+   promise. Nudged down a touch to sit on the text baseline. */
+.markSample {
+  display: inline-block;
+  vertical-align: -6px;
+  margin-left: 6px;
+}
+
+/* -------------------------------------------------------------- narrow */
+
+/* One column, and the aside loses its rule and becomes a plain block under the
+   form. Traffic here is mobile-majority, so this is the layout most people get. */
+@media (max-width: 860px) {
+  .body {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 18px;
+  }
+
+  .expect {
+    padding-left: 0;
+    padding-top: 14px;
+    border-left: none;
+    border-top: 1px solid var(--vault-sheet-border);
+  }
+
+  .members {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

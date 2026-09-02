@@ -1,0 +1,14 @@
+/* Small, round, and warm enough to find at a glance on cold artwork without
+   competing with the title. Amber rather than the product's purple: purple is
+   the accent for things the player chose, and this is a fact about the game. */
+.mark {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 196, 106, 0.5);
+  border-radius: 999px;
+  background: rgba(24, 18, 8, 0.82);
+  color: #ffc46a;
+  backdrop-filter: blur(3px);
+}
