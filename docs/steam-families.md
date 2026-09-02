@@ -1,6 +1,7 @@
 # Steam Families
 
-Games the player can play but does not own. Experimental and off in production.
+Games the player can play but does not own. Experimental, live, and killable
+with one environment variable.
 Family games run through the normal pipeline and appear in the normal places -
 the feature is mostly about the three points where treating them identically to
 owned games would make the app say something false.
@@ -110,29 +111,58 @@ They are not a second class of object:
 
 ## Rollout state
 
-**Not live.** Two independent switches, both currently off:
+**Live.** The schema change was applied to production on 2026-09-02, statement by
+statement against the captured live definitions rather than via `supabase db
+push` (production has drifted from `supabase/migrations`). What was applied:
 
-1. `NEXT_PUBLIC_FAMILY_SHARING=1` in `.env.local`, set nowhere in Vercel. Every
-   route 404s and every surface renders nothing without it. Verified in a
-   production build: every `/api/family` endpoint returns 404 with the flag off
-   and 401 with it on.
-2. `supabase/migrations/20260901193000_share_a_family_library.sql` is written
-   down but **unapplied**. Production has drifted from `supabase/migrations`, so
-   it must not go in via `supabase db push` — capture the live definitions, apply
-   the statements one at a time, diff the result.
+- `user_games.access_source` (default `'owned'`, check-constrained), plus
+  `family_owner_steam_id` and `family_verified_at`. All 319,284 existing rows
+  came out `owned`.
+- `user_family_members`, with RLS, the five-member trigger, and service-role
+  grants only.
+- `upsert_user_family_games` and `remove_user_family_member_games`.
+- `user_games_with_catalog` rebuilt **from the live definition** with three
+  columns appended, so nothing reordered. Grants survived.
+- `notify pgrst, 'reload schema'` afterwards, then verified through PostgREST
+  rather than assumed — this project has been bitten by a stale schema cache
+  silently no-opping `rpc()` before.
 
-Because of (2), the migration avoids replacing `upsert_user_steam_games`, which
-is live and may not match the local file. Promoting a family row to owned when
-the player actually buys the game is handled in `lib/family-games.ts` instead.
+Verified against production data, inside rolled-back transactions:
 
-### Not yet exercised against a real account
+- The RPC writes family rows for a real account.
+- **A family sync cannot touch a game you own.** An owned row given to
+  `upsert_user_family_games` stayed `owned`, kept its playtime and its status,
+  and gained no family owner.
 
-There is no Supabase environment on the dev machine, so nothing signed-in can be
-run locally. The domain logic, and the filters are unit tested; the import paths, the RPCs and the rendered card have been type-checked
-and built but not executed. Specifically unverified:
+`NEXT_PUBLIC_FAMILY_SHARING=0` in Vercel plus a redeploy removes every surface
+and 404s every route. It does not undo the schema, and does not need to: the
+column defaults to `owned` and the Steam import filters on it, so an account
+that never uses the feature behaves exactly as before.
 
-- How many of a typical family member's public library land in `unknown` on the
-  first pass. This is the one that decides whether the feature feels good or
-  broken: a first add reading "487 shareable, 51 checking" is a success and one
-  reading "12 shareable, 526 checking" is not. It is answerable with a read-only
-  query against the live catalogue and has not been run.
+### How well the eligibility test can actually answer
+
+Measured against the live catalogue on 2026-09-02:
+
+| | |
+| --- | --- |
+| Catalogue rows | 25,907 |
+| With Steam categories (so judgeable) | 22,494 — **86.8%** |
+| Of those, carrying `Family Sharing` | 20,746 — **92.2%** |
+
+So the `unknown` bucket is small for anything the catalogue already knows, and
+the great majority of what it can judge comes back shareable. A first add should
+read like "480 look shareable, 78 still being checked", not the other way round.
+
+The caveat is games the catalogue has never seen at all: those are stubbed on the
+spot with no categories, so they land in `pending` until the nightly sweep
+enriches them. A family member with an unusually obscure library will therefore
+see a bigger "still being checked" number on the first pass than these figures
+suggest, and the re-check button is what resolves it.
+
+### Not yet exercised end to end
+
+Every environment variable lives in Vercel, so nothing signed-in runs on the dev
+machine. The domain logic and filters are unit tested, and the two RPCs have been
+exercised against production inside rolled-back transactions. Still unexecuted:
+the Steam profile lookup, the catalogue eligibility pass over a real shelf, and
+the rendered card. The first family member added will be the first time those run.
