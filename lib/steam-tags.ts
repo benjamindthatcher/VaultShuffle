@@ -1,5 +1,6 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { steamRetryAfter } from "@/lib/steam-api-error";
+import { promoteIfEndless } from "@/lib/endless-sync";
 
 const STEAMSPY_MIN_INTERVAL_MS = 1_100;
 const TAG_REFRESH_AFTER_MS = 30 * 24 * 60 * 60 * 1_000;
@@ -63,6 +64,7 @@ export async function processSteamTagQueue(limit = 60, deadlineAt = Date.now() +
   const rows = (data ?? []) as SteamTagQueueRow[];
 
   let updated = 0;
+  let endlessPromotions = 0;
   let failed = 0;
   let deferred = 0;
   let rateLimited = false;
@@ -97,6 +99,21 @@ export async function processSteamTagQueue(limit = 60, deadlineAt = Date.now() +
       if (updateError) throw updateError;
       updated += 1;
       consecutiveFailures = 0;
+
+      // Fresh tags are the one input the endless verdict really turns on, so this
+      // is where it gets re-asked. Never allowed to fail the tag write: the tags
+      // are the job, and a length verdict is an enhancement on top of them.
+      try {
+        const verdict = await promoteIfEndless(supabase, row.steam_appid, tags);
+        if (verdict.promoted) endlessPromotions += 1;
+      } catch (error) {
+        console.error(JSON.stringify({
+          level: "warning",
+          message: "Could not re-check the endless verdict after storing tags.",
+          steamAppId: row.steam_appid,
+          error: error instanceof Error ? error.message : String(error)
+        }));
+      }
     } catch (error) {
       if (error instanceof SteamTagRateLimitError) {
         const pending = rows.slice(index).map((entry) => entry.steam_appid);
@@ -142,6 +159,7 @@ export async function processSteamTagQueue(limit = 60, deadlineAt = Date.now() +
   return {
     claimed: rows.length,
     updated,
+    endlessPromotions,
     failed,
     deferred,
     rateLimited,

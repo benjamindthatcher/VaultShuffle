@@ -173,6 +173,9 @@ function tagHarness(response: Response, deadlineExpired = false) {
   const rows = [10, 20, 30].map((steam_appid) => ({ steam_appid, tags_failure_count: 0 }));
   const loaded = load("lib/steam-tags.ts", {
     "@/lib/steam-api-error": steamErrors,
+    // Stubbed so the tag worker's own writes stay the subject of these
+    // assertions. The verdict itself is covered in lib/endless-sync.test.ts.
+    "@/lib/endless-sync": { promoteIfEndless: async () => ({ promoted: false, witnesses: [] }) },
     "@/lib/supabase": { getSupabaseAdmin: () => ({
       rpc: async () => ({ data: rows, error: null }),
       from: () => {
