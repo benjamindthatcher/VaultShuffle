@@ -408,6 +408,26 @@ const SOLO_IDENTITY_SHARE = 0.65;
  * hours in a 5-hour game is a completionist, not a verdict - and a wide multiple,
  * because plenty of finite games are replayed.
  */
+/**
+ * How long a game's story has to be before its completion time can convict it.
+ *
+ * Ten hours, from the review described at the duration witness. Every false
+ * positive found there sat under eight hours of story and every true one over
+ * twenty-five, so the line has room on both sides.
+ */
+const DURATION_SHAPE_MIN_STORY_MINUTES = 600;
+
+/**
+ * A game where finishing a run is the whole point, so HowLongToBeat's story
+ * figure is describing one run rather than the game. These stay endless however
+ * short that figure is.
+ */
+const RUN_BASED_TAGS = new Set([
+  "roguelike", "roguelite", "rogue-lite", "rogue-like", "bullet heaven",
+  "arena shooter", "auto battler", "survivors-like", "score attack", "time attack"
+]);
+const RUN_BASED_SHARE = 0.4;
+
 const PLAYED_PAST_THE_END_MULTIPLE = 8;
 const PLAYED_PAST_THE_END_MIN_PLAYERS = 10;
 
@@ -449,7 +469,28 @@ export function endlessVerdict(input: ReplayabilityMetadata & {
     && [...LOOT_LOOP_GENRE_TAGS].some((tag) => shareOf(tag) >= LOOT_LOOP_SHARE);
   if (lootLoop) witnesses.push("loot-loop");
 
-  if (hasEndlessDurationShape(input)) witnesses.push("duration-shape");
+  // The ratio on its own convicts short games, and it is the story length rather
+  // than the ratio that tells the two apart. Reviewing the 247 promotions with
+  // fifty or more owners: SUPERHOT is 2.4h against 8.3x, Streets of Rage 4 is
+  // 3.2h against 9.3x, Baba Is You 7.5h against 6.2x - all finite games whose
+  // completionist figure is achievements, challenges and speedruns. Deep Rock
+  // Galactic is 44.7h against 10.7x, Garry's Mod 52.2h against 10.6x, Project
+  // Zomboid 59h against 7.3x. The ratios overlap completely; the story lengths
+  // do not overlap at all.
+  //
+  // Two rescues, because a floor alone also demotes genuinely endless short
+  // games: a run-based loop, where finishing a run is the whole game and the
+  // story figure describes one of them (Brotato, Dome Keeper, Dead Cells, FTL);
+  // and nothing to play alone, where the story figure describes a campaign the
+  // game does not have (Half-Life 2: Deathmatch, recorded at 2.5h).
+  if (hasEndlessDurationShape(input)) {
+    const storyMinutes = Number(input.mainStoryMinutes ?? 0);
+    const runBased = [...RUN_BASED_TAGS].some((tag) => shareOf(tag) >= RUN_BASED_SHARE);
+    const soloPlayable = categories.has("single-player") || categories.has("single player");
+    if (storyMinutes <= 0 || storyMinutes >= DURATION_SHAPE_MIN_STORY_MINUTES || runBased || !soloPlayable) {
+      witnesses.push("duration-shape");
+    }
+  }
 
   const storyHours = Number(input.mainStoryMinutes ?? 0) / 60;
   const median = Number(input.medianOwnerHours ?? 0);

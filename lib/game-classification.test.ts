@@ -380,3 +380,61 @@ test("our own hours can convict a game the tags and durations miss", () => {
   // Played twice over, which is a replay rather than a treadmill.
   assert.equal(endlessVerdict({ ...base, medianOwnerHours: 10, engagedOwners: 40 }).endless, false);
 });
+
+test("the completion ratio needs a long story behind it, or a reason to excuse a short one", () => {
+  // SUPERHOT: 2.4h story against 20h completionist, a ratio of 8.3, and it has
+  // credits. The ratio alone promoted it, along with Streets of Rage 4 (3.2h,
+  // 9.3x) and Baba Is You (7.5h, 6.2x).
+  const superhot = endlessVerdict({
+    tags: { Action: 1000, FPS: 900, "Time Manipulation": 850, Singleplayer: 800, Difficult: 500 },
+    genres: ["Action", "Indie"],
+    categories: ["Single-player", "Steam Achievements"],
+    mainStoryMinutes: 144,
+    completionistMinutes: 1200
+  });
+  assert.equal(superhot.endless, false);
+  assert.deepEqual(superhot.witnesses, []);
+
+  // Deep Rock Galactic is the same ratio band with 44.7h of story behind it.
+  assert.equal(endlessVerdict({
+    tags: { Dwarf: 6515, "Co-op": 2547, PvE: 2152, FPS: 2008 },
+    genres: ["Action"],
+    categories: ["Single-player", "Multi-player", "Co-op"],
+    mainStoryMinutes: 2683,
+    completionistMinutes: 28798
+  }).witnesses.includes("duration-shape"), true);
+});
+
+test("a short story is excused when a run is the whole game, or when there is no campaign", () => {
+  // Brotato: the story figure describes one run, and the run is the game.
+  const brotato = endlessVerdict({
+    tags: { Roguelite: 1000, "Bullet Heaven": 900, Action: 850, Singleplayer: 700 },
+    genres: ["Action", "Indie"],
+    categories: ["Single-player"],
+    mainStoryMinutes: 342,
+    completionistMinutes: 3000
+  });
+  assert.equal(brotato.endless, true);
+  assert.ok(brotato.witnesses.includes("duration-shape"));
+
+  // Half-Life 2: Deathmatch has no campaign at all; the 2.5h is HowLongToBeat
+  // describing something that does not exist.
+  const deathmatch = endlessVerdict({
+    tags: { FPS: 1000, Multiplayer: 950, Action: 900, Shooter: 880 },
+    genres: ["Action"],
+    categories: ["Multi-player", "Valve Anti-Cheat enabled"],
+    mainStoryMinutes: 150,
+    completionistMinutes: 1110
+  });
+  assert.equal(deathmatch.endless, true);
+  assert.ok(deathmatch.witnesses.includes("duration-shape"));
+
+  // A finite co-op beat 'em up is not excused by shipping co-op.
+  assert.equal(endlessVerdict({
+    tags: { "Beat 'em up": 1000, Action: 900, Singleplayer: 600, "Co-op": 550 },
+    genres: ["Action"],
+    categories: ["Single-player", "Multi-player", "Co-op", "Shared/Split Screen"],
+    mainStoryMinutes: 192,
+    completionistMinutes: 1794
+  }).endless, false);
+});
