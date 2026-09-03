@@ -9,7 +9,7 @@ import {
   preferenceGenresFor,
   shrunkRate,
   VAULT_PREFERENCE_MAX_POINTS,
-  type GenrePreference, capDecisionsPerUser } from "./genre-preferences.ts";
+  type GenrePreference, capDecisionsPerUser, playtimeTally } from "./genre-preferences.ts";
 
 function toIndex(rows: Array<Partial<GenrePreference> & { genre: string }>) {
   return buildGenrePreferenceIndex(rows.map((row) => ({
@@ -272,4 +272,47 @@ test("what survives the cap is what someone thinks now", () => {
   assert.deepEqual(capDecisionsPerUser(decisions, 2).map((row) => row.tag), ["recent", "middle"]);
   assert.deepEqual(capDecisionsPerUser(decisions, 0), []);
   assert.equal(capDecisionsPerUser([], 50).length, 0);
+});
+
+test("time given is what endorses a game, in proportion", () => {
+  // Twenty hours is full endorsement; two is the floor and endorses nothing;
+  // eleven sits halfway between them.
+  assert.deepEqual(playtimeTally(20, 0.5, 0.25), { positive: 0.5, total: 0.5 });
+  assert.deepEqual(playtimeTally(11, 0.5, 0.25), { positive: 0.25, total: 0.5 });
+  assert.deepEqual(playtimeTally(2, 0.5, 0.25), { positive: 0, total: 0.5 });
+
+  // Past the ceiling a game cannot earn more than full marks: a thousand hours
+  // is one person's habit, and the absolute figure is popularity's job.
+  assert.deepEqual(playtimeTally(1000, 0.5, 0.25), { positive: 0.5, total: 0.5 });
+});
+
+test("a game nobody starts is counted against, more quietly than one they quit", () => {
+  // Both are evidence with no endorsement. Bouncing off after twenty minutes is
+  // a statement; never opening it might only mean "not yet", so it weighs less.
+  const bounced = playtimeTally(0.4, 0.5, 0.25);
+  const untouched = playtimeTally(0, 0.5, 0.25);
+
+  assert.equal(bounced.positive, 0);
+  assert.equal(untouched.positive, 0);
+  assert.equal(bounced.total, 0.5);
+  assert.equal(untouched.total, 0.25);
+  assert.ok(untouched.total < bounced.total);
+});
+
+test("owning something unopened is a verdict only in volume", () => {
+  // One owner leaves a game near the population average once shrunk; the 349
+  // owners of Half-Life Deathmatch: Source, none of whom ever launched it, do
+  // not. This is the whole reason the unplayed rows are read at all.
+  const baseline = 0.3;
+  const one = playtimeTally(0, 0.5, 0.25);
+  assert.ok(shrunkRate(one.positive, one.total, baseline, 8) > baseline - 0.02);
+
+  const many = 349 * 0.25;
+  assert.ok(shrunkRate(0, many, baseline, 8) < 0.03);
+});
+
+test("a nonsense playtime says nothing rather than something wrong", () => {
+  // hours_played arrives from Steam and has been null and negative before now.
+  assert.deepEqual(playtimeTally(Number.NaN, 0.5, 0.25), { positive: 0, total: 0 });
+  assert.deepEqual(playtimeTally(-5, 0.5, 0.25), { positive: 0, total: 0 });
 });

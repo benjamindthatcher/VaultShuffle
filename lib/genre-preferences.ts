@@ -77,6 +77,37 @@ export function shrunkRate(positive: number, total: number, prior: number, stren
   return (positive + strength * prior) / (total + strength);
 }
 
+/**
+ * What one person owning one game says about that game.
+ *
+ * Two hours is the floor for endorsement: past it a game reads as endorsed in
+ * proportion to the time given, bouncing off at two counting for nothing and
+ * twenty counting fully.
+ *
+ * Below the floor still counts, against the game. One person owning something
+ * unopened says nothing - that is the normal state of a backlog and the reason
+ * this product exists - but three hundred people owning it unopened is not a
+ * backlog, it is a verdict, and it is the loudest thing in the database.
+ *
+ * Never-opened is weighted under launched-and-abandoned by the caller, because
+ * "not got to it yet" is a real second reading of silence and no reading at all
+ * of someone quitting after twenty minutes. Both are weak per row on purpose and
+ * arrive in enough volume to matter, which is what the shrinkage above is for.
+ */
+export const PLAYTIME_MIN_HOURS = 2;
+export const PLAYTIME_FULL_HOURS = 20;
+
+export function playtimeTally(hours: number, playedWeight: number, unplayedWeight: number) {
+  if (!Number.isFinite(hours) || hours < 0) return { positive: 0, total: 0 };
+  if (hours >= PLAYTIME_MIN_HOURS) {
+    const endorsement = Math.min(1, (hours - PLAYTIME_MIN_HOURS) / (PLAYTIME_FULL_HOURS - PLAYTIME_MIN_HOURS));
+    return { positive: playedWeight * endorsement, total: playedWeight };
+  }
+  // Launched and abandoned, or never launched at all. No endorsement either way;
+  // the two differ only in how much their silence is worth.
+  return { positive: 0, total: hours > 0 ? playedWeight : unplayedWeight };
+}
+
 export function preferenceKey(genre: string, contextMood: GenrePreferenceContext) {
   return `${contextMood}::${genre}`;
 }

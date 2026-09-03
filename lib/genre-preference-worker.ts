@@ -2,8 +2,9 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { statesAnOpinion } from "@/lib/draw-signal-precedence";
-import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
+import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, playtimeTally, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
 import { steamTagGenreLabels } from "@/lib/genres";
+import { isFamilyAccess, type AccessSource } from "@/lib/family-sharing";
 import type { VaultDrawEventType } from "@/lib/vault-history";
 import type { VaultMoodId } from "@/lib/demo-data";
 
@@ -26,16 +27,27 @@ const LOOKBACK_DAYS = 180;
  * evidence has not reached yet and gets out of the way once that evidence
  * arrives.
  *
- * Two hours is the floor: below that a game was launched and abandoned, which is
- * not a verdict either way. From there it reads as endorsement in proportion to
- * the time given - bouncing off at two hours counts against a game, twenty hours
- * counts fully for it. Owning something and never opening it says nothing at
- * all, and is not counted: that is the normal state of a backlog and the reason
- * this product exists.
+ * Two hours is the floor for endorsement: from there a game reads as endorsed in
+ * proportion to the time given, bouncing off at two counting against it and
+ * twenty counting fully for it.
+ *
+ * Below the floor still counts, against the game. One person owning something
+ * unopened says nothing - that is the normal state of a backlog and the reason
+ * this product exists - but three hundred people owning it unopened is not a
+ * backlog, it is a verdict, and it was the loudest thing in the database that
+ * nothing was listening to. Half-Life Deathmatch: Source has 349 owners here and
+ * not one has ever launched it; For Honor's public test client has 136 and
+ * scored exactly zero, an ordinary candidate, because it had never been drawn.
+ *
+ * Never-opened is weighted below launched-and-abandoned, because "not got to it
+ * yet" is a real second explanation for silence and no explanation at all for
+ * someone quitting after twenty minutes. Both are weak per row on purpose and
+ * arrive in enough volume to matter, which is what the shrinkage is for: at five
+ * owners a game stays near the population average, and by fifty it is being
+ * judged on what people did with it.
  */
 const PLAYTIME_WEIGHT = 0.5;
-const PLAYTIME_MIN_HOURS = 2;
-const PLAYTIME_FULL_HOURS = 20;
+const PLAYTIME_UNPLAYED_WEIGHT = 0.25;
 
 /** PostgREST caps a response at 1,000 rows, so every unbounded read pages. */
 const DECISION_PAGE_SIZE = 1000;
@@ -231,6 +243,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   const eventSignals = withOverrides(EVENT_SIGNALS as Record<string, Signal>, "event", weightOverrides);
   const decisionSignals = withOverrides(PURGE_SIGNALS, "decision", weightOverrides);
   const playtimeWeight = weightOverrides.get("playtime:per_owner")?.total ?? PLAYTIME_WEIGHT;
+  const unplayedWeight = weightOverrides.get("playtime:per_unplayed_owner")?.total ?? PLAYTIME_UNPLAYED_WEIGHT;
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString();
 
   // Paged explicitly. PostgREST caps a response at 1,000 rows and says nothing
@@ -377,7 +390,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   summary.deletedRows = await replacePreferences(supabase, rows);
   summary.globalRows = await replaceGlobals(supabase, rows);
   const gameHours = new Map<number, number>();
-  summary.playtimeRows = await addPlaytimeSignal(supabase, gameTallies, gameHours, playtimeWeight);
+  summary.playtimeRows = await addPlaytimeSignal(supabase, gameTallies, gameHours, playtimeWeight, unplayedWeight);
   summary.gameRows = await replaceGameGlobals(supabase, gameTallies, gameHours, new Date().toISOString());
   return summary;
 }
@@ -471,34 +484,60 @@ async function replaceGameGlobals(
  *
  * Paged on `id` rather than the app id: paging on a non-unique column can repeat
  * or skip rows across page boundaries, and this is the largest read the rebuild
- * makes.
+ * makes - by a distance, now that it reads every owned row rather than only the
+ * played ones. That took it from 95 pages to 325, and at a 300-second budget a
+ * rebuild that runs out part-way is not merely late: replaceGameGlobals upserts
+ * and then sweeps, so a timeout between the two leaves the table half-rebuilt.
+ *
+ * So the pages are fetched a wave at a time instead of one after another. The
+ * ranges are contiguous and fixed, so a wave can be issued without knowing how
+ * many rows there are: the first short page marks the end of the table, and any
+ * page after it comes back empty and folds in as nothing.
  */
+const PLAYTIME_PAGE_CONCURRENCY = 8;
 async function addPlaytimeSignal(
   supabase: AdminClient,
   gameTallies: Map<number, Tally>,
   gameHours: Map<number, number>,
-  playtimeWeight: number
+  playtimeWeight: number,
+  unplayedWeight: number
 ) {
   let counted = 0;
 
-  for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
+  const fetchPage = async (offset: number) => {
     const { data, error } = await supabase
       .from("user_games")
-      .select("id, catalog_steam_appid, hours_played")
-      .gte("hours_played", PLAYTIME_MIN_HOURS)
+      .select("catalog_steam_appid, hours_played, access_source")
+      // Every owned row, not just the played ones. Reading only past the two-hour
+      // floor meant the rebuild never saw the games nobody starts, which are the
+      // ones people write in about.
       .not("catalog_steam_appid", "is", null)
       .order("id")
       .range(offset, offset + DECISION_PAGE_SIZE - 1);
     if (error) throw error;
+    return (data ?? []) as Array<Record<string, unknown>>;
+  };
 
-    const page = (data ?? []) as Array<Record<string, unknown>>;
-    for (const row of page) {
+  for (let wave = 0; ; wave += 1) {
+    const pages = await Promise.all(
+      Array.from({ length: PLAYTIME_PAGE_CONCURRENCY }, (_, index) =>
+        fetchPage((wave * PLAYTIME_PAGE_CONCURRENCY + index) * DECISION_PAGE_SIZE))
+    );
+
+    for (const row of pages.flat()) {
       const steamAppId = Number(row.catalog_steam_appid);
-      const hours = Number(row.hours_played);
-      if (!Number.isFinite(steamAppId) || steamAppId <= 0 || !Number.isFinite(hours)) continue;
+      if (!Number.isFinite(steamAppId) || steamAppId <= 0) continue;
+      // A family row's hours are the owner's, not the borrower's, and a zero on
+      // an inferred row means "never told" rather than "never played" - which is
+      // the one thing this signal must not confuse. See lib/family-sharing.ts.
+      if (isFamilyAccess(row.access_source as AccessSource | null)) continue;
 
-      const endorsement = Math.min(1, Math.max(0, (hours - PLAYTIME_MIN_HOURS) / (PLAYTIME_FULL_HOURS - PLAYTIME_MIN_HOURS)));
-      addGameTally(gameTallies, steamAppId, playtimeWeight * endorsement, playtimeWeight);
+      const hours = Number(row.hours_played ?? 0);
+      if (!Number.isFinite(hours) || hours < 0) continue;
+
+      const tally = playtimeTally(hours, playtimeWeight, unplayedWeight);
+      addGameTally(gameTallies, steamAppId, tally.positive, tally.total);
+
       // The hours themselves, not a rate. A rate cannot tell 50,000 hours from
       // 5,000 - it is capped at 1 either way - which is why popularity needs an
       // absolute number of its own. Every hour counts here, including the ones
@@ -508,7 +547,7 @@ async function addPlaytimeSignal(
       counted += 1;
     }
 
-    if (page.length < DECISION_PAGE_SIZE) break;
+    if (pages.some((page) => page.length < DECISION_PAGE_SIZE)) break;
   }
 
   return counted;
