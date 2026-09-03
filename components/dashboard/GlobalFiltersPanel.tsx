@@ -223,60 +223,75 @@ export function GlobalFiltersPanel() {
             </button>
           </div>
         </div>
-      </div>
 
-      {offered.length ? (
-        <div className={styles.exclusions}>
-          <button
-            type="button"
-            className={styles.exclusionsToggle}
-            aria-expanded={showExclusions}
-            onClick={() => setShowExclusions((open) => !open)}
-          >
+        {/* One more group, not a footer. It is the widest control here and the
+            only one that folds away, but it answers the same kind of question
+            as the rest, so it wears the same label, the same well and the same
+            chips - and it spans the grid rather than sitting under it behind a
+            rule with its title sharing a line with a sentence. */}
+        {offered.length ? (
+          <div className={styles.group} data-width="full">
             <span className={styles.groupLabel} id="global-filter-exclusions">
               Never show me
               {excludedCount ? <span className={styles.groupDot} aria-hidden="true" /> : null}
             </span>
-            <span className={styles.exclusionsSummary}>
-              {excludedCount
-                ? `${excludedCount} ${excludedCount === 1 ? "kind" : "kinds"} of game hidden`
-                : "Rule out whole kinds of game"}
-            </span>
-            <VaultIcon name={showExclusions ? "chevron-up" : "chevron-down"} size={15} />
-          </button>
 
-          {showExclusions ? (
-            <div className={styles.exclusionBody}>
-              <div className={`${styles.choices} ${styles.exclusionChoices}`} role="group" aria-labelledby="global-filter-exclusions">
-                {offered.map((category) => {
-                  const on = globalFilters.excluded.includes(category.id);
-                  return (
-                    <button
-                      key={category.id}
-                      type="button"
-                      className={on ? styles.choiceOn : styles.choice}
-                      aria-pressed={on}
-                      onClick={() => toggleExclusion(category.id)}
-                    >
-                      {category.label}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className={`${styles.choices} ${styles.exclusionWell}`}>
+              {/* Collapsed, the well holds a single full-width control, exactly
+                  as Reviews does. Opened, the chips unfold inside the same well
+                  rather than arriving as a separate block. */}
+              <button
+                type="button"
+                className={showExclusions ? `${styles.exclusionsToggle} ${styles.exclusionsToggleOpen}` : styles.exclusionsToggle}
+                aria-expanded={showExclusions}
+                aria-controls="global-filter-exclusion-chips"
+                onClick={() => setShowExclusions((open) => !open)}
+              >
+                <span className={styles.exclusionsSummary}>
+                  {excludedCount
+                    ? `${excludedCount} ${excludedCount === 1 ? "kind" : "kinds"} of game hidden`
+                    : "Rule out whole kinds of game"}
+                </span>
+                <VaultIcon name={showExclusions ? "chevron-up" : "chevron-down"} size={15} />
+              </button>
 
-              {excludedCount ? (
-                <button
-                  type="button"
-                  className={styles.exclusionsReset}
-                  onClick={() => setGlobalFilters({ ...globalFilters, excluded: [] })}
+              {showExclusions ? (
+                <div
+                  id="global-filter-exclusion-chips"
+                  className={styles.exclusionChoices}
+                  role="group"
+                  aria-labelledby="global-filter-exclusions"
                 >
-                  Show everything again
-                </button>
+                  {offered.map((category) => {
+                    const on = globalFilters.excluded.includes(category.id);
+                    return (
+                      <button
+                        key={category.id}
+                        type="button"
+                        className={on ? styles.choiceOn : styles.choice}
+                        aria-pressed={on}
+                        onClick={() => toggleExclusion(category.id)}
+                      >
+                        {category.label}
+                      </button>
+                    );
+                  })}
+                </div>
               ) : null}
             </div>
-          ) : null}
-        </div>
-      ) : null}
+
+            {showExclusions && excludedCount ? (
+              <button
+                type="button"
+                className={styles.exclusionsReset}
+                onClick={() => setGlobalFilters({ ...globalFilters, excluded: [] })}
+              >
+                Show everything again
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
     </section>
   );
 }

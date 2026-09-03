@@ -297,6 +297,107 @@
   background: #ffffff;
 }
 
+/* ------------------------------------------------------------- exclusions */
+
+/* The widest control here, and the only one that folds away. It used to sit
+   below the grid behind its own rule, with its label sharing a line with a
+   sentence - which made the largest control in the panel the one that looked
+   least like part of it. It is a group like the others now: a label, a well,
+   and chips inside the well. It only spans the grid because twenty-odd chips
+   cannot share a sixth of it. */
+.group[data-width="full"] {
+  grid-column: 1 / -1;
+}
+
+/* Stacked rather than flowed: this well holds the row that opens it and, once
+   open, the chips underneath. */
+.exclusionWell {
+  display: grid;
+  gap: 3px;
+}
+
+/* Collapsed, this is the whole control - one full-width row in a well, the
+   same shape the Reviews switch has. */
+.exclusionsToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 8px 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-align: left;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.exclusionsToggle:hover {
+  background: rgba(168, 85, 247, 0.14);
+  color: var(--vault-text);
+}
+
+/* Open, it heads the chips below it rather than offering itself to be pressed,
+   so it stops looking like one of them. */
+.exclusionsToggleOpen {
+  color: var(--vault-text);
+}
+
+/* Pushes the chevron to the far edge, so the row has a consistent hit target
+   and the summary reads as the middle of one control rather than a caption. */
+.exclusionsSummary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exclusionsToggle svg {
+  flex: none;
+  color: var(--vault-text-muted);
+}
+
+/* A grid, not a wrapping row.
+   The chips would inherit flex: 1 1 auto from the shared chip rule, which is
+   right for the groups above - three or four chips stretching to fill one row
+   reads as one segmented control. With twenty-three chips over several rows it
+   is not: each row divides its own leftover space, so ten chips in the first
+   row stayed compact while six in the last ballooned to 204px, and the gaps
+   came out different on every line.
+   Fixed tracks instead, so every chip is the same width and the rows line up.
+   160px clears the widest label at its natural size (157px, "Punishing
+   difficulty"), which gives six columns at the panel's full width and two on a
+   phone. flex is ignored inside a grid container, so the shared rule stops
+   applying here without needing to be overridden. */
+.exclusionChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 3px;
+}
+
+/* Undoes the whole group at once, so it sits under the well rather than in it:
+   it is not one more thing to rule out. */
+.exclusionsReset {
+  justify-self: start;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--vault-text-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.exclusionsReset:hover {
+  background: rgba(168, 85, 247, 0.14);
+  color: var(--vault-text);
+}
+
 /* Only at this width. It is the one size where every group fits on a single
    line, so the chips can divide their well between them and each control fills
    its cell. Below it they still wrap, and letting them grow there leaves a
@@ -313,6 +414,8 @@
 .choiceCurrent:focus-visible,
 .choiceOn:focus-visible,
 .switch:focus-visible,
+.exclusionsToggle:focus-visible,
+.exclusionsReset:focus-visible,
 .clear:focus-visible {
   outline: 2px solid var(--vault-control-focus);
   outline-offset: 2px;
@@ -325,6 +428,8 @@
   .switch,
   .switchTrack,
   .switchKnob,
+  .exclusionsToggle,
+  .exclusionsReset,
   .clear {
     transition: none;
   }
@@ -361,105 +466,9 @@
   .choice,
   .choiceCurrent,
   .choiceOn,
-  .switch {
+  .switch,
+  .exclusionsToggle,
+  .exclusionsReset {
     min-height: 40px;
   }
-}
-
-/* ------------------------------------------------------------- exclusions */
-
-/* The only subtractive control here, and the largest. It sits below the grid
-   rather than inside it because it is a list of independent statements rather
-   than one question with one answer, and because collapsed it has to read as a
-   single row however wide the panel gets. */
-.exclusions {
-  margin-top: 11px;
-  padding-top: 11px;
-  border-top: 1px solid var(--vault-card-border);
-  display: grid;
-  gap: 9px;
-}
-
-.exclusionsToggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
-  padding: 4px 2px;
-  border: 0;
-  background: transparent;
-  color: var(--vault-text-soft);
-  text-align: left;
-  transition: color 140ms ease;
-}
-
-.exclusionsToggle:hover {
-  color: var(--vault-text);
-}
-
-/* Pushes the chevron to the far edge, so the row has a consistent hit target
-   and the summary reads as the middle of one control rather than a caption. */
-.exclusionsSummary {
-  flex: 1;
-  min-width: 0;
-  color: var(--vault-text-muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.exclusionsToggle svg {
-  flex: none;
-  color: var(--vault-text-muted);
-}
-
-/* One well, matching every other well in this panel. The chips flow and fill
-   each row edge to edge, so there is no ragged short column and no dead space
-   under a group that happened to hold fewer of them. */
-.exclusionBody {
-  display: grid;
-  gap: 9px;
-}
-
-/* A grid, not a wrapping row.
-   The chips inherit flex: 1 1 auto from the shared .choices well, which is
-   right for the groups above - three or four chips stretching to fill one row
-   reads as one segmented control. With twenty-three chips over several rows it
-   is not: each row divides its own leftover space, so ten chips in the first
-   row stayed compact while six in the last ballooned to 204px, and the gaps
-   came out different on every line.
-   Fixed tracks instead, so every chip is the same width and the rows line up.
-   160px clears the widest label at its natural size (157px, "Punishing
-   difficulty"), which gives six columns at the panel's full width and two on a
-   phone. flex is ignored inside a grid container, so the shared rule stops
-   applying here without needing to be overridden. */
-.exclusionChoices {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-}
-
-.exclusionsReset {
-  justify-self: start;
-  min-height: 30px;
-  padding: 0 11px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: 7px;
-  background: transparent;
-  color: var(--vault-text-muted);
-  font-size: 0.76rem;
-  font-weight: 650;
-  transition: background 140ms ease, color 140ms ease;
-}
-
-.exclusionsReset:hover {
-  background: rgba(168, 85, 247, 0.14);
-  color: var(--vault-text);
-}
-
-.exclusionsToggle:focus-visible,
-.exclusionsReset:focus-visible {
-  outline: 2px solid var(--vault-accent);
-  outline-offset: 2px;
 }
