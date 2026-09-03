@@ -204,7 +204,7 @@ export function GlobalFiltersPanel() {
             Reviews
             {globalFilters.hidePoorlyReviewed ? <span className={styles.groupDot} aria-hidden="true" /> : null}
           </span>
-          <div className={styles.choices}>
+          <div className={`${styles.choices} ${styles.reviewsWell}`}>
             {/* A switch, not a chip. There is no second option for it to be one
                 of, and drawn as a chip it looked like a choice with the rest of
                 its row missing. */}

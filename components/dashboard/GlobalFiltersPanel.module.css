@@ -240,7 +240,7 @@
 /* A single yes/no was drawn as one lonely chip in a full-width row of its own,
    which read as a choice with its other options missing. */
 .switch {
-  flex: 1;
+  flex: none;
   display: inline-flex;
   align-items: center;
   gap: 9px;
@@ -265,6 +265,15 @@
   background: var(--vault-tile-selected-surface);
   color: var(--vault-text);
   box-shadow: inset 0 0 0 1px var(--vault-tile-selected-border);
+}
+
+/* Every other well is full of chips dividing it between them, so it fills its
+   cell. This one holds a single control with nothing to divide anything with,
+   and stretched to the same width it read as a rail of empty space waiting for
+   options that were never coming. It is the size of its switch instead. */
+.reviewsWell {
+  justify-self: start;
+  max-width: 100%;
 }
 
 .switchTrack {
