@@ -7,7 +7,6 @@ import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
-import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
 import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
 import { ManualProfileAccessNotice } from "@/components/shared/ManualProfileAccessNotice";
@@ -48,7 +47,6 @@ export default function DashboardPage() {
     setDetailsGameId(null);
     setDetailsSurface(null);
   }
-  const enrichmentNotice = useLibraryEnrichmentNotice();
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
 
@@ -195,11 +193,9 @@ export default function DashboardPage() {
           {/* The only place in the app that carries these. Everywhere else is
               for doing one thing, and a strip asking you to go and do something
               else at the top of it was in the way. Still capped and ordered:
-              something wrong with the import, then something to action, then
-              ambient news. */}
+              something to action, then ambient news. */}
           <NoticeStack
             notices={[
-              { id: "enrichment", node: enrichmentNotice },
               { id: "completion", node: completionNotice },
               { id: "welcome", node: welcomeNotice }
             ]}
