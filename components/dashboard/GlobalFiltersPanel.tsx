@@ -236,7 +236,7 @@ export function GlobalFiltersPanel() {
               {excludedCount ? <span className={styles.groupDot} aria-hidden="true" /> : null}
             </span>
 
-            <div className={`${styles.choices} ${styles.exclusionWell}`}>
+            <div className={showExclusions ? `${styles.choices} ${styles.exclusionWell} ${styles.exclusionWellOpen}` : `${styles.choices} ${styles.exclusionWell}`}>
               {/* Collapsed, the well holds a single full-width control, exactly
                   as Reviews does. Opened, the chips unfold inside the same well
                   rather than arriving as a separate block. */}

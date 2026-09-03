@@ -313,7 +313,14 @@
    open, the chips underneath. */
 .exclusionWell {
   display: grid;
-  gap: 3px;
+  gap: 6px;
+}
+
+/* Collapsed, the well is one row and matches the others exactly. Opened, it
+   holds a grid whose own gutters are 6px, and a 3px rim around that reads as a
+   mistake rather than a margin. */
+.exclusionWellOpen {
+  padding: 6px;
 }
 
 /* Collapsed, this is the whole control - one full-width row in a well, the
@@ -375,7 +382,31 @@
 .exclusionChoices {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 3px;
+  gap: 6px;
+}
+
+/* Twenty-three transparent chips sharing one dark surface read as a block of
+   text rather than a set of controls - the eye has nothing to cut on. Three or
+   four in a row can go without an edge because the row itself is the shape;
+   four rows of six cannot. So each option gets a tile, and the gap between them
+   widens until the well behind shows through as a gutter. */
+.exclusionChoices .choice {
+  background: var(--vault-card-surface);
+  box-shadow: inset 0 0 0 1px rgba(226, 215, 255, 0.07);
+}
+
+.exclusionChoices .choice:hover {
+  background: rgba(168, 85, 247, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(198, 150, 255, 0.3);
+}
+
+/* Ruled out has to carry further here than it does above. The selected purple
+   was picked to stand against a transparent chip on a dark well; against a
+   tile that is already purple it barely moves, and this is the one control in
+   the panel you scan for what is switched ON rather than which option is
+   current. */
+.exclusionChoices .choiceOn {
+  background: rgba(168, 85, 247, 0.34);
 }
 
 /* Undoes the whole group at once, so it sits under the well rather than in it:
