@@ -7,6 +7,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./ManagePinsDialog.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type Props = {
   pinnedGames: DemoGame[];
@@ -104,7 +105,7 @@ export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "L
           if (!game) return <div key={index} className={styles.emptySlot}><span>{index + 1}</span>Empty slot</div>;
           const selected = selectedId === game.id;
           return <button key={game.id} type="button" disabled={saving} className={selected ? `${styles.slot} ${styles.slotSelected}` : styles.slot} onClick={() => candidate ? setSelectedId(game.id) : void removePin(game.id)} aria-label={candidate ? `Replace ${game.title}` : `Remove pin from ${game.title}`}>
-            <span className={styles.art}><Artwork src={game.bannerUrl} sizes="74px" /></span><span><small>Slot {index + 1}</small><strong>{game.title}</strong></span>{candidate ? <span className={styles.selectMark}>{selected ? <VaultIcon name="check" size={18} /> : null}</span> : <span className={styles.remove}>Remove</span>}
+            <span className={styles.art}><Artwork src={game.bannerUrl} sizes="74px" /><FamilyGameMark game={game} overlay /></span><span><small>Slot {index + 1}</small><strong>{game.title}</strong></span>{candidate ? <span className={styles.selectMark}>{selected ? <VaultIcon name="check" size={18} /> : null}</span> : <span className={styles.remove}>Remove</span>}
           </button>;
         })}
       </div>

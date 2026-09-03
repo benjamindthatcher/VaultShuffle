@@ -9,6 +9,7 @@ import { Artwork } from "@/components/shared/Artwork";
 import { buildBacklogStats, formatMoney } from "@/lib/backlog-stats";
 import { completionMilestone } from "@/lib/completion-celebration";
 import styles from "./CompletionCelebration.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type Props = {
   game: DemoGame;
@@ -49,7 +50,7 @@ export function CompletionCelebration({ game, games, pin, onDismiss, onUndo }: P
       ) : null}
 
       <div className={styles.card}>
-        <span className={styles.art}><Artwork src={game.bannerUrl} sizes="120px" /></span>
+        <span className={styles.art}><Artwork src={game.bannerUrl} sizes="120px" /><FamilyGameMark game={game} overlay /></span>
         <div className={styles.body}>
           <p className={styles.headline}><VaultIcon name="completed" size={17} />{milestone.headline}</p>
           <p className={styles.title}>{game.title}</p>

@@ -378,15 +378,3 @@
   .selectMark { transition: none; }
 }
 
-/* A family game is marked, not captioned. A small glyph in the corner of the
-   artwork is enough to recognise one while scanning a grid; the details panel is
-   where the sentence lives.
-   Only the placement lives here - the mark itself is components/shared/
-   FamilyMark, because the Family library card shows the same thing as a legend
-   and the two must not drift. */
-.familyMarkSlot {
-  position: absolute;
-  left: 7px;
-  bottom: 7px;
-  pointer-events: none;
-}

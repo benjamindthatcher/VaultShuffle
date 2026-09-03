@@ -11,6 +11,7 @@ import { PinnedPlaytimeRefresh } from "@/components/shared/PinnedPlaytimeRefresh
 import { pinInstrument, pinProgressHours } from "@/lib/completion-celebration";
 import { formatTrackedHours } from "@/lib/pinned-run";
 import styles from "./PinnedCommitments.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 /**
  * What a pin has actually amounted to.
@@ -118,7 +119,7 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
                 ><VaultIcon name="close" size={14} /></button>
               ) : null}
               <button type="button" className={styles.card} onClick={() => onSelect?.(game.id)} disabled={!onSelect}>
-                <span className={styles.art}><Artwork src={game.bannerUrl} sizes="180px" /></span>
+                <span className={styles.art}><Artwork src={game.bannerUrl} sizes="180px" /><FamilyGameMark game={game} overlay /></span>
                 <span className={styles.body}>
                   <strong>{game.title}</strong>
                   <small>{label ?? `${Math.round(game.hoursPlayed)}h played`}</small>

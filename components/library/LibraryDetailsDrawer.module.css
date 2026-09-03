@@ -786,3 +786,12 @@
   flex: none;
   color: #ffc46a;
 }
+
+/* The mark rides with the title in both variants of this panel, so a shared
+   game is identified before anything below it is read. */
+.title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}

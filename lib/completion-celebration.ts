@@ -1,6 +1,7 @@
 import type { DemoGame } from "./demo-data.ts";
 import type { VaultPin } from "./vault-state.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
+import { playtimeIsUnknown } from "./family-sharing.ts";
 import { isEndlessProgress } from "./progress-display.ts";
 
 export type CompletionMilestone = {
@@ -10,6 +11,10 @@ export type CompletionMilestone = {
 
 /** Hours put in since the game was pinned, or null when there is nothing to compare against. */
 export function pinProgressHours(game: DemoGame, pin: VaultPin | undefined) {
+  // A family game's hours belong to whoever owns it, so there is no "since you
+  // pinned it" to measure. Returning 0 would read as "you promised to play this
+  // and then did not", which is an accusation built out of a number we never had.
+  if (playtimeIsUnknown(game)) return null;
   if (!pin || pin.hoursAtPin === null || pin.hoursAtPin === undefined) return null;
   return Math.max(0, Number(game.hoursPlayed ?? 0) - pin.hoursAtPin);
 }
@@ -29,6 +34,10 @@ export function pinProgressHours(game: DemoGame, pin: VaultPin | undefined) {
  */
 export function pinProgressBar(game: DemoGame, pin: VaultPin | undefined) {
   if (isEndlessProgress(game)) return null;
+  // Same reason as the hours above: this percentage is inferred from playtime,
+  // and a family game has none. Marking it complete is still the player stating
+  // a fact, so that keeps its full dial.
+  if (playtimeIsUnknown(game) && game.status !== "Completed") return null;
   // Marking a game complete is the player stating a fact, and it holds whether
   // or not anyone ever estimated the game's length - the same rule progressLabel
   // applies. Reading completionPercent here instead cost a finished game its

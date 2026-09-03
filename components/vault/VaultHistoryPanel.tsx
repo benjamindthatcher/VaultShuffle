@@ -6,6 +6,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import type { VaultDraw } from "@/lib/vault-history";
 import shell from "./DeckPanel.module.css";
 import styles from "./VaultHistoryPanel.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type Props = {
   draws: VaultDraw[];
@@ -45,6 +46,7 @@ export function VaultHistoryPanel({ draws, games, isLive, onClear, onViewDetails
         <div className={styles.detail}>
           <div className={styles.detailArtwork}>
             <Artwork src={game.bannerUrl} sizes="(max-width: 700px) 100vw, 320px" />
+            <FamilyGameMark game={game} overlay />
           </div>
           <div className={styles.detailCopy}>
             <p className={styles.detailSetup}>{setupLabel(selected)}</p>
@@ -64,7 +66,7 @@ export function VaultHistoryPanel({ draws, games, isLive, onClear, onViewDetails
                   return (
                     <li key={draw.id}>
                       <button type="button" className={styles.entry} onClick={() => setSelectedId(draw.id)}>
-                        {entryGame ? <span className={styles.thumb}><Artwork src={entryGame.bannerUrl} sizes="96px" /></span> : null}
+                        {entryGame ? <span className={styles.thumb}><Artwork src={entryGame.bannerUrl} sizes="96px" /><FamilyGameMark game={entryGame} overlay /></span> : null}
                         <span className={styles.entryCopy}>
                           <strong>{entryGame?.title ?? `Steam App ${draw.steamAppId}`}</strong>
                           <small>{setupLabel(draw)}</small>

@@ -727,7 +727,7 @@ function labelForMood(mood: VaultMoodId) {
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }
 
-export type VaultMatchInsightKind = "selection" | "session" | "mood" | "goal" | "taste" | "appeal" | "dormancy" | "genre";
+export type VaultMatchInsightKind = "selection" | "session" | "mood" | "goal" | "taste" | "appeal" | "dormancy" | "genre" | "family";
 
 export type VaultMatchInsight = {
   kind: VaultMatchInsightKind;
@@ -791,6 +791,25 @@ export function buildVaultMatchExplanation({
   const remaining = remainingHours(game);
   const totalHours = totalPlaythroughHours(game);
 
+  // Where the game came from, before anything about why it suits tonight.
+  //
+  // Built first and given the top strength so it always survives the trim to
+  // four. Being handed somebody else's game is the single most surprising thing
+  // a draw can do - the player does not own it, may not remember they can play
+  // it, and will lose it if that person leaves the family. That is not small
+  // print to be discovered in a details panel.
+  if (playtimeIsUnknown(game)) {
+    const owner = game.familyOwnerName?.trim();
+    insights.push({
+      kind: "family",
+      strength: "perfect",
+      headline: owner ? `From ${owner}'s library` : "From the family shelf",
+      // One line. Every detail here is clamped to a single line, so a sentence
+      // that runs long is a sentence nobody reads the end of.
+      detail: "Shared with you, so it has never been in your own backlog."
+    });
+  }
+
   // Rank is not a tile. It says the same thing as the score in the header
   // beside it, and it was taking one of the few slots that could have carried a
   // reason the player did not already know.
@@ -844,21 +863,17 @@ export function buildVaultMatchExplanation({
     });
   }
 
-  if (goal === "new") {
+  // Family games are skipped here, not softened: the family insight above
+  // already says the same thing, and better, so a second tile would spend one of
+  // four slots agreeing with the first.
+  if (goal === "new" && !playtimeIsUnknown(game)) {
     insights.push({
       kind: "goal",
-      strength: playtimeIsUnknown(game) || canClaimNeverPlayed(game) ? "perfect" : "strong",
-      // A family game gets its provenance instead of a playtime claim. It is the
-      // true thing we can say, and it is the more interesting one anyway: this
-      // is a game they can play and probably forgot they had access to.
-      headline: playtimeIsUnknown(game)
-        ? "From the family shelf"
-        : canClaimNeverPlayed(game) ? "Never played" : "Barely sampled",
-      detail: playtimeIsUnknown(game)
-        ? "Shared from a family library, so it has never sat on your own shelf being ignored."
-        : canClaimNeverPlayed(game)
-          ? "It has been sitting in your library waiting for exactly this."
-          : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
+      strength: canClaimNeverPlayed(game) ? "perfect" : "strong",
+      headline: canClaimNeverPlayed(game) ? "Never played" : "Barely sampled",
+      detail: canClaimNeverPlayed(game)
+        ? "It has been sitting in your library waiting for exactly this."
+        : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
     });
   }
 

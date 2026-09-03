@@ -12,6 +12,7 @@ import { formatMoney } from "@/lib/backlog-stats";
 import { trackCompletionClaim, trackCompletionDismissed } from "@/lib/completion-tracking";
 import { PageHeading } from "@/components/shared/PageHeading";
 import styles from "./finished.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 /**
  * Claiming what you already finished.
@@ -245,7 +246,7 @@ export default function FinishedPage() {
                     aria-label={`Select ${candidate.game.title}`}
                   />
                 </span>
-                <span className={styles.art}><Artwork src={candidate.game.bannerUrl} sizes="104px" /></span>
+                <span className={styles.art}><Artwork src={candidate.game.bannerUrl} sizes="104px" /><FamilyGameMark game={candidate.game} overlay /></span>
                 <span className={styles.body}>
                   <strong>{candidate.game.title}</strong>
                   <small>{candidate.reason}</small>

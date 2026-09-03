@@ -4,6 +4,7 @@
 .mark {
   display: grid;
   place-items: center;
+  flex: none;
   width: 22px;
   height: 22px;
   border: 1px solid rgba(255, 196, 106, 0.5);
@@ -11,4 +12,15 @@
   background: rgba(24, 18, 8, 0.82);
   color: #ffc46a;
   backdrop-filter: blur(3px);
+}
+
+/* Bottom-left of a piece of artwork. Bottom-left because the top-right corner
+   is already spoken for on most of these surfaces - menus, remove buttons,
+   selection ticks - and the bottom-left is the one corner nothing else uses. */
+.overlay {
+  position: absolute;
+  left: 7px;
+  bottom: 7px;
+  z-index: 2;
+  pointer-events: none;
 }

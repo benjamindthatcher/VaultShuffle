@@ -43,6 +43,7 @@ import { matchesSmartPreset } from "@/lib/smart-collections";
 import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import styles from "./vault.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type VaultDrawState = "idle" | "focusing" | "revealing" | "revealed" | "error";
 type VaultSetupStep = "session" | "mood" | "goal";
@@ -978,6 +979,7 @@ export default function VaultPage() {
           <div className={styles.resultTop}>
             <div className={styles.resultArtwork}>
               <Artwork src={currentPick.bannerUrl} sizes="(max-width: 820px) 100vw, 36vw" priority fit="cover" />
+              <FamilyGameMark game={currentPick} overlay />
             </div>
             <div className={styles.resultIntro}>
               {/* Beside the name rather than over the artwork, where it was covering the

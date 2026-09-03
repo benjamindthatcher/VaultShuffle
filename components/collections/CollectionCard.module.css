@@ -109,3 +109,13 @@
   color: var(--vault-text-muted);
   font-size: 0.8rem;
 }
+
+/* These thumbnails are 52px, so the standard 22px mark would cover a third of
+   one. Scaled down and tucked tighter - it is a hint that a collection contains
+   shared games, not the primary place anybody reads that. */
+.thumb [class*="mark"] {
+  left: 3px;
+  bottom: 3px;
+  width: 16px;
+  height: 16px;
+}

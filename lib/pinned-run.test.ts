@@ -78,3 +78,45 @@ test("omits percentage and remaining-time claims for endless games", () => {
   assert.equal(summary.percent, null);
   assert.equal(summary.remainingLabel, null);
 });
+
+test("a pinned family game measures nothing and says why", () => {
+  // The bug this pins down: hoursPlayed and completionPercent are both 0 on a
+  // family row because Steam reports the owner's hours, not yours. Read
+  // literally that produced a 0% dial beside "No play since pinning" - an
+  // accusation assembled entirely from numbers we never had.
+  const summary = buildPinnedRunSummary(
+    game({ accessSource: "family", familyOwnerName: "Draygo", hoursPlayed: 0, completionPercent: 0 }),
+    { gameId: "game-1", pinnedAt: "2026-09-01T00:00:00.000Z", hoursAtPin: 0 }
+  );
+
+  assert.equal(summary.percent, null);
+  assert.equal(summary.trackedHours, null);
+  assert.equal(summary.trackedHoursLabel, null);
+  // No confident "0h total playtime", and no "99h left" implying none is done.
+  assert.equal(summary.totalPlaytimeLabel, null);
+  assert.equal(summary.remainingLabel, null);
+  assert.equal(summary.sharedFrom, "Draygo");
+  assert.match(summary.headline, /family shelf/i);
+  assert.doesNotMatch(summary.headline, /no play/i);
+});
+
+test("an owned pinned game is unaffected by the family branch", () => {
+  const summary = buildPinnedRunSummary(
+    game({ hoursPlayed: 9, completionPercent: 45 }),
+    { gameId: "game-1", pinnedAt: "2026-09-01T00:00:00.000Z", hoursAtPin: 5 }
+  );
+  assert.equal(summary.sharedFrom, null);
+  assert.equal(summary.percent, 45);
+  assert.equal(summary.trackedHours, 4);
+  assert.ok(summary.totalPlaytimeLabel);
+});
+
+test("marking a shared game complete still earns its full dial", () => {
+  // Completion is the player stating a fact, and outranks not knowing.
+  const summary = buildPinnedRunSummary(
+    game({ accessSource: "family", familyOwnerName: "Draygo", status: "Completed", hoursPlayed: 0 }),
+    { gameId: "game-1", pinnedAt: "2026-09-01T00:00:00.000Z", hoursAtPin: 0 }
+  );
+  assert.equal(summary.percent, 100);
+  assert.equal(summary.headline, "Commitment complete");
+});

@@ -660,3 +660,34 @@ test("no term earns more than it offers, so the score never passes 100", () => {
     assert.ok(entry.score >= 0);
   }
 });
+
+test("a family game says whose it is on every draw, whatever the goal", () => {
+  // Provenance is not a goal-specific footnote. Being handed somebody else's
+  // game is the most surprising thing a draw can do, and it has to survive the
+  // trim to four insights however the player set the deck up.
+  for (const goal of ["new", "finish", "surprise"] as const) {
+    const shared = { ...makeGame(), accessSource: "family" as const, familyOwnerName: "Draygo", hoursPlayed: 0, completionPercent: 0 };
+    const pool = buildVaultPool({
+      games: [shared], session: null, mood: null, goal,
+      selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+    });
+    if (!pool.length) continue;
+    const explanation = buildVaultMatchExplanation({ entry: pool[0], pool, session: null, mood: null, goal });
+    const family = explanation.insights.find((insight) => insight.kind === "family");
+    assert.ok(family, `no family insight for goal ${goal}`);
+    assert.match(family.headline, /Draygo/);
+    // Never a playtime claim, and never a second tile repeating the first.
+    assert.doesNotMatch(family.detail, /never played/i);
+    assert.equal(explanation.insights.filter((i) => i.headline === family.headline).length, 1);
+  }
+});
+
+test("an owned game never claims to be shared", () => {
+  const pool = buildVaultPool({
+    games: [{ ...makeGame(), hoursPlayed: 0 }], session: null, mood: null, goal: "new",
+    selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
+  });
+  const explanation = buildVaultMatchExplanation({ entry: pool[0], pool, session: null, mood: null, goal: "new" });
+  assert.equal(explanation.insights.some((insight) => insight.kind === "family"), false);
+  assert.ok(explanation.insights.some((insight) => insight.headline === "Never played"));
+});

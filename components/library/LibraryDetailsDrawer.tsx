@@ -13,6 +13,7 @@ import { buildPinnedRunSummary } from "@/lib/pinned-run";
 import { progressLabel } from "@/lib/progress-display";
 import type { VaultPin } from "@/lib/vault-state";
 import { familyProvenance, isFamilyAccess } from "@/lib/family-sharing";
+import { FamilyMark } from "@/components/shared/FamilyMark";
 import styles from "./LibraryDetailsDrawer.module.css";
 
 type LibraryDetailsDrawerProps = {
@@ -195,7 +196,10 @@ export function LibraryDetailsDrawer({
                 <div className={styles.header}>
                   <div>
                     <p className={styles.eyebrow}>{`Playing next · ${pinSlot ?? 1} of 3`}</p>
-                    <h2 className={styles.title} id={titleId}>{game.title}</h2>
+                    <h2 className={styles.title} id={titleId}>
+                      {game.title}
+                      {familyLine ? <FamilyMark title={familyLine} /> : null}
+                    </h2>
                   </div>
                 </div>
 
@@ -292,14 +296,23 @@ export function LibraryDetailsDrawer({
                     </div>
                   </div>
                 ) : (
-                  <p className={styles.openEndedNote}>This one has no honest finish-line percentage, so your run is measured in playtime.</p>
+                  <p className={styles.openEndedNote}>
+                    {pinnedRun.sharedFrom
+                      ? `Shared from ${pinnedRun.sharedFrom}'s library, so Steam reports their hours rather than yours. The pin still holds; the progress bar cannot.`
+                      : "This one has no honest finish-line percentage, so your run is measured in playtime."}
+                  </p>
                 )}
 
                 <ul className={styles.commitmentFacts}>
                   <li><VaultIcon name="clock" size={16} />{pinnedRun.pinnedLabel}</li>
                   {pinnedRun.trackedHoursLabel ? <li data-positive={pinnedRun.trackedHours && pinnedRun.trackedHours > 0.1 ? "true" : undefined}><VaultIcon name="play-now" size={16} />{pinnedRun.trackedHoursLabel}</li> : null}
                   {pinnedRun.remainingLabel ? <li><VaultIcon name="clock" size={16} />{pinnedRun.remainingLabel}</li> : null}
-                  <li><VaultIcon name="playtime" size={16} />{pinnedRun.totalPlaytimeLabel}</li>
+                  {pinnedRun.totalPlaytimeLabel
+                    ? <li><VaultIcon name="playtime" size={16} />{pinnedRun.totalPlaytimeLabel}</li>
+                    : durationLabel ? <li><VaultIcon name="clock" size={16} />{durationLabel} to beat</li> : null}
+                  {pinnedRun.sharedFrom
+                    ? <li><VaultIcon name="family" size={16} />From {pinnedRun.sharedFrom}&rsquo;s library</li>
+                    : null}
                 </ul>
 
                 <div className={styles.pinnedActions}>
@@ -329,7 +342,10 @@ export function LibraryDetailsDrawer({
               <div className={styles.header}>
                 <div>
                   <p className={styles.eyebrow}>Game details</p>
-                  <h2 className={styles.title} id={titleId}>{game.title}</h2>
+                  <h2 className={styles.title} id={titleId}>
+                    {game.title}
+                    {familyLine ? <FamilyMark title={familyLine} /> : null}
+                  </h2>
                 </div>
                 <button ref={closeButtonRef} type="button" className={styles.closeButton} onClick={onClose}>
                   Close

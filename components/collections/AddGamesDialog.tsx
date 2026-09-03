@@ -5,6 +5,7 @@ import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoGame } from "@/lib/demo-data";
 import styles from "./AddGamesDialog.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 /**
  * Filling a collection from the collection.
@@ -91,7 +92,7 @@ export function AddGamesDialog({
                 aria-pressed={on}
                 onClick={() => toggle(game.id)}
               >
-                <span className={styles.art}><Artwork src={game.bannerUrl} sizes="200px" /></span>
+                <span className={styles.art}><Artwork src={game.bannerUrl} sizes="200px" /><FamilyGameMark game={game} overlay /></span>
                 <span className={styles.name}>{game.title}</span>
                 {on ? <span className={styles.tick} aria-hidden="true"><VaultIcon name="check" size={14} /></span> : null}
               </button>

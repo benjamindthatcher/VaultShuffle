@@ -9,7 +9,7 @@ import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
 import { formatGameDuration } from "@/lib/game-duration";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { isFamilyAccess } from "@/lib/family-sharing";
-import { FamilyMark } from "@/components/shared/FamilyMark";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 import styles from "./GameCard.module.css";
 
 type GameCardProps = {
@@ -96,11 +96,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
     <>
       <div className={isList ? `${styles.artwork} ${styles.artworkList}` : styles.artwork}>
         <Artwork src={game.bannerUrl} sizes={isList ? "260px" : "(max-width: 720px) 100vw, 33vw"} />
-        {isFamily ? (
-          <span className={styles.familyMarkSlot}>
-            <FamilyMark title={game.familyOwnerName ? `Shared from ${game.familyOwnerName}'s library` : "Shared from a family library"} />
-          </span>
-        ) : null}
+        <FamilyGameMark game={game} overlay />
       </div>
       <div className={styles.body}>
         <div className={styles.topRow}>

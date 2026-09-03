@@ -12,7 +12,8 @@ const ICONS: Record<VaultMatchInsightKind, VaultIconName> = {
   taste: "heart",
   appeal: "new",
   dormancy: "calendar",
-  genre: "collections"
+  genre: "collections",
+  family: "family"
 };
 
 /**

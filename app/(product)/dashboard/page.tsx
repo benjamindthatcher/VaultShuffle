@@ -22,6 +22,7 @@ import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./dashboard.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type DashboardDetailsSurface = "dashboard_guest" | "dashboard_pinned" | "dashboard_value" | "dashboard_finished";
 
@@ -155,7 +156,7 @@ export default function DashboardPage() {
             {guestSummary.featured.map((game) => (
               <li key={game.id} className={styles.gameCard}>
                 <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_guest")} aria-label={`Open ${game.title}`} />
-                <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /><FamilyGameMark game={game} overlay /></span>
                 <strong className={styles.cardTitle}>{game.title}</strong>
                 <small className={styles.cardMeta}>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
                 <span className={styles.cardValue}>{formatGameDuration(game.duration) ?? "Length unknown"}</span>
@@ -268,7 +269,7 @@ export default function DashboardPage() {
                 {bestValueGames.slice(0, 3).map(({ game, centsPerHour }, index) => (
                   <li key={game.id} className={styles.podiumCard} data-place={index + 1}>
                     <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_value")} aria-label={`Open ${game.title}`} />
-                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 300px" /></span>
+                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 300px" /><FamilyGameMark game={game} overlay /></span>
                     <span className={styles.place}>
                       <VaultIcon name="trophy" size={18} />
                       {index === 0 ? "1st" : index === 1 ? "2nd" : "3rd"}
@@ -289,7 +290,7 @@ export default function DashboardPage() {
                 {recentCompletions.map((game) => (
                   <li key={game.id} className={styles.gameCard}>
                     <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_finished")} aria-label={`Open ${game.title}`} />
-                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /></span>
+                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /><FamilyGameMark game={game} overlay /></span>
                     <strong className={styles.cardTitle}>{game.title}</strong>
                     <small className={styles.cardMeta}>{new Date(String(game.completedAt)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small>
                     <span className={styles.cardValue}>{formatMoney(Number(game.priceInitial ?? 0), stats.currency)}</span>

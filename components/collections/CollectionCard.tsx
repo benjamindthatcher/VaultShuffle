@@ -2,6 +2,7 @@ import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { Artwork } from "@/components/shared/Artwork";
 import { collectionBanner, gameArtworkFallback } from "@/lib/vaultshuffle-assets";
 import styles from "./CollectionCard.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type CollectionCardProps = {
   collection: DemoCollection;
@@ -33,7 +34,7 @@ export function CollectionCard({ collection, previewGames, selected = false, onS
         <div className={styles.thumbRow}>
           {previewGames.slice(0, 4).map((game) => (
             <span key={game.id} className={styles.thumb}>
-              <Artwork src={game.bannerUrl} fallbackSrc={gameArtworkFallback(game.title)} sizes="52px" />
+              <Artwork src={game.bannerUrl} fallbackSrc={gameArtworkFallback(game.title)} sizes="52px" /><FamilyGameMark game={game} overlay />
             </span>
           ))}
         </div>

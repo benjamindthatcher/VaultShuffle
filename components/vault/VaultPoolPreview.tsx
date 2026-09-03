@@ -8,6 +8,7 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import { candidateFallback } from "@/lib/vaultshuffle-assets";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./VaultPoolPreview.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
 
 type VaultPoolPreviewProps = {
   entries: VaultPoolEntry[];
@@ -218,6 +219,7 @@ const PoolCard = memo(function PoolCard({
       <button type="button" className={styles.cardAction} onClick={() => onSelect(game.id)} aria-label={`View details for ${game.title}`}>
         <div className={styles.cardArt}>
           <Artwork src={game.bannerUrl} fallbackSrc={candidateFallback(index)} sizes="(max-width: 720px) 44vw, 210px" />
+          <FamilyGameMark game={game} overlay />
         </div>
         <div className={styles.cardBody}>
           <div className={styles.cardTopRow}>
