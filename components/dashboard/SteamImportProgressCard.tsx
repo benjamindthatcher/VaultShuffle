@@ -4,7 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import Link from "next/link";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import styles from "./SteamImportProgressCard.module.css";
 
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
@@ -196,10 +195,7 @@ export function SteamImportProgressCard() {
           <Link
             className={styles.handoff}
             href="/vault"
-            onClick={() => {
-              setJustFinished(false);
-              trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, { games: steamImport.total });
-            }}
+            onClick={() => setJustFinished(false)}
           >
             Choose what to play<VaultIcon name="chevron-right" size={16} />
           </Link>
@@ -214,13 +210,7 @@ export function SteamImportProgressCard() {
             <Link
               className={styles.handoffSecondary}
               href="/library?tab=active"
-              onClick={() => {
-                setJustFinished(false);
-                trackEvent(ANALYTICS_EVENTS.onboardingHandoffTaken, {
-                  games: steamImport.total,
-                  destination: "library"
-                });
-              }}
+              onClick={() => setJustFinished(false)}
             >
               {steamImport.total} is a lot — thin it out first
             </Link>

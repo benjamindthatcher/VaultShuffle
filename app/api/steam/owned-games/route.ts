@@ -49,7 +49,6 @@ export async function POST(request: Request) {
       // Import registration queues metadata misses. Only the nightly workers
       // enrich catalogue/recent activity; completing an import starts no worker.
       // No per-game or status-poll events. Keep batch completion and errors.
-      if (result.progress.status === "complete") diagnostics.event("succeeded", { imported: result.progress.imported, total: result.progress.total, status: 200 });
       return diagnostics.response(NextResponse.json(
         {
           progress: result.progress,
@@ -60,7 +59,6 @@ export async function POST(request: Request) {
     }
 
     diagnostics.stage("steam_library_fetch");
-    diagnostics.event("started");
     const apiKey = process.env.STEAM_WEB_API_KEY;
 
     if (!apiKey) {
@@ -100,7 +98,6 @@ export async function POST(request: Request) {
     diagnostics.stage("stage_import_job");
     const progress = await stageSteamImport(user.id, importedGames);
 
-    diagnostics.event("succeeded", { total: progress.total, status: 200 });
     return diagnostics.response(NextResponse.json({ progress }));
   } catch (error) {
     if (error instanceof SessionRequiredError) {

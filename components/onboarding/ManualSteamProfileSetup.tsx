@@ -67,33 +67,15 @@ export function ManualSteamProfileSetup() {
     return requestJson<T>(url, { method: "POST", headers: { "X-Vault-Operation-Id": operationId.current }, body: JSON.stringify(body) });
   }
 
-  useEffect(() => {
-    const requestedSource = new URLSearchParams(window.location.search).get("from") || "direct";
-    const source = /^[a-z0-9_]{1,80}$/.test(requestedSource) ? requestedSource : "direct";
-    trackEvent(ANALYTICS_EVENTS.manualProfileSetupViewed, { step: "find_profile", source });
-  }, []);
-
   async function findProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy || cooldownSeconds) return;
     setBusy("lookup");
     setError("");
-    trackEvent(ANALYTICS_EVENTS.manualProfileLookupStarted, {
-      input_shape: profileInput.includes("steamcommunity.com")
-        ? "url"
-        : /^\d+$/.test(profileInput.trim())
-          ? "numeric_id"
-          : "custom_id",
-    });
-
     try {
       const result = await postJson<LookupResponse>("/api/manual-profile/lookup", { profile: profileInput });
       setLookup(result);
       setVaultName(result.profile.display_name);
-      trackEvent(ANALYTICS_EVENTS.manualProfileLookupSucceeded, {
-        input_type: result.profile.input_type,
-        game_count: result.profile.game_count,
-      });
     } catch (caught) {
       const failure = normaliseFailure(caught);
       setError(failure.message);
@@ -109,11 +91,6 @@ export function ManualSteamProfileSetup() {
     if (!lookup || busy || cooldownSeconds) return;
     setBusy("create");
     setError("");
-    trackEvent(ANALYTICS_EVENTS.manualProfileCreationStarted, {
-      input_type: lookup.profile.input_type,
-      game_count: lookup.profile.game_count,
-    });
-
     try {
       const result = await postJson<CreateResponse>("/api/manual-profile/create", {
         lookup_token: lookup.lookup_token,
@@ -139,7 +116,6 @@ export function ManualSteamProfileSetup() {
       const failure = normaliseFailure(caught);
       setError(failure.message);
       if (caught instanceof CooldownError) setCooldownUntil(saveCooldown("manual-setup", caught));
-      trackEvent(ANALYTICS_EVENTS.manualProfileCreationFailed, { reason: failure.code, request_id: failure.requestId, operation_id: operationId.current });
       setBusy(null);
     }
   }
@@ -148,7 +124,6 @@ export function ManualSteamProfileSetup() {
     setLookup(null);
     setVaultName("");
     setError("");
-    trackEvent(ANALYTICS_EVENTS.manualProfileSetupViewed, { step: "find_profile", returned_from: "check_library" });
   }
 
   return (

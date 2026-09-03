@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
@@ -9,7 +9,6 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import { findCompletionCandidates } from "@/lib/completion-check";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import { formatMoney } from "@/lib/backlog-stats";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionDismissed } from "@/lib/completion-tracking";
 import { PageHeading } from "@/components/shared/PageHeading";
 import styles from "./finished.module.css";
@@ -33,17 +32,6 @@ export default function FinishedPage() {
   const candidates = useMemo(() => findCompletionCandidates(games), [games]);
 
   // Fired once per visit, from the queue as it was found rather than as it is
-  // left, so the funnel measures what was offered against what was claimed.
-  const viewLogged = useRef(false);
-  useEffect(() => {
-    if (viewLogged.current || !isLive || !candidates.length) return;
-    viewLogged.current = true;
-    trackEvent(ANALYTICS_EVENTS.completionSweepViewed, {
-      candidates: candidates.length,
-      value_cents: candidates.reduce(
-        (total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0)
-    });
-  }, [candidates, isLive]);
   const pending = candidates.filter((candidate) => !claimed[candidate.game.id]);
 
   const selectedIds = pending.filter((candidate) => selected[candidate.game.id]);
@@ -187,7 +175,7 @@ export default function FinishedPage() {
       </PageHeading>
 
       {!isLive ? (
-        <GuestPreviewNotice feature="Completion check" icon="completed" catalogueSize={games.length}>
+        <GuestPreviewNotice feature="Completion check" icon="completed">
           The guest catalogue has no personal playtime, so VaultShuffle will not invent games for you to claim as finished.
         </GuestPreviewNotice>
       ) : null}

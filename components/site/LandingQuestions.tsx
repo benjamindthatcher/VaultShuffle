@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import styles from "./landing-experience.module.css";
 
@@ -65,7 +64,6 @@ export function LandingQuestions() {
 
   function choose(question: QuestionId, value: string) {
     setSelections((current) => ({ ...current, [question]: value }));
-    trackEvent(ANALYTICS_EVENTS.landingDemoUsed, { control: question, value });
   }
 
   function surpriseMe() {
@@ -80,7 +78,6 @@ export function LandingQuestions() {
 
     setSurpriseIndex(nextIndex);
     setSelections(SURPRISE_PRESETS[nextIndex]);
-    trackEvent(ANALYTICS_EVENTS.landingDemoUsed, { control: "surprise" });
   }
 
   return (

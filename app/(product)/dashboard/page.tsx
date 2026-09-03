@@ -6,7 +6,6 @@ import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer"
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
 import { useLibraryEnrichmentNotice } from "@/components/shared/LibraryEnrichmentBanner";
 import { NoticeStack } from "@/components/shared/NoticeStack";
@@ -43,10 +42,6 @@ export default function DashboardPage() {
   function openDetails(gameId: string, surface: DashboardDetailsSurface) {
     setDetailsGameId(gameId);
     setDetailsSurface(surface);
-    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
-      surface,
-      ...(surface === "dashboard_pinned" ? { pin_slot: vaultState.pinnedIds.indexOf(gameId) + 1 } : {}),
-    });
   }
 
   function closeDetails() {
@@ -139,7 +134,7 @@ export default function DashboardPage() {
       <div className={styles.page}>
         <PageHeading title="Dashboard preview" />
 
-        <GuestPreviewNotice feature="Dashboard" icon="details" catalogueSize={games.length}>
+        <GuestPreviewNotice feature="Dashboard" icon="details">
           These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
         </GuestPreviewNotice>
 
@@ -172,10 +167,6 @@ export default function DashboardPage() {
           <Link
             className={styles.centredAction}
             href="/vault"
-            onClick={() => trackEvent(ANALYTICS_EVENTS.guestPreviewAction, {
-              feature: "dashboard",
-              action: "open_vault",
-            })}
           >
             Try a Vault draw<VaultIcon name="chevron-right" size={16} />
           </Link>

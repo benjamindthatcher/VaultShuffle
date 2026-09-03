@@ -24,7 +24,6 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   const diagnostics = requestDiagnostics(request, "manual_profile_create");
-  diagnostics.event("started");
   try {
     diagnostics.stage("session_check");
     assertSameOrigin(request);
@@ -66,14 +65,16 @@ export async function POST(request: Request) {
       const games = await readLibrarySnapshot(cache, lookup.snapshotId, lookup.steamId);
       if (games) {
         await stageSteamImport(user.id, games);
-        diagnostics.event("succeeded", { cache_result: "hit", game_count: games.length });
         if (lookup.snapshotId) after(() => deleteLibrarySnapshot(cache, lookup.snapshotId!, games.length).catch(() => undefined));
+        // The one success worth reporting on this route: without it a cache
+        // hit is invisible and only misses are counted, so there is no hit
+        // rate to read. Manual profile creation runs ~150 times a month.
+        diagnostics.event("succeeded", { cache_result: "hit", game_count: games.length });
       } else diagnostics.event("warning", { cache_result: "miss" });
     } catch (error) {
       diagnostics.event("warning", { cache_result: "handoff_failed" }, error);
     }
     diagnostics.stage("session_cookie_and_redirect");
-    diagnostics.event("succeeded", { game_count: lookup.gameCount });
 
     const response = NextResponse.json({
       ok: true,

@@ -51,10 +51,6 @@ export function trackCompletionClaim(game: DemoGame, source: CompletionSource, i
 }
 
 export function trackCompletionUndone(game: DemoGame, source: CompletionSource, isLive: boolean) {
-  trackEvent(ANALYTICS_EVENTS.completionUndone, {
-    source,
-    price_cents: priceCents(game),
-  });
   if (!isLive) return;
   void fetch("/api/completions", {
     method: "POST",

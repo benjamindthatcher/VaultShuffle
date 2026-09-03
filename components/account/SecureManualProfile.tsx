@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./SecureManualProfile.module.css";
 
 type SecureManualProfileProps = {
@@ -14,40 +12,6 @@ type SecureManualProfileProps = {
 
 export function SecureManualProfile({ errorCode, secured = false }: SecureManualProfileProps) {
   const { session, isLoading } = useAppData();
-  const trackedState = useRef("");
-  const accountState = isLoading
-    ? "loading"
-    : session.account_type === "manual"
-      ? "browser_only"
-      : session.account_type === "steam"
-        ? "steam_secured"
-        : "guest";
-
-  useEffect(() => {
-    if (accountState === "loading") return;
-    const trackingKey = `${accountState}:${errorCode ?? "none"}:${secured}`;
-    if (trackedState.current === trackingKey) return;
-    trackedState.current = trackingKey;
-
-    trackEvent(ANALYTICS_EVENTS.manualProfileSecurityViewed, {
-      state: accountState,
-      has_error: Boolean(errorCode),
-      secured,
-    });
-    if (errorCode) {
-      trackEvent(ANALYTICS_EVENTS.manualProfileSecurityErrorViewed, {
-        state: accountState,
-        reason: normaliseErrorReason(errorCode),
-      });
-    }
-    if (secured && accountState === "steam_secured") {
-      trackEvent(ANALYTICS_EVENTS.manualProfileSecurityCompleted, {
-        account_type: "steam",
-        identity_verified: true,
-      });
-    }
-  }, [accountState, errorCode, secured]);
-
   if (isLoading) {
     return <section className={styles.loading} aria-label="Loading profile security" />;
   }
@@ -144,10 +108,6 @@ export function SecureManualProfile({ errorCode, secured = false }: SecureManual
         <a
           className={styles.primaryButton}
           href="/api/auth/steam?flow=secure-profile"
-          onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSecurityStarted, {
-            location: "secure_profile_page",
-            account_type: "manual",
-          })}
         >
           <VaultIcon name="open-steam" size={20} />
           Secure profile with Steam

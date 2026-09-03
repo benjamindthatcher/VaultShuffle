@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
-import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
+import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import styles from "./SignInLock.module.css";
 
@@ -25,15 +24,6 @@ type SignInLockProps = {
  * deserves.
  */
 export function SignInLock({ feature, children }: SignInLockProps) {
-  // Reported once per mount rather than per render, so the count is "how often
-  // did a guest reach this wall" rather than how often React drew it.
-  const reportedRef = useRef(false);
-  useEffect(() => {
-    if (reportedRef.current) return;
-    reportedRef.current = true;
-    trackEvent(ANALYTICS_EVENTS.guestFeatureLocked, { feature });
-  }, [feature]);
-
   return (
     <p className={styles.lock}>
       <VaultIcon name="lock" size={14} />
@@ -50,10 +40,6 @@ export function SignInLock({ feature, children }: SignInLockProps) {
       <span aria-hidden="true">or</span>
       <Link
         href={`/setup/steam-profile?from=guest_${feature}_lock`}
-        onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSetupStarted, {
-          location: `${feature}_lock`,
-          feature,
-        })}
       >
         create a profile
       </Link>

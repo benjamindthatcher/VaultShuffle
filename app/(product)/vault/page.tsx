@@ -651,12 +651,6 @@ export default function VaultPage() {
 
   function selectSetupOption(step: VaultSetupStep, id: string) {
     setDrawMode("vault");
-    // The configure step of the funnel: which of the three inputs people actually
-    // fill in, and where they drop out before ever reaching a draw.
-    trackEvent(ANALYTICS_EVENTS.vaultSetupChanged, {
-      step,
-      value: id,
-    });
     let nextStep: VaultSetupStep | null = null;
 
     if (step === "session") {
@@ -746,7 +740,6 @@ export default function VaultPage() {
     }
     setDeckPanel("history");
     void loadVaultHistory();
-    trackEvent(ANALYTICS_EVENTS.vaultHistoryOpened);
   }
 
   async function togglePin(id: string) {
@@ -809,10 +802,6 @@ export default function VaultPage() {
   function openGameDetails(gameId: string, surface: VaultDetailsSurface) {
     setDetailsGameId(gameId);
     setDetailsSurface(surface);
-    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
-      surface: `vault_${surface}`,
-      ...(surface === "pinned" ? { pin_slot: vaultState.pinnedIds.indexOf(gameId) + 1 } : {}),
-    });
   }
 
   function closeGameDetails() {
@@ -837,7 +826,7 @@ export default function VaultPage() {
       ) : null}
 
       {!isLive ? (
-        <GuestPreviewNotice feature="Vault" icon="current-pick" catalogueSize={ownedGames.length}>
+        <GuestPreviewNotice feature="Vault" icon="current-pick">
           Draw from {ownedGames.length} popular Steam games or try a catalogue collection. Your picks and history last for this visit only.
         </GuestPreviewNotice>
       ) : null}

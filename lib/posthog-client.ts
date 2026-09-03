@@ -4,6 +4,21 @@ import { DIAGNOSTICS_COOKIE, diagnosticId } from "./diagnostics";
 
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 
+/**
+ * Normalised so a misconfigured env var cannot send a visitor's events to an
+ * arbitrary origin: anything that is not a PostHog ingest host falls back to EU.
+ */
+function posthogApiHost() {
+  const configured = process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim().replace(/\/$/, "");
+  if (!configured) return "https://eu.i.posthog.com";
+  const host = configured.includes(".i.posthog.com")
+    ? configured
+    : configured.replace(".posthog.com", ".i.posthog.com");
+  return /^https:\/\/[a-z0-9-]+\.i\.posthog\.com$/.test(host) ? host : "https://eu.i.posthog.com";
+}
+
+const POSTHOG_API_HOST = posthogApiHost();
+
 type PostHogClient = typeof import("posthog-js").default;
 type ProductAnalyticsMode = "enabled" | "disabled";
 
@@ -83,8 +98,15 @@ async function loadClient() {
 
   clientPromise ??= import("posthog-js").then(({ default: posthog }) => {
     posthog.init(projectToken, {
-      api_host: "/ingest",
-      ui_host: process.env.NEXT_PUBLIC_POSTHOG_HOST?.replace(".i.posthog.com", ".posthog.com"),
+      // Straight to PostHog rather than through our own origin. The reverse
+      // proxy existed so ad blockers could not drop analytics, but it put every
+      // event batch, flags call and replay chunk through proxy.ts - and Vercel
+      // bills Routing Middleware on the same Active CPU meter as functions, so
+      // analytics traffic was the largest single source of invocations on the
+      // project. Blocked clients are now simply not measured, which is the
+      // trade we chose: it costs some coverage, not correctness.
+      api_host: POSTHOG_API_HOST,
+      ui_host: POSTHOG_API_HOST.replace(".i.posthog.com", ".posthog.com"),
       defaults: "2026-01-30",
       persistence: "localStorage+cookie",
       opt_out_capturing_by_default: false,
@@ -97,19 +119,38 @@ async function loadClient() {
       autocapture: false,
       capture_dead_clicks: false,
       capture_exceptions: true,
-      capture_performance: {
-        network_timing: true,
-        web_vitals: true,
-      },
+      // Vercel Speed Insights already measures web vitals, and network_timing
+      // only feeds replay - where it was a large share of each recording's bytes
+      // without changing what the recording shows. `false` turns off both, and
+      // overrides the project's capture_performance_opt_in.
+      capture_performance: false,
       capture_pageview: false,
-      capture_pageleave: true,
-      capture_heatmaps: true,
+      // Costs scroll depth and bounce rate in Web Analytics. Accepted: neither
+      // was being read, and $pageleave was the third-largest remaining event.
+      capture_pageleave: false,
+      // Enabled in both client and project config and produced zero events in
+      // 30 days - the recorder was carrying the listeners for nothing.
+      capture_heatmaps: false,
       disable_session_recording: false,
       session_recording: {
         maskAllInputs: true,
+        // rrweb samples mouse position every 50ms by default, which on a page
+        // people scroll and hover over is most of the event count in a
+        // recording. 250ms still draws a legible cursor path.
+        sampling: { mousemove: 250 },
+        // A full snapshot is a complete re-serialisation of the DOM. Every 5
+        // minutes is tuned for playback scrubbing on long sessions; our median
+        // recording is under a minute, so it mostly buys a second copy of the
+        // page. Ten minutes keeps one for genuinely long sessions.
+        full_snapshot_interval_millis: 600_000,
       },
-      enable_recording_console_log: true,
-      disable_surveys: false,
+      // Recorded zero console lines across 1,440 recordings.
+      enable_recording_console_log: false,
+      // No surveys are configured on the project, so this only skipped a request.
+      disable_surveys: true,
+      // Deliberately left on. `true` would also stop remote config loading, and
+      // the session-replay trigger groups arrive that way - disabling flags
+      // would silently disarm replay along with the one live experiment.
       advanced_disable_flags: false,
       respect_dnt: true,
       tracing_headers: [window.location.hostname],

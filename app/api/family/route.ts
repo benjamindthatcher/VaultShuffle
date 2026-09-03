@@ -57,7 +57,6 @@ export async function POST(request: Request) {
     diagnostics.stage("steam_profile_and_library");
     const { member, counts, truncated } = await addFamilyMember(user.id, user.steam_id, input.profile);
 
-    diagnostics.event("succeeded", { imported: counts.importable, seen: counts.seen, truncated, status: 200 });
     // A shelf big enough to hit the cap is told about it. Silently reading the
     // first five thousand and reporting that as the whole library would be the
     // one number on this screen that was simply untrue.

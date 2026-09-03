@@ -5,174 +5,62 @@ import { captureProductEvent, registerAnalyticsContext, type CaptureOptions } fr
 /**
  * Every product event VaultShuffle sends, grouped by the surface it belongs to.
  *
- * Two rules keep this list readable in PostHog:
+ * Three rules keep this list readable in PostHog, and small enough to afford:
  *
  *  1. Anything that is a step in a funnel gets its own event name. Outcomes buried
  *     in a property cannot be charted without writing HogQL by hand, which is how
  *     `opened_on_steam` stayed invisible inside `vault_draw_action` for a month.
  *  2. Anything that is a dimension of an event stays a property. Mood, session and
  *     goal describe a draw; they are not separate kinds of draw.
+ *  3. An event has to change a decision. This list grew to 67 names and roughly
+ *     110,000 events a month, most of them describing clicks nobody ever charted
+ *     - filter toggles, preview banners, fifteen separate steps of one form. What
+ *     is left is the acquisition funnel, the Vault loop, the completion loop, and
+ *     the handful of failures worth being paged about. Anything that only
+ *     describes where somebody clicked is answered by $pageview and a property.
+ *
+ * A bulk action is ONE event carrying a count, never one event per game. That
+ * fan-out was a third of all remaining volume and it made per-user rates
+ * meaningless: one person could produce eight hundred events in a month.
  */
 export const ANALYTICS_EVENTS = {
-  // Acquisition and identity.
-  //
-  // The landing page had no product tracking at all, so the funnel began at the
-  // point someone was already inside the app: landing -> guest or Steam ->
-  // import -> first draw -> launched was missing its first two steps, which are
-  // the ones acquisition work actually moves.
-  landingViewed: "landing_viewed",
+  // Acquisition and activation. The funnel that acquisition work actually moves:
+  // landing -> chosen path -> library imported -> first draw -> launched.
   landingChoiceMade: "landing_choice_made",
-  // The landing page's interactive demo - the only thing on the page someone can
-  // actually do before choosing a path, and so the clearest read on whether the
-  // page is doing any work. Which control was touched is a dimension of the one
-  // event rather than six event names.
-  landingDemoUsed: "landing_demo_used",
   signInStarted: "sign_in_started",
-  manualProfileSetupStarted: "manual_profile_setup_started",
-  manualProfileSetupViewed: "manual_profile_setup_viewed",
-  manualProfileLookupStarted: "manual_profile_lookup_started",
-  manualProfileLookupSucceeded: "manual_profile_lookup_succeeded",
-  manualProfileLookupFailed: "manual_profile_lookup_failed",
-  manualProfileCreationStarted: "manual_profile_creation_started",
-  manualProfileCreated: "manual_profile_created",
-  manualProfileCreationFailed: "manual_profile_creation_failed",
-  manualProfileDashboardReached: "manual_profile_dashboard_reached",
-  manualProfileAccessNoticeShown: "manual_profile_access_notice_shown",
-  manualProfileAccessNoticeAcknowledged: "manual_profile_access_notice_acknowledged",
-  manualProfileSecurityLinkClicked: "manual_profile_security_link_clicked",
-  manualProfileSecurityViewed: "manual_profile_security_viewed",
-  manualProfileSecurityStarted: "manual_profile_security_started",
-  manualProfileSecurityErrorViewed: "manual_profile_security_error_viewed",
-  manualProfileSecurityCompleted: "manual_profile_security_completed",
-  // The step between a finished first import and a first draw, which is where a
-  // new account either becomes a user or does not.
-  onboardingHandoffTaken: "onboarding_handoff_taken",
-  signedOut: "user_signed_out",
   steamLibrarySynced: "steam_library_synced",
   steamImportFailed: "steam_import_failed",
-  steamImportDeferred: "steam_import_deferred",
-  // Steam Families. Experimental and flag-gated, so these exist mainly to answer
-  // one question before it ships: does anybody actually add a family member, and
-  // do the games they get out of it change what they draw.
-  familyCardViewed: "family_card_viewed",
-  familyMemberAdded: "family_member_added",
-  familyMemberRemoved: "family_member_removed",
-  familyLibraryRechecked: "family_library_rechecked",
-  pinnedPlaytimeRefreshStarted: "pinned_playtime_refresh_started",
-  pinnedPlaytimeRefreshSucceeded: "pinned_playtime_refresh_succeeded",
-  pinnedPlaytimeRefreshFailed: "pinned_playtime_refresh_failed",
-
-  // Guest previews use the same first-class product events as signed-in use so
-  // the funnels remain comparable. These events describe the preview-specific
-  // surfaces around that activity without duplicating every click.
-  guestPreviewViewed: "guest_preview_viewed",
-  guestPreviewAction: "guest_preview_action",
-  guestSignInNudgeShown: "guest_sign_in_nudge_shown",
-  guestSignInNudgeDismissed: "guest_sign_in_nudge_dismissed",
-  // A guest meeting something the preview genuinely cannot do. This is the point
-  // where a preview either converts or loses someone, and it was the one part of
-  // the guest journey with no event at all - we could see them arrive, draw and
-  // leave, but not what they reached for and could not have.
-  guestFeatureLocked: "guest_feature_locked",
+  // The alternate activation path, and the one failure on it worth watching:
+  // roughly a third of profile lookups do not find a usable library.
+  manualProfileCreated: "manual_profile_created",
+  manualProfileLookupFailed: "manual_profile_lookup_failed",
 
   // The Vault loop. vault_pick_launched is the north-star metric: it is the point
   // at which VaultShuffle has actually solved the user's decision problem.
-  vaultSetupChanged: "vault_setup_changed",
   vaultDrawRequested: "vault_draw_requested",
   vaultDrawFailed: "vault_draw_failed",
   vaultPickLaunched: "vault_pick_launched",
-  vaultPickRerolled: "vault_pick_rerolled",
-  vaultPickPinned: "vault_pick_pinned",
-  vaultPickUnpinned: "vault_pick_unpinned",
-  vaultPickHidden: "vault_pick_hidden",
-  vaultPickSnoozed: "vault_pick_snoozed",
-  vaultPickSlept: "vault_pick_slept",
-  vaultPickCompleted: "vault_pick_completed",
-  vaultPickRestored: "vault_pick_restored",
-  vaultPickLiked: "vault_pick_liked",
-  vaultPickDisliked: "vault_pick_disliked",
-  vaultRerollReason: "vault_reroll_reason",
-  vaultHistoryOpened: "vault_history_opened",
-  vaultHistoryCleared: "vault_history_cleared",
 
-  // Library
-  deviceModeChanged: "device_mode_changed",
-  /**
-   * Supersedes device_mode_changed: device is now one of five global filters and
-   * this event carries all of them, so the panel can be read as a whole rather
-   * than one control at a time.
-   */
-  globalFiltersChanged: "global_filters_changed",
-  librarySearched: "library_searched",
-  libraryFiltered: "library_filtered",
-  /**
-   * Waking or restoring several games at once from the Library's decided
-   * shelves. This is the work Purge used to do in bulk, measured where it now
-   * happens.
-   */
-  libraryBulkRestored: "library_bulk_restored",
-  libraryGameOpened: "library_game_opened",
-  gameSteamOpened: "game_steam_opened",
-
-  // Collections
-  collectionCreated: "collection_created",
-  collectionUpdated: "collection_updated",
-  collectionDeleted: "collection_deleted",
-  collectionMembershipChanged: "collection_membership_changed",
-
-  // Completion. The loop the whole product exists to close, so it gets its own
-  // funnel rather than hiding inside game_status_changed with no source on it.
-  completionSweepViewed: "completion_sweep_viewed",
+  // Completion. The loop the whole product exists to close.
   completionClaimed: "completion_claimed",
   completionDismissed: "completion_dismissed",
-  completionUndone: "completion_undone",
 
-  // Purge
-  purgeDecision: "purge_decision",
-
-  // Game lifecycle outside a draw
+  // Library and collections.
   gameStatusChanged: "game_status_changed",
+  collectionCreated: "collection_created",
+  collectionMembershipChanged: "collection_membership_changed",
 
-  // Site
+  // Steam Families. Experimental and flag-gated, so these exist to answer one
+  // question before it ships: does anybody actually add a family member.
+  familyMemberAdded: "family_member_added",
+  familyMemberRemoved: "family_member_removed",
+
+  // Site conversions. Rare enough to cost nothing, direct enough to act on.
   feedbackSubmitted: "feedback_submitted",
   contactSubmitted: "contact_submitted",
-  analyticsConsentChosen: "analytics_consent_chosen",
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
-
-/** Maps a draw follow-up action to its own first-class event name. */
-export const VAULT_DRAW_EVENT_NAMES = {
-  opened_on_steam: ANALYTICS_EVENTS.vaultPickLaunched,
-  drew_again: ANALYTICS_EVENTS.vaultPickRerolled,
-  pinned: ANALYTICS_EVENTS.vaultPickPinned,
-  unpinned: ANALYTICS_EVENTS.vaultPickUnpinned,
-  hidden_for_session: ANALYTICS_EVENTS.vaultPickHidden,
-  snoozed_7_days: ANALYTICS_EVENTS.vaultPickSnoozed,
-  snoozed_30_days: ANALYTICS_EVENTS.vaultPickSnoozed,
-  slept: ANALYTICS_EVENTS.vaultPickSlept,
-  marked_completed: ANALYTICS_EVENTS.vaultPickCompleted,
-  restored: ANALYTICS_EVENTS.vaultPickRestored,
-  liked: ANALYTICS_EVENTS.vaultPickLiked,
-  disliked: ANALYTICS_EVENTS.vaultPickDisliked,
-  reroll_too_long: ANALYTICS_EVENTS.vaultRerollReason,
-  reroll_wrong_mood: ANALYTICS_EVENTS.vaultRerollReason,
-  reroll_played_enough: ANALYTICS_EVENTS.vaultRerollReason,
-  reroll_not_interested: ANALYTICS_EVENTS.vaultRerollReason,
-  reroll_not_tonight: ANALYTICS_EVENTS.vaultRerollReason,
-} as const;
-
-/**
- * Maps a vault state action to its event. "drawn" is deliberately null: the draw
- * itself is already reported as vault_draw_requested and would double count.
- */
-export const VAULT_ACTION_EVENT_NAMES = {
-  drawn: null,
-  pinned: ANALYTICS_EVENTS.vaultPickPinned,
-  unpinned: ANALYTICS_EVENTS.vaultPickUnpinned,
-  snoozed: ANALYTICS_EVENTS.vaultPickSnoozed,
-  unsnoozed: ANALYTICS_EVENTS.vaultPickRestored,
-} as const;
 
 const APP_AREAS = ["vault", "library", "purge", "collections"] as const;
 

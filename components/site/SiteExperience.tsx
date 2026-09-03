@@ -16,7 +16,6 @@ import {
   enableProductAnalytics,
   identifyProductUser,
 } from "@/lib/posthog-client";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { awaitSession, hasSessionProvider } from "@/lib/analytics-session";
 import styles from "./SiteExperience.module.css";
 
@@ -175,8 +174,6 @@ function SiteFrame({ children }: { children: ReactNode }) {
     localStorage.setItem(CONSENT_STORAGE_KEY, value);
     setAnalyticsChoice(value);
     setSettingsOpen(false);
-    // A turn-off must be reported before the client stops, or it is never seen.
-    trackEvent(ANALYTICS_EVENTS.analyticsConsentChosen, { choice: value, surface: noticeSeen ? "settings" : "banner" });
   };
 
   return <>

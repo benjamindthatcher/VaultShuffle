@@ -2,7 +2,6 @@
 
 import Image from "next/image";
 import { useState } from "react";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import styles from "./landing-experience.module.css";
 
@@ -63,10 +62,7 @@ export function LandingResultDemo() {
             type="button"
             className={demoAction === "pinned" ? styles.resultActionSelected : undefined}
             aria-pressed={demoAction === "pinned"}
-            onClick={() => {
-              setDemoAction((current) => current === "pinned" ? null : "pinned");
-              trackEvent(ANALYTICS_EVENTS.landingDemoUsed, { control: "pin" });
-            }}
+            onClick={() => setDemoAction((current) => current === "pinned" ? null : "pinned")}
           >
             <SiteGlyph name="pin" size={18} />
             {demoAction === "pinned" ? "Pinned" : "Pin this pick"}
@@ -75,10 +71,7 @@ export function LandingResultDemo() {
             type="button"
             className={demoAction === "snoozed" ? styles.resultActionSelected : undefined}
             aria-pressed={demoAction === "snoozed"}
-            onClick={() => {
-              setDemoAction((current) => current === "snoozed" ? null : "snoozed");
-              trackEvent(ANALYTICS_EVENTS.landingDemoUsed, { control: "snooze" });
-            }}
+            onClick={() => setDemoAction((current) => current === "snoozed" ? null : "snoozed")}
           >
             <SiteGlyph name="snooze-not-now" size={18} />
             {demoAction === "snoozed" ? "Snoozed" : "Snooze"}

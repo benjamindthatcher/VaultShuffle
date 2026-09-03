@@ -1,10 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { FamilyMark } from "@/components/shared/FamilyMark";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
 import { isFamilyAccess, MAX_FAMILY_MEMBERS } from "@/lib/family-sharing";
 import styles from "./FamilySharingCard.module.css";
 
@@ -73,21 +72,11 @@ export function FamilySharingCard() {
   // again. That is too much to hang on one unlabelled X.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
-  const viewedRef = useRef(false);
 
   const familyGameCount = useMemo(
     () => allGames.filter((game) => isFamilyAccess(game.accessSource)).length,
     [allGames]
   );
-
-  useEffect(() => {
-    if (!familyEnabled || !isLive || viewedRef.current) return;
-    viewedRef.current = true;
-    trackEvent(ANALYTICS_EVENTS.familyCardViewed, {
-      members: familyMembers.length,
-      family_games: familyGameCount
-    });
-  }, [familyEnabled, isLive, familyMembers.length, familyGameCount]);
 
   if (!familyEnabled || !isLive) return null;
 

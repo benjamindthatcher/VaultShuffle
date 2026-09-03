@@ -1,4 +1,4 @@
-import { after, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { listCollectionsWithMemberships } from "@/lib/collections";
 import { listGames } from "@/lib/games";
 import { getSessionPayload } from "@/lib/session-payload";
@@ -6,8 +6,7 @@ import { getVaultState } from "@/lib/vault-state";
 import { listGamePreferenceGlobals, listGenrePreferences, listGenrePreferenceGlobals } from "@/lib/genre-preference-worker";
 import { getPlaytimeSummary } from "@/lib/playtime-snapshots";
 import { refreshCurrentManualSessionCookie } from "@/lib/auth";
-import { retryPendingPostHogAccountProfileMerges } from "@/lib/posthog-server";
-import { requestDiagnostics, reportServiceWarning } from "@/lib/diagnostics-server";
+import { requestDiagnostics } from "@/lib/diagnostics-server";
 
 async function jsonWithSessionRefresh(body: unknown, init?: ResponseInit) {
   return refreshCurrentManualSessionCookie(NextResponse.json(body, init));
@@ -18,17 +17,6 @@ export async function GET(request: Request) {
   diagnostics.stage("session_check");
   const session = await getSessionPayload();
   diagnostics.account(session.user_id, session.account_type);
-
-  if (session.account_type === "steam" && session.user_id) {
-    const accountId = session.user_id;
-    after(async () => {
-      try {
-        await retryPendingPostHogAccountProfileMerges(accountId);
-      } catch (error) {
-        reportServiceWarning(error, "account_analytics_merge", "retry_delivery");
-      }
-    });
-  }
 
   // A guest bootstrap is just this session object - a couple of hundred bytes.
   // The preview pool it used to carry was a megabyte and a half of the same

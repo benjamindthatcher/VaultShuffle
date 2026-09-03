@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./ManualProfileAccessNotice.module.css";
 
 /**
@@ -26,17 +24,6 @@ import styles from "./ManualProfileAccessNotice.module.css";
 export function ManualProfileAccessNotice() {
   const { session, isLoading } = useAppData();
   const isManualProfile = session.account_type === "manual" && Boolean(session.user_id);
-  const shownFor = useRef<string | null>(null);
-
-  useEffect(() => {
-    if (isLoading || !isManualProfile || shownFor.current === session.user_id) return;
-    shownFor.current = session.user_id;
-    trackEvent(ANALYTICS_EVENTS.manualProfileAccessNoticeShown, {
-      account_type: "manual",
-      identity_verified: false,
-    });
-  }, [isLoading, isManualProfile, session.user_id]);
-
   if (isLoading || !isManualProfile) return null;
 
   return (
@@ -53,9 +40,6 @@ export function ManualProfileAccessNotice() {
       <Link
         href="/account/secure-profile"
         className={styles.action}
-        onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSecurityLinkClicked, {
-          location: "dashboard_footer",
-        })}
       >
         Secure profile with Steam
         <VaultIcon name="chevron-right" size={15} />

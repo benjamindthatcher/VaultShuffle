@@ -35,7 +35,6 @@ export async function POST(request: Request) {
     });
 
     const counts = await recheckFamilyLibrary(user.id);
-    diagnostics.event("succeeded", { imported: counts.importable, pending: counts.pending, status: 200 });
     return diagnostics.response(NextResponse.json({ ok: true, counts }));
   } catch (error) {
     return familyError(error, diagnostics);

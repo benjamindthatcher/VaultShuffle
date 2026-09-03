@@ -198,7 +198,7 @@ export default function CollectionsPage() {
       <h1 className="visually-hidden">Collections</h1>
 
       {!isLive ? (
-        <GuestPreviewNotice feature="Collections" icon="collections" catalogueSize={ownedGames.length}>
+        <GuestPreviewNotice feature="Collections" icon="collections">
           Explore smart shelves built from catalogue metadata, or make a temporary collection of your own. Preview changes are not saved.
         </GuestPreviewNotice>
       ) : null}

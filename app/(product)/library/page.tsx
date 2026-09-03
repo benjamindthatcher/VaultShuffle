@@ -50,15 +50,6 @@ export default function LibraryPage() {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  useEffect(() => {
-    if (!query) return;
-    const timer = setTimeout(() => {
-      trackEvent(ANALYTICS_EVENTS.librarySearched, {
-        query_length: query.length,
-      });
-    }, 800);
-    return () => clearTimeout(timer);
-  }, [isLive, query]);
   const undoTimerRef = useRef<number | null>(null);
 
   // A different shelf is a different set of games, so whatever was ticked on the
@@ -200,8 +191,14 @@ export default function LibraryPage() {
     if (!ids.length) return;
     setBulkBusy(true);
     try {
-      for (const id of ids) await restoreGame(id);
-      trackEvent(ANALYTICS_EVENTS.libraryBulkRestored, { from: statusTab, count: ids.length });
+      for (const id of ids) await restoreGame(id, { silent: true });
+      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
+        status: "Active",
+        restored: true,
+        bulk: true,
+        from: statusTab,
+        count: ids.length
+      });
       setSelectedIds([]);
     } finally {
       setBulkBusy(false);
@@ -227,10 +224,6 @@ export default function LibraryPage() {
   function openGame(gameId: string, surface: "recent" | "catalogue" | "pinned") {
     setSelectedGameId(gameId);
     setSelectedSurface(surface);
-    trackEvent(ANALYTICS_EVENTS.libraryGameOpened, {
-      surface,
-      ...(surface === "pinned" ? { pin_slot: vaultState.pinnedIds.indexOf(gameId) + 1 } : {}),
-    });
   }
 
   function closeGameDetails() {
@@ -243,7 +236,7 @@ export default function LibraryPage() {
       <h1 className="visually-hidden">Library</h1>
 
       {!isLive ? (
-        <GuestPreviewNotice feature="Library" icon="all-games" catalogueSize={libraryGames.length}>
+        <GuestPreviewNotice feature="Library" icon="all-games">
           Browse and filter the live guest catalogue. Any statuses, pins or notes you try are temporary until you connect a public Steam library.
         </GuestPreviewNotice>
       ) : null}
@@ -296,7 +289,7 @@ export default function LibraryPage() {
 
       <div className={styles.statusTabs} role="tablist" aria-label={isLive ? "Library status" : "Preview status"}>
         {(["active", "slept", "completed"] as const).map((tab) => (
-          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setStatusTab(tab); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "status", value: tab }); }}>
+          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => setStatusTab(tab)}>
             <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{statusCounts[tab]}</strong>
           </button>
         ))}
@@ -314,22 +307,15 @@ export default function LibraryPage() {
             onSortChange={(value) => {
               setSort(value);
               setSortReversed(false);
-              trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "sort", value });
             }}
             sortReversed={sortReversed}
             onToggleSortDirection={() => setSortReversed((current) => !current)}
             showDurationSort={hasDurationSort}
             filters={filters}
             filterGenres={filterGenres}
-            onFiltersChange={(next) => {
-              setFilters(next);
-              trackEvent(ANALYTICS_EVENTS.libraryFiltered, {
-                filter: "filters",
-                value: `${next.progress}|${next.length}|${next.genres.length}`
-              });
-            }}
+            onFiltersChange={setFilters}
             viewMode={viewMode}
-            onViewModeChange={(value) => { setViewMode(value); trackEvent(ANALYTICS_EVENTS.libraryFiltered, { filter: "view_mode", value }); }}
+            onViewModeChange={setViewMode}
           />
         </div>
         {/* Sits directly above the grid it fills, rather than at the foot of it:

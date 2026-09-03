@@ -140,9 +140,6 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
                 <Link
                   href="/setup/steam-profile?from=guest_profile_menu"
                   className={`${styles.menuAction} ${styles.profileCreateAction}`}
-                  onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSetupStarted, {
-                    location: "guest_profile_menu",
-                  })}
                 >
                   Create profile from URL
                 </Link>

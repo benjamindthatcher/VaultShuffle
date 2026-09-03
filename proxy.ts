@@ -5,9 +5,6 @@ const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
 const STEAM_IMPORT_COOKIE = "vault_steam_import";
 const SESSION_COOKIE = "vault_session";
-const INGEST_PREFIX = "/ingest";
-const POSTHOG_API_HOST = "https://eu.i.posthog.com";
-const POSTHOG_ASSET_HOST = "https://eu-assets.i.posthog.com";
 
 function apiError(error: string, status: number, request: NextRequest) {
   const requestId = crypto.randomUUID();
@@ -33,29 +30,7 @@ function allowedOrigins(request: NextRequest) {
   return origins;
 }
 
-// PostHog is served through our own origin so that ad blockers do not drop product
-// analytics. Same-origin requests carry every vaultshuffle.com cookie, including the
-// httpOnly vault_session token, so the Cookie header is removed before the request is
-// forwarded on. PostHog identifies events from the payload and never needs it.
-function proxyPostHog(request: NextRequest) {
-  const path = request.nextUrl.pathname.slice(INGEST_PREFIX.length) || "/";
-  const isAsset = path.startsWith("/static/") || path.startsWith("/array/");
-  const destination = new URL(
-    `${path}${request.nextUrl.search}`,
-    isAsset ? POSTHOG_ASSET_HOST : POSTHOG_API_HOST
-  );
-
-  const headers = new Headers(request.headers);
-  headers.delete("cookie");
-
-  return NextResponse.rewrite(destination, { request: { headers } });
-}
-
 export function proxy(request: NextRequest) {
-  if (request.nextUrl.pathname === INGEST_PREFIX || request.nextUrl.pathname.startsWith(`${INGEST_PREFIX}/`)) {
-    return proxyPostHog(request);
-  }
-
   if (
     request.method === "GET" &&
     request.nextUrl.searchParams.get("steam_connected") === "1"
@@ -132,12 +107,6 @@ export const config = {
   matcher: [
     "/",
     "/api/:path*",
-    // PostHog's own JS bundles and remote config are public, cacheable GETs that
-    // carry nothing worth stripping, so they are rewritten by next.config instead.
-    // Routing-layer rewrites cost no Fluid CPU and can be served from the CDN,
-    // whereas anything this matcher covers runs the proxy on every single request.
-    // Only the endpoints that carry a request body stay here, for the cookie strip.
-    "/ingest(/(?!static/|array/).*)?",
     "/dashboard",
     "/stats",
     "/vault",

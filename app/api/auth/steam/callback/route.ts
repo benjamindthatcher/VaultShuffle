@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import {
   attachSessionCookie,
   completeManualProfileSecurity,
@@ -10,7 +10,7 @@ import {
   ManualProfileSecurityError,
   asManualProfileSecurityError,
 } from "@/lib/manual-profile-security";
-import { deliverPostHogAccountProfileMerge } from "@/lib/posthog-server";
+import { deliverPostHogAccountProfileMerge, retryPendingPostHogAccountProfileMerges } from "@/lib/posthog-server";
 import { enforceRateLimit, RateLimitExceededError, requestFingerprint } from "@/lib/rate-limit";
 import { fetchSteamPlayerSummary, siteBaseUrl, steamIdFromOpenId, verifySteamOpenId } from "@/lib/steam";
 import { requestDiagnostics, reportServiceWarning } from "@/lib/diagnostics-server";
@@ -38,7 +38,6 @@ export async function GET(request: NextRequest) {
   const isSecurityFlow = Boolean(securityIntentToken);
   const diagnostics = requestDiagnostics(request, isSecurityFlow ? "steam_link_callback" : "steam_sign_in_callback");
   const flowId = diagnosticId(request.cookies.get(AUTH_TRACE_COOKIE)?.value);
-  diagnostics.event("started", { flow_id: flowId });
   const finish = (response: NextResponse) => {
     response.cookies.set(AUTH_TRACE_COOKIE, "", { path: "/api/auth/steam/callback", maxAge: 0 });
     return diagnostics.response(response);
@@ -105,9 +104,23 @@ export async function GET(request: NextRequest) {
     });
 
     clearSecurityCookie(response);
-    if ("accountId" in secured) diagnostics.account(secured.accountId, "steam");
-    else diagnostics.account(secured.user.id, "steam");
-    diagnostics.event("succeeded", { flow_id: flowId, status: 307 });
+    const accountId = "accountId" in secured ? secured.accountId : secured.user.id;
+    diagnostics.account(accountId, "steam");
+
+    // Catches up a merge whose PostHog delivery failed at the time. This used to
+    // run on every app bootstrap, which meant a query per product page load for
+    // every Steam account against a table holding four rows, and it has never
+    // once found work to do. Signing in is the only moment a new merge can have
+    // been created, so retrying here keeps the safety net at a hundredth of the
+    // cost - and a delivery that fails now is picked up at the next sign-in.
+    after(async () => {
+      try {
+        await retryPendingPostHogAccountProfileMerges(accountId);
+      } catch (error) {
+        reportServiceWarning(error, "account_analytics_merge", "retry_delivery");
+      }
+    });
+
     return finish(attachSessionCookie(response, secured.token));
   } catch (error) {
     if (isSecurityFlow) {

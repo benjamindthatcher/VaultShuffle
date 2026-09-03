@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import styles from "./landing-experience.module.css";
@@ -17,11 +16,6 @@ import styles from "./landing-experience.module.css";
  * thing in the hero and the closing section that has to run any JavaScript.
  */
 export function LandingCtas({ location, compact = false }: { location: "hero" | "footer"; compact?: boolean }) {
-  useEffect(() => {
-    if (location !== "hero") return;
-    trackEvent(ANALYTICS_EVENTS.landingViewed);
-  }, [location]);
-
   return (
     <div className={compact ? `${styles.ctas} ${styles.ctasCompact}` : styles.ctas} role="group" aria-label="Try VaultShuffle">
       {/* Steam sign-in leaves the app, so both events go out through

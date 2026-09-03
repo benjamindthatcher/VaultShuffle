@@ -7,7 +7,6 @@ import { Artwork } from "@/components/shared/Artwork";
 import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { buildPinnedRunSummary } from "@/lib/pinned-run";
@@ -142,10 +141,6 @@ export function LibraryDetailsDrawer({
       href={steamLink.href}
       target={steamLink.target}
       rel={steamLink.rel}
-      onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.gameSteamOpened, {
-        action: previewMode ? "view_store" : "launch_game",
-        source: isPinnedSpotlight ? "pinned_details" : "game_details",
-      })}
     >
       <VaultIcon name={steamLink.launching ? "play-now" : "open-steam"} size={20} />
       <span>{steamLink.launching ? (isPinnedSpotlight ? "Play now on Steam" : "Play on Steam") : "View on Steam"}</span>

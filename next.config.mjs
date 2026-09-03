@@ -10,7 +10,7 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://cdn.cloudflare.steamstatic.com https://cdn.akamai.steamstatic.com https://shared.akamai.steamstatic.com https://avatars.steamstatic.com",
   "font-src 'self' data:",
-  "connect-src 'self' https://vitals.vercel-insights.com https://*.vercel-insights.com https://eu.i.posthog.com",
+  "connect-src 'self' https://vitals.vercel-insights.com https://*.vercel-insights.com https://*.posthog.com",
   "frame-src 'none'",
   "worker-src 'self' blob:",
   "manifest-src 'self'",
@@ -52,38 +52,15 @@ const nextConfig = {
     ];
   },
   /**
-   * The PostHog reverse proxy is split in two. Event, replay and flag traffic
-   * stays in proxy.ts, because those requests carry the visitor's cookies and
-   * the httpOnly session token has to be stripped before it leaves our origin.
-   *
-   * PostHog's script bundles and remote config are public GETs for static files,
-   * so they have nothing to strip and belong here instead: a rewrite is resolved
-   * by the Edge Network's routing layer, which costs no Fluid Active CPU and,
-   * unlike a proxy rewrite, can be served from the CDN. Routing Middleware is
-   * billed on the same Active CPU meter as functions, and a fresh visitor pulls
-   * roughly nine of these bundles - they were the single largest source of
-   * proxy invocations on this project.
+   * PostHog is loaded and posted to directly rather than reverse-proxied through
+   * this origin. The proxy existed to keep ad blockers from dropping analytics,
+   * but every event batch, flags call and replay chunk it carried ran Routing
+   * Middleware, which Vercel bills on the same Active CPU meter as functions.
+   * Talking to PostHog directly costs coverage on blocked clients and nothing
+   * else - their bundles come from their own CDN, cached on their schedule.
    */
-  async rewrites() {
-    return {
-      beforeFiles: [
-        { source: "/ingest/static/:path*", destination: "https://eu-assets.i.posthog.com/static/:path*" },
-        { source: "/ingest/array/:path*", destination: "https://eu-assets.i.posthog.com/array/:path*" }
-      ]
-    };
-  },
   async headers() {
-    return [
-      { source: "/:path*", headers: securityHeaders },
-      // Honour PostHog's own Cache-Control on the proxied bundles rather than
-      // imposing our own, so a PostHog release is picked up on their schedule.
-      // Older Vercel projects ignore upstream cache headers on external rewrites
-      // unless this opt-in is present; on newer ones it is already the default.
-      {
-        source: "/ingest/:path(static|array)/:rest*",
-        headers: [{ key: "x-vercel-enable-rewrite-caching", value: "1" }]
-      }
-    ];
+    return [{ source: "/:path*", headers: securityHeaders }];
   },
   images: {
     remotePatterns: [

@@ -7,7 +7,7 @@ import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames, withFamilyOwnerNames } from "@/lib/app-view-model";
 import { FAMILY_SHARING_ENABLED } from "@/lib/family-flag";
 import type { FamilyImportCounts } from "@/lib/family-sharing";
-import { ANALYTICS_EVENTS, VAULT_ACTION_EVENT_NAMES, VAULT_DRAW_EVENT_NAMES, setAnalyticsAudience, trackEvent, trackNavigationEvent } from "@/lib/analytics";
+import { ANALYTICS_EVENTS, setAnalyticsAudience, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import type { Collection, Game, SessionPayload, SmartCollectionPreset } from "@/lib/types";
 import type { CollectionMembership } from "@/lib/collections";
 import type { VaultAction, VaultState } from "@/lib/vault-state";
@@ -18,7 +18,6 @@ import type { PinnedPlaytimeResult } from "@/lib/pinned-playtime";
 import { mergePinnedPlaytime } from "@/lib/pinned-playtime-view";
 import {
   DEFAULT_GLOBAL_FILTERS,
-  activeGlobalFilterCount,
   isDefaultGlobalFilters,
   matchesGlobalFilters,
   parseGlobalFilters,
@@ -131,7 +130,7 @@ type AppDataContextValue = {
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
   updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }) => Promise<void>;
-  restoreGame: (gameId: string) => Promise<void>;
+  restoreGame: (gameId: string, options?: { silent?: boolean }) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
   addGamesToCollection: (collectionId: string, gameIds: string[]) => Promise<void>;
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
@@ -358,13 +357,8 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
     } catch {
-      // Analytics still fires when storage is unavailable; at worst it appears
-      // once more after a reload in this uncommon browser mode.
+      // Storage being unavailable is not worth failing over.
     }
-    trackEvent(ANALYTICS_EVENTS.manualProfileDashboardReached, {
-      account_type: "manual",
-      identity_verified: false,
-    });
   }, [isLoading, session.account_type, session.user_id]);
 
   /**
@@ -441,10 +435,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   async function recheckFamilyLibrary() {
     return withFamilyWrite(async () => {
       const payload = await api<{ counts: FamilyImportCounts }>("/api/family/sync", { method: "POST" });
-      trackEvent(ANALYTICS_EVENTS.familyLibraryRechecked, {
-        imported: payload.counts.importable,
-        pending: payload.counts.pending
-      });
       return payload.counts;
     });
   }
@@ -461,15 +451,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     } catch {
       // Storage being unavailable must not stop the filters working this session.
     }
-    trackEvent(ANALYTICS_EVENTS.globalFiltersChanged, {
-      device: next.device,
-      players: next.players,
-      release_age: next.releaseAge,
-      game_type: next.gameType,
-      access: next.access,
-      hide_poorly_reviewed: next.hidePoorlyReviewed,
-      active_count: activeGlobalFilterCount(next)
-    });
   }
 
   /** Kept so the header's Deck/Mac control can move without changing behaviour. */
@@ -511,7 +492,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
 
     setIsRefreshingPinnedPlaytime(true);
-    trackEvent(ANALYTICS_EVENTS.pinnedPlaytimeRefreshStarted);
     try {
       const result = await api<PinnedPlaytimeResult>("/api/steam/pinned-playtime", {
         method: "POST",
@@ -522,10 +502,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // pin baselines, collections and any in-flight player edits intact.
       setLiveGames((current) => mergePinnedPlaytime(current, mapped));
       setPinnedRefreshAvailableAt(Date.now() + Math.max(0, result.retryAfterSeconds) * 1000);
-      trackEvent(ANALYTICS_EVENTS.pinnedPlaytimeRefreshSucceeded, {
-        refreshed_count: result.refreshed,
-        skipped_count: result.skipped
-      });
       return result;
     } catch (error) {
       if (error instanceof CooldownError) {
@@ -535,9 +511,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         // Retry-After. The saved values are untouched and a minute is cheap.
         setPinnedRefreshAvailableAt(Date.now() + 60_000);
       }
-      trackEvent(ANALYTICS_EVENTS.pinnedPlaytimeRefreshFailed, {
-        failure_kind: error instanceof CooldownError ? "cooldown" : "request_failed"
-      });
       throw error;
     } finally {
       setIsRefreshingPinnedPlaytime(false);
@@ -652,11 +625,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       if (error instanceof CooldownError) {
         setSteamImportCooldownUntil(saveCooldown(session.user_id, error));
         setSteamImport((current) => ({ ...(actual ?? current), status: "failed", lastError: error.message }));
-        trackEvent(ANALYTICS_EVENTS.steamImportDeferred, {
-          ...diagnosticFailure(error),
-          request_id: diagnosticId((error as CooldownError & { requestId?: string }).requestId),
-          first_import: liveGames.length === 0
-        });
         throw error;
       }
       if (error instanceof SteamLibraryPrivateError) setSteamLibraryPrivate(true);
@@ -691,7 +659,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function signOut() {
     await api("/api/logout", { method: "POST" });
-    trackEvent(ANALYTICS_EVENTS.signedOut);
     window.location.assign("/");
   }
 
@@ -746,7 +713,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
         kind: payload.kind ?? collection.kind,
         smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
       } : collection));
-      trackEvent(ANALYTICS_EVENTS.collectionUpdated, { kind: payload.kind ?? "custom" });
       queueWrite(api(`/api/collections/${collectionId}`, { method: "PATCH", body: JSON.stringify(payload) }));
       return;
     }
@@ -757,9 +723,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       kind: payload.kind ?? collection.kind,
       smartPreset: payload.kind === "custom" ? undefined : payload.rules?.preset ?? collection.smartPreset
     } : collection));
-    trackEvent(ANALYTICS_EVENTS.collectionUpdated, {
-      kind: payload.kind ?? "custom",
-    });
   }
 
   async function removeCollection(collectionId: string) {
@@ -768,7 +731,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setLiveGames((current) => current.map((game) => game.collectionIds.includes(collectionId)
         ? { ...game, collectionIds: game.collectionIds.filter((id) => id !== collectionId) }
         : game));
-      trackEvent(ANALYTICS_EVENTS.collectionDeleted);
       queueWrite(api(`/api/collections/${collectionId}`, { method: "DELETE" }));
       return;
     }
@@ -777,7 +739,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       ...game,
       collectionIds: game.collectionIds.filter((id) => id !== collectionId)
     })));
-    trackEvent(ANALYTICS_EVENTS.collectionDeleted);
   }
 
   async function updateGame(
@@ -800,7 +761,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           currentPickId: current.currentPickId === gameId ? null : current.currentPickId
         }));
       }
-      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status });
+      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status, count: 1 });
 
       queueWrite(api(`/api/games/${gameId}`, {
         method: "PATCH",
@@ -821,9 +782,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
     if (patch.status) {
-      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
-        status: patch.status,
-      });
+      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status, count: 1 });
     }
     if (patch.status === "Completed" || patch.status === "Slept") {
       setGuestVaultState((current) => ({
@@ -834,22 +793,26 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  async function restoreGame(gameId: string) {
+  /**
+   * `silent` is for callers restoring a whole selection: waking thirty games is
+   * one intent, and reporting it thirty times made per-user event rates
+   * meaningless. The bulk caller sends a single event carrying the count.
+   */
+  async function restoreGame(gameId: string, options?: { silent?: boolean }) {
     if (isLive) {
       await api(`/api/games/${gameId}`, {
         method: "PATCH",
         body: JSON.stringify({ restore_active: true })
       });
       setLiveGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true });
+      if (!options?.silent) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true, count: 1 });
       return;
     }
 
     setGuestGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-    trackEvent(ANALYTICS_EVENTS.gameStatusChanged, {
-      status: "Active",
-      restored: true,
-    });
+    if (!options?.silent) {
+      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true, count: 1 });
+    }
   }
 
   /**
@@ -917,9 +880,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       // case; where they do not, the server wins.
       const pinnedGame = liveGames.find((game) => game.id === gameId);
       setLiveVaultState((current) => predictVaultState(current, action, gameId, context, pinnedGame?.hoursPlayed ?? null));
-      const liveEvent = VAULT_ACTION_EVENT_NAMES[action];
-      if (liveEvent) trackEvent(liveEvent, { action });
-
       queueWrite(
         api<VaultState>("/api/vault/state", {
           method: "POST",
@@ -935,8 +895,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     // and no guest pin ever had a figure to measure "since you pinned it" from.
     const guestGame = guestGames.find((game) => game.id === gameId);
     setGuestVaultState((current) => predictVaultState(current, action, gameId, context, guestGame?.hoursPlayed ?? 0));
-    const guestEvent = VAULT_ACTION_EVENT_NAMES[action];
-    if (guestEvent) trackEvent(guestEvent, { action });
   }
 
   async function loadVaultHistory() {
@@ -959,24 +917,21 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function recordDrawEvent(drawId: string, eventType: VaultDrawEventType, analytics: Record<string, unknown> = {}) {
-    // Analytics fire before the API call, not after it. "opened_on_steam" is
-    // triggered by a link that navigates to a steam:// URL, so anything queued
-    // behind an await is cancelled with the page and never reaches PostHog.
-    // The experiment arm and reroll depth ride along on every follow-up event:
-    // the arm is per draw, so it cannot be a super-property, and the outcome
-    // metric is measured on this event rather than on the draw that preceded it.
-    const properties: Record<string, unknown> = {
-      draw_id: drawId,
-      draw_action: eventType,
-      ...analytics,
-    };
-    if (eventType === "snoozed_7_days") properties.snooze_days = 7;
-    if (eventType === "snoozed_30_days") properties.snooze_days = 30;
-
+    // Launching on Steam is the north-star metric, and the only follow-up that
+    // still gets its own event: the rest - pinned, snoozed, rerolled, disliked -
+    // are all recorded as vault_draw_events rows, which is where the questions
+    // about them are actually answered.
+    //
+    // It fires before the API call, not after it: the link navigates to a
+    // steam:// URL, so anything queued behind an await is cancelled with the
+    // page and never reaches PostHog. The experiment arm rides along because it
+    // is per draw rather than per user, so it cannot be a super-property.
     if (eventType === "opened_on_steam") {
-      trackNavigationEvent(VAULT_DRAW_EVENT_NAMES[eventType], properties);
-    } else {
-      trackEvent(VAULT_DRAW_EVENT_NAMES[eventType], properties);
+      trackNavigationEvent(ANALYTICS_EVENTS.vaultPickLaunched, {
+        draw_id: drawId,
+        draw_action: eventType,
+        ...analytics,
+      });
     }
 
     if (isLive) {
@@ -990,7 +945,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   async function clearVaultHistory() {
     if (isLive) await api("/api/vault/history", { method: "DELETE" });
     if (isLive) setLiveVaultHistory([]); else setGuestVaultHistory([]);
-    trackEvent(ANALYTICS_EVENTS.vaultHistoryCleared);
   }
 
   // The topmost layer. Everything downstream - the Vault's deck, the Library,

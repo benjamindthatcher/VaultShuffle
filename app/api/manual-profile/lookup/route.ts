@@ -16,7 +16,6 @@ const requestSchema = z.object({
 
 export async function POST(request: Request) {
   const diagnostics = requestDiagnostics(request, "manual_profile_lookup");
-  diagnostics.event("started");
   try {
     diagnostics.stage("validation_and_rate_limit");
     assertSameOrigin(request);
@@ -30,7 +29,6 @@ export async function POST(request: Request) {
     const input = requestSchema.parse(await readJsonBody(request, 1024));
     diagnostics.stage("steam_lookup");
     const profile = await lookupManualSteamProfile(input.profile, diagnostics);
-    diagnostics.event("succeeded", { game_count: profile.gameCount });
     return diagnostics.response(NextResponse.json(
       {
         profile: {
