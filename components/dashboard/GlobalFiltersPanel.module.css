@@ -415,22 +415,13 @@
   color: var(--vault-text-muted);
 }
 
-.exclusionGroups {
+/* One well, matching every other well in this panel. The chips flow and fill
+   each row edge to edge, so there is no ragged short column and no dead space
+   under a group that happened to hold fewer of them. */
+.exclusionBody {
   display: grid;
-  gap: 11px 14px;
-  align-items: start;
-}
-
-@media (min-width: 900px) {
-  .exclusionGroups {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  /* Overrides the six-column span the shared .group rule sets for the grid
-     above, which would otherwise leave each of these three columns half empty. */
-  .exclusionGroups .group {
-    grid-column: auto;
-  }
+  gap: 9px;
+  justify-items: start;
 }
 
 .exclusionsReset {
@@ -444,12 +435,6 @@
   font-size: 0.76rem;
   font-weight: 650;
   transition: background 140ms ease, color 140ms ease;
-}
-
-@media (min-width: 900px) {
-  .exclusionsReset {
-    grid-column: 1 / -1;
-  }
 }
 
 .exclusionsReset:hover {

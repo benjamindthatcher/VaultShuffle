@@ -201,11 +201,16 @@ export const EXCLUSION_CATEGORIES: ExclusionCategory[] = [
   }
 ];
 
-export const EXCLUSION_GROUP_LABELS: Record<ExclusionGroup, string> = {
-  genre: "Genre",
-  loop: "How it plays",
-  practical: "Practical"
-};
+/**
+ * The order the chips are offered in.
+ *
+ * Not rendered as headings. The panel's other wells are all a single row, and
+ * three labelled columns of unequal height read as a different kind of control
+ * dropped into the middle of it - so the grouping is carried by the ordering
+ * instead, which puts related chips beside each other without a third level of
+ * hierarchy inside an already-labelled section.
+ */
+export const EXCLUSION_GROUP_ORDER: ExclusionGroup[] = ["genre", "loop", "practical"];
 
 const BY_ID = new Map(EXCLUSION_CATEGORIES.map((category) => [category.id, category]));
 

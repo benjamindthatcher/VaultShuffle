@@ -12,9 +12,8 @@ import {
 import { isFamilyAccess } from "@/lib/family-sharing";
 import {
   EXCLUSION_CATEGORIES,
-  EXCLUSION_GROUP_LABELS,
-  availableExclusionCategories,
-  type ExclusionGroup
+  EXCLUSION_GROUP_ORDER,
+  availableExclusionCategories
 } from "@/lib/exclusion-categories";
 import styles from "./GlobalFiltersPanel.module.css";
 
@@ -86,8 +85,16 @@ export function GlobalFiltersPanel() {
     () => availableExclusionCategories(allGames.map((game) => game.exclusions)),
     [allGames]
   );
+  // One flowing list rather than three labelled columns. Every other well in
+  // this panel is a single row 38px tall; three stacked blocks of 137, 137 and
+  // 71 read as a different kind of control that had been dropped in. Ordered
+  // genre, then loop, then practical, so related chips still sit together -
+  // the order carries the grouping and the sub-headings were only scaffolding.
   const offered = useMemo(
-    () => EXCLUSION_CATEGORIES.filter((category) => availableExclusions.has(category.id)),
+    () => EXCLUSION_CATEGORIES
+      .filter((category) => availableExclusions.has(category.id))
+      .sort((left, right) =>
+        EXCLUSION_GROUP_ORDER.indexOf(left.group) - EXCLUSION_GROUP_ORDER.indexOf(right.group)),
     [availableExclusions]
   );
   const excludedCount = globalFilters.excluded.length;
@@ -226,7 +233,7 @@ export function GlobalFiltersPanel() {
             aria-expanded={showExclusions}
             onClick={() => setShowExclusions((open) => !open)}
           >
-            <span className={styles.groupLabel}>
+            <span className={styles.groupLabel} id="global-filter-exclusions">
               Never show me
               {excludedCount ? <span className={styles.groupDot} aria-hidden="true" /> : null}
             </span>
@@ -239,34 +246,23 @@ export function GlobalFiltersPanel() {
           </button>
 
           {showExclusions ? (
-            <div className={styles.exclusionGroups}>
-              {(Object.keys(EXCLUSION_GROUP_LABELS) as ExclusionGroup[]).map((group) => {
-                const inGroup = offered.filter((category) => category.group === group);
-                if (!inGroup.length) return null;
-                return (
-                  <div className={styles.group} key={group}>
-                    <span className={styles.groupLabel} id={`exclusion-group-${group}`}>
-                      {EXCLUSION_GROUP_LABELS[group]}
-                    </span>
-                    <div className={styles.choices} role="group" aria-labelledby={`exclusion-group-${group}`}>
-                      {inGroup.map((category) => {
-                        const on = globalFilters.excluded.includes(category.id);
-                        return (
-                          <button
-                            key={category.id}
-                            type="button"
-                            className={on ? styles.choiceOn : styles.choice}
-                            aria-pressed={on}
-                            onClick={() => toggleExclusion(category.id)}
-                          >
-                            {category.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+            <div className={styles.exclusionBody}>
+              <div className={styles.choices} role="group" aria-labelledby="global-filter-exclusions">
+                {offered.map((category) => {
+                  const on = globalFilters.excluded.includes(category.id);
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      className={on ? styles.choiceOn : styles.choice}
+                      aria-pressed={on}
+                      onClick={() => toggleExclusion(category.id)}
+                    >
+                      {category.label}
+                    </button>
+                  );
+                })}
+              </div>
 
               {excludedCount ? (
                 <button
