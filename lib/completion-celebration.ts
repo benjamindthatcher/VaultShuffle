@@ -24,19 +24,71 @@ export function pinProgressHours(game: DemoGame, pin: VaultPin | undefined) {
  * have just made.
  *
  * Endless games get no bar. There are no credits to measure against, and a
- * percentage of a game that never ends is a number about nothing.
+ * percentage of a game that never ends is a number about nothing. What they get
+ * instead is pinRunSplit, below.
  */
 export function pinProgressBar(game: DemoGame, pin: VaultPin | undefined) {
-  if (game.status !== "Completed" && isEndlessProgress(game)) return null;
+  if (isEndlessProgress(game)) return null;
+  // Marking a game complete is the player stating a fact, and it holds whether
+  // or not anyone ever estimated the game's length - the same rule progressLabel
+  // applies. Reading completionPercent here instead cost a finished game its
+  // dial at the exact moment it had the most to show.
+  const finished = game.status === "Completed";
   const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
-  if (!totalMinutes) return null;
+  if (!totalMinutes) return finished ? { percent: 100, atPin: null } : null;
 
-  const percent = Math.max(0, Math.min(100, Math.round(Number(game.completionPercent ?? 0))));
+  const percent = finished
+    ? 100
+    : Math.max(0, Math.min(100, Math.round(Number(game.completionPercent ?? 0))));
   const hoursAtPin = pin?.hoursAtPin;
   if (hoursAtPin === null || hoursAtPin === undefined) return { percent, atPin: null };
 
   const atPin = Math.max(0, Math.min(percent, Math.round((hoursAtPin / (totalMinutes / 60)) * 100)));
   return { percent, atPin };
+}
+
+/**
+ * The same dial, measuring the run rather than the story.
+ *
+ * For a game with no ending - or no estimate of one - there is no honest
+ * percentage to draw, but there is still a measured fact worth showing: the
+ * hours on the clock, and how many of them arrived after the pin was made. Both
+ * numbers come from Steam rather than from an estimate, so the split means the
+ * same thing it does above without inventing a denominator.
+ *
+ * The dial reads full for anyone who has played at all, which is why the face
+ * beside it shows hours rather than a percentage: filling it is not a claim to
+ * have finished anything, it is the whole of a run being accounted for.
+ */
+export function pinRunSplit(game: DemoGame, pin: VaultPin | undefined) {
+  const hours = Math.max(0, Number(game.hoursPlayed ?? 0));
+  if (hours <= 0) return { percent: 0, atPin: null };
+
+  const hoursAtPin = pin?.hoursAtPin;
+  if (hoursAtPin === null || hoursAtPin === undefined) return { percent: 100, atPin: null };
+  return { percent: 100, atPin: Math.max(0, Math.min(100, Math.round((hoursAtPin / hours) * 100))) };
+}
+
+export type PinInstrument = {
+  /** What the dial is measuring, which is what its face has to say. */
+  kind: "story" | "run";
+  percent: number;
+  atPin: number | null;
+};
+
+/**
+ * The dial every pin gets.
+ *
+ * A pinned game used to lose the whole instrument whenever its progress could
+ * not be stated as a percentage - an endless game, or one HLTB has never timed -
+ * so a shelf of three cards came out one card shorter than the others for a
+ * reason nothing on screen explained. There is always something true to show:
+ * the story where we can measure it, and the run where we cannot.
+ */
+export function pinInstrument(game: DemoGame, pin: VaultPin | undefined): PinInstrument {
+  const story = pinProgressBar(game, pin);
+  if (story) return { kind: "story", ...story };
+  return { kind: "run", ...pinRunSplit(game, pin) };
 }
 
 /**
