@@ -108,6 +108,48 @@ export function playtimeTally(hours: number, playedWeight: number, unplayedWeigh
   return { positive: 0, total: hours > 0 ? playedWeight : unplayedWeight };
 }
 
+/**
+ * One tuning row from algorithm_weights, or null if it is not a tally at all.
+ *
+ * That table is edited by hand in the Supabase dashboard, so it is where a typo
+ * lands, and the shape it holds is narrower than it looks: a tally is `positive`
+ * out of `total`, so `positive` cannot be negative and cannot exceed `total`.
+ *
+ * Those are not merely odd values, they are outside anything the shrinkage can
+ * express, and they fail in the worst available way. A negative numerator makes
+ * the blended rate negative, logit clamps it to its epsilon, and the signal
+ * saturates at the full penalty however small the number typed - so a slip
+ * lands harder than any legitimate weight and looks like it took effect.
+ *
+ * Zero total is allowed and is not a mistake: it is how a signal gets switched
+ * off, and every consumer already ignores a zero-weight tally.
+ */
+export function parseAlgorithmWeight(positive: unknown, total: unknown) {
+  const parsedPositive = numericOrNull(positive);
+  const parsedTotal = numericOrNull(total);
+  if (parsedPositive === null || parsedTotal === null) return null;
+  if (parsedTotal < 0 || parsedPositive < 0 || parsedPositive > parsedTotal) return null;
+  return { positive: parsedPositive, total: parsedTotal };
+}
+
+/**
+ * Only an actual number, or a string that is one.
+ *
+ * Deliberately not Number(), which reads null, undefined, "" and [] all as 0.
+ * The columns are NOT NULL today so none of those can arrive from the table,
+ * but a blank quietly becoming zero is the one misreading here with a sign
+ * error in it: opened_on_steam would go from 3/3, the strongest yes the model
+ * has, to 0/3, a strong no. Refusing beats coercing.
+ */
+function numericOrNull(value: unknown) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : null;
+  if (typeof value === "string" && value.trim() !== "") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
 export function preferenceKey(genre: string, contextMood: GenrePreferenceContext) {
   return `${contextMood}::${genre}`;
 }

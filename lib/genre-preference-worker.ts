@@ -2,7 +2,7 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { statesAnOpinion } from "@/lib/draw-signal-precedence";
-import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, playtimeTally, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
+import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, parseAlgorithmWeight, playtimeTally, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
 import { steamTagGenreLabels } from "@/lib/genres";
 import { isFamilyAccess, type AccessSource } from "@/lib/family-sharing";
 import type { VaultDrawEventType } from "@/lib/vault-history";
@@ -133,10 +133,21 @@ async function loadWeightOverrides(supabase: AdminClient) {
 
     for (const row of (data ?? []) as Array<Record<string, unknown>>) {
       const key = String(row.key);
-      const positive = Number(row.positive);
-      const total = Number(row.total);
-      if (!Number.isFinite(positive) || !Number.isFinite(total) || total < 0) continue;
-      overrides.set(key, { positive, total });
+      const weight = parseAlgorithmWeight(row.positive, row.total);
+      // Says so rather than skipping quietly. A tuning value that is silently
+      // ignored is indistinguishable from one that is working, which is the
+      // failure that costs an afternoon.
+      if (!weight) {
+        console.warn(JSON.stringify({
+          level: "warning",
+          message: "Ignoring an out-of-range algorithm weight; using the built-in default",
+          key,
+          positive: row.positive,
+          total: row.total
+        }));
+        continue;
+      }
+      overrides.set(key, weight);
     }
   } catch (error) {
     // The fallback weights are a working recommender. Failing the whole rebuild

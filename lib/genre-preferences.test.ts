@@ -9,7 +9,7 @@ import {
   preferenceGenresFor,
   shrunkRate,
   VAULT_PREFERENCE_MAX_POINTS,
-  type GenrePreference, capDecisionsPerUser, playtimeTally } from "./genre-preferences.ts";
+  type GenrePreference, capDecisionsPerUser, parseAlgorithmWeight, playtimeTally } from "./genre-preferences.ts";
 
 function toIndex(rows: Array<Partial<GenrePreference> & { genre: string }>) {
   return buildGenrePreferenceIndex(rows.map((row) => ({
@@ -315,4 +315,38 @@ test("a nonsense playtime says nothing rather than something wrong", () => {
   // hours_played arrives from Steam and has been null and negative before now.
   assert.deepEqual(playtimeTally(Number.NaN, 0.5, 0.25), { positive: 0, total: 0 });
   assert.deepEqual(playtimeTally(-5, 0.5, 0.25), { positive: 0, total: 0 });
+});
+
+test("a tuning row is a tally, and every real one survives the parse", () => {
+  // The fourteen weights live in production; none of them may be rejected.
+  assert.deepEqual(parseAlgorithmWeight(3, 3), { positive: 3, total: 3 });
+  assert.deepEqual(parseAlgorithmWeight(0, 4), { positive: 0, total: 4 });
+  assert.deepEqual(parseAlgorithmWeight(1, 2), { positive: 1, total: 2 });
+  assert.deepEqual(parseAlgorithmWeight(0, 1.5), { positive: 0, total: 1.5 });
+  assert.deepEqual(parseAlgorithmWeight(0, 0.25), { positive: 0, total: 0.25 });
+
+  // Postgres float8 arrives over PostgREST as a string often enough to pin it.
+  assert.deepEqual(parseAlgorithmWeight("0", "0.5"), { positive: 0, total: 0.5 });
+});
+
+test("a typo is refused rather than saturating at the full penalty", () => {
+  // The reason this matters: a negative numerator makes the blended rate
+  // negative, logit clamps it, and the signal lands at the maximum penalty
+  // however small the number typed - harder than any legitimate weight.
+  assert.equal(parseAlgorithmWeight(-1, 3), null);
+  assert.equal(parseAlgorithmWeight(0, -4), null);
+
+  // A rate above 1 is not a stronger endorsement, it is not a rate.
+  assert.equal(parseAlgorithmWeight(5, 1), null);
+
+  assert.equal(parseAlgorithmWeight("", 2), null);
+  assert.equal(parseAlgorithmWeight(null, null), null);
+  assert.equal(parseAlgorithmWeight(Number.NaN, 2), null);
+  assert.equal(parseAlgorithmWeight(1, Number.POSITIVE_INFINITY), null);
+});
+
+test("switching a signal off is not a typo", () => {
+  // Zero total is how the table disables a signal, and every consumer already
+  // ignores a zero-weight tally. It must not be mistaken for a bad row.
+  assert.deepEqual(parseAlgorithmWeight(0, 0), { positive: 0, total: 0 });
 });
