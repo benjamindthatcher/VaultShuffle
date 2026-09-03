@@ -421,7 +421,23 @@
 .exclusionBody {
   display: grid;
   gap: 9px;
-  justify-items: start;
+}
+
+/* A grid, not a wrapping row.
+   The chips inherit flex: 1 1 auto from the shared .choices well, which is
+   right for the groups above - three or four chips stretching to fill one row
+   reads as one segmented control. With twenty-three chips over several rows it
+   is not: each row divides its own leftover space, so ten chips in the first
+   row stayed compact while six in the last ballooned to 204px, and the gaps
+   came out different on every line.
+   Fixed tracks instead, so every chip is the same width and the rows line up.
+   160px clears the widest label at its natural size (157px, "Punishing
+   difficulty"), which gives six columns at the panel's full width and two on a
+   phone. flex is ignored inside a grid container, so the shared rule stops
+   applying here without needing to be overridden. */
+.exclusionChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
 }
 
 .exclusionsReset {

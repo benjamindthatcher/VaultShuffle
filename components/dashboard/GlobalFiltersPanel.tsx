@@ -247,7 +247,7 @@ export function GlobalFiltersPanel() {
 
           {showExclusions ? (
             <div className={styles.exclusionBody}>
-              <div className={styles.choices} role="group" aria-labelledby="global-filter-exclusions">
+              <div className={`${styles.choices} ${styles.exclusionChoices}`} role="group" aria-labelledby="global-filter-exclusions">
                 {offered.map((category) => {
                   const on = globalFilters.excluded.includes(category.id);
                   return (
