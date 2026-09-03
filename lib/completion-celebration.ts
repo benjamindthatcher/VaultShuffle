@@ -79,8 +79,15 @@ export function pinRunSplit(game: DemoGame, pin: VaultPin | undefined) {
 }
 
 export type PinInstrument = {
-  /** What the dial is measuring, which is what its face has to say. */
-  kind: "story" | "run";
+  /**
+   * What the dial is measuring, which is what its face has to say.
+   *
+   * "shared" is the case where it is measuring nothing. A family game reports
+   * the owner's hours rather than the player's, so both the story percentage and
+   * the run split are built from a zero that means "never told" - and a dial
+   * reading 0% next to a pin is an accusation, not a measurement.
+   */
+  kind: "story" | "run" | "shared";
   percent: number;
   atPin: number | null;
 };
@@ -97,6 +104,9 @@ export type PinInstrument = {
 export function pinInstrument(game: DemoGame, pin: VaultPin | undefined): PinInstrument {
   const story = pinProgressBar(game, pin);
   if (story) return { kind: "story", ...story };
+  // Checked after the story bar, so a shared game the player has marked complete
+  // still gets its full dial - that is them stating a fact, not us inferring one.
+  if (playtimeIsUnknown(game)) return { kind: "shared", percent: 0, atPin: null };
   return { kind: "run", ...pinRunSplit(game, pin) };
 }
 

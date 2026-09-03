@@ -281,3 +281,18 @@
 
 @media (max-width: 720px) { .list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 460px) { .list { grid-template-columns: 1fr; } }
+
+/* A shared game has nothing to fill the dial with, so the ring is drawn empty
+   and the face carries the family mark instead of a number. Amber, matching the
+   mark on the artwork, so the two read as the same fact stated twice. */
+.progressInstrument[data-kind="shared"] .progressGaugeFace svg {
+  color: #ffc46a;
+}
+
+.progressInstrument[data-kind="shared"] .fill {
+  opacity: 0;
+}
+
+.progressInstrument[data-kind="shared"] .track {
+  border-style: dashed;
+}

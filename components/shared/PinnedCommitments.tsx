@@ -97,10 +97,16 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
           // carry. Someone looking at a card without a number on it is asking
           // that question, not asking for the hours a third time.
           const runCue = game.duration?.endless ? "No ending to reach" : "No length estimate yet";
+          // A shared game's dial has nothing to fill it, so it says what it is
+          // instead of what it measured.
+          const isShared = bar.kind === "shared";
+          const sharedCue = game.familyOwnerName ? `From ${game.familyOwnerName}` : "From the family shelf";
           const totalHours = Math.max(0, Number(game.hoursPlayed) || 0);
           const isRun = bar.kind === "run";
           const gaugeHours = totalHours >= 10 ? Math.round(totalHours) : Number(totalHours.toFixed(1));
-          const readoutLabel = isRun
+          const readoutLabel = isShared
+            ? "Playtime not tracked"
+            : isRun
             ? bar.atPin === null
               ? `${formatTrackedHours(totalHours)} played`
               : `${formatTrackedHours(totalHours)} played, ${formatTrackedHours(totalHours * (bar.percent - bar.atPin) / 100)} of it since pinning`
@@ -132,9 +138,9 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
                   >
                     <span className={styles.progressReadout} aria-hidden="true">
                       <span className={styles.progressMeta}>
-                        <span>{isRun ? "Your run" : "Story progress"}</span>
-                        <span data-earned={!isRun && earnedPercent !== null && earnedPercent > 0 ? "true" : undefined}>
-                          {isRun ? runCue : storyCue}
+                        <span>{isShared ? "Family game" : isRun ? "Your run" : "Story progress"}</span>
+                        <span data-earned={!isRun && !isShared && earnedPercent !== null && earnedPercent > 0 ? "true" : undefined}>
+                          {isShared ? sharedCue : isRun ? runCue : storyCue}
                         </span>
                       </span>
                       <span className={styles.track}>
@@ -153,12 +159,14 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
                     </span>
                     <span className={styles.progressGauge} aria-hidden="true">
                       <span className={styles.progressGaugeFace}>
-                        {isRun ? (
+                        {isShared ? (
+                          <VaultIcon name="family" size={20} />
+                        ) : isRun ? (
                           <strong>{gaugeHours}<small>h</small></strong>
                         ) : (
                           <strong>{bar.percent}<small>%</small></strong>
                         )}
-                        <span>{isRun ? "played" : "complete"}</span>
+                        <span>{isShared ? "shared" : isRun ? "played" : "complete"}</span>
                       </span>
                     </span>
                   </span>

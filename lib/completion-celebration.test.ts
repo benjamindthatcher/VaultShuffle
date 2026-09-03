@@ -128,3 +128,26 @@ test("a measurable story still wins over the run", () => {
 
   assert.deepEqual(instrument, { kind: "story", percent: 50, atPin: 25 });
 });
+
+test("a pinned family game gets a dial that measures nothing, not one reading zero", () => {
+  // Regression guard for an interaction, not a single function: pinProgressBar
+  // correctly refuses a shared game, and pinInstrument used to fall through to
+  // the run split - which reads hoursPlayed, also 0 on a family row. The lie
+  // moved from one dial to the other rather than going away.
+  const shared = { ...game(), accessSource: "family" as const, hoursPlayed: 0, completionPercent: 0 };
+  const instrument = pinInstrument(shared, { gameId: shared.id, pinnedAt: null, hoursAtPin: 0 });
+  assert.equal(instrument.kind, "shared");
+  assert.equal(instrument.atPin, null);
+});
+
+test("a shared game marked complete still gets its story dial", () => {
+  const done = { ...game(), accessSource: "family" as const, status: "Completed" as const, hoursPlayed: 0 };
+  const instrument = pinInstrument(done, { gameId: done.id, pinnedAt: null, hoursAtPin: 0 });
+  assert.equal(instrument.kind, "story");
+  assert.equal(instrument.percent, 100);
+});
+
+test("an owned endless game still gets the run dial", () => {
+  const endless = { ...game(), duration: { endless: true }, hoursPlayed: 40 };
+  assert.equal(pinInstrument(endless, { gameId: endless.id, pinnedAt: null, hoursAtPin: 10 }).kind, "run");
+});
