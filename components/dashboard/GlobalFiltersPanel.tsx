@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import {
@@ -9,6 +10,12 @@ import {
   type GlobalFilters
 } from "@/lib/global-filters";
 import { isFamilyAccess } from "@/lib/family-sharing";
+import {
+  EXCLUSION_CATEGORIES,
+  EXCLUSION_GROUP_LABELS,
+  availableExclusionCategories,
+  type ExclusionGroup
+} from "@/lib/exclusion-categories";
 import styles from "./GlobalFiltersPanel.module.css";
 
 /**
@@ -68,6 +75,29 @@ const ACCESS: Choice<GlobalFilters["access"]>[] = [
 
 export function GlobalFiltersPanel() {
   const { globalFilters, setGlobalFilters, games, allGames, unfilteredGameCount } = useAppData();
+  // Collapsed by default. Twenty-two chips is the largest control on the page by
+  // a distance, and the panel governs the page it sits on top of - it earns its
+  // room only once someone has gone looking for it.
+  const [showExclusions, setShowExclusions] = useState(false);
+
+  // Only the categories this library actually contains. Offering "VR" to someone
+  // who owns no VR game is a control whose every setting produces the same list.
+  const availableExclusions = useMemo(
+    () => availableExclusionCategories(allGames.map((game) => game.exclusions)),
+    [allGames]
+  );
+  const offered = useMemo(
+    () => EXCLUSION_CATEGORIES.filter((category) => availableExclusions.has(category.id)),
+    [availableExclusions]
+  );
+  const excludedCount = globalFilters.excluded.length;
+
+  function toggleExclusion(id: string) {
+    const next = globalFilters.excluded.includes(id)
+      ? globalFilters.excluded.filter((held) => held !== id)
+      : [...globalFilters.excluded, id];
+    setGlobalFilters({ ...globalFilters, excluded: next });
+  }
 
   // Only offered once there is something to filter. A library with no shared
   // games would get a control whose every option produces the same list, which
@@ -187,6 +217,70 @@ export function GlobalFiltersPanel() {
           </div>
         </div>
       </div>
+
+      {offered.length ? (
+        <div className={styles.exclusions}>
+          <button
+            type="button"
+            className={styles.exclusionsToggle}
+            aria-expanded={showExclusions}
+            onClick={() => setShowExclusions((open) => !open)}
+          >
+            <span className={styles.groupLabel}>
+              Never show me
+              {excludedCount ? <span className={styles.groupDot} aria-hidden="true" /> : null}
+            </span>
+            <span className={styles.exclusionsSummary}>
+              {excludedCount
+                ? `${excludedCount} ${excludedCount === 1 ? "kind" : "kinds"} of game hidden`
+                : "Rule out whole kinds of game"}
+            </span>
+            <VaultIcon name={showExclusions ? "chevron-up" : "chevron-down"} size={15} />
+          </button>
+
+          {showExclusions ? (
+            <div className={styles.exclusionGroups}>
+              {(Object.keys(EXCLUSION_GROUP_LABELS) as ExclusionGroup[]).map((group) => {
+                const inGroup = offered.filter((category) => category.group === group);
+                if (!inGroup.length) return null;
+                return (
+                  <div className={styles.group} key={group}>
+                    <span className={styles.groupLabel} id={`exclusion-group-${group}`}>
+                      {EXCLUSION_GROUP_LABELS[group]}
+                    </span>
+                    <div className={styles.choices} role="group" aria-labelledby={`exclusion-group-${group}`}>
+                      {inGroup.map((category) => {
+                        const on = globalFilters.excluded.includes(category.id);
+                        return (
+                          <button
+                            key={category.id}
+                            type="button"
+                            className={on ? styles.choiceOn : styles.choice}
+                            aria-pressed={on}
+                            onClick={() => toggleExclusion(category.id)}
+                          >
+                            {category.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {excludedCount ? (
+                <button
+                  type="button"
+                  className={styles.exclusionsReset}
+                  onClick={() => setGlobalFilters({ ...globalFilters, excluded: [] })}
+                >
+                  Show everything again
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
     </section>
   );
 }

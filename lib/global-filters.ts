@@ -1,5 +1,6 @@
 import type { DemoGame } from "./demo-data.ts";
 import { isFamilyAccess } from "./family-sharing.ts";
+import { isExclusionCategory } from "./exclusion-categories.ts";
 
 /**
  * Global filters: the layer above everything else.
@@ -44,6 +45,15 @@ export type GlobalFilters = {
   access: AccessMode;
   /** Hide games the crowd has actually judged poorly. See matchesRating. */
   hidePoorlyReviewed: boolean;
+  /**
+   * Kinds of game to never offer, by id from lib/exclusion-categories.ts.
+   *
+   * The only subtractive control here, and the only one that is a list rather
+   * than a choice: everything else above asks a question with one answer, while
+   * "not horror, not sports" is two independent statements and has to be able to
+   * hold both.
+   */
+  excluded: string[];
 };
 
 export const DEFAULT_GLOBAL_FILTERS: GlobalFilters = {
@@ -52,7 +62,8 @@ export const DEFAULT_GLOBAL_FILTERS: GlobalFilters = {
   releaseAge: "any",
   gameType: "all",
   access: "all",
-  hidePoorlyReviewed: false
+  hidePoorlyReviewed: false,
+  excluded: []
 };
 
 /**
@@ -160,13 +171,30 @@ function matchesRating(game: DemoGame, hidePoorlyReviewed: boolean) {
   return positive / total >= POOR_RATIO;
 }
 
+/**
+ * A game is out if it belongs to any excluded category.
+ *
+ * Any, not all: excluding Horror and Sports means "neither of these", which is
+ * how a list of things you do not want reads. Membership is computed on the
+ * server - see exclusionCategoriesFor - so a game whose categories were never
+ * computed is never excluded, which is the safe direction. A stale client must
+ * not be able to empty a library.
+ */
+function matchesExclusions(game: DemoGame, excluded: string[]) {
+  if (!excluded.length) return true;
+  const belongs = game.exclusions;
+  if (!belongs?.length) return true;
+  return !excluded.some((id) => belongs.includes(id));
+}
+
 export function matchesGlobalFilters(game: DemoGame, filters: GlobalFilters, now = Date.now()) {
   return matchesDevice(game, filters.device)
     && matchesPlayers(game, filters.players)
     && matchesReleaseAge(game, filters.releaseAge, now)
     && matchesGameType(game, filters.gameType)
     && matchesAccess(game, filters.access)
-    && matchesRating(game, filters.hidePoorlyReviewed);
+    && matchesRating(game, filters.hidePoorlyReviewed)
+    && matchesExclusions(game, filters.excluded);
 }
 
 export function isDefaultGlobalFilters(filters: GlobalFilters) {
@@ -175,7 +203,8 @@ export function isDefaultGlobalFilters(filters: GlobalFilters) {
     && filters.releaseAge === "any"
     && filters.gameType === "all"
     && filters.access === "all"
-    && !filters.hidePoorlyReviewed;
+    && !filters.hidePoorlyReviewed
+    && filters.excluded.length === 0;
 }
 
 /** How many filters are doing something, for the "3 active" badge on the panel. */
@@ -187,6 +216,10 @@ export function activeGlobalFilterCount(filters: GlobalFilters) {
   if (filters.gameType !== "all") count += 1;
   if (filters.access !== "all") count += 1;
   if (filters.hidePoorlyReviewed) count += 1;
+  // Counted once however many categories are ticked: the badge reports how many
+  // decisions are in effect, not how many boxes are checked. Same rule as the
+  // Library toolbar's genre list.
+  if (filters.excluded.length) count += 1;
   return count;
 }
 
@@ -218,6 +251,12 @@ export function parseGlobalFilters(raw: string | null | undefined): GlobalFilter
     releaseAge: pick(value.releaseAge, ["any", "recent", "modern", "established", "classic"] as const, "any"),
     gameType: pick(value.gameType, ["all", "finite", "endless"] as const, "all"),
     access: pick(value.access, ["all", "owned", "family"] as const, "all"),
-    hidePoorlyReviewed: value.hidePoorlyReviewed === true
+    hidePoorlyReviewed: value.hidePoorlyReviewed === true,
+    // Unknown ids are dropped rather than kept. A category renamed or retired in
+    // a later release would otherwise sit in storage excluding nothing, and show
+    // in the count as a filter the user cannot see or clear.
+    excluded: Array.isArray(value.excluded)
+      ? [...new Set(value.excluded.filter(isExclusionCategory))]
+      : []
   };
 }

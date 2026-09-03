@@ -200,12 +200,19 @@ test("a stored shape from an older release cannot empty the library", () => {
   // the player never asked to hide, on a filter they have never seen.
   assert.deepEqual(
     parseGlobalFilters('{"device":"deck","players":"coop","releaseAge":"classic","gameType":"endless","hidePoorlyReviewed":true}'),
-    { device: "deck", players: "coop", releaseAge: "classic", gameType: "endless", access: "all", hidePoorlyReviewed: true }
+    { device: "deck", players: "coop", releaseAge: "classic", gameType: "endless", access: "all", hidePoorlyReviewed: true, excluded: [] }
   );
   assert.equal(parseGlobalFilters('{"access":"borrowed"}').access, "all");
   assert.equal(parseGlobalFilters('{"access":"family"}').access, "family");
   // Anything short of an explicit true leaves the toggle off.
   assert.equal(parseGlobalFilters('{"hidePoorlyReviewed":"yes"}').hidePoorlyReviewed, false);
+
+  // Exclusions come back as a de-duplicated list of ids we still recognise. A
+  // category retired in a later release would otherwise sit in storage hiding
+  // nothing while still counting as an active filter the user cannot see.
+  assert.deepEqual(parseGlobalFilters('{"excluded":["horror","horror","made-up"]}').excluded, ["horror"]);
+  assert.deepEqual(parseGlobalFilters('{"excluded":"horror"}').excluded, []);
+  assert.deepEqual(parseGlobalFilters('{"excluded":[1,null,{}]}').excluded, []);
 });
 
 test("the access filter separates what you own from what a family lends", () => {

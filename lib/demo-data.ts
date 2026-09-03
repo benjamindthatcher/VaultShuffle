@@ -73,6 +73,12 @@ export type DemoGame = {
   reviewPositive?: number | null;
   reviewNegative?: number | null;
   reviewTotal?: number | null;
+  /**
+   * Which "never show me this" categories this game falls into, by id from
+   * lib/exclusion-categories.ts. Computed on the server so the client never
+   * needs the tag map. Absent means not yet computed, which excludes nothing.
+   */
+  exclusions?: string[];
   /** Where catalogue enrichment has got to, so "still processing" can mean it. */
   durationStatus?: string | null;
   tagsStatus?: string | null;

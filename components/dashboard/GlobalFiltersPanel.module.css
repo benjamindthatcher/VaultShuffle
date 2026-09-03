@@ -365,3 +365,100 @@
     min-height: 40px;
   }
 }
+
+/* ------------------------------------------------------------- exclusions */
+
+/* The only subtractive control here, and the largest. It sits below the grid
+   rather than inside it because it is a list of independent statements rather
+   than one question with one answer, and because collapsed it has to read as a
+   single row however wide the panel gets. */
+.exclusions {
+  margin-top: 11px;
+  padding-top: 11px;
+  border-top: 1px solid var(--vault-card-border);
+  display: grid;
+  gap: 9px;
+}
+
+.exclusionsToggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 4px 2px;
+  border: 0;
+  background: transparent;
+  color: var(--vault-text-soft);
+  text-align: left;
+  transition: color 140ms ease;
+}
+
+.exclusionsToggle:hover {
+  color: var(--vault-text);
+}
+
+/* Pushes the chevron to the far edge, so the row has a consistent hit target
+   and the summary reads as the middle of one control rather than a caption. */
+.exclusionsSummary {
+  flex: 1;
+  min-width: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.exclusionsToggle svg {
+  flex: none;
+  color: var(--vault-text-muted);
+}
+
+.exclusionGroups {
+  display: grid;
+  gap: 11px 14px;
+  align-items: start;
+}
+
+@media (min-width: 900px) {
+  .exclusionGroups {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* Overrides the six-column span the shared .group rule sets for the grid
+     above, which would otherwise leave each of these three columns half empty. */
+  .exclusionGroups .group {
+    grid-column: auto;
+  }
+}
+
+.exclusionsReset {
+  justify-self: start;
+  min-height: 30px;
+  padding: 0 11px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--vault-text-muted);
+  font-size: 0.76rem;
+  font-weight: 650;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+@media (min-width: 900px) {
+  .exclusionsReset {
+    grid-column: 1 / -1;
+  }
+}
+
+.exclusionsReset:hover {
+  background: rgba(168, 85, 247, 0.14);
+  color: var(--vault-text);
+}
+
+.exclusionsToggle:focus-visible,
+.exclusionsReset:focus-visible {
+  outline: 2px solid var(--vault-accent);
+  outline-offset: 2px;
+}
