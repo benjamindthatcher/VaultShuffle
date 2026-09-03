@@ -493,19 +493,25 @@ async function replaceGameGlobals(
 /**
  * Fold everyone's hours into the per-game view.
  *
- * Paged on `id` rather than the app id: paging on a non-unique column can repeat
- * or skip rows across page boundaries, and this is the largest read the rebuild
- * makes - by a distance, now that it reads every owned row rather than only the
- * played ones. That took it from 95 pages to 325, and at a 300-second budget a
- * rebuild that runs out part-way is not merely late: replaceGameGlobals upserts
- * and then sweeps, so a timeout between the two leaves the table half-rebuilt.
+ * Walked by cursor rather than by offset, which is the whole difference between
+ * this read working and this read failing. `range()` compiles to OFFSET, and an
+ * offset does not skip rows, it reads and discards them: measured on the live
+ * table, one page at offset 320,000 took 8.15 seconds and touched 322,686
+ * buffers. The same page fetched as `id > last` is an index scan on the primary
+ * key - 27ms and 1,008 buffers, three hundred times cheaper.
  *
- * So the pages are fetched a wave at a time instead of one after another. The
- * ranges are contiguous and fixed, so a wave can be issued without knowing how
- * many rows there are: the first short page marks the end of the table, and any
- * page after it comes back empty and folds in as nothing.
+ * This is the largest read the rebuild makes, and it got three times larger when
+ * it started counting every owned row rather than only the played ones, so the
+ * tail pages went from expensive to over the database's statement timeout. It
+ * failed with 57014 in production after succeeding twice on luck. Fetching those
+ * pages concurrently made it worse rather than better: the cost was never the
+ * round trips, it was each query re-scanning the table, and eight of them at
+ * once simply arrived at the timeout together.
+ *
+ * The cursor is the primary key, so the walk is total and cannot repeat or skip a
+ * row the way an offset can when rows are inserted mid-read - and inserts during
+ * this read are normal, because people are importing libraries while it runs.
  */
-const PLAYTIME_PAGE_CONCURRENCY = 8;
 async function addPlaytimeSignal(
   supabase: AdminClient,
   gameTallies: Map<number, Tally>,
@@ -514,28 +520,27 @@ async function addPlaytimeSignal(
   unplayedWeight: number
 ) {
   let counted = 0;
+  let cursor: string | null = null;
 
-  const fetchPage = async (offset: number) => {
-    const { data, error } = await supabase
+  for (;;) {
+    let page = supabase
       .from("user_games")
-      .select("catalog_steam_appid, hours_played, access_source")
       // Every owned row, not just the played ones. Reading only past the two-hour
       // floor meant the rebuild never saw the games nobody starts, which are the
       // ones people write in about.
+      .select("id, catalog_steam_appid, hours_played, access_source")
       .not("catalog_steam_appid", "is", null)
       .order("id")
-      .range(offset, offset + DECISION_PAGE_SIZE - 1);
+      .limit(DECISION_PAGE_SIZE);
+    if (cursor) page = page.gt("id", cursor);
+
+    const { data, error } = await page;
     if (error) throw error;
-    return (data ?? []) as Array<Record<string, unknown>>;
-  };
 
-  for (let wave = 0; ; wave += 1) {
-    const pages = await Promise.all(
-      Array.from({ length: PLAYTIME_PAGE_CONCURRENCY }, (_, index) =>
-        fetchPage((wave * PLAYTIME_PAGE_CONCURRENCY + index) * DECISION_PAGE_SIZE))
-    );
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    if (!rows.length) break;
 
-    for (const row of pages.flat()) {
+    for (const row of rows) {
       const steamAppId = Number(row.catalog_steam_appid);
       if (!Number.isFinite(steamAppId) || steamAppId <= 0) continue;
       // A family row's hours are the owner's, not the borrower's, and a zero on
@@ -558,7 +563,8 @@ async function addPlaytimeSignal(
       counted += 1;
     }
 
-    if (pages.some((page) => page.length < DECISION_PAGE_SIZE)) break;
+    cursor = String(rows[rows.length - 1].id);
+    if (rows.length < DECISION_PAGE_SIZE) break;
   }
 
   return counted;
