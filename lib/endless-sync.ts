@@ -77,3 +77,89 @@ export async function promoteIfEndless(
 
   return { promoted: true, witnesses: verdict.witnesses };
 }
+
+/**
+ * How far back a resolved duration is worth re-examining.
+ *
+ * The sweep exists for one hole, so it is scoped to it: a game that had tags and
+ * an unresolved length, and has since had HowLongToBeat fill the length in. Two
+ * weeks comfortably covers the gap between nightly runs while keeping the read
+ * bounded, and if nothing has been resolved lately the sweep does nothing at all.
+ */
+const SWEEP_RESOLVED_WITHIN_DAYS = 14;
+
+/**
+ * Re-ask the endless question for games whose length was resolved recently.
+ *
+ * promoteIfEndless hangs off the tag write, which is the right trigger for a new
+ * game but misses the other way in. The HLTB enrichment only touches rows whose
+ * duration_kind is 'unknown', and when it resolves one it writes 'finite' - so
+ * the tags have not changed, nothing re-asks, and HowLongToBeat gets the last
+ * word again. That is the original bug, arriving by a second route: 6,202 games
+ * currently hold tags and an unresolved length, and every one of them would pass
+ * silently from unknown to finite without ever being judged.
+ *
+ * A sweep rather than a hook because that enrichment is a local script and a SQL
+ * writeback - see scripts/durations/enrich-hltb.py - so there is no server-side
+ * write to hang anything off.
+ *
+ * Reads one batch and writes one update. Judging is pure and cheap; the cost is
+ * round trips, so this deliberately does not call promoteIfEndless per game.
+ */
+export async function sweepEndlessVerdicts(
+  supabase: AdminClient,
+  options: { limit?: number } = {}
+): Promise<{ examined: number; promoted: number }> {
+  const limit = Math.max(1, Math.min(1000, options.limit ?? 400));
+  const since = new Date(Date.now() - SWEEP_RESOLVED_WITHIN_DAYS * 86_400_000).toISOString();
+
+  const { data, error } = await supabase
+    .from("catalog_games")
+    .select("steam_appid, tags, genres, categories, main_story_minutes, completionist_minutes")
+    .in("duration_kind", ["finite", "unknown"])
+    .eq("steam_type", "game")
+    .not("tags", "is", null)
+    .not("duration_manual_override", "is", true)
+    .gte("duration_source_updated_at", since)
+    .order("duration_source_updated_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+
+  const rows = (data ?? []) as Array<Record<string, unknown>>;
+  const promote: number[] = [];
+  for (const row of rows) {
+    const steamAppId = Number(row.steam_appid);
+    const tags = row.tags as Record<string, number> | null;
+    if (!Number.isFinite(steamAppId) || !tags || !Object.keys(tags).length) continue;
+
+    const verdict = endlessVerdict({
+      tags,
+      genres: (row.genres ?? []) as string[],
+      categories: (row.categories ?? []) as string[],
+      mainStoryMinutes: row.main_story_minutes as number | null,
+      completionistMinutes: row.completionist_minutes as number | null
+    });
+    if (verdict.endless) promote.push(steamAppId);
+  }
+
+  if (!promote.length) return { examined: rows.length, promoted: 0 };
+
+  const now = new Date().toISOString();
+  for (let index = 0; index < promote.length; index += 200) {
+    const { error: updateError } = await supabase
+      .from("catalog_games")
+      .update({
+        duration_kind: "endless",
+        duration_source: "classification",
+        duration_status: "ready",
+        duration_confidence: "medium",
+        duration_source_updated_at: now,
+        updated_at: now
+      })
+      .in("steam_appid", promote.slice(index, index + 200))
+      .neq("duration_manual_override", true);
+    if (updateError) throw updateError;
+  }
+
+  return { examined: rows.length, promoted: promote.length };
+}
