@@ -312,6 +312,31 @@ test("a sandbox the crowd plays alone is a sandbox with an ending", () => {
   assert.ok(cookieClicker.witnesses.includes("decisive-tags"));
 });
 
+test("the genres column carries junk, so the persistent path wants the categories to agree", () => {
+  // House Flipper is a single-player renovation sim owned by 272 people here, and
+  // Steam lists it under the genre "Massively Multiplayer". With its Sandbox tag
+  // that read as a live-service world. Its categories say Single-player only.
+  const houseFlipper = {
+    tags: {
+      Simulation: 1000, Sandbox: 980, Building: 960, Casual: 950, Relaxing: 940,
+      "Immersive Sim": 930, Education: 920, Singleplayer: 900, Multiplayer: 300,
+      "Base-Building": 280, Management: 260, Moddable: 240
+    },
+    genres: ["Action", "Adventure", "Casual", "Indie", "Massively Multiplayer", "Simulation", "Strategy"],
+    categories: ["Single-player", "Remote Play on Tablet"],
+    mainStoryMinutes: 795,
+    completionistMinutes: 2988
+  };
+  assert.equal(hasStrongReplayabilitySignals(houseFlipper), false);
+  assert.equal(endlessVerdict(houseFlipper).endless, false);
+
+  // The same signals with a real Multi-player category is a real persistent world.
+  assert.equal(hasStrongReplayabilitySignals({
+    ...houseFlipper,
+    categories: ["Single-player", "Multi-player", "Co-op"]
+  }), true);
+});
+
 test("a person's ruling outranks every rule", () => {
   const verdict = endlessVerdict({
     tags: { MOBA: 1000, Competitive: 950 },

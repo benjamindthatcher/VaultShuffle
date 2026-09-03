@@ -264,9 +264,19 @@ export function hasStrongReplayabilitySignals(metadata: ReplayabilityMetadata) {
   if (isStoryDriven(metadata.tags)) return false;
   const dominant = dominantSignals(metadata.tags);
   if ([...DECISIVE_ENDLESS_SIGNALS].some((signal) => dominant.has(signal))) return true;
+
+  // The persistent-online path reads `genres` as evidence, and that column carries
+  // junk: House Flipper - a single-player renovation sim owned by 272 people here -
+  // is listed on Steam under "Massively Multiplayer", which combined with its
+  // Sandbox tag made it a live-service world. So this path now wants the official
+  // categories to agree. That costs nothing real, because a game with a persistent
+  // online world always ships a Multi-player category, and it is the same
+  // corroboration hasCorroboratedOnlineLoop already insists on below.
   const persistent = [...PERSISTENT_ONLINE_SIGNALS].some((signal) => signals.has(signal));
   const replayLoop = [...REPLAY_LOOP_SIGNALS].some((signal) => signals.has(signal));
-  return persistent && replayLoop;
+  const categorySignals = new Set(normaliseSignals(metadata.categories));
+  const officialMultiplayer = [...OFFICIAL_MULTIPLAYER_SIGNALS].some((signal) => categorySignals.has(signal));
+  return persistent && replayLoop && officialMultiplayer;
 }
 
 /**
