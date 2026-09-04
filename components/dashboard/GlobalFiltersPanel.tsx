@@ -224,43 +224,70 @@ export function GlobalFiltersPanel() {
           </div>
         </div>
 
-        {/* One more group, not a footer. It is the widest control here and the
-            only one that folds away, but it answers the same kind of question
-            as the rest, so it wears the same label, the same well and the same
-            chips - and it spans the grid rather than sitting under it behind a
-            rule with its title sharing a line with a sentence. */}
+        {/* Built like the Vault's Genre filters card, because it is the same
+            kind of thing: the optional step, folded away, that governs the deck
+            once it is answered. Everything above is a row of chips answering one
+            question; this is twenty-two of them, so it earns a card of its own -
+            and matching a card the user already knows means the shape does the
+            explaining.
+
+            Tied to the panel rather than floating under it: it sits inside the
+            same sheet, above a hairline that reads as a fold in one surface
+            rather than the edge of a second. */}
         {offered.length ? (
-          <div className={styles.group} data-width="full">
-            <span className={styles.groupLabel} id="global-filter-exclusions">
-              Never show me
-              {excludedCount ? <span className={styles.groupDot} aria-hidden="true" /> : null}
-            </span>
-
-            <div className={showExclusions ? `${styles.choices} ${styles.exclusionWell} ${styles.exclusionWellOpen}` : `${styles.choices} ${styles.exclusionWell}`}>
-              {/* Collapsed, the well holds a single full-width control, exactly
-                  as Reviews does. Opened, the chips unfold inside the same well
-                  rather than arriving as a separate block. */}
-              <button
-                type="button"
-                className={showExclusions ? `${styles.exclusionsToggle} ${styles.exclusionsToggleOpen}` : styles.exclusionsToggle}
-                aria-expanded={showExclusions}
-                aria-controls="global-filter-exclusion-chips"
-                onClick={() => setShowExclusions((open) => !open)}
-              >
-                <span className={styles.exclusionsSummary}>
+          <aside
+            className={styles.exclusions}
+            aria-label="Kinds of game to rule out"
+            data-active={excludedCount ? "true" : undefined}
+          >
+            <button
+              type="button"
+              className={styles.exclusionsHeader}
+              aria-expanded={showExclusions}
+              aria-controls="global-filter-exclusion-chips"
+              onClick={() => setShowExclusions((open) => !open)}
+            >
+              <span className={styles.exclusionsIcon}><VaultIcon name="clear-filters" size={21} /></span>
+              {/* The label names the group and the line under it says what the
+                  control holds. It used to be one instruction given twice -
+                  "Never show me" over "Rule out whole kinds of game". */}
+              <span className={styles.exclusionsCopy}>
+                <strong>Ruled out</strong>
+                <small>
                   {excludedCount
-                    ? `${excludedCount} ${excludedCount === 1 ? "kind" : "kinds"} of game hidden`
-                    : "Rule out whole kinds of game"}
-                </span>
-                <VaultIcon name={showExclusions ? "chevron-up" : "chevron-down"} size={15} />
-              </button>
+                    ? `${excludedCount} ${excludedCount === 1 ? "kind" : "kinds"} hidden everywhere`
+                    : "Kinds of game you never want offered"}
+                </small>
+              </span>
+              <span className={styles.exclusionsLabel}>Optional</span>
+              <VaultIcon className={styles.exclusionsChevron} name="chevron-down" size={17} />
+            </button>
 
-              {showExclusions ? (
+            {showExclusions ? (
+              <div className={styles.exclusionsContent}>
+                {/* Same meta row as the genre card: what the control does on the
+                    left, the way out of it on the right. */}
+                <div className={styles.exclusionsMeta}>
+                  <span className={styles.exclusionsHint}>
+                    Anything picked here is hidden from the Vault and the Library.
+                  </span>
+                  {excludedCount ? (
+                    <button
+                      type="button"
+                      className={styles.exclusionsReset}
+                      onClick={() => setGlobalFilters({ ...globalFilters, excluded: [] })}
+                    >
+                      <VaultIcon name="undo" size={14} />
+                      Show everything again
+                    </button>
+                  ) : null}
+                </div>
+
                 <div
                   id="global-filter-exclusion-chips"
                   className={styles.exclusionChoices}
                   role="group"
-                  aria-labelledby="global-filter-exclusions"
+                  aria-label="Kinds of game to rule out"
                 >
                   {offered.map((category) => {
                     const on = globalFilters.excluded.includes(category.id);
@@ -268,7 +295,7 @@ export function GlobalFiltersPanel() {
                       <button
                         key={category.id}
                         type="button"
-                        className={on ? styles.choiceOn : styles.choice}
+                        className={on ? `${styles.exclusionChip} ${styles.exclusionChipOn}` : styles.exclusionChip}
                         aria-pressed={on}
                         onClick={() => toggleExclusion(category.id)}
                       >
@@ -277,19 +304,9 @@ export function GlobalFiltersPanel() {
                     );
                   })}
                 </div>
-              ) : null}
-            </div>
-
-            {showExclusions && excludedCount ? (
-              <button
-                type="button"
-                className={styles.exclusionsReset}
-                onClick={() => setGlobalFilters({ ...globalFilters, excluded: [] })}
-              >
-                Show everything again
-              </button>
+              </div>
             ) : null}
-          </div>
+          </aside>
         ) : null}
       </div>
     </section>

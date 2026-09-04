@@ -306,136 +306,215 @@
   background: #ffffff;
 }
 
-/* ------------------------------------------------------------- exclusions */
+/* -------------------------------------------------------------- ruled out */
 
-/* The widest control here, and the only one that folds away. It used to sit
-   below the grid behind its own rule, with its label sharing a line with a
-   sentence - which made the largest control in the panel the one that looked
-   least like part of it. It is a group like the others now: a label, a well,
-   and chips inside the well. It only spans the grid because twenty-odd chips
-   cannot share a sixth of it. */
-.group[data-width="full"] {
+/* Built like the Vault's Genre filters card, because it is the same kind of
+   thing: the optional step, folded away, that governs the deck once answered.
+   Everything above it is a row of chips answering one question; this is
+   twenty-two of them, so it earns a card rather than a seventh row - and
+   borrowing a card the user already knows means the shape does the explaining.
+
+   Tied in rather than bolted on. It takes the same flat treatment the genre
+   card takes inside its sheet - the panel's own border, radius and surface, no
+   second lift - so it reads as one more item in this panel rather than a
+   footer under it. */
+.exclusions {
   grid-column: 1 / -1;
-}
-
-/* Stacked rather than flowed: this well holds the row that opens it and, once
-   open, the chips underneath. */
-.exclusionWell {
-  display: grid;
-  gap: 6px;
-}
-
-/* Collapsed, the well is one row and matches the others exactly. Opened, it
-   holds a grid whose own gutters are 6px, and a 3px rim around that reads as a
-   mistake rather than a margin. */
-.exclusionWellOpen {
-  padding: 6px;
-}
-
-/* Collapsed, this is the whole control - one full-width row in a well, the
-   same shape the Reviews switch has. */
-.exclusionsToggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 30px;
-  padding: 0 8px 0 10px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--vault-text-muted);
-  font-size: 0.78rem;
-  font-weight: 650;
-  text-align: left;
-  transition: background 140ms ease, color 140ms ease;
-}
-
-.exclusionsToggle:hover {
-  background: rgba(168, 85, 247, 0.14);
-  color: var(--vault-text);
-}
-
-/* Open, it heads the chips below it rather than offering itself to be pressed,
-   so it stops looking like one of them. */
-.exclusionsToggleOpen {
-  color: var(--vault-text);
-}
-
-/* Pushes the chevron to the far edge, so the row has a consistent hit target
-   and the summary reads as the middle of one control rather than a caption. */
-.exclusionsSummary {
-  flex: 1;
   min-width: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
+  margin-top: 2px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+/* Lit while it is holding something back, the way the genre card lights when it
+   is the only step left. This is the one control here that keeps working after
+   the panel is closed, so it has to be able to say so at a glance. */
+.exclusions[data-active="true"] {
+  border-color: var(--vault-tile-selected-border);
+  background: linear-gradient(140deg, rgba(120, 62, 220, 0.16), var(--vault-card-surface) 58%);
+  box-shadow: 0 0 0 1px rgba(188, 100, 255, 0.12), 0 0 26px rgba(134, 91, 255, 0.14);
+}
+
+.exclusionsHeader {
+  width: 100%;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto 18px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--vault-text);
+  text-align: left;
+}
+
+.exclusionsIcon {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--vault-border);
+  border-radius: 10px;
+  background: rgba(69, 38, 132, 0.38);
+  color: #c994f4;
+  transition: border-color 160ms ease, background 160ms ease, color 160ms ease;
+}
+
+.exclusions[data-active="true"] .exclusionsIcon {
+  border-color: rgba(215, 142, 255, 0.68);
+  background: linear-gradient(145deg, rgba(143, 61, 231, 0.5), rgba(75, 61, 185, 0.28));
+  color: #ecd4ff;
+}
+
+.exclusionsCopy {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.exclusionsCopy strong {
+  color: #f5f2fb;
+  font-size: 0.9rem;
+  line-height: 1.15;
+}
+
+.exclusionsCopy small {
+  overflow: hidden;
+  color: var(--vault-text-soft);
+  font-size: 0.68rem;
+  line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.exclusionsToggle svg {
-  flex: none;
-  color: var(--vault-text-muted);
+.exclusions[data-active="true"] .exclusionsCopy small {
+  color: #c6b3e8;
 }
 
-/* A grid, not a wrapping row.
-   The chips would inherit flex: 1 1 auto from the shared chip rule, which is
-   right for the groups above - three or four chips stretching to fill one row
-   reads as one segmented control. With twenty-three chips over several rows it
-   is not: each row divides its own leftover space, so ten chips in the first
-   row stayed compact while six in the last ballooned to 204px, and the gaps
-   came out different on every line.
-   Fixed tracks instead, so every chip is the same width and the rows line up.
-   160px clears the widest label at its natural size (157px, "Punishing
-   difficulty"), which gives six columns at the panel's full width and two on a
-   phone. flex is ignored inside a grid container, so the shared rule stops
-   applying here without needing to be overridden. */
-.exclusionChoices {
+.exclusionsLabel {
+  color: #a79eb7;
+  font-size: 0.64rem;
+  font-weight: 760;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.exclusions[data-active="true"] .exclusionsLabel {
+  color: #d392ff;
+}
+
+.exclusionsChevron {
+  color: var(--vault-text-soft);
+  transition: transform 180ms ease;
+}
+
+.exclusionsHeader[aria-expanded="true"] .exclusionsChevron {
+  transform: rotate(180deg);
+}
+
+.exclusionsContent {
+  min-height: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 6px;
+  gap: 9px;
+  padding: 0 10px 10px;
 }
 
-/* Twenty-three transparent chips sharing one dark surface read as a block of
-   text rather than a set of controls - the eye has nothing to cut on. Three or
-   four in a row can go without an edge because the row itself is the shape;
-   four rows of six cannot. So each option gets a tile, and the gap between them
-   widens until the well behind shows through as a gutter. */
-.exclusionChoices .choice {
-  background: var(--vault-card-surface);
-  box-shadow: inset 0 0 0 1px rgba(226, 215, 255, 0.07);
+/* What the control does on the left, the way out of it on the right - the same
+   row the genre card puts above its chips. */
+.exclusionsMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 4px;
 }
 
-.exclusionChoices .choice:hover {
-  background: rgba(168, 85, 247, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(198, 150, 255, 0.3);
+.exclusionsHint {
+  min-width: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.76rem;
+  line-height: 1.3;
 }
 
-/* Ruled out has to carry further here than it does above. The selected purple
-   was picked to stand against a transparent chip on a dark well; against a
-   tile that is already purple it barely moves, and this is the one control in
-   the panel you scan for what is switched ON rather than which option is
-   current. */
-.exclusionChoices .choiceOn {
-  background: rgba(168, 85, 247, 0.34);
+.exclusionsHint strong {
+  color: #d392ff;
+  font-weight: 760;
 }
 
-/* Undoes the whole group at once, so it sits under the well rather than in it:
-   it is not one more thing to rule out. */
 .exclusionsReset {
-  justify-self: start;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   min-height: 30px;
   padding: 0 11px;
   border: 1px solid var(--vault-card-border);
-  border-radius: 7px;
+  border-radius: 8px;
   background: transparent;
   color: var(--vault-text-muted);
   font-size: 0.76rem;
   font-weight: 650;
-  transition: background 140ms ease, color 140ms ease;
+  white-space: nowrap;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
 }
 
 .exclusionsReset:hover {
+  border-color: var(--vault-control-hover-border);
   background: rgba(168, 85, 247, 0.14);
   color: var(--vault-text);
+}
+
+/* Three across, like the genre grid it is matching. The chips carry longer
+   labels than anything else in the panel - "ARPGs & loot grinders", "MMOs &
+   live service" - so they get a fixed floor and wrap inside it rather than
+   sharing a wrapping row with everything else. */
+.exclusionChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 7px;
+}
+
+.exclusionChip {
+  min-height: 44px;
+  padding: 7px 12px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 10px;
+  background: var(--vault-well-surface);
+  color: var(--vault-text-muted);
+  font-size: 0.8rem;
+  font-weight: 650;
+  line-height: 1.25;
+  text-align: center;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+
+.exclusionChip:hover {
+  border-color: var(--vault-control-hover-border);
+  background: rgba(168, 85, 247, 0.16);
+  color: var(--vault-text);
+}
+
+/* Selected means hidden here, which is the opposite of selected everywhere else
+   in this panel. It still wears the accent - it is on - but filled rather than
+   outlined, so a wall of ruled-out chips does not read as a wall of chosen
+   ones. */
+.exclusionChipOn {
+  border-color: rgba(215, 142, 255, 0.55);
+  background: rgba(168, 85, 247, 0.34);
+  color: #f3e6ff;
+}
+
+.exclusionChipOn:hover {
+  border-color: rgba(226, 168, 255, 0.75);
+  background: rgba(168, 85, 247, 0.42);
+  color: #ffffff;
 }
 
 /* Only at this width. It is the one size where every group fits on a single
@@ -454,7 +533,8 @@
 .choiceCurrent:focus-visible,
 .choiceOn:focus-visible,
 .switch:focus-visible,
-.exclusionsToggle:focus-visible,
+.exclusionsHeader:focus-visible,
+.exclusionChip:focus-visible,
 .exclusionsReset:focus-visible,
 .clear:focus-visible {
   outline: 2px solid var(--vault-control-focus);
@@ -468,7 +548,8 @@
   .switch,
   .switchTrack,
   .switchKnob,
-  .exclusionsToggle,
+  .exclusionsHeader,
+  .exclusionChip,
   .exclusionsReset,
   .clear {
     transition: none;
@@ -507,8 +588,38 @@
   .choiceCurrent,
   .choiceOn,
   .switch,
-  .exclusionsToggle,
-  .exclusionsReset {
+  .exclusionsReset,
+  .exclusionChip {
     min-height: 40px;
+  }
+
+  /* The same four columns the genre card drops to three here, and for the same
+     reason: the title and its line need the width, and "Optional" is the one
+     part a phone can do without - the chevron already says it opens. */
+  .exclusionsHeader {
+    grid-template-columns: 36px minmax(0, 1fr) 18px;
+  }
+
+  .exclusionsLabel {
+    display: none;
+  }
+
+  /* The hint and the way out cannot share a line at this width; the button was
+     being squeezed to a sliver beside a full sentence. */
+  .exclusionsMeta {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .exclusionsReset {
+    justify-content: center;
+  }
+
+  /* Two across, stated rather than derived. A 168px floor leaves room for only
+     one column inside a 323px phone, and twenty-three categories one to a row is
+     a scroll rather than a control. The longer labels take a second line. */
+  .exclusionChoices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
