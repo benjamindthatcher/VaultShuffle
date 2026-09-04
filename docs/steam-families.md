@@ -90,24 +90,59 @@ sentence that explains it.
 
 ## How it shows up
 
-Family games go through the normal pipeline and appear in the normal places.
-They are not a second class of object:
+Family games run through the normal pipeline and appear in the normal places.
+They are not a second class of object — but they are always identified, because
+a shared game that looks owned is one the player will be surprised by later:
+either it vanishes when a family member leaves, or the app tells them they have
+never played something they have eighty hours in.
 
-- A small family glyph in the corner of the card artwork, with the owner's name
-  in its tooltip. That is the whole of the marking — no pill, no label.
-- One line in the details drawer: "Shared from Sam's Steam library. Playtime is
-  theirs, so none is shown here."
-- Playtime and progress go blank rather than reading `0h` / `0%` / "Fresh pick".
-- A `Library` group in the global filters — All / Only mine / Family only —
-  which appears only once there are family games to filter.
+**The mark is everywhere a game is drawn.** `components/shared/FamilyMark`
+exports `FamilyGameMark`, which decides for itself whether a game qualifies, so
+no surface carries the rule. It appears on: the library grid and list, both
+variants of the details panel, the Vault's pick and its deck, the pinned shelf
+and the pin picker, draw history (list and detail), collections and their
+thumbnails, the add-games dialog, the finished shelf, the completion
+celebration, and the dashboard tiles.
+
+That completeness is the point rather than thoroughness for its own sake. A mark
+on some surfaces and not others is worse than none: people learn to read its
+absence as "this one is mine", which is exactly backwards.
+
+**Where there is room for words:**
+
+- Details panel: "Shared from Sam's Steam library. Playtime is theirs, so none
+  is shown here."
+- The Vault draw gets its own insight, with its own icon, on **every** draw
+  regardless of goal — "From Draygo's library". It was previously buried in the
+  Something New branch, and the sentence overran the one-line clamp every insight
+  detail uses, so it arrived cut off mid-word.
+- The Family library card shows the real mark inline as a legend, so somebody
+  meets the icon before their library fills with games wearing it.
+
+**Where numbers would be lies:**
+
+- Playtime and story progress go blank rather than reading `0h` / `0%` /
+  "Fresh pick".
+- A **pinned** family game gets a third dial state. Pin progress is inferred from
+  playtime, so both the story bar and the run split are built from a zero that
+  means "never told" — the first version showed a 0% dial and "No play since
+  pinning" directly under the words "Playtime (all time): Not available". It now
+  draws an empty dashed ring carrying the family mark, labelled "Family game ·
+  From Draygo", and reads "Playtime not tracked" to a screen reader. Marking one
+  complete still earns the full dial, because that is the player stating a fact
+  rather than the app inferring one.
 - Excluded from every value and money figure, with the gap named on the
   dashboard's "Games completed" card rather than left to be noticed.
+
+**Where they are treated exactly like owned games:**
+
 - **Included** in the Vault's Something New goal. Their playtime is unknown
   rather than zero, so strictly we cannot prove one is unplayed — but a game off
   somebody else's shelf is usually the most genuinely new thing in the library,
   and excluding the unknown would cut the best content out of the one mode built
-  for it. The match reason says "From the family shelf" instead of claiming
-  "Never played".
+  for it.
+- A `Library` group in the global filters — All / Only mine / Family only —
+  which appears only once there are family games to filter.
 
 ## Rollout state
 
