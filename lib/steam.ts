@@ -17,6 +17,13 @@ type CacheEntry<T> = { expires: number; value: T };
 const playerCache = new Map<string, CacheEntry<SteamPlayerSummary | null>>();
 export type SteamAppDetails = Partial<GamePayload> & {
   steam_type?: string;
+  /**
+   * Set by Steam on a demo or a DLC to name the app it belongs to. It is the
+   * only field that catches content whose own type has drifted - the RACE 07
+   * expansion SKUs are typed `game` in Steam's PICS record and still cannot
+   * launch without RACE 07.
+   */
+  full_game_appid?: string;
   developers?: string[];
   publishers?: string[];
   genres?: string[];
@@ -336,8 +343,16 @@ function steamDetailPayload(appid: string, data: Record<string, unknown>): Steam
   const price = data.price_overview && typeof data.price_overview === "object"
     ? data.price_overview as Record<string, unknown>
     : null;
+  const fullGame = data.fullgame && typeof data.fullgame === "object"
+    ? data.fullgame as Record<string, unknown>
+    : null;
+  // Some legacy store pages point `fullgame` at themselves (Full Pipe, 4600).
+  // A self-reference says nothing about belonging to a parent app.
+  const fullGameAppId = String(fullGame?.appid ?? "").trim();
+  const parentAppId = fullGameAppId && fullGameAppId !== String(appid) ? fullGameAppId : "";
   return {
     steam_type: String(data.type ?? "").trim().toLowerCase() || undefined,
+    full_game_appid: parentAppId || undefined,
     title: String(data.name ?? "").trim() || undefined,
     genre: steamGenreLabel(data, String(data.name ?? "")) || undefined,
     store: "Steam",
