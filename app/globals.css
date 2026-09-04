@@ -1,23 +1,30 @@
 :root {
-  /* A purple ramp, not a grey one with a purple lamp pointed at it. Every step
-     is the same hue at a different lightness, so a sheet reads as purple rather
-     than as a lit patch of slate:
+  /* The ground is the landing page's near-black blue, so the app is the same
+     colour as the site you walked in from. What sits on it is a purple ramp,
+     not a grey one with a purple lamp pointed at it: every step is the same hue
+     at a different lightness, so a sheet reads as purple rather than as a lit
+     patch of slate.
 
-     ink      #170D2E  the ground, the same purple on every page
+     ink      #050716  the ground, on every page, marketing and app alike
+     chrome   #080C20  the header and footer bars that frame the ground
      piece    #221543  a block that holds something: a stat, a game, a panel
      feature  #2c1b57  the one piece on a page that leads
      well     #120a24  a recess inside a piece
 
-     The ground used to be near-black with a purple wash over the top of the
-     viewport, so a page whose content filled the width looked purple and a page
-     whose content did not looked black around the edges. It is one colour
-     now.
+     The ground once carried a purple wash across the top of the viewport, so a
+     page whose content filled the width looked purple and a page whose content
+     did not looked black around the edges. Whatever the app paints on the
+     ground now covers the whole of it.
 
      Sections do not have a surface of their own. A section is a heading and the
      pieces under it; painting a slab behind them turned a row of blocks into
      one solid rectangle with content printed on it. */
-  --vault-ink: #170d2e;
+  --vault-ink: #050716;
   --vault-bg: var(--vault-ink);
+  /* The bars that frame a page rather than sit on it: the header at the top and
+     the footer at the bottom. A shade up from the ground so they read as chrome,
+     and one value so the two ends of a page agree. */
+  --vault-chrome: #080c20;
   --vault-surface: #221543;
   --vault-surface-strong: #1c1039;
   --vault-surface-soft: #221543;

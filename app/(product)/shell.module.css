@@ -8,11 +8,12 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* One purple, the whole way down. The wash it used to carry only covered the
-     top of the viewport, so how purple a page looked depended on how much of
-     its width the content filled. */
+  /* The landing page's ground, so walking in from the marketing site does not
+     change the colour under your feet. Two small radials on a near-black blue,
+     placed as they are on the landing page, rather than one wide purple wash. */
   background:
-    radial-gradient(150% 90% at 50% -30%, rgba(124, 62, 214, 0.35), transparent 70%),
+    radial-gradient(circle at 72% 7%, rgba(88, 48, 216, 0.2), transparent 24%),
+    radial-gradient(circle at 8% 42%, rgba(45, 123, 255, 0.08), transparent 28%),
     var(--vault-ink);
   z-index: -2;
 }

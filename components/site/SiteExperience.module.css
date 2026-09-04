@@ -15,7 +15,9 @@
 
 .footerApp {
   border-top-color: rgba(134, 91, 255, 0.18);
-  background: var(--vault-bg);
+  /* The same bar colour as the header, so a page is closed at the bottom by the
+     same thing that opens it at the top. */
+  background: var(--vault-chrome);
   color: var(--vault-text);
 }
 
