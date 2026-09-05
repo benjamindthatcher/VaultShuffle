@@ -118,54 +118,64 @@ export function ContactContent() {
         <p className={styles.eyebrow}>Support</p>
         <h1>Contact Us</h1>
         <p>
-          Need help with your account, Steam data or something that cannot be covered by quick feedback? Send us a message.
-          All support enquiries are routed to <a href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a>.
+          For account help, library issues or privacy and deletion requests, use the form below or email{" "}
+          <a href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a>.
         </p>
-        <aside>
-          <div>
-            <strong>Have a quick suggestion or bug report?</strong>
-            <span>Share it without leaving this page.</span>
+        <aside className={styles.quickRoute}>
+          <div className={styles.quickRouteInner}>
+            <div className={styles.quickRouteCopy}>
+              <VaultIcon name="feedback" size={18} />
+              <div>
+                <strong>Suggestions and bug reports</strong>
+                <span>Report an issue or suggest a change. An email address is optional.</span>
+              </div>
+            </div>
+            <button type="button" onClick={() => openFeedback({ source: "contact-callout" })}>Share Feedback</button>
           </div>
-          <button type="button" onClick={() => openFeedback({ source: "contact-callout" })}>Share Feedback</button>
         </aside>
       </section>
 
       <section className={styles.card} aria-labelledby="contact-form-title">
-        <div className={styles.cardHeader}>
-          <p>Direct support</p>
-          <h2 id="contact-form-title">Send a message</h2>
-        </div>
-        {success ? (
-          <div className={styles.success} role="status">
-            <span><VaultIcon name="check" size={27} /></span>
-            <h3 ref={successHeadingRef} tabIndex={-1}>Your message has been sent.</h3>
-            <p>We&rsquo;ll get back to you as soon as possible.</p>
-            <button type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
+        <div className={styles.cardInner}>
+          <div className={styles.cardHeader}>
+            <VaultIcon name="contact" size={18} />
+            <div>
+              <p>Direct support</p>
+              <h2 id="contact-form-title">Send a message</h2>
+            </div>
           </div>
-        ) : (
-          <form onSubmit={submit}>
-            <label>
-              <span>Enquiry type</span>
-              <select value={enquiryType} onChange={(event) => setEnquiryType(event.target.value)}>
-                {enquiryTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
-              </select>
-            </label>
-            <label>
-              <span>Email address</span>
-              <input required type="email" maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
-            </label>
-            <label>
-              <span>Subject <small aria-hidden="true">{subject.length} / 150</small></span>
-              <input required minLength={3} maxLength={150} value={subject} onChange={(event) => setSubject(event.target.value)} />
-            </label>
-            <label>
-              <span>Message <small aria-hidden="true">{message.length.toLocaleString()} / 5,000</small></span>
-              <textarea required minLength={10} maxLength={5000} value={message} onChange={(event) => setMessage(event.target.value)} />
-            </label>
-            <button className={styles.submit} type="submit" disabled={submitting}>{submitting ? "Sending…" : "Send Message"}</button>
-            {error ? <p className={styles.error} role="alert">{error}</p> : null}
-          </form>
-        )}
+          {success ? (
+            <div className={styles.success} role="status">
+              <span><VaultIcon name="check" size={27} /></span>
+              <h3 ref={successHeadingRef} tabIndex={-1}>Your message has been sent.</h3>
+              <p>Any reply will be sent to the email address you provided.</p>
+              <button type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
+            </div>
+          ) : (
+            <form onSubmit={submit}>
+              <label>
+                <span>Enquiry type</span>
+                <select value={enquiryType} onChange={(event) => setEnquiryType(event.target.value)}>
+                  {enquiryTypes.map(([value, label]) => <option value={value} key={value}>{label}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Email address</span>
+                <input required type="email" maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" />
+              </label>
+              <label>
+                <span>Subject <small aria-hidden="true">{subject.length} / 150</small></span>
+                <input required minLength={3} maxLength={150} value={subject} onChange={(event) => setSubject(event.target.value)} />
+              </label>
+              <label>
+                <span>Message <small aria-hidden="true">{message.length.toLocaleString()} / 5,000</small></span>
+                <textarea required minLength={10} maxLength={5000} value={message} onChange={(event) => setMessage(event.target.value)} />
+              </label>
+              <button className={styles.submit} type="submit" disabled={submitting}>{submitting ? "Sending…" : "Send Message"}</button>
+              {error ? <p className={styles.error} role="alert">{error}</p> : null}
+            </form>
+          )}
+        </div>
       </section>
     </>
   );

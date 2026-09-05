@@ -581,3 +581,45 @@
   .resultArt { min-height: 250px; }
   .resultActions { grid-template-columns: 1fr; }
 }
+
+/* The landing page's one contextual link out to the long-form explanation.
+   Sits inside .sectionIntro p, so it inherits size and only needs its colour. */
+.sectionIntroLink { color: #cf81ff; text-decoration: underline; text-underline-offset: 3px; }
+.sectionIntroLink:hover { color: #e2aaff; }
+
+/* ---- FAQ ---------------------------------------------------------------- */
+.faqSection { padding: 0 0 120px; }
+.faqHeading { margin: 0; }
+.faqList { position: relative; overflow-anchor: none; }
+.faqSummary { width: 100%; border: 0; background: transparent; color: var(--landing-text); font-family: inherit; font-size: 1rem; line-height: 1.35; font-weight: 700; text-align: left; }
+.faqItem .faqSummary { height: var(--faq-heading-height, auto); }
+.faqAnswer { height: var(--faq-answer-height, auto); }
+.faqMeasure { position: absolute; inset: 0 1px auto; visibility: hidden; pointer-events: none; }
+.faqMeasure p { margin: 0; padding: 0 22px 20px; font-size: 0.89rem; line-height: 1.7; }
+.faqActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; max-width: 900px; margin: 20px auto 0; }
+.faqActions a { display: grid; gap: 7px; padding: 20px 22px; border: 1px solid var(--landing-line); border-radius: 16px; background: var(--landing-panel); color: var(--landing-text); text-decoration: none; }
+.faqActions a:hover { border-color: var(--landing-line-strong); background: rgba(151, 112, 255, 0.08); }
+.faqActions strong { color: #cf81ff; }
+@media (max-width: 760px) {
+  .faqMeasure p { padding: 0 17px 17px; font-size: 0.83rem; }
+  .faqActions { grid-template-columns: 1fr; }
+}
+.faqList { display: grid; gap: 12px; max-width: 900px; margin: 62px auto 0; }
+.faqItem { overflow: hidden; border: 1px solid var(--landing-line); border-radius: 16px; background: var(--landing-panel); }
+.faqItem:hover { border-color: var(--landing-line-strong); }
+.faqSummary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 18px 22px; cursor: pointer; list-style: none; }
+.faqSummary::-webkit-details-marker { display: none; }
+.faqSummary:hover { background: rgba(151, 112, 255, 0.08); }
+.faqSummary:focus-visible { outline: 2px solid #b06bff; outline-offset: -2px; }
+.faqSummary h3 { margin: 0; color: var(--landing-text); font-size: 1rem; font-weight: 700; line-height: 1.35; letter-spacing: -0.01em; }
+.faqChevron { flex: none; width: 9px; height: 9px; border-right: 2px solid #b98cff; border-bottom: 2px solid #b98cff; transform: rotate(45deg); transform-origin: 70% 70%; transition: transform 180ms ease; }
+.faqItem[data-open="true"] .faqChevron { transform: rotate(-135deg); }
+.faqItem p { margin: 0; padding: 0 22px 20px; color: var(--landing-text); font-size: 0.89rem; line-height: 1.7; }
+
+@media (max-width: 760px) {
+  .faqSection { padding: 0 0 88px; }
+  .faqList { margin-top: 44px; }
+  .faqSummary { padding: 15px 17px; gap: 14px; }
+  .faqSummary h3 { font-size: 0.92rem; }
+  .faqItem p { padding: 0 17px 17px; font-size: 0.83rem; }
+}

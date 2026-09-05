@@ -2,24 +2,51 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { InfoPage } from "@/components/site/InfoPage";
 import { SharedInformationShell } from "@/components/site/SharedInformationShell";
-export const metadata: Metadata = { title: "Terms of Use", description: "The terms and service rules for using VaultShuffle.", alternates: { canonical: "/terms" }, openGraph: { url: "/terms" } };
+import { pageOpenGraph, pageTwitter } from "@/lib/site";
+
+const description =
+  "Terms of use for VaultShuffle, including accounts, Steam data, recommendations, acceptable use, availability, and account deletion.";
+
+export const metadata: Metadata = {
+  title: "Terms of Use",
+  description,
+  alternates: { canonical: "/terms" },
+  openGraph: pageOpenGraph({ url: "/terms", title: "Terms of Use", description }),
+  twitter: pageTwitter({ title: "Terms of Use", description })
+};
 export default function TermsPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 29 August 2026"
+        eyebrow="Legal · Updated 4 September 2026"
         title="Terms of Use"
-        intro="These terms apply when you access VaultShuffle, create an account, sync Steam data or use its library, recommendation, collection and purge tools."
+        intro="The terms that apply when you use VaultShuffle and connect a Steam library."
+        icon="terms"
+        overview={{
+          title: "The short version",
+          body: (
+            <>
+              <p>
+                Use VaultShuffle responsibly and keep your browser session secure. Game recommendations and progress
+                estimates are guidance, not guarantees. Steam and other providers control their own services and data.
+              </p>
+              <p>
+                You are responsible for content you submit and can stop using VaultShuffle at any time. Questions or
+                deletion requests can be sent through <Link href="/contact">Contact Us</Link>.
+              </p>
+            </>
+          )
+        }}
         sections={[
           {
             title: "Your account",
             open: true,
             body: (
               <p>
-                Steam OpenID verifies control of a Steam identity. The public-profile option does not: it creates a
-                separate VaultShuffle profile from information Steam makes public and must not be treated as proof that
-                you own that Steam account. Keep your browser session secure. You are responsible for activity performed
-                through your active session and should sign out on a shared device.
+                Signing in through Steam verifies control of the Steam account. Importing a public profile does not;
+                it creates a separate VaultShuffle profile from publicly available data. Do not use an unverified profile
+                to misrepresent account ownership. You are responsible for activity through your active session, so sign
+                out when using a shared device.
               </p>
             )
           },
@@ -27,11 +54,11 @@ export default function TermsPage() {
             title: "Acceptable use",
             body: (
               <>
-                <p>Use VaultShuffle lawfully and for its intended personal game-management purpose. Do not:</p>
+                <p>Use VaultShuffle for lawful, personal game management. Do not:</p>
                 <ul>
-                  <li>probe or bypass access controls</li>
-                  <li>automate abusive traffic</li>
-                  <li>interfere with other users</li>
+                  <li>attempt unauthorised access or bypass security controls</li>
+                  <li>send abusive or excessive automated requests</li>
+                  <li>disrupt the service or interfere with other users</li>
                   <li>upload unlawful or malicious content</li>
                   <li>reverse engineer protected parts of the service</li>
                   <li>use the service to violate another person&apos;s rights</li>
@@ -43,31 +70,31 @@ export default function TermsPage() {
             title: "Your content",
             body: (
               <p>
-                You retain responsibility for notes, collection names, feedback and other content you submit. You give
-                VaultShuffle permission to store, process and display that content back to you, and to use feedback to
-                operate and improve the service. Do not submit confidential material you are not authorised to share.
+                You remain responsible for your notes, collection names, feedback and other submissions. You allow
+                VaultShuffle to store and process them to provide the service, display your saved content to you and use
+                feedback to improve the app. Do not submit confidential information you are not authorised to share.
               </p>
             )
           },
           {
-            title: "Steam, IGDB and other third parties",
+            title: "Third-party services and content",
             body: (
               <p>
-                VaultShuffle is an independent service and is not endorsed by Valve. Steam sign-in, store data, game
-                artwork and IGDB metadata remain subject to their owners&apos; terms and availability. Links to Steam and
-                third-party services are provided for convenience; purchases and third-party accounts are between you and
-                that provider. What Steam provides, and what it does not, is set out on the{" "}
+                VaultShuffle is independent and is not endorsed by Valve. Steam sign-in, game artwork, store information
+                and IGDB metadata depend on their providers and remain subject to their terms. Purchases and accounts on
+                linked services are between you and that provider. Read about library imports on the{" "}
                 <Link href="/steam-data">Steam Data</Link> page.
               </p>
             )
           },
           {
-            title: "Recommendations and metadata",
+            title: "Recommendations and game information",
             body: (
               <p>
-                Vault draws, progress estimates, completion suggestions, prices, discounts and how-long-to-beat values are
-                informational estimates. They may be incomplete, delayed or inaccurate, and are not a promise that a game
-                will suit you, remain available or keep a displayed price. Check the relevant store before acting.
+                Recommendations, progress percentages and game-length estimates may not match your experience. Catalogue
+                details, including prices and compatibility, can be incomplete or out of date. A shared-game listing is
+                not confirmation that Steam will let you play it. Check Steam or the relevant provider before relying on
+                availability, compatibility or a displayed price.
               </p>
             )
           },
@@ -75,20 +102,20 @@ export default function TermsPage() {
             title: "Availability and changes",
             body: (
               <p>
-                VaultShuffle is evolving and may add, change, suspend or remove features, correct data, impose reasonable
-                usage limits or perform maintenance. We aim to keep the service available, but do not guarantee
-                uninterrupted or error-free operation. You may stop using the service at any time.
+                We may update features, correct data, set reasonable usage limits or pause parts of the service for
+                maintenance. We aim to keep VaultShuffle available, but cannot guarantee uninterrupted or error-free
+                operation. You can stop using it at any time.
               </p>
             )
           },
           {
-            title: "Suspension and termination",
+            title: "Access restrictions and deletion",
             body: (
               <p>
-                We may restrict or end access where reasonably necessary to protect the service, users or providers,
-                respond to legal requirements, or address a material breach of these terms. You may request account and
-                associated-data deletion through <Link href="/contact">Contact Us</Link>, subject to limited records we
-                must retain for security or legal reasons.
+                We may restrict or end access when reasonably necessary to protect users or the service, meet legal
+                requirements or address a serious breach of these terms. To request deletion of your account and
+                associated data, use <Link href="/contact">Contact Us</Link>. Limited records may need to be retained for
+                security or legal reasons.
               </p>
             )
           },
@@ -96,20 +123,20 @@ export default function TermsPage() {
             title: "Liability",
             body: (
               <p>
-                Nothing in these terms excludes liability that cannot legally be excluded. To the extent permitted by law,
-                VaultShuffle is provided as available and we are not responsible for indirect loss, lost opportunities,
-                third-party services, or decisions based solely on generated recommendations or metadata.
+                Nothing in these terms limits liability that cannot legally be limited. Where the law permits,
+                VaultShuffle is provided as available, and we are not responsible for indirect losses, lost opportunities,
+                third-party services or decisions based solely on our recommendations or game information.
               </p>
             )
           },
           {
-            title: "Questions and changes to these terms",
+            title: "Contact and updates",
             body: (
               <p>
                 Questions can be sent to <a href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a> or through{" "}
-                <Link href="/contact">Contact Us</Link>. We may update these terms as the service changes; the date above
-                identifies the current version. Continued use after a clearly notified material update means the updated
-                terms apply. How your data is handled is described in our <Link href="/privacy">Privacy Policy</Link>.
+                <Link href="/contact">Contact Us</Link>. We may update these terms as VaultShuffle changes; the date above
+                identifies this version. If we clearly notify you of a significant update, continued use means the updated
+                terms apply. Our <Link href="/privacy">Privacy Policy</Link> explains how we handle personal data.
               </p>
             )
           }

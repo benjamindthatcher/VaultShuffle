@@ -12,13 +12,6 @@ export const metadata: Metadata = {
     template: "%s | VaultShuffle"
   },
   description: siteConfig.description,
-  keywords: [
-    "Steam library manager",
-    "Steam backlog",
-    "game picker",
-    "what game should I play",
-    "game collections"
-  ],
   authors: [{ name: siteConfig.name, url: siteConfig.url }],
   creator: siteConfig.name,
   publisher: siteConfig.name,

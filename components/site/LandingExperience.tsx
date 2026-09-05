@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { Suspense } from "react";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
+import { LandingFaq } from "@/components/site/LandingFaq";
 import { LandingCtas } from "@/components/site/LandingCtas";
 import { LandingQuestions } from "@/components/site/LandingQuestions";
 import { LandingResultDemo } from "@/components/site/LandingResultDemo";
@@ -165,6 +166,8 @@ export function LandingExperience() {
         </div>
         <blockquote><SiteGlyph name="new" size={24} />More personal over time—without losing the surprise.</blockquote>
       </section>
+
+      <LandingFaq />
 
       <section id="start" className={styles.closing} aria-labelledby="closing-title">
         <div>

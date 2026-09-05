@@ -293,21 +293,9 @@
   opacity: 0;
 }
 
-/* This bar can never fill, so it is drawn as an inert rail rather than an empty
-   one. A uniform amber hatch runs the whole width: it reads as "there is nothing
-   here to measure", where an empty track would read as "0% done" and the dashed
-   outline this replaces just looked broken. Uniform is the load-bearing part -
-   anything with a leading edge invites the eye to read it as progress.
-   Amber matches the family mark, so bar, ring and artwork all state one fact. */
+/* The same full decorative rail as an endless run; shared status remains in
+   the label and dial, without claiming a completion percentage. */
 .progressInstrument[data-kind="shared"] .track {
-  background:
-    repeating-linear-gradient(
-      -45deg,
-      rgba(255, 196, 106, 0.15) 0 4px,
-      transparent 4px 9px
-    ),
-    rgba(7, 4, 20, 0.72);
-  box-shadow:
-    inset 0 1px 3px rgba(0, 0, 0, 0.5),
-    inset 0 0 0 1px rgba(255, 196, 106, 0.22);
+  background: linear-gradient(90deg, #7049ba, #a06ce6);
+  box-shadow: 0 0 7px rgba(157, 95, 235, 0.4);
 }

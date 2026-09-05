@@ -11,6 +11,8 @@ type SiteFooterProps = {
 };
 
 const links = [
+  { href: "/releases", label: "Releases", icon: "new" },
+  { href: "/faq", label: "FAQ", icon: "details" },
   { href: "/privacy", label: "Privacy", icon: "privacy" },
   { href: "/terms", label: "Terms", icon: "terms" },
   { href: "/steam-data", label: "Steam Data", icon: "steam-data" },
@@ -25,7 +27,7 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
   return (
     <footer className={`${styles.footer} ${variant === "app" ? styles.footerApp : ""}`}>
       <div className={styles.footerPanel}>
-        <nav aria-label="Legal and support">
+        <nav aria-label="About, legal and support">
           <ul className={styles.footerLinks}>
             {links.map((link) => (
               <li key={link.href}>
@@ -48,6 +50,9 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
               </button>
             </li>
           </ul>
+        </nav>
+        <nav className={styles.socialNav} aria-label="Follow VaultShuffle">
+          <a href="https://x.com/Vault_Shuffle" target="_blank" rel="noopener noreferrer">Follow @Vault_Shuffle on X ↗</a>
         </nav>
         <div className={styles.footerDivider} />
         <p className={styles.footerCopyright}>© 2026 VaultShuffle</p>

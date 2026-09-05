@@ -4,29 +4,51 @@ import { AnalyticsSettingsLink } from "@/components/site/AnalyticsSettingsLink";
 import { InfoPage } from "@/components/site/InfoPage";
 import infoStyles from "@/components/site/InfoPage.module.css";
 import { SharedInformationShell } from "@/components/site/SharedInformationShell";
+import { pageOpenGraph, pageTwitter } from "@/lib/site";
+
+const description =
+  "VaultShuffle's privacy policy: how Steam account and library data, analytics, support messages, cookies, retention, and deletion requests are handled.";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How VaultShuffle uses Steam account data, support messages, cookies, and privacy choices.",
+  description,
   alternates: { canonical: "/privacy" },
-  openGraph: { url: "/privacy" }
+  openGraph: pageOpenGraph({ url: "/privacy", title: "Privacy Policy", description }),
+  twitter: pageTwitter({ title: "Privacy Policy", description })
 };
 
 export default function PrivacyPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 29 August 2026"
+        eyebrow="Legal · Updated 4 September 2026"
         title="Privacy Policy"
-        intro="This notice explains what personal data VaultShuffle uses, where it comes from, why it is needed, and the choices available to you."
+        intro="What VaultShuffle collects, how it is used and how to manage your data."
+        icon="privacy"
+        overview={{
+          title: "Privacy at a glance",
+          body: (
+            <>
+              <p>
+                VaultShuffle stores profile details, a copy of your imported library and the choices you save in the app.
+                This supports recommendations, collections and progress tracking. Steam handles sign-in; VaultShuffle
+                never receives your Steam password or changes your Steam account.
+              </p>
+              <p>
+                Product analytics and session replay are enabled by default. You can turn them off in <AnalyticsSettingsLink className={infoStyles.inlineAction} />.
+                You can also ask to access, correct or delete your VaultShuffle data through <Link href="/contact">Contact Us</Link>.
+              </p>
+            </>
+          )
+        }}
         sections={[
           {
-            title: "Who is responsible and how to contact us",
+            title: "Who to contact",
             open: true,
             body: (
               <p>
-                VaultShuffle operates this service and is responsible for the personal data described here. Privacy
-                questions, access requests, corrections and deletion requests can be sent to{" "}
+                VaultShuffle is responsible for the personal data described in this policy. Send privacy questions or
+                requests to access, correct or delete data to{" "}
                 <a href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a> or through{" "}
                 <Link href="/contact">Contact Us</Link>.
               </p>
@@ -37,61 +59,61 @@ export default function PrivacyPage() {
             body: (
               <>
                 <p>
-                  When you sign in with Steam, we receive your SteamID and public profile details through Steam OpenID.
-                  With your public Steam data and the Steam Web API we sync owned game identifiers, titles, playtime and
-                  last-played timestamps. We never receive your Steam password.
+                  Steam OpenID confirms your SteamID when you sign in. We then use Steam&apos;s API to read public profile
+                  details, including your name and avatar, and visible library data such as game IDs, titles, playtime
+                  and last-played dates. We do not receive your Steam password.
                 </p>
                 <p>
-                  You can instead provide a public Steam profile URL, custom profile name or SteamID. In that case Steam
-                  does not authenticate you: we resolve the public profile, check that its games are visible, and create
-                  a separate VaultShuffle profile held by a cookie in this browser. This does not prove ownership of or
-                  provide access to the Steam account.
+                  If you import a public profile without signing in, we store a separate, unverified VaultShuffle profile
+                  on the server. A session cookie gives this browser access to it. Entering a public profile does not
+                  prove ownership of, or give access to, the Steam account.
                 </p>
                 <p>
-                  You may also create collections and save notes, progress, pins and game-status choices. A field-by-field
-                  breakdown of what Steam provides is on the <Link href="/steam-data">Steam Data</Link> page.
+                  We also store the collections, notes, progress, pins and game statuses you save. If you add family
+                  profiles, we store their public profile details and library information used to identify potentially
+                  shared games. The <Link href="/steam-data">Steam Data</Link> page explains these imports.
                 </p>
               </>
             )
           },
           {
-            title: "How and why we use data",
+            title: "How we use data",
             body: (
               <>
                 <p>We use account and game data to:</p>
                 <ul>
                   <li>maintain your VaultShuffle profile, browser session and library</li>
-                  <li>calculate progress and provide Vault recommendations</li>
-                  <li>run Purge reviews and keep collections current</li>
+                  <li>estimate progress and personalise game recommendations</li>
+                  <li>save game statuses, notes, pins and collections</li>
                   <li>prevent abuse and diagnose faults</li>
-                  <li>understand how people use VaultShuffle, and respond to support</li>
+                  <li>respond to support requests and understand usage when product analytics are enabled</li>
                 </ul>
                 <p>
-                  This processing is necessary to provide the service you request and, for security and service
-                  improvement, supports our legitimate interests in operating and improving a reliable product.
+                  We process account and library data to provide the service you request. Security and reliability
+                  work also supports our legitimate interests in keeping the service safe and functional.
                 </p>
               </>
             )
           },
           {
-            title: "Analytics, account linking and device storage",
+            title: "Cookies, analytics and session replay",
             body: (
               <>
                 <p>
-                  Essential cookies and local storage keep you signed in, remember interface preferences and record your
-                  analytics choice. Vercel service telemetry is used for hosting reliability.
+                  Cookies and browser storage maintain your session, remember preferences and save your analytics choice.
+                  Vercel Web Analytics and Speed Insights separately collect site-usage and performance information.
+                  The PostHog setting below does not disable those services.
                 </p>
                 <p>
-                  PostHog product analytics are on by default and use first-party cookie and local-storage persistence.
-                  You are told this on your first visit and can turn them off at any time. When a library is connected,
-                  VaultShuffle identifies your PostHog analytics profile using our internal user ID and attaches your
-                  account type, whether Steam verified the identity, SteamID, display name, Steam profile link and avatar
-                  where available. Manual public-profile users and Steam-verified users have separate internal IDs.
+                  PostHog product analytics are enabled by default, with a notice on your first visit. They use cookies
+                  and local storage to associate visits. When you connect a library, analytics can be linked to your
+                  VaultShuffle user ID, account type, verification status, SteamID, display name, profile URL and avatar.
+                  Analytics identities may be joined when you verify and link a public-profile account through Steam.
                 </p>
                 <p>
-                  PostHog is used for product-usage events, heatmaps, error and performance information, feature analysis
-                  and session replay, so we can understand how the service is used and improve it. Session replay masks
-                  form and input values, although visible interface content and interactions may be recorded.
+                  PostHog records selected usage events, errors and session replays to help us understand problems and
+                  improve the app. Input values are masked in replays, but visible page content and interactions may be
+                  recorded. Heatmap collection is disabled.
                 </p>
                 <p>
                   You can turn PostHog analytics off at any time in{" "}
@@ -101,20 +123,20 @@ export default function PrivacyPage() {
             )
           },
           {
-            title: "Suppliers and international processing",
+            title: "Service providers",
             body: (
               <>
-                <p>We rely on these providers:</p>
+                <p>Providers used by VaultShuffle include:</p>
                 <ul>
                   <li><strong>Steam</strong> — optional sign-in, public profile and game data</li>
                   <li><strong>Supabase</strong> — database and session infrastructure</li>
-                  <li><strong>Vercel</strong> — application hosting and operational telemetry</li>
+                  <li><strong>Vercel</strong> — hosting, site analytics and performance monitoring</li>
                   <li><strong>IGDB</strong> — game metadata</li>
                   <li><strong>PostHog</strong> — product analytics, when analytics are enabled</li>
                 </ul>
                 <p>
-                  They process limited data on our behalf or under their own terms, and may operate infrastructure
-                  outside the UK.
+                  These providers process data to deliver their services, either on our behalf or under their own
+                  terms. Processing may take place in countries other than the one where you live.
                 </p>
               </>
             )
@@ -124,19 +146,20 @@ export default function PrivacyPage() {
             body: (
               <>
                 <p>
-                  Contact and feedback submissions are private support records. We keep account and library data while
-                  your account is active, and retain operational, analytics or support records only as long as reasonably
-                  needed for product improvement, support, security, legal obligations and backups.
+                  Contact and feedback submissions are stored as private support records. They can include your message,
+                  contact details, page information and browser details used to investigate an issue. We retain account
+                  and library data while your account is active. Support, analytics and operational records are retained
+                  as needed for support, service improvement, security, legal obligations and backups.
                 </p>
                 <p>
-                  Access is restricted and data is protected with transport encryption and provider access controls,
-                  although no online service can promise absolute security.
+                  We use encrypted connections and provider access controls to protect data. No online service can
+                  guarantee complete security. Signing out ends this browser&apos;s session; it does not delete stored data.
                 </p>
               </>
             )
           },
           {
-            title: "Your rights",
+            title: "Your choices and rights",
             open: true,
             body: (
               <>
@@ -145,7 +168,7 @@ export default function PrivacyPage() {
                   <li>a copy of your personal data</li>
                   <li>correction of anything inaccurate</li>
                   <li>deletion, restriction or portability</li>
-                  <li>an objection to certain processing</li>
+                  <li>the ability to object to certain uses of your data</li>
                 </ul>
                 <p>
                   You may turn PostHog analytics off at any time in{" "}
@@ -158,12 +181,12 @@ export default function PrivacyPage() {
             )
           },
           {
-            title: "Changes and age limits",
+            title: "Age limits and policy updates",
             body: (
               <p>
-                VaultShuffle is not directed to children under 13. We may update this notice when the service or its
-                suppliers change; the updated date above shows the current version. Material changes will be made
-                reasonably prominent. Use of the service is also covered by our <Link href="/terms">Terms of Use</Link>.
+                VaultShuffle is not directed to children under 13. We may update this policy as the service changes and
+                will make significant changes reasonably prominent. The date above identifies this version. Our{" "}
+                <Link href="/terms">Terms of Use</Link> also apply.
               </p>
             )
           }

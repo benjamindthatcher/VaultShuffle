@@ -4,7 +4,7 @@
 }
 
 .header {
-  width: min(960px, 100%);
+  width: var(--vault-list-width);
   margin: 0 auto;
   padding: 22px 0 6px;
 }
@@ -44,7 +44,7 @@
 }
 
 .content {
-  width: min(960px, 100%);
+  width: var(--vault-list-width);
   margin: 0 auto;
   padding: 26px 0 64px;
 }

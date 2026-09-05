@@ -182,14 +182,14 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
       <button className={styles.backdrop} type="button" tabIndex={-1} aria-hidden="true" onClick={() => !submitting && onClose()} />
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef} tabIndex={-1}>
         <header className={styles.header}>
-          <div><p>Help shape the Vault</p><h2 id={titleId}>Share Feedback</h2></div>
+          <div><p>Suggestions and issues</p><h2 id={titleId}>Share Feedback</h2></div>
           <button type="button" onClick={onClose} disabled={submitting} aria-label="Close feedback"><VaultIcon name="close" size={20} /></button>
         </header>
         {status === "success" ? (
-          <div className={styles.success} role="status"><span><VaultIcon name="check" size={27} /></span><h3>Thanks — your feedback has been sent.</h3><p>Your note is safely with the VaultShuffle team.</p><button type="button" onClick={onClose}>Close</button></div>
+          <div className={styles.success} role="status"><span><VaultIcon name="check" size={27} /></span><h3>Your feedback has been sent.</h3><p>Thank you for helping us improve VaultShuffle.</p><button type="button" onClick={onClose}>Close</button></div>
         ) : (
           <form onSubmit={submit} className={styles.form}>
-            <p className={styles.intro}>What could be better? Spotted a bug? Let us know.</p>
+            <p className={styles.intro}>Describe a problem or suggest an improvement. Include any steps that help explain the issue.</p>
             <div className={styles.segmented} role="group" aria-label="Feedback type">
               <button type="button" aria-pressed={type === "improvement"} onClick={() => setType("improvement")}>Improvement</button>
               <button type="button" aria-pressed={type === "bug"} onClick={() => setType("bug")}>Bug Report</button>

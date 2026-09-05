@@ -1,29 +1,17 @@
 import type { Metadata } from "next";
 import { LandingExperience } from "@/components/site/LandingExperience";
-import { siteConfig } from "@/lib/site";
+import { LANDING_FAQ } from "@/components/site/landing-faq";
+import { pageOpenGraph, pageTwitter, siteConfig } from "@/lib/site";
+
+const SOCIAL_TITLE = "Stop scrolling. Pick the right Steam game tonight.";
 
 export const metadata: Metadata = {
   title: { absolute: "Steam Game Picker for Your Backlog | VaultShuffle" },
   description:
     "Can't decide what to play? Connect Steam and let VaultShuffle pick a game for your time, mood, and goal—then organise your backlog.",
   alternates: { canonical: "/" },
-  openGraph: {
-    title: "Stop scrolling. Pick the right Steam game tonight.",
-    description: siteConfig.socialDescription,
-    url: "/",
-    images: [{
-      url: siteConfig.ogImage,
-      width: 1200,
-      height: 630,
-      alt: "VaultShuffle — pick the right Steam game for tonight"
-    }]
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Stop scrolling. Pick the right Steam game tonight.",
-    description: siteConfig.socialDescription,
-    images: [siteConfig.ogImage]
-  }
+  openGraph: pageOpenGraph({ url: "/", title: SOCIAL_TITLE }),
+  twitter: pageTwitter({ title: SOCIAL_TITLE })
 };
 
 const structuredData = {
@@ -68,6 +56,16 @@ const structuredData = {
         priceCurrency: "GBP"
       },
       publisher: { "@id": `${siteConfig.url}/#organization` }
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${siteConfig.url}/#faq`,
+      isPartOf: { "@id": `${siteConfig.url}/#website` },
+      mainEntity: LANDING_FAQ.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.answer }
+      }))
     }
   ]
 };
