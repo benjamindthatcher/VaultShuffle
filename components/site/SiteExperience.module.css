@@ -56,9 +56,62 @@
   list-style: none;
 }
 
-.socialNav { display: flex; flex-direction: column; align-items: center; margin-top: 12px; }
-.socialNav a { padding: 8px 12px; color: #d392ff; font-size: 0.82rem; text-decoration: none; }
-.socialNav a:hover { color: #fff; text-decoration: underline; }
+.socialNav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.xLink,
+.coffeeButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  box-sizing: border-box;
+  border-radius: 12px;
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+}
+
+.xLink {
+  width: 48px;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: #000;
+}
+
+.xLink:hover {
+  background: #191919;
+}
+
+.coffeeButton {
+  gap: 8px;
+  padding: 0 16px;
+  background: #bd5fff;
+  font-size: 1rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.coffeeButton:hover {
+  background: #ca7aff;
+}
+
+.coffeeEmoji {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.xLink:focus-visible,
+.coffeeButton:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 4px;
+}
 
 .footerLinks li {
   min-width: 0;
