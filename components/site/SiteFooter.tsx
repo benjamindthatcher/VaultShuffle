@@ -51,8 +51,9 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
             </li>
           </ul>
         </nav>
-        <nav className={styles.socialNav} aria-label="Follow VaultShuffle">
+        <nav className={styles.socialNav} aria-label="Follow and support VaultShuffle">
           <a href="https://x.com/Vault_Shuffle" target="_blank" rel="noopener noreferrer">Follow @Vault_Shuffle on X ↗</a>
+          <a href="https://buymeacoffee.com/vaultshuffle" target="_blank" rel="noopener noreferrer">Buy me a coffee ↗</a>
         </nav>
         <div className={styles.footerDivider} />
         <p className={styles.footerCopyright}>© 2026 VaultShuffle</p>
