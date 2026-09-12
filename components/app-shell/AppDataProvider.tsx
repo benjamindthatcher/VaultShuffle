@@ -3,8 +3,8 @@
 import { steamCapabilities, type SteamCapabilities } from "@/lib/steam-capabilities";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
-import { buildCollectionDetails, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames, withFamilyOwnerNames } from "@/lib/app-view-model";
+import type { DemoCollection, DemoGame } from "@/lib/demo-data";
+import { buildCollectionDetails, guestFallbackGames, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames, withFamilyOwnerNames } from "@/lib/app-view-model";
 import { FAMILY_SHARING_ENABLED } from "@/lib/family-flag";
 import type { FamilyImportCounts } from "@/lib/family-sharing";
 import { ANALYTICS_EVENTS, setAnalyticsAudience, trackEvent, trackNavigationEvent } from "@/lib/analytics";
@@ -1036,17 +1036,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
-
-const guestFallbackGames = demoGames.map((game) => ({
-  ...game,
-  status: "Not Started" as const,
-  hoursPlayed: 0,
-  completionPercent: 0,
-  priority: "Medium" as const,
-  lastPlayedLabel: "Guest preview",
-  addedLabel: "Popular on Steam",
-  collectionIds: []
-}));
 
 function applyGamePatch(
   game: DemoGame,

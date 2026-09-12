@@ -7,7 +7,7 @@ import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import { playerModesFromCategories } from "@/lib/global-filters";
 import { exclusionCategoriesFor } from "@/lib/exclusion-categories";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
-import type { DemoCollection, DemoGame } from "@/lib/demo-data";
+import { demoGames, type DemoCollection, type DemoGame } from "@/lib/demo-data";
 import type { CollectionMembership } from "@/lib/collections";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
 import { deriveMoodScores, deriveSessionFits, moodTagsFromScores } from "@/lib/vault-matching";
@@ -251,6 +251,25 @@ export function withFamilyOwnerNames(
   // downstream of it on each render.
   return changed ? named : games;
 }
+
+/**
+ * The preview pool before the live catalogue arrives, and after it fails.
+ *
+ * Zeroed the same way mapGuestGames zeroes the real thing: a guest pool carries
+ * no playtime, whichever pool it is. Anything that reasons about progress - the
+ * Finish Something goal above all - must behave identically on both, or the
+ * fallback would quietly answer a question the live pool cannot.
+ */
+export const guestFallbackGames: DemoGame[] = demoGames.map((game) => ({
+  ...game,
+  status: "Not Started" as const,
+  hoursPlayed: 0,
+  completionPercent: 0,
+  priority: "Medium" as const,
+  lastPlayedLabel: "Guest preview",
+  addedLabel: "Popular on Steam",
+  collectionIds: []
+}));
 
 export function mapGuestGames(games: Game[]): DemoGame[] {
   const mapped = mapLiveGames(games, []);
