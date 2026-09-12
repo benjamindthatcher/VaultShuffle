@@ -120,8 +120,8 @@ export function getVaultEligibility({
   const collectionDraw = isCollectionDraw(selectedCollectionId);
   const owned = games.filter((game) => game.ownership === "Owned");
   const completedCount = owned.filter((game) => game.status === "Completed").length;
-  const sleptCount = owned.filter((game) => game.status === "Slept").length;
-  const active = owned.filter((game) => game.status !== "Completed" && game.status !== "Slept");
+  const blacklistedCount = owned.filter((game) => game.status === "Blacklisted").length;
+  const active = owned.filter((game) => game.status !== "Completed" && game.status !== "Blacklisted");
   const inCollection = !collectionDraw
     ? active
     : active.filter((game) => game.collectionIds.includes(selectedCollectionId!));
@@ -141,13 +141,13 @@ export function getVaultEligibility({
   const available = goalMatches.filter((game) => !snoozedIds.has(game.id));
   // Start from the whole library and name what each step took away. Opening on
   // the already-filtered "Active" count meant the funnel began part-way through
-  // its own story, and the work the player had done — completing and sleeping
+  // its own story, and the work the player had done — completing and blacklisting
   // games — was invisible.
   const stages: VaultEligibilityStage[] = [{ id: "library", label: "In Library", count: owned.length }];
-  if (completedCount || sleptCount) {
+  if (completedCount || blacklistedCount) {
     const removed = [
       completedCount ? `${completedCount} completed` : null,
-      sleptCount ? `${sleptCount} asleep` : null
+      blacklistedCount ? `${blacklistedCount} blacklisted` : null
     ].filter(Boolean).join(" · ");
     stages.push({ id: "active", label: "Still To Play", count: active.length, detail: removed });
   }
@@ -1017,4 +1017,3 @@ function dormancyDetail(game: DemoGame, now: number) {
   }
   return { headline: `Not played in ${days} days`, detail: `Last played ${when}.` };
 }
-

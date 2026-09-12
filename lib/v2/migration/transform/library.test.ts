@@ -292,6 +292,7 @@ test("game_state is emitted only when the M1 disjunction is satisfied", () => {
   const emitted = transformLibraryBatch(
     input([
       row({
+        status: "Slept",
         notes: "  keep this  ",
         completed_at: "2026-02-01 10:00:00+00",
         slept_at: "2026-02-02 10:00:00+00",
@@ -307,11 +308,8 @@ test("game_state is emitted only when the M1 disjunction is satisfied", () => {
       account_id: entry.account_id,
       game_id: entry.game_id,
       completed_at: entry.completed_at?.canonicalUtc,
-      slept_at: entry.slept_at?.canonicalUtc,
+      blacklisted: entry.blacklisted,
       previous_active_status: entry.previous_active_status,
-      restored_at: entry.restored_at,
-      restored_from_slept_at: entry.restored_from_slept_at,
-      restored_from_previous_active_status: entry.restored_from_previous_active_status,
       manual_progress: entry.manual_progress,
       notes: entry.notes,
       review_requested_at: entry.review_requested_at?.canonicalUtc,
@@ -323,11 +321,8 @@ test("game_state is emitted only when the M1 disjunction is satisfied", () => {
         account_id: 1,
         game_id: 7,
         completed_at: "2026-02-01T10:00:00.000000Z",
-        slept_at: "2026-02-02T10:00:00.000000Z",
+        blacklisted: true,
         previous_active_status: "Sampled",
-        restored_at: null,
-        restored_from_slept_at: null,
-        restored_from_previous_active_status: null,
         manual_progress: null,
         notes: "  keep this  ",
         review_requested_at: "2026-02-03T10:00:00.000000Z",
@@ -649,13 +644,15 @@ test("every withheld exception is countable in the redacted conflict report, wit
   }
 });
 
-test("a terminal legacy status with no matching instant is reported, not repaired", () => {
+test("Completed needs an instant while Slept status alone authoritatively becomes Blacklisted", () => {
   const completed = transformLibraryBatch(input([row({ status: "Completed", completed_at: null })]));
   assert.equal(conflictCount(completed, "library_status_terminal_disagreement"), 1);
   assert.equal(completed.game_state.length, 0);
 
   const slept = transformLibraryBatch(input([row({ status: "Slept", slept_at: null })]));
-  assert.equal(conflictCount(slept, "library_status_terminal_disagreement"), 1);
+  assert.equal(conflictCount(slept, "library_status_terminal_disagreement"), 0);
+  assert.equal(slept.game_state.length, 1);
+  assert.equal(slept.game_state[0].blacklisted, true);
 });
 
 test("the same AppID in two accounts produces two independent rows", () => {

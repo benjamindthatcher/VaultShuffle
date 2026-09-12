@@ -15,7 +15,7 @@ test("a game nobody has met is judged on its own merits alone", () => {
 });
 
 test("a game everyone set aside is pushed down hard", () => {
-  // Resident Evil Resistance: 13 of 13 people slept it. No tag model can see
+  // Resident Evil Resistance: 13 of 13 people blacklisted it. No tag model can see
   // that, because it shares its tags with games worth playing.
   const unanimouslyRejected = verdictPoints([0, 40], BASELINE);
   assert.ok(unanimouslyRejected < -5, `expected a real penalty, got ${unanimouslyRejected}`);

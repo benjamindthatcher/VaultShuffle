@@ -9,11 +9,11 @@ const restorePayloadSchema = z.object({
 }).strict();
 
 /**
- * Wake a batch of games in one request.
+ * Reactivate a batch of games in one request.
  *
  * Waking fifty games one PATCH at a time is fifty writes against a budget of a
  * hundred and twenty a minute, so a user asking for something entirely
- * reasonable - "put my slept games back so I can go through them again" - got
+ * reasonable - "put my blacklisted games back so I can go through them again" - got
  * told they were moving too quickly. The answer is not a larger budget; it is
  * one request for one intent, which is what the flags endpoint already does.
  *
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       try {
         if (await restoreGameToActive(user.id, gameId)) restored += 1;
       } catch {
-        // One game that will not wake should not cost the caller the other
+        // One game that cannot reactivate should not cost the caller the other
         // forty-nine, so the failures are reported rather than thrown.
         failed.push(gameId);
       }

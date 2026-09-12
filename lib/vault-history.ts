@@ -7,7 +7,7 @@ export type VaultRerollReason =
   | "reroll_not_interested"
   | "reroll_not_tonight";
 
-export type VaultDrawEventType = "opened_on_steam" | "pinned" | "unpinned" | "drew_again" | "hidden_for_session" | "snoozed_7_days" | "snoozed_30_days" | "slept" | "marked_completed" | "restored" | "liked" | "disliked" | VaultRerollReason;
+export type VaultDrawEventType = "opened_on_steam" | "pinned" | "unpinned" | "drew_again" | "hidden_for_session" | "snoozed_7_days" | "snoozed_30_days" | "blacklisted" | "marked_completed" | "restored" | "liked" | "disliked" | VaultRerollReason;
 
 /** Shown after repeated rerolls, which are the app's clearest negative signal. */
 export const VAULT_REROLL_REASONS: ReadonlyArray<{ id: VaultRerollReason; label: string }> = [

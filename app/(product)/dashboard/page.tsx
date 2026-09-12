@@ -115,15 +115,15 @@ export default function DashboardPage() {
       }}
       onComplete={async () => {
         if (!detailsGame) return;
-        await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+        await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString() });
       }}
       onRestore={async () => {
         if (!detailsGame) return;
         await restoreGame(detailsGame.id);
       }}
-      onSleep={async () => {
+      onBlacklist={async () => {
         if (!detailsGame) return;
-        await updateGame(detailsGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null });
+        await updateGame(detailsGame.id, { status: "Blacklisted", completedAt: null });
       }}
     />
   );

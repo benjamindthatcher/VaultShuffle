@@ -57,7 +57,7 @@ const PURGE_RELATION = "purge_reviews";
 
 const ZERO = BigInt(0);
 const ORIGIN_SURFACES = ["sweep", "sweep_bulk", "library", "vault", "purge", "details"] as const;
-const PURGE_ACTIONS = ["keep", "pin", "sleep", "complete"] as const;
+const SOURCE_PURGE_ACTIONS = ["keep", "pin", "sleep", "complete"] as const;
 const MAX_RAW_TEXT_LENGTH = 128;
 /** Both completion destinations bound `metric_provenance` at 8192 bytes. */
 const MAX_PROVENANCE_JSONB_BYTES = 8_192;
@@ -65,7 +65,7 @@ const DEFAULT_MAX_ROWS = 5_000_000;
 const NONFINITE_DOUBLE_TEXT = /^[+-]?(?:NaN|Infinity|Inf)$/i;
 
 export type CompletionOriginSurface = (typeof ORIGIN_SURFACES)[number];
-export type PurgeAction = (typeof PURGE_ACTIONS)[number];
+export type PurgeAction = "keep" | "pin" | "blacklist" | "complete";
 
 export type PlaytimeSnapshotSourceRow = Readonly<{
   user_id: LibraryCell;
@@ -686,7 +686,13 @@ export function transformHistoryBatch(
     const sourceUserId = canonicalUuid(sourceCell(row, "user_id", PURGE_RELATION), PURGE_RELATION, "user_id");
     const accountId = accounts.lookup(sourceUserId.original);
     const sourceGameId = canonicalUuid(sourceCell(row, "game_id", PURGE_RELATION), PURGE_RELATION, "game_id");
-    const action = enumValue(sourceCell(row, "action", PURGE_RELATION), PURGE_ACTIONS, PURGE_RELATION, "action");
+    const sourceAction = enumValue(
+      sourceCell(row, "action", PURGE_RELATION),
+      SOURCE_PURGE_ACTIONS,
+      PURGE_RELATION,
+      "action",
+    );
+    const action: PurgeAction = sourceAction === "sleep" ? "blacklist" : sourceAction;
     const reviewedAt = requiredTimestamp(sourceCell(row, "reviewed_at", PURGE_RELATION), PURGE_RELATION, "reviewed_at");
     const minutes = requiredInteger(
       sourceCell(row, "playtime_minutes_at_review", PURGE_RELATION),

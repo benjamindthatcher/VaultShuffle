@@ -21,7 +21,7 @@ const eventSchema = z.object({
     "hidden_for_session",
     "snoozed_7_days",
     "snoozed_30_days",
-    "slept",
+    "blacklisted",
     "marked_completed",
     "restored"
   ])

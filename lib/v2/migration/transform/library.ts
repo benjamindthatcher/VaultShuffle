@@ -166,11 +166,9 @@ export type GameStateRecord = Readonly<{
   account_id: number;
   game_id: number;
   completed_at: PgTimestamp | null;
-  slept_at: PgTimestamp | null;
+  /** Current membership comes from legacy status='Slept', never its timestamp. */
+  blacklisted: boolean;
   previous_active_status: LibraryActiveStatus | null;
-  restored_at: null;
-  restored_from_slept_at: null;
-  restored_from_previous_active_status: null;
   /** Always NULL: legacy `completion_percentage` is derived, not authored. */
   manual_progress: null;
   notes: string | null;
@@ -410,7 +408,6 @@ export type AuthoritativeLibraryFact = Readonly<{
   account_id: number;
   steam_appid: string;
   completed_at: PgTimestamp | null;
-  slept_at: PgTimestamp | null;
   dismissed_at: PgTimestamp | null;
   /** Exact integer minutes as text; the source value must already be integral. */
   dismissed_playtime: string | null;
@@ -475,7 +472,6 @@ type NormalizedRow = {
   updatedAt: PgTimestamp;
   lastPlayedAt: PgTimestamp | null;
   completedAt: PgTimestamp | null;
-  sleptAt: PgTimestamp | null;
   dismissedAt: PgTimestamp | null;
   dismissedPlaytime: bigint | null;
   previousActiveStatus: LibraryActiveStatus | null;
@@ -619,6 +615,11 @@ function normalizeRow(
     libraryFailure("library_unrepresentable_value", RELATION, "family_owner_steam_id");
   }
 
+  // The frozen export still contains this retired source column. Validate its
+  // syntax so malformed input cannot pass unnoticed, then deliberately discard
+  // it: Blacklist membership is the authoritative status, not an instant.
+  optionalTimestamp(nullableSourceCell(row, "slept_at", RELATION), RELATION, "slept_at");
+
   return {
     legacyId: legacyId.original,
     legacyIdCanonical: legacyId.canonical,
@@ -641,7 +642,6 @@ function normalizeRow(
     updatedAt: requiredTimestamp(sourceCell(row, "updated_at", RELATION), RELATION, "updated_at"),
     lastPlayedAt: optionalTimestamp(nullableSourceCell(row, "last_played_at", RELATION), RELATION, "last_played_at"),
     completedAt: optionalTimestamp(nullableSourceCell(row, "completed_at", RELATION), RELATION, "completed_at"),
-    sleptAt: optionalTimestamp(nullableSourceCell(row, "slept_at", RELATION), RELATION, "slept_at"),
     dismissedAt: optionalTimestamp(
       nullableSourceCell(row, "completion_suggestion_dismissed_at", RELATION),
       RELATION,
@@ -903,7 +903,7 @@ export function transformLibraryBatch(
     // --- app.game_state ----------------------------------------------------
     const hasState =
       row.completedAt !== null ||
-      row.sleptAt !== null ||
+      row.status === "Slept" ||
       row.previousActiveStatus !== null ||
       row.notes !== null ||
       row.reviewRequestedAt !== null ||
@@ -914,11 +914,8 @@ export function transformLibraryBatch(
           account_id: row.accountId,
           game_id: row.gameId,
           completed_at: row.completedAt,
-          slept_at: row.sleptAt,
+          blacklisted: row.status === "Slept",
           previous_active_status: row.previousActiveStatus,
-          restored_at: null,
-          restored_from_slept_at: null,
-          restored_from_previous_active_status: null,
           manual_progress: null,
           notes: row.notes,
           review_requested_at: row.reviewRequestedAt,
@@ -948,21 +945,10 @@ export function transformLibraryBatch(
         source_relation: RELATION,
         source_column: "status",
         decision:
-          "Legacy status is retired as derived, on the stated grounds that terminal states are recoverable from completed_at/slept_at. A 'Completed' status with no completed_at contradicts that; the raw status is retained in migration.legacy_library_evidence.evidence and no instant is invented.",
+          "Legacy Completed status is derived from completed_at. A 'Completed' status with no completed_at contradicts that; the raw status is retained in migration.legacy_library_evidence.evidence and no instant is invented.",
         details: { status: "unresolved" },
       });
     }
-    if (row.status === "Slept" && row.sleptAt === null) {
-      conflicts.record({
-        conflict_class: "library_status_terminal_disagreement",
-        source_relation: RELATION,
-        source_column: "status",
-        decision:
-          "Legacy status is retired as derived, on the stated grounds that terminal states are recoverable from completed_at/slept_at. A 'Slept' status with no slept_at contradicts that; the raw status is retained in migration.legacy_library_evidence.evidence and no instant is invented.",
-        details: { status: "unresolved" },
-      });
-    }
-
     // --- app.game_activity ---------------------------------------------------
     // Root's 11 September follow-up: recency_evidence_at is the receipt time
     // (observed_at); last_observed_played_at is the last-played instant. Every
@@ -1191,7 +1177,6 @@ export function transformLibraryBatch(
         account_id: row.accountId,
         steam_appid: row.appIdText,
         completed_at: row.completedAt,
-        slept_at: row.sleptAt,
         dismissed_at: row.dismissedAt,
         dismissed_playtime: row.dismissedPlaytime === null ? null : row.dismissedPlaytime.toString(10),
         review_requested_at: row.reviewRequestedAt,

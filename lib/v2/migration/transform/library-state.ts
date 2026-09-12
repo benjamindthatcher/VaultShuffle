@@ -82,7 +82,6 @@ export type LegacyStateEvidenceReason =
 
 type RawStateFields = Readonly<{
   raw_completed_at: PgTimestamp | null;
-  raw_slept_at: PgTimestamp | null;
   raw_prev_active_status: number | null;
   raw_dismissed_at: PgTimestamp | null;
   /** Native source precision, never narrowed to satisfy a target type. */
@@ -255,7 +254,6 @@ export function transformLegacyGameState(
       libraryFailure("library_mixed_run_identity", "user_games", "source_snapshot_hash");
     }
     factTimestamp(fact.completed_at, "completed_at");
-    factTimestamp(fact.slept_at, "slept_at");
     factTimestamp(fact.dismissed_at, "dismissed_at");
     factTimestamp(fact.review_requested_at, "review_requested_at");
     factTimestamp(fact.last_played_at, "last_played_at");
@@ -292,7 +290,6 @@ export function transformLegacyGameState(
 
     const fields: RawStateFields = Object.freeze({
       raw_completed_at: optionalTimestamp(nullableSourceCell(row, "completed_at", RELATION), RELATION, "completed_at"),
-      raw_slept_at: optionalTimestamp(nullableSourceCell(row, "slept_at", RELATION), RELATION, "slept_at"),
       raw_prev_active_status: smallint(nullableSourceCell(row, "prev_active_status", RELATION), "prev_active_status"),
       raw_dismissed_at: optionalTimestamp(nullableSourceCell(row, "dismissed_at", RELATION), RELATION, "dismissed_at"),
       raw_dismissed_playtime: dismissedPlaytime === null ? null : dismissedPlaytime.toCanonicalString(),
@@ -324,6 +321,11 @@ export function transformLegacyGameState(
         "family_verified_at",
       ),
     });
+
+    // The source snapshot still exports the retired child timestamp. Validate
+    // it, then discard it by policy; it is neither current membership nor
+    // durable historical evidence after the Blacklist decision.
+    optionalTimestamp(nullableSourceCell(row, "slept_at", RELATION), RELATION, "slept_at");
 
     if (fields.raw_prev_active_status !== null && !PREVIOUS_ACTIVE_CODES.has(fields.raw_prev_active_status)) {
       libraryFailure("library_invalid_enum", RELATION, "prev_active_status");
@@ -383,7 +385,6 @@ export function transformLegacyGameState(
     } else {
       const disagrees =
         !sameTimestamp(fields.raw_completed_at, fact.completed_at) ||
-        !sameTimestamp(fields.raw_slept_at, fact.slept_at) ||
         !sameTimestamp(fields.raw_dismissed_at, fact.dismissed_at) ||
         !sameTimestamp(fields.raw_review_requested_at, fact.review_requested_at) ||
         !sameTimestamp(fields.raw_last_played_at, fact.last_played_at) ||
@@ -419,7 +420,6 @@ export function transformLegacyGameState(
 
     const hasAnyRawValue =
       fields.raw_completed_at !== null ||
-      fields.raw_slept_at !== null ||
       fields.raw_prev_active_status !== null ||
       fields.raw_dismissed_at !== null ||
       fields.raw_dismissed_playtime !== null ||

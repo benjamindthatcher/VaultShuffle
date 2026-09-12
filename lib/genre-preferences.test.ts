@@ -9,7 +9,7 @@ import {
   preferenceGenresFor,
   shrunkRate,
   VAULT_PREFERENCE_MAX_POINTS,
-  type GenrePreference, capDecisionsPerUser, parseAlgorithmWeight, playtimeTally } from "./genre-preferences.ts";
+  type GenrePreference, capDecisionsPerUser, capStandingDecisions, parseAlgorithmWeight, playtimeTally, standingDecisionKeys } from "./genre-preferences.ts";
 
 function toIndex(rows: Array<Partial<GenrePreference> & { genre: string }>) {
   return buildGenrePreferenceIndex(rows.map((row) => ({
@@ -34,6 +34,20 @@ const baseline = { genre: BASELINE_GENRE, positive: 20, total: 100 };
 test("no evidence leaves the rate at the prior", () => {
   assert.equal(shrunkRate(0, 0, 0.5), 0.5);
   assert.equal(shrunkRate(0, 0, 0.2), 0.2);
+});
+
+test("a permanent blacklist stays a full undated decision and suppresses a dated duplicate", () => {
+  const kept = capStandingDecisions([
+    { userId: "u", steamAppId: 9, reviewedAt: "2030-01-02T00:00:00.000Z", standing: false },
+    { userId: "u", steamAppId: 7, reviewedAt: null, standing: true },
+    { userId: "u", steamAppId: 8, reviewedAt: null, standing: true },
+  ], 2);
+  assert.deepEqual(kept.map((decision) => decision.steamAppId), [7, 8]);
+  assert.ok(kept.every((decision) => decision.standing && decision.reviewedAt === null));
+  assert.deepEqual([...standingDecisionKeys([
+    ...kept.map((decision) => ({ ...decision, action: "blacklist" })),
+    { userId: "u", steamAppId: 10, reviewedAt: "2030-01-03T00:00:00.000Z", standing: false, action: "blacklist" },
+  ], "blacklist")], ["u::7", "u::8"]);
 });
 
 test("a genre matching the user's own base rate scores neutral, not negative", () => {

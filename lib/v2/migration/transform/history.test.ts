@@ -531,6 +531,12 @@ test("a purge review keeps its decision and never becomes a completion event", (
   assert.equal(conflictCount(result, "purge_complete_without_completion_event"), 1);
 });
 
+test("legacy sleep purge decisions become permanent blacklist decisions", () => {
+  const result = transformHistoryBatch(input({ purgeReviews: [review({ action: "sleep" })] }));
+  assert.equal(result.purge_review_history[0].action, "blacklist");
+  assert.equal(result.legacy_purge_review_archive[0].action, "blacklist");
+});
+
 test("a complete review with a matching completion event is counted separately", () => {
   const result = transformHistoryBatch(
     input({ purgeReviews: [review({ action: "complete" })], completionEvents: [event()] }),

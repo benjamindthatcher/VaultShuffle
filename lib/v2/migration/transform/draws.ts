@@ -567,7 +567,10 @@ function readDrawEvents(
         canonicalId: publicId.canonical,
         accountId,
         drawId: parent.id,
-        eventType: m3RequiredEventText(m3Cell(row, "event_type", DRAW_EVENTS), DRAW_EVENTS, "event_type"),
+        eventType: (() => {
+          const value = m3RequiredEventText(m3Cell(row, "event_type", DRAW_EVENTS), DRAW_EVENTS, "event_type");
+          return value === "slept" ? "blacklisted" : value;
+        })(),
         occurredAt: m3Timestamp(m3Cell(row, "created_at", DRAW_EVENTS), DRAW_EVENTS, "created_at"),
       }),
     );
@@ -637,7 +640,10 @@ function readVaultEvents(
         accountId,
         gameId,
         legacyGameId,
-        action: m3RequiredEventText(m3Cell(row, "action", VAULT_EVENTS), VAULT_EVENTS, "action"),
+        action: (() => {
+          const value = m3RequiredEventText(m3Cell(row, "action", VAULT_EVENTS), VAULT_EVENTS, "action");
+          return value === "slept" ? "blacklisted" : value;
+        })(),
         context: context.sourceText,
         occurredAt: m3Timestamp(m3Cell(row, "created_at", VAULT_EVENTS), VAULT_EVENTS, "created_at"),
       }),

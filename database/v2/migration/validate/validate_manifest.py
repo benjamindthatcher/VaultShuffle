@@ -33,8 +33,8 @@ FAILS LOUDLY on any of:
       feature's lifetime instead of by the account, an account-keyed archive
       with no stated deletion and export semantics, or an operational archive
       that nevertheless carries an account key
-  V18 strict final-load mode found columns supplied only by a locally prepared,
-      unapplied migration in the physical destination index
+  V18 strict final-load mode found additions, retirements, or migrations that
+      exist only in a locally prepared, unapplied physical schema source
   V16 a column parked on a `pending_destination` whose destination has since
       appeared in the SQL index, or a pending record that does not say what
       the column becomes once it does. This is a ratchet: it fails the moment
@@ -82,6 +82,7 @@ VALID_DISPOSITIONS = frozenset(
         "preserved",
         "transformed",
         "derived-retirement",
+        "authorized-retirement",
         "audit-archive",
         "unresolved-decision",
     }
@@ -94,6 +95,7 @@ REQUIRED_SUPPORT = {
     "preserved": "target",
     "transformed": "target",
     "derived-retirement": "recoverable_from",
+    "authorized-retirement": "authorized_by",
     "audit-archive": "archive",
     "unresolved-decision": "blocked_on",
 }
@@ -903,16 +905,33 @@ def validate(
         failures.extend(validate_pending_destinations(manifest, destination_index))
         if strict_final_load:
             pending_columns = destination_index.get("pending_columns", {})
-            if isinstance(pending_columns, dict) and pending_columns:
-                pending_count = sum(
+            pending_drops = destination_index.get("pending_dropped_columns", {})
+            unapplied_sources = [
+                source.get("origin", "unknown")
+                for source in destination_index.get("sources", [])
+                if isinstance(source, dict) and source.get("applied") is False
+            ]
+            if (
+                isinstance(pending_columns, dict)
+                and isinstance(pending_drops, dict)
+                and (pending_columns or pending_drops or unapplied_sources)
+            ):
+                pending_add_count = sum(
                     len(entry.get("columns", []))
                     for entry in pending_columns.values()
                     if isinstance(entry, dict) and isinstance(entry.get("columns", []), list)
                 )
+                pending_drop_count = sum(
+                    len(entry.get("columns", []))
+                    for entry in pending_drops.values()
+                    if isinstance(entry, dict) and isinstance(entry.get("columns", []), list)
+                )
                 failures.append(
                     "V18 strict final-load rejects locally prepared, unapplied "
-                    f"schema: {pending_count} pending columns across "
-                    f"{len(pending_columns)} relations"
+                    f"schema: {pending_add_count} pending additions, "
+                    f"{pending_drop_count} pending drops, "
+                    f"{len(unapplied_sources)} unapplied migrations "
+                    f"({', '.join(unapplied_sources)})"
                 )
 
     # V15 runs in BOTH modes. The semantics gate is not a final-load nicety:

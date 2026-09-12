@@ -3,7 +3,7 @@ import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
 
 export type DemoOwnership = "Owned";
-export type DemoStatus = "Not Started" | "In Progress" | "Slept" | "Completed";
+export type DemoStatus = "Not Started" | "In Progress" | "Blacklisted" | "Completed";
 export type VaultSessionId = "short" | "evening" | "weekend";
 export type VaultMoodId = "chill" | "intense" | "brain-off";
 export type VaultGoalId = "new" | "finish" | "surprise";
@@ -55,7 +55,6 @@ export type DemoGame = {
   moodScores?: import("@/lib/vault-matching").VaultMoodScores;
   completedAt?: string | null;
   previousActiveStatus?: "Not Started" | "In Progress" | null;
-  sleptAt?: string | null;
   completionSuggestionDismissedAt?: string | null;
   completionSuggestionDismissedPlaytime?: number | null;
   duration?: import("@/lib/types").GameDurationEstimate;

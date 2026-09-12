@@ -50,7 +50,7 @@ export default function FinishedPage() {
   async function saveOne(gameId: string, finished: boolean, bulk = false) {
     const game = games.find((entry) => entry.id === gameId);
     if (finished) {
-      await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString() });
       if (game) trackCompletionClaim(game, bulk ? "sweep_bulk" : "sweep", isLive);
     } else {
       if (game) trackCompletionDismissed(game, bulk);

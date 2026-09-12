@@ -73,16 +73,19 @@ MIGRATION_SOURCES = (
         True,
         "2026-09-10T23:26:54Z",
     ),
-    # Prepared locally under the 11 September dispatch (batch A step 4) from
-    # database/v2/proposals/m3_legacy_preservation_followup.sql. NOT applied to
-    # any target: `applied=False` and `applied_at=None` are the truthful state,
-    # and root owns the remote apply decision. It defines no new relation; it
-    # extends three applied ones, so it appears in `extended_relations` and the
-    # columns it adds are resolvable manifest targets while still being
-    # reported as unapplied.
+    # Applied by root on 12 September and immutable at the reviewed checksum.
     (
         "20260911234500_m3_legacy_preservation_followup.sql",
         "m3-followup",
+        True,
+        None,
+    ),
+    # Prepared locally for the user-authorized Sleep -> Blacklist replacement.
+    # It is intentionally unapplied; additions and drops are both surfaced as
+    # pending schema so a final load cannot run against the old target shape.
+    (
+        "20260912193000_blacklist_semantics.sql",
+        "blacklist-followup",
         False,
         None,
     ),
@@ -118,6 +121,10 @@ ALTER_TABLE_INLINE_RE = re.compile(
 )
 ADD_COLUMN_RE = re.compile(
     r"^\s*add\s+column\s+(?:if\s+not\s+exists\s+)?([a-z_][a-z0-9_]*)\b",
+    re.IGNORECASE,
+)
+DROP_COLUMN_RE = re.compile(
+    r"^\s*drop\s+column\s+(?:if\s+exists\s+)?([a-z_][a-z0-9_]*)\b",
     re.IGNORECASE,
 )
 IDENT_RE = re.compile(r"^\s*([a-z_][a-z0-9_]*)\b")
@@ -348,14 +355,15 @@ def _depth_delta(line: str) -> int:
     return delta
 
 
-def parse_sql(text: str) -> dict[str, list[str]]:
-    """Return ``{'schema.relation': [column, ...]}`` for one migration file.
+def parse_sql(text: str) -> tuple[dict[str, list[str]], dict[str, list[str]]]:
+    """Return added/created and dropped columns for one migration file.
 
     Handles multi-line ``check`` constraints by tracking paren depth, so a
     continuation line such as ``check (x in ('a', 'b'))`` is never mistaken for
     a column definition. Table-level constraints are skipped by keyword.
     """
     relations: dict[str, list[str]] = {}
+    dropped: dict[str, list[str]] = {}
     lines = text.splitlines()
 
     i = 0
@@ -424,6 +432,7 @@ def parse_sql(text: str) -> dict[str, list[str]]:
                     terminated = True
                 i += 1
             existing = relations.setdefault(name, [])
+            removed = dropped.setdefault(name, [])
             depth = 0
             for t in tail_lines:
                 if depth == 0:
@@ -432,12 +441,17 @@ def parse_sql(text: str) -> dict[str, list[str]]:
                         col = add.group(1).lower()
                         if col not in existing:
                             existing.append(col)
+                    drop = DROP_COLUMN_RE.match(t)
+                    if drop:
+                        col = drop.group(1).lower()
+                        if col not in removed:
+                            removed.append(col)
                 depth += _depth_delta(t)
             continue
 
         i += 1
 
-    return relations
+    return relations, dropped
 
 
 def build(
@@ -461,7 +475,7 @@ def build(
         text = path.read_text()
         if origin == "m3":
             retention_registry = build_retention_registry(text)
-        parsed = parse_sql(text)
+        parsed, dropped = parse_sql(text)
         for name, columns in parsed.items():
             entry = relations.get(name)
             if entry is None:
@@ -485,16 +499,39 @@ def build(
                     entry.setdefault("pending_from", [])
                     if origin not in entry["pending_from"]:
                         entry["pending_from"].append(origin)
-        source_records.append(
-            {
-                "file": filename,
-                "origin": origin,
-                "applied": applied,
-                "applied_at": applied_at,
-                "sha256": sha256_file(path),
-                "relations_defined": sorted(parsed),
+        for name, columns in dropped.items():
+            entry = relations.get(name)
+            if entry is None:
+                raise IndexError_(f"migration drops a column from unknown relation: {name}")
+            for column in columns:
+                if column not in entry["columns"]:
+                    raise IndexError_(f"migration drops unknown column: {name}.{column}")
+            if applied:
+                entry["columns"] = [c for c in entry["columns"] if c not in columns]
+            else:
+                entry.setdefault("pending_dropped_columns", []).extend(columns)
+                entry.setdefault("pending_drop_from", [])
+                if origin not in entry["pending_drop_from"]:
+                    entry["pending_drop_from"].append(origin)
+        source_record = {
+            "file": filename,
+            "origin": origin,
+            "applied": applied,
+            "applied_at": applied_at,
+            "sha256": sha256_file(path),
+            "relations_defined": sorted(set(parsed) | set(dropped)),
+        }
+        if origin == "m3-followup":
+            source_record["application_evidence"] = {
+                "file": "database/v2/m3-followup-target-validation-20260912.json",
+                "precheck_observed_at": "2026-09-12T14:56:33.376813+00:00",
+                "postcheck_observed_at": "2026-09-12T14:58:40.77722+00:00",
+                "note": (
+                    "CLI reported success inside this observed window; no exact apply "
+                    "timestamp was returned, so applied_at remains null."
+                ),
             }
-        )
+        source_records.append(source_record)
 
     if not contract.exists():
         raise IndexError_(f"physical contract not found: {contract}")
@@ -519,14 +556,12 @@ def build(
             "file was RENAMED, not edited, from the pre-apply 20260909214501 "
             "name, so its content hash is unchanged. 'applied' here means the "
             "destination is created by an applied, immutable migration file. "
-            "20260911234500_m3_legacy_preservation_followup.sql is PREPARED "
-            "LOCALLY AND NOT APPLIED: its source record carries "
-            "'applied': false, and every column it adds to an already-applied "
-            "relation is listed in that relation's 'pending_columns' and "
-            "summarised under 'pending_columns' at the top level. A pending "
-            "column is a resolvable manifest target but is NOT present on the "
-            "target database, so no decision may be called closed on the "
-            "strength of one until root applies that migration. This index "
+            "The 20260911234500 preservation follow-up was applied by root on "
+            "12 September and is immutable at its recorded checksum. The "
+            "20260912193000 Blacklist migration is prepared locally and "
+            "unapplied. Its new column is listed under 'pending_columns'; "
+            "columns it retires remain in the current applied shape and are "
+            "listed under 'pending_dropped_columns'. This index "
             "proves a target name exists in the SQL. It does not certify the "
             "remote schema, security and rollback verification root still "
             "owns, and a newly discovered physical gap needs a new, separately "
@@ -552,6 +587,9 @@ def build(
             "pending_columns": sum(
                 len(r.get("pending_columns", [])) for r in relations.values()
             ),
+            "pending_dropped_columns": sum(
+                len(r.get("pending_dropped_columns", [])) for r in relations.values()
+            ),
         },
         "pending_columns": {
             name: {
@@ -561,6 +599,15 @@ def build(
             }
             for name, entry in sorted(relations.items())
             if entry.get("pending_columns")
+        },
+        "pending_dropped_columns": {
+            name: {
+                "columns": sorted(entry["pending_dropped_columns"]),
+                "from": list(entry["pending_drop_from"]),
+                "status": "present on target; retired by a locally prepared, unapplied migration",
+            }
+            for name, entry in sorted(relations.items())
+            if entry.get("pending_dropped_columns")
         },
         "proposed_relations": proposed,
         "extended_relations": extended,

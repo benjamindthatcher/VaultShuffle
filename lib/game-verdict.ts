@@ -4,7 +4,7 @@ import { shrunkRate } from "./genre-preferences.ts";
  * What everyone did with one specific game.
  *
  * Genres could not see what is wrong with the games people complain about.
- * Hellblade's VR Edition was slept by 10 of the 10 people who met it, Resident
+ * Hellblade's VR Edition was blacklisted by 10 of the 10 people who met it, Resident
  * Evil Resistance by 13 of 13, Conan Exiles' beta client by 17 of 17. Every one
  * of those shares its tags with a game worth playing, so no amount of tag
  * resolution reaches them - only the game itself does.

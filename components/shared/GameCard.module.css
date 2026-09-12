@@ -241,7 +241,7 @@
 .cardShell:has(> .quickActions) { display: grid; gap: 8px; }
 
 /* An even split. Neither answer is the one we are steering towards - putting a
-   game to sleep is as useful an outcome as finishing it - so neither button gets
+   game to blacklist is as useful an outcome as finishing it - so neither button gets
    more of the card than the other. */
 .quickActions {
   display: grid;
@@ -250,12 +250,12 @@
 }
 
 /* A single button spans the row rather than sitting half-width beside a gap,
-   which is what a completed or sleeping card would otherwise show. */
+   which is what a completed or blacklisting card would otherwise show. */
 .quickActions > :only-child {
   grid-column: 1 / -1;
 }
 
-.quickSleep,
+.quickBlacklist,
 .quickComplete {
   display: inline-flex;
   align-items: center;
@@ -275,19 +275,19 @@
   transition: background 140ms ease, border-color 140ms ease;
 }
 
-.quickSleep svg,
+.quickBlacklist svg,
 .quickComplete svg {
   flex: none;
 }
 
 /* Purple, as it is everywhere else in the app that means "set this aside". */
-.quickSleep {
+.quickBlacklist {
   border-color: rgba(168, 85, 247, 0.34);
   background: rgba(168, 85, 247, 0.12);
   color: #dcbcff;
 }
 
-.quickSleep:hover {
+.quickBlacklist:hover {
   border-color: rgba(168, 85, 247, 0.62);
   background: rgba(168, 85, 247, 0.22);
 }
@@ -303,7 +303,7 @@
   background: rgba(110, 231, 183, 0.2);
 }
 
-.quickSleep:focus-visible,
+.quickBlacklist:focus-visible,
 .quickComplete:focus-visible {
   outline: 2px solid #c08bff;
   outline-offset: 2px;
@@ -312,21 +312,21 @@
 /* Under about 360px the two labels plus their icons cannot share a line without
    one of them being cut. The icons go rather than the words. */
 @media (max-width: 360px) {
-  .quickSleep,
+  .quickBlacklist,
   .quickComplete {
     gap: 0;
     padding: 0 8px;
     font-size: 0.8rem;
   }
 
-  .quickSleep svg,
+  .quickBlacklist svg,
   .quickComplete svg {
     display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .quickSleep,
+  .quickBlacklist,
   .quickComplete { transition: none; }
 }
 

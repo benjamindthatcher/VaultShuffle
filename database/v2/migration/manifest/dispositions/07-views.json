@@ -90,7 +90,7 @@
         },
         "slept_at": {
           "disposition": "derived-retirement",
-          "note": "From user_games.slept_at."
+          "note": "Retired view projection. Current Blacklist membership is exposed by user_games.status='Blacklisted'; the obsolete timestamp is intentionally absent."
         },
         "completion_suggestion_dismissed_at": {
           "disposition": "derived-retirement",

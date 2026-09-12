@@ -9,7 +9,7 @@ export const EXPLICIT_OPINIONS = new Set<string>([
   "liked",
   "disliked",
   "pinned",
-  "slept",
+  "blacklisted",
   // Snoozing states a view about the pick, so the reroll that follows it is the
   // same rejection said twice rather than a second piece of evidence.
   "hidden_for_session",

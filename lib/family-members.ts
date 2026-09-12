@@ -373,7 +373,7 @@ export type FamilyMemberRemoval = {
  *  1. Games another remaining member also shares are worked out first, and kept.
  *     Access has not gone; only one route to it has.
  *  2. Everything else of theirs leaves. A row the player actually engaged with -
- *     a note on it, or marked Completed or Slept - is retired rather than
+ *     a note on it, or marked Completed or Blacklisted - is retired rather than
  *     deleted, so their own record of having played something survives losing
  *     the ability to play it. The rest is deleted, and the database cascades
  *     that to its pins, snoozes and collection memberships.

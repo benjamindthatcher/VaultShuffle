@@ -78,6 +78,9 @@ DISPOSITIONS = (
     # target model derives it independently. Retirement is a claim that nothing is
     # lost; it must name what makes the value recoverable.
     "derived-retirement",
+    # Explicit product decision to discard an obsolete authored fact. Unlike a
+    # derived retirement, the exact value is intentionally unrecoverable.
+    "authorized-retirement",
     # Not carried into the runtime model. Retained only in a bounded migration
     # archive for audit or reconciliation. Requires an archive purpose and a
     # retention on the relation entry.
@@ -569,6 +572,11 @@ def build(
                     f"{name}.{cname}: derived-retirement requires 'recoverable_from' "
                     f"stating what makes the value recoverable"
                 )
+            if disp == "authorized-retirement" and not decision.get("authorized_by"):
+                errors.append(
+                    f"{name}.{cname}: authorized-retirement requires 'authorized_by' "
+                    f"naming the explicit product decision"
+                )
             if disp == "audit-archive" and not decision.get("archive"):
                 errors.append(
                     f"{name}.{cname}: audit-archive requires 'archive' naming the "
@@ -626,6 +634,7 @@ def build(
                 "target",
                 "transform",
                 "recoverable_from",
+                "authorized_by",
                 "archive",
                 "blocked_on",
                 "conflict",
@@ -746,6 +755,10 @@ def build(
             "derived-retirement": (
                 "Not carried; recomputable from carried facts or derived "
                 "independently by the target. Must name what makes it recoverable."
+            ),
+            "authorized-retirement": (
+                "Not carried and intentionally unrecoverable under an explicit "
+                "product decision. Must name the decision authority."
             ),
             "audit-archive": (
                 "Not in the runtime model. Retained only in a bounded migration "

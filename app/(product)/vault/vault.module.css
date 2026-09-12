@@ -765,8 +765,8 @@
   line-height: 1.6;
 }
 
-.sleepToast, .pinToast { position: fixed; z-index: 60; right: 24px; bottom: 24px; max-width: min(480px, calc(100vw - 32px)); display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-panel-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
-.sleepToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
+.blacklistToast, .pinToast { position: fixed; z-index: 60; right: 24px; bottom: 24px; max-width: min(480px, calc(100vw - 32px)); display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-panel-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
+.blacklistToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 .pinToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
 
 @media (max-width: 720px) {

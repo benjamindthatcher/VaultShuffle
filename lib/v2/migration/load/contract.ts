@@ -172,7 +172,7 @@ export const TARGET_RELATION_SPECS: readonly TargetRelationSpec[] = Object.freez
       Object.freeze({ name: "account_id", kind: "integer", nullable: false }),
       Object.freeze({ name: "game_id", kind: "integer", nullable: false }),
       Object.freeze({ name: "completed_at", kind: "timestamptz", nullable: true }),
-      Object.freeze({ name: "slept_at", kind: "timestamptz", nullable: true }),
+      Object.freeze({ name: "blacklisted", kind: "boolean", nullable: false }),
       Object.freeze({ name: "previous_active_status", kind: "text", nullable: true }),
       Object.freeze({ name: "manual_progress", kind: "integer", nullable: true }),
       Object.freeze({ name: "notes", kind: "text", nullable: true }),

@@ -60,6 +60,12 @@ FOLLOWUP_MIGRATION = (
 FOLLOWUP_MIGRATION_SHA256 = (
     "beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59"
 )
+BLACKLIST_MIGRATION = (
+    V2_ROOT / "supabase" / "migrations" / "20260912193000_blacklist_semantics.sql"
+)
+BLACKLIST_MIGRATION_SHA256 = (
+    "a20e75cbca19918d4a5d8cb2778a98f50bf98641b7594c4c067abe58a8c9cca6"
+)
 
 # The six legacy Steam visibility booleans, by (relation, column, side).
 LEGACY_VISIBILITY_COLUMNS = (
@@ -266,7 +272,7 @@ class TestCommittedArtefactsAreValid(MutationHarness):
         for col in rel["columns"]:
             self.assertIn(
                 col["disposition"],
-                ("audit-archive", "unresolved-decision"),
+                ("audit-archive", "authorized-retirement", "unresolved-decision"),
                 f"user_game_state.{col['name']} must not be migrated",
             )
             for field in ("target", "archive"):
@@ -320,35 +326,47 @@ class TestCommittedArtefactsAreValid(MutationHarness):
         self.assertEqual(
             followup["sha256"], hashlib.sha256(FOLLOWUP_MIGRATION.read_bytes()).hexdigest()
         )
-        self.assertFalse(followup["applied"])
+        self.assertTrue(followup["applied"])
         self.assertIsNone(followup["applied_at"])
+        self.assertEqual(
+            followup["application_evidence"]["file"],
+            "database/v2/m3-followup-target-validation-20260912.json",
+        )
+        self.assertEqual(
+            followup["application_evidence"]["postcheck_observed_at"],
+            "2026-09-12T14:58:40.77722+00:00",
+        )
+        blacklist = next(s for s in index["sources"] if s["origin"] == "blacklist-followup")
+        self.assertEqual(blacklist["file"], BLACKLIST_MIGRATION.name)
+        self.assertEqual(blacklist["sha256"], BLACKLIST_MIGRATION_SHA256)
+        self.assertEqual(BLACKLIST_MIGRATION_SHA256, hashlib.sha256(BLACKLIST_MIGRATION.read_bytes()).hexdigest())
+        self.assertFalse(blacklist["applied"])
+        self.assertIsNone(blacklist["applied_at"])
         self.assertEqual(index["proposed_relations"], [])
         self.assertEqual(index["totals"]["proposed_relations"], 0)
         self.assertEqual(
             index["totals"]["applied_relations"], index["totals"]["relations"]
         )
-        self.assertEqual(index["totals"]["pending_columns"], 2)
+        self.assertEqual(index["totals"]["pending_columns"], 1)
+        self.assertEqual(index["totals"]["pending_dropped_columns"], 6)
         self.assertEqual(
             index["pending_columns"],
-            {
-                "app.game_activity": {
-                    "columns": ["legacy_last_played_at"],
-                    "from": ["m3-followup"],
-                    "status": "prepared locally, not applied to any target",
-                },
-                "app.retired_library_games": {
-                    "columns": ["legacy_ownership"],
-                    "from": ["m3-followup"],
-                    "status": "prepared locally, not applied to any target",
-                },
-            },
+            {"app.game_state": {
+                "columns": ["blacklisted"],
+                "from": ["blacklist-followup"],
+                "status": "prepared locally, not applied to any target",
+            }},
+        )
+        self.assertEqual(
+            index["pending_dropped_columns"]["app.game_state"]["columns"],
+            ["restored_at", "restored_from_previous_active_status", "restored_from_slept_at", "slept_at"],
         )
 
     def test_strict_final_load_rejects_pending_unapplied_schema(self):
         result = run_validator(MANIFEST, INVENTORY, "--final-load")
         self.assertEqual(result.returncode, 1)
         self.assertIn("V18", result.stderr)
-        self.assertIn("2 pending columns across 2 relations", result.stderr)
+        self.assertIn("1 pending additions, 6 pending drops, 1 unapplied migrations (blacklist-followup)", result.stderr)
 
     def test_manual_sessions_migrate_while_security_intents_expire(self):
         """The intent FK decision must not expire the long-lived manual cookie."""

@@ -24,8 +24,8 @@ test("a reason that is not about genre still suppresses the bare reroll", () => 
   assert.equal(statesAnOpinion(["reroll_too_long", "drew_again"]), true);
 });
 
-test("launching, pinning, sleeping and completing all count as stated opinions", () => {
-  for (const eventType of ["opened_on_steam", "pinned", "slept", "marked_completed"]) {
+test("launching, pinning, blacklisting and completing all count as stated opinions", () => {
+  for (const eventType of ["opened_on_steam", "pinned", "blacklisted", "marked_completed"]) {
     assert.equal(statesAnOpinion([eventType, "drew_again"]), true, eventType);
   }
 });

@@ -1,0 +1,57 @@
+{
+  "target_project_ref": "vbjtbwelnhbbdfrqczyf",
+  "migration": {
+    "version": "20260911234500",
+    "name": "m3_legacy_preservation_followup",
+    "file": "database/v2/supabase/migrations/20260911234500_m3_legacy_preservation_followup.sql",
+    "sha256": "beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59",
+    "applied": true,
+    "applied_at": null,
+    "apply_time_note": "CLI reported success between the precheck and postcheck below; no exact apply timestamp was returned. The version is a filename version, not actual execution time."
+  },
+  "precheck_observed_at": "2026-09-12T14:56:33.376813+00:00",
+  "apply_result": {
+    "message": "Migrations applied",
+    "applied": [
+      "database/v2/supabase/migrations/20260911234500_m3_legacy_preservation_followup.sql"
+    ]
+  },
+  "postcheck_observed_at": "2026-09-12T14:58:40.77722+00:00",
+  "postcheck": {
+    "project_name": "VaultShuffle2",
+    "marker": true,
+    "schema_version": "m1",
+    "migration_versions": [
+      "20260906093036",
+      "20260907163356",
+      "20260910232654",
+      "20260911234500"
+    ],
+    "new_columns": {
+      "app.retired_library_games.legacy_ownership": "text NULL",
+      "app.game_activity.legacy_last_played_at": "timestamp with time zone NULL"
+    },
+    "access_lost_at_nullable": true,
+    "access_lost_at_default": "now()",
+    "orphan_dispositions_both_relations": [
+      "quarantine",
+      "manual_review",
+      "resolved",
+      "retired"
+    ],
+    "rows": {
+      "app.accounts": 0,
+      "catalog.games": 0,
+      "migration.runs": 0,
+      "app.retired_library_games": 0,
+      "app.game_activity": 0,
+      "app.family_access_orphans": 0,
+      "migration.legacy_family_access_orphans": 0
+    },
+    "unforced_rls": 0,
+    "browser_table_grants": 0,
+    "browser_column_grants": 0
+  },
+  "boundary": "Only separate rehearsal target queried/applied. CLI initialized its target login role. No production source queries or writes, no real data load.",
+  "remaining_gate": "Target behavioural rollback fixture not run in this apply session; local preservation behaviour previously passed27actualPGtests."
+}

@@ -36,9 +36,11 @@ for promotion. Merge audit rows use `promote` for an in-place account and
 `merge` for distinct source/target accounts; both account FKs cascade so
 deletion does not block or retain private derivatives.
 
-Sparse state keeps sleep facts (`slept_at` and prior active/restore metadata)
-separate from timed suppression in `app.snoozes.until_at`. Active library rows
-remain compact, observations retain `observed_at`, retired rows retain the
+The locally prepared 12 September follow-up replaces the old Sleep fields with
+`app.game_state.blacklisted boolean`: an undated permanent exclusion cleared
+only by explicit Reactivate. It retires Sleep-only timestamps and audit fields;
+`app.snoozes.until_at` remains a separate timed Vault feature. Active library
+rows remain compact, observations retain `observed_at`, retired rows retain the
 last observation and a bounded loss reason, and daily observed minutes use
 `bigint`. Family candidate JSON is bounded and the five-member cap serializes
 on the parent account row. The trigger performs a same-value parent update so

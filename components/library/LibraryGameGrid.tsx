@@ -11,10 +11,10 @@ type LibraryGameGridProps = {
   onSelect: (gameId: string) => void;
   onComplete: (gameId: string) => void;
   onRestore: (gameId: string) => void;
-  onSleep: (gameId: string) => void;
+  onBlacklist: (gameId: string) => void;
   onTogglePin: (game: DemoGame) => void;
   pinnedIds: string[];
-  /** Set on the decided shelves - slept and completed - where the card picks
+  /** Set on the decided shelves - blacklisted and completed - where the card picks
    *  rather than opens. Absent on active, which stays a way into the details. */
   selectable?: boolean;
   selectedIds?: Set<string>;
@@ -35,7 +35,7 @@ type LibraryGameGridProps = {
 const INITIAL_RENDER_COUNT = 60;
 const RENDER_BATCH = 60;
 
-export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onSleep, onTogglePin, pinnedIds = [], selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
+export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onBlacklist, onTogglePin, pinnedIds = [], selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
   const [renderCount, setRenderCount] = useState(INITIAL_RENDER_COUNT);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -84,9 +84,9 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
             layout={viewMode}
             onClick={() => onSelect(game.id)}
             onComplete={game.status !== "Completed" ? () => onComplete(game.id) : undefined}
-            onRestore={game.status === "Completed" || game.status === "Slept" ? () => onRestore(game.id) : undefined}
-            onSleep={game.status !== "Slept" ? () => onSleep(game.id) : undefined}
-            onTogglePin={game.status !== "Completed" && game.status !== "Slept" ? () => onTogglePin(game) : undefined}
+            onRestore={game.status === "Completed" || game.status === "Blacklisted" ? () => onRestore(game.id) : undefined}
+            onBlacklist={game.status !== "Blacklisted" ? () => onBlacklist(game.id) : undefined}
+            onTogglePin={game.status !== "Completed" && game.status !== "Blacklisted" ? () => onTogglePin(game) : undefined}
             pinned={pinnedIds.includes(game.id)}
             showProgress
             selectable={selectable}

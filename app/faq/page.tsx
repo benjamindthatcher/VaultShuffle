@@ -54,7 +54,7 @@ const FAQ_ITEMS = [
   {
     question: "What is ruled out before a draw?",
     answer:
-      "Games marked completed or asleep, and games with an active snooze, are excluded from draws. Your global filters also apply, and some goals exclude further games—for example, Finish Something excludes endless games. Pinned games stay accessible on the Dashboard even if you change your filters."
+      "Games marked completed or ablacklist, and games with an active snooze, are excluded from draws. Your global filters also apply, and some goals exclude further games—for example, Finish Something excludes endless games. Pinned games stay accessible on the Dashboard even if you change your filters."
   },
   {
     question: "Does VaultShuffle work for Steam Deck, Mac and Linux?",

@@ -28,7 +28,7 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
 
   const status = game.status;
   const hours = "hoursPlayed" in game ? game.hoursPlayed : Number(game.hours_played || 0);
-  const active = status !== "Slept" && status !== "Completed";
+  const active = status !== "Blacklisted" && status !== "Completed";
   const progress = "steamAppId" in game ? Number(game.completionPercent || 0) : gameProgress(game);
   const duration = durationDetails(game);
   // Both shelves used to read the exact Steam timestamp, which most accounts

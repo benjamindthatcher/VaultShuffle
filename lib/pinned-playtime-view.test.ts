@@ -98,15 +98,14 @@ test("refresh preserves completion and set-aside decisions", () => {
     completionSuggestionDismissedAt: NOW.toISOString(),
     completionSuggestionDismissedPlaytime: 5,
   });
-  const slept = game({
-    id: "slept",
-    status: "Slept",
-    sleptAt: NOW.toISOString(),
+  const blacklisted = game({
+    id: "blacklisted",
+    status: "Blacklisted",
     previousActiveStatus: "In Progress"
   });
-  const [mergedCompleted, mergedSlept] = mergePinnedPlaytime(
-    [completed, slept],
-    [game({ hoursPlayed: 10, completionPercent: 50 }), game({ id: "slept", hoursPlayed: 10 })]
+  const [mergedCompleted, mergedBlacklisted] = mergePinnedPlaytime(
+    [completed, blacklisted],
+    [game({ hoursPlayed: 10, completionPercent: 50 }), game({ id: "blacklisted", hoursPlayed: 10 })]
   );
 
   assert.equal(mergedCompleted.status, "Completed");
@@ -114,9 +113,8 @@ test("refresh preserves completion and set-aside decisions", () => {
   assert.equal(mergedCompleted.completedAt, NOW.toISOString());
   assert.equal(mergedCompleted.completionSuggestionDismissedAt, NOW.toISOString());
   assert.equal(mergedCompleted.completionSuggestionDismissedPlaytime, 5);
-  assert.equal(mergedSlept.status, "Slept");
-  assert.equal(mergedSlept.sleptAt, NOW.toISOString());
-  assert.equal(mergedSlept.previousActiveStatus, "In Progress");
+  assert.equal(mergedBlacklisted.status, "Blacklisted");
+  assert.equal(mergedBlacklisted.previousActiveStatus, "In Progress");
 });
 
 test("a stale completed response cannot restore 100 percent after the player restores the game", () => {

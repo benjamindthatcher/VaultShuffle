@@ -59,7 +59,6 @@ function fact(overrides: Partial<AuthoritativeLibraryFact> = {}): AuthoritativeL
     account_id: 1,
     steam_appid: "10",
     completed_at: null,
-    slept_at: null,
     dismissed_at: null,
     dismissed_playtime: null,
     review_requested_at: null,
@@ -117,7 +116,7 @@ test("a stale row that agrees with the library row stays reconciliation-only", (
   assert.equal(result.game_state_legacy_measurements.length, 0);
 });
 
-test("every source field reaches the bounded staging copy in its native shape", () => {
+test("every retained source field reaches staging while the obsolete Sleep timestamp is discarded", () => {
   const result = transformLegacyGameState(
     input(
       [
@@ -146,6 +145,7 @@ test("every source field reaches the bounded staging copy in its native shape", 
   assert.equal(audit.source_user_id, ACCOUNT_B);
   assert.equal(audit.steam_appid, "4294967295");
   assert.equal(audit.raw_completed_at?.canonicalUtc, "2026-01-01T01:02:03.000004Z");
+  assert.equal(Object.hasOwn(audit, "raw_slept_at"), false);
   assert.equal(audit.raw_prev_active_status, 2);
   assert.equal(audit.raw_recency_code, 3);
   // Source numeric precision is preserved rather than narrowed to an integer.

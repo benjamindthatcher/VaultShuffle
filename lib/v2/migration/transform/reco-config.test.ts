@@ -219,6 +219,40 @@ test("operator weights carry the supplied config version and the source's own in
   assert.equal(weight.supersedes_id, null);
 });
 
+test("renames legacy Sleep operator keys without changing their tuned values", () => {
+  const result = transformRecoConfigBatch(
+    input({
+      algorithmWeights: [
+        { key: "event:slept", positive: "4", total: "9", note: "event tuned", updated_at: "2026-07-01 00:00:00+00" },
+        { key: "decision:sleep", positive: "3", total: "8", note: "decision tuned", updated_at: "2026-07-02 00:00:00+00" },
+      ],
+    }),
+  );
+  assert.deepEqual(
+    result.operator_weight_versions.map(({ weight_key, positive, total, note }) => ({ weight_key, positive, total, note })),
+    [
+      { weight_key: "decision:blacklist", positive: "3", total: "8", note: "decision tuned" },
+      { weight_key: "event:blacklisted", positive: "4", total: "9", note: "event tuned" },
+    ],
+  );
+});
+
+test("refuses a legacy/new operator-key collision after Blacklist normalization", () => {
+  assert.equal(
+    failureCode(() =>
+      transformRecoConfigBatch(
+        input({
+          algorithmWeights: [
+            { key: "event:slept", positive: "1", total: "1", note: null, updated_at: "2026-07-01 00:00:00+00" },
+            { key: "event:blacklisted", positive: "1", total: "1", note: null, updated_at: "2026-07-01 00:00:00+00" },
+          ],
+        }),
+      ),
+    ),
+    "remaining_duplicate_row",
+  );
+});
+
 test("verified settings collapse into one preference document per account, with the newest source instant", () => {
   const result = transformRecoConfigBatch(
     input({

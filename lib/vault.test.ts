@@ -474,11 +474,11 @@ test("rank is not spent on a tile, since the header already carries it", () => {
 
 test("the lens starts at the whole library and names what was actioned away", () => {
   // Opening on the already-filtered count meant the funnel began part-way through
-  // its own story: the completing and sleeping the player had done was invisible.
+  // its own story: the completing and blacklisting the player had done was invisible.
   const games = [
     ...Array.from({ length: 228 }, (_, i) => makeGame({ id: `a${i}` })),
     ...Array.from({ length: 2 }, (_, i) => makeGame({ id: `c${i}`, status: "Completed" })),
-    ...Array.from({ length: 4 }, (_, i) => makeGame({ id: `s${i}`, status: "Slept" }))
+    ...Array.from({ length: 4 }, (_, i) => makeGame({ id: `s${i}`, status: "Blacklisted" }))
   ];
 
   const { stages } = getVaultEligibility({
@@ -490,7 +490,7 @@ test("the lens starts at the whole library and names what was actioned away", ()
   assert.equal(stages[0].count, 234, "the funnel should open on the real library size");
   assert.equal(stages[1].id, "active");
   assert.equal(stages[1].count, 228);
-  assert.equal(stages[1].detail, "2 completed · 4 asleep");
+  assert.equal(stages[1].detail, "2 completed · 4 blacklisted");
 });
 
 test("a library with nothing actioned does not show an empty removal step", () => {

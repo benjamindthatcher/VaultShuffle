@@ -102,8 +102,8 @@ export default function VaultPage() {
   const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
   const [detailsSurface, setDetailsSurface] = useState<VaultDetailsSurface | null>(null);
   const [savingGameId, setSavingGameId] = useState<string | null>(null);
-  const [sleepingGameId, setSleepingGameId] = useState<string | null>(null);
-  const [sleepUndo, setSleepUndo] = useState<{ gameId: string; title: string; status: "Not Started" | "In Progress"; wasPinned: boolean } | null>(null);
+  const [blacklistingGameId, setBlacklistingGameId] = useState<string | null>(null);
+  const [blacklistUndo, setBlacklistUndo] = useState<{ gameId: string; title: string; wasPinned: boolean } | null>(null);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
   const [pinMessage, setPinMessage] = useState("");
 
@@ -120,10 +120,10 @@ export default function VaultPage() {
   // until you dismissed them by hand. Longer than the pin message because there
   // is something to decide here, but still a window rather than a fixture.
   useEffect(() => {
-    if (!sleepUndo) return;
-    const timer = window.setTimeout(() => setSleepUndo(null), 9000);
+    if (!blacklistUndo) return;
+    const timer = window.setTimeout(() => setBlacklistUndo(null), 9000);
     return () => window.clearTimeout(timer);
-  }, [sleepUndo]);
+  }, [blacklistUndo]);
 
   useEffect(() => {
     if (!completionUndo) return;
@@ -197,7 +197,7 @@ export default function VaultPage() {
     [allGames, ownedGames, vaultState.pinnedIds]
   );
   const snoozedIds = useMemo(() => new Set(vaultState.snoozedIds), [vaultState.snoozedIds]);
-  const drawableGames = useMemo(() => ownedGames.filter((game) => game.status !== "Completed" && game.status !== "Slept" && !snoozedIds.has(game.id)), [ownedGames, snoozedIds]);
+  const drawableGames = useMemo(() => ownedGames.filter((game) => game.status !== "Completed" && game.status !== "Blacklisted" && !snoozedIds.has(game.id)), [ownedGames, snoozedIds]);
   const selectedCollection = collections.find((collection) => collection.id === selectedCollectionId) ?? null;
   const entireVault = collections.find((collection) => collection.id === "all") ?? collections[0];
   const collectionCounts = useMemo(() => Object.fromEntries(collections.map((collection) => [collection.id, collection.id === "all" ? drawableGames.length : drawableGames.filter((game) => game.collectionIds.includes(collection.id)).length])), [collections, drawableGames]);
@@ -324,13 +324,13 @@ export default function VaultPage() {
   const currentPick = ownedGames.find((game) =>
     game.id === revealedPickId &&
     game.status !== "Completed" &&
-    game.status !== "Slept" &&
+    game.status !== "Blacklisted" &&
     !snoozedIds.has(game.id)
   ) ?? null;
   // Taken from the draw that produced this pick rather than recomputed, so the
   // card keeps describing the draw it belongs to however the setup is edited
   // afterwards. The id guard covers the pick changing out from under it - being
-  // slept or snoozed - which leaves the snapshot describing a game that is no
+  // blacklisted or snoozed - which leaves the snapshot describing a game that is no
   // longer on screen.
   const pickDraw = drawSnapshot && currentPick && drawSnapshot.pickId === currentPick.id ? drawSnapshot : null;
 
@@ -762,25 +762,24 @@ export default function VaultPage() {
   const isCurrentPickPinned = currentPick ? vaultState.pinnedIds.includes(currentPick.id) : false;
   const pinsFull = vaultState.pinnedIds.length >= 3;
 
-  async function sleepPoolGame(gameId: string) {
+  async function blacklistPoolGame(gameId: string) {
     const game = ownedGames.find((item) => item.id === gameId);
-    if (!game || game.status === "Completed" || game.status === "Slept") return;
-    const previousStatus = game.status === "In Progress" ? "In Progress" : "Not Started";
+    if (!game || game.status === "Completed" || game.status === "Blacklisted") return;
     const wasPinned = vaultState.pinnedIds.includes(gameId);
-    setSleepingGameId(gameId);
+    setBlacklistingGameId(gameId);
     try {
-      await updateGame(gameId, { status: "Slept", sleptAt: new Date().toISOString() });
-      setSleepUndo({ gameId, title: game.title, status: previousStatus, wasPinned });
+      await updateGame(gameId, { status: "Blacklisted" });
+      setBlacklistUndo({ gameId, title: game.title, wasPinned });
     } finally {
-      setSleepingGameId(null);
+      setBlacklistingGameId(null);
     }
   }
 
-  async function undoSleep() {
-    if (!sleepUndo) return;
-    const undo = sleepUndo;
-    setSleepUndo(null);
-    await updateGame(undo.gameId, { status: undo.status, sleptAt: null });
+  async function undoBlacklist() {
+    if (!blacklistUndo) return;
+    const undo = blacklistUndo;
+    setBlacklistUndo(null);
+    await restoreGame(undo.gameId);
     if (undo.wasPinned && vaultState.pinnedIds.length < 3) await recordVaultAction("pinned", undo.gameId);
   }
 
@@ -1120,8 +1119,8 @@ export default function VaultPage() {
             winner={drawWinner}
             highlightedId={highlightedGameId}
             onSelect={(gameId) => openGameDetails(gameId, "pool")}
-            sleepingId={sleepingGameId}
-            onSleep={(id) => void sleepPoolGame(id)}
+            blacklistingId={blacklistingGameId}
+            onBlacklist={(id) => void blacklistPoolGame(id)}
             pinnedIds={vaultState.pinnedIds}
             onPin={(id) => void togglePin(id)}
             onComplete={(id) => {
@@ -1173,11 +1172,11 @@ export default function VaultPage() {
         }}
         onClose={closeGameDetails}
         onComplete={() => detailsGame ? completeGame(detailsGame) : Promise.resolve()}
-        onSleep={() => detailsGame ? sleepPoolGame(detailsGame.id) : Promise.resolve()}
+        onBlacklist={() => detailsGame ? blacklistPoolGame(detailsGame.id) : Promise.resolve()}
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}
       />
       <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} catalogueSize={ownedGames.length} reason="finish_goal" />
-      {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}
+      {blacklistUndo ? <div className={styles.blacklistToast} role="status"><span>{blacklistUndo.title} is now blacklisted{blacklistUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoBlacklist()}>Reactivate</button></div> : null}
       {pinMessage ? <div className={styles.pinToast} role="status">{pinMessage}<button type="button" onClick={() => setPinMessage("")}>Dismiss</button></div> : null}
       {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion()}>Undo</button></div> : null}
       {pinCandidate ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { await recordVaultAction("pinned", pinCandidate.id, { replace_game_id: replaceId }); setPinMessage(`${pinCandidate.title} replaced ${pinnedGames.find((game) => game.id === replaceId)?.title ?? "a pinned game"}.`); }} onClose={() => setPinCandidate(null)} /> : null}

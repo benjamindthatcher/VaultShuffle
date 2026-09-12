@@ -468,3 +468,35 @@ export function capDecisionsPerUser<T extends { userId: string; reviewedAt: stri
   }
   return kept;
 }
+
+/**
+ * Cap a mix of dated decisions and undated permanent state without pretending
+ * that standing state happened at the rebuild clock. Standing decisions win the
+ * bounded slots; dated inputs retain their existing newest-first order.
+ */
+export function capStandingDecisions<T extends { userId: string; steamAppId: number; reviewedAt: string | null; standing: boolean }>(
+  decisions: readonly T[],
+  limit: number
+): T[] {
+  if (limit <= 0) return [];
+  const byUser = new Map<string, T[]>();
+  for (const decision of decisions) {
+    const bucket = byUser.get(decision.userId);
+    if (bucket) bucket.push(decision); else byUser.set(decision.userId, [decision]);
+  }
+  return [...byUser.values()].flatMap((forUser) => [...forUser]
+    .sort((left, right) => Number(right.standing) - Number(left.standing)
+      || (right.reviewedAt ?? "").localeCompare(left.reviewedAt ?? "")
+      || left.steamAppId - right.steamAppId)
+    .slice(0, limit));
+}
+
+/** Stable identity for suppressing an event already represented by standing state. */
+export function standingDecisionKeys<T extends { userId: string; steamAppId: number; action: string; standing: boolean }>(
+  decisions: readonly T[],
+  action: string
+): ReadonlySet<string> {
+  return new Set(decisions
+    .filter((decision) => decision.standing && decision.action === action)
+    .map((decision) => `${decision.userId}::${decision.steamAppId}`));
+}

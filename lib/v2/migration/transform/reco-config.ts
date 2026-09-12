@@ -575,11 +575,17 @@ export function transformRecoConfigBatch(input: RecoConfigInput): RecoConfigResu
   for (const raw of remainingRows(input.algorithmWeights, WEIGHTS_RELATION)) {
     const row = remainingRow(raw, WEIGHTS_RELATION, run);
     requireColumns(row, WEIGHTS_SOURCE_COLUMNS, WEIGHTS_RELATION);
-    const weightKey = boundedText(cell(row, "key", WEIGHTS_RELATION), WEIGHTS_RELATION, "key", {
+    const sourceWeightKey = boundedText(cell(row, "key", WEIGHTS_RELATION), WEIGHTS_RELATION, "key", {
       min: 1,
       max: 200,
       measure: "btrim",
     }) as string;
+    const weightKey =
+      sourceWeightKey === "event:slept"
+        ? "event:blacklisted"
+        : sourceWeightKey === "decision:sleep"
+          ? "decision:blacklist"
+          : sourceWeightKey;
     if (seenWeightKeys.has(weightKey)) remainingFailure("remaining_duplicate_row", WEIGHTS_RELATION, "key");
     seenWeightKeys.add(weightKey);
     const weightCounters = tally(row, WEIGHTS_RELATION);

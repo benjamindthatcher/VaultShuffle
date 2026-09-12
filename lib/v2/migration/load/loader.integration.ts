@@ -310,7 +310,7 @@ function transformStaged(staged: StagedRun, runIdentity: { runId: string; snapsh
           account_id: row.account_id,
           game_id: row.game_id,
           completed_at: row.completed_at,
-          slept_at: row.slept_at,
+          blacklisted: row.blacklisted,
           previous_active_status: row.previous_active_status,
           manual_progress: row.manual_progress,
           notes: row.notes,

@@ -154,7 +154,7 @@
   }
 }
 
-/* ---------------------------------------------- bulk selection (slept/done) */
+/* ---------------------------------------------- bulk selection (blacklisted/done) */
 
 /* The tidy-up controls for the shelves where every game has already been
    decided. This is the work Purge used to do on its own page, on the page that

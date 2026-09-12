@@ -10,14 +10,15 @@
   },
   "physical_destination_index": {
     "path": "physical-destination-index.json",
-    "sha256": "8866c89977d03793ce3c43ac0a926b8c076b7d5650ee1998367fd4fc9557e701",
+    "sha256": "d2c679dc5f2b0ac0d5bd44264569040142124bffe3b71276d7f4ed0703b24625",
     "totals": {
       "relations": 92,
       "applied_relations": 92,
       "proposed_relations": 0,
-      "extended_relations": 13,
-      "columns": 993,
-      "pending_columns": 2
+      "extended_relations": 14,
+      "columns": 994,
+      "pending_columns": 1,
+      "pending_dropped_columns": 6
     },
     "description": "Generated from the M1/M2/M3 migration SQL. The validator uses this sidecar to resolve every concrete target and archive reference; rerun its builder whenever the physical migration changes."
   },
@@ -58,7 +59,7 @@
     },
     {
       "file": "01-library-and-state.json",
-      "sha256": "799ac2e391e2beb10966502c1cbcb2d2f93a78540ce423326518c08ff305555d",
+      "sha256": "9d9f68c0ee07eb9e68bd8cfb6db9621e30f6a74d0f25448e45b12a4a758d4121",
       "relations": [
         "completion_events",
         "purge_reviews",
@@ -129,7 +130,7 @@
     },
     {
       "file": "07-views.json",
-      "sha256": "4457f87487969f85fe6bfd07d4ce19314efff73632a87e3541a0cc14a6b196d9",
+      "sha256": "e39c06af5a92351d6861309b1abd581f27b023355de3a4fc0d916c7618f5e2ea",
       "relations": [
         "catalog_duration_review_queue",
         "user_games_with_catalog"
@@ -140,6 +141,7 @@
     "preserved": "Fact reaches the v2 runtime model with meaning and value intact. A rename or identity renumber alone is still 'preserved'.",
     "transformed": "Fact reaches v2 but changed: unit, value domain, precision, normalisation, or split across multiple target columns.",
     "derived-retirement": "Not carried; recomputable from carried facts or derived independently by the target. Must name what makes it recoverable.",
+    "authorized-retirement": "Not carried and intentionally unrecoverable under an explicit product decision. Must name the decision authority.",
     "audit-archive": "Not in the runtime model. Retained only in a bounded migration archive with a stated purpose and retention.",
     "unresolved-decision": "No agreed disposition. Must name the probe or coordinator question that unblocks it."
   },
@@ -173,10 +175,11 @@
     "views": 2,
     "columns": 486,
     "by_disposition": {
-      "preserved": 212,
-      "transformed": 99,
-      "derived-retirement": 94,
-      "audit-archive": 80,
+      "preserved": 211,
+      "transformed": 100,
+      "derived-retirement": 93,
+      "authorized-retirement": 2,
+      "audit-archive": 79,
       "unresolved-decision": 1
     }
   },
@@ -6344,7 +6347,8 @@
       "decision_file": "01-library-and-state.json",
       "column_count": 14,
       "column_dispositions": {
-        "audit-archive": 14
+        "authorized-retirement": 1,
+        "audit-archive": 13
       },
       "columns": [
         {
@@ -6379,9 +6383,9 @@
           "name": "slept_at",
           "type": "timestamp with time zone",
           "nullable": true,
-          "disposition": "audit-archive",
-          "note": "The second field probe P06 compares. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state.",
-          "archive": "+migration.legacy_user_game_state_audit.raw_slept_at"
+          "disposition": "authorized-retirement",
+          "note": "The stale child timestamp is validated as source syntax and then discarded; it creates neither membership nor audit history.",
+          "authorized_by": "12 September 2026 product decision replacing timed Sleep with permanent undated Blacklist"
         },
         {
           "ordinal": 5,
@@ -6544,9 +6548,10 @@
       "decision_file": "01-library-and-state.json",
       "column_count": 25,
       "column_dispositions": {
-        "preserved": 8,
-        "transformed": 11,
-        "derived-retirement": 2,
+        "preserved": 7,
+        "transformed": 12,
+        "derived-retirement": 1,
+        "authorized-retirement": 1,
         "audit-archive": 3,
         "unresolved-decision": 1
       },
@@ -6595,9 +6600,10 @@
           "name": "status",
           "type": "text",
           "nullable": false,
-          "disposition": "derived-retirement",
-          "note": "readiness 8.4 confirms this as a non-gap for the active sub-states. It is NOT one of plan 14.2's five open fields.",
-          "recoverable_from": "Derived, not authored. 'Sampled' is computed from progress at lib/game-classification.ts:156 and rendered as In Progress at lib/app-view-model.ts:140. The terminal states are recoverable from app.game_state.completed_at and slept_at, which are migrated.",
+          "disposition": "transformed",
+          "note": "The 12 September Blacklist product decision changed the terminal-state boundary: current Sleep membership survives as an undated permanent flag until manual Reactivate.",
+          "target": "app.game_state.blacklisted + app.game_state.completed_at",
+          "transform": "Legacy status='Slept' authoritatively sets blacklisted=true; no date or expiry is inferred. Completed remains represented by completed_at. Active sub-states remain derived by the runtime.",
           "evidence": [
             "readiness 8.4"
           ]
@@ -6696,9 +6702,9 @@
           "name": "slept_at",
           "type": "timestamp with time zone",
           "nullable": true,
-          "disposition": "preserved",
-          "note": "Authored terminal state; the second field probe P06 compares.",
-          "target": "app.game_state.slept_at"
+          "disposition": "authorized-retirement",
+          "note": "The exact Sleep instant is intentionally discarded. Membership comes only from status='Slept'; no expiry, restoration clock, or timestamp archive remains.",
+          "authorized_by": "12 September 2026 product decision replacing timed Sleep with permanent undated Blacklist"
         },
         {
           "ordinal": 20,
@@ -7071,7 +7077,7 @@
           "type": "timestamp with time zone",
           "nullable": true,
           "disposition": "derived-retirement",
-          "note": "From user_games.slept_at."
+          "note": "Retired view projection. Current Blacklist membership is exposed by user_games.status='Blacklisted'; the obsolete timestamp is intentionally absent."
         },
         {
           "ordinal": 20,

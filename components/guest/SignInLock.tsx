@@ -16,7 +16,7 @@ type SignInLockProps = {
  * A quiet line saying a control needs a signed-in library.
  *
  * Most of the app works in guest mode because the preview keeps its own copy of
- * what you do - pins, sleeps, collections, Purge decisions all live in the
+ * what you do - pins, blacklists, collections, Purge decisions all live in the
  * session and reset when you leave. A few things cannot work that way, and for
  * those the control stays on screen, disabled, with this underneath it. Seeing a
  * feature and being told what it needs is more use than not knowing it exists,

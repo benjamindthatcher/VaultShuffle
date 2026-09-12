@@ -2,7 +2,7 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { statesAnOpinion } from "@/lib/draw-signal-precedence";
-import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, parseAlgorithmWeight, playtimeTally, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
+import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capStandingDecisions, parseAlgorithmWeight, playtimeTally, preferenceGenresFor, standingDecisionKeys, type GenrePreference } from "@/lib/genre-preferences";
 import { steamTagGenreLabels } from "@/lib/genres";
 import { isFamilyAccess, type AccessSource } from "@/lib/family-sharing";
 import type { VaultDrawEventType } from "@/lib/vault-history";
@@ -102,9 +102,9 @@ const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
   // The button that produced it has since been retired in favour of the reroll,
   // so this earns from the history rather than from anything new.
   hidden_for_session: { positive: 0, total: 1.5 },
-  // Sleeping a game is the most deliberate rejection the product offers: it is a
+  // Blacklisting a game is the most deliberate rejection the product offers: it is a
   // decision about the game itself, not about tonight.
-  slept: { positive: 0, total: 4 },
+  blacklisted: { positive: 0, total: 4 },
   reroll_not_interested: { positive: 0, total: 2 },
   reroll_wrong_mood: { positive: 0, total: 1, moodOnly: true },
 
@@ -191,19 +191,26 @@ type DrawRow = {
 };
 
 type EventRow = { draw_id: string; event_type: string; created_at: string };
-type PurgeDecision = { userId: string; steamAppId: number; action: string; reviewedAt: string };
+export type PurgeDecision = Readonly<{
+  userId: string;
+  steamAppId: number;
+  action: string;
+  /** Null is a current permanent state, deliberately not invented history. */
+  reviewedAt: string | null;
+  standing: boolean;
+}>;
 
 
 /**
- * How each Purge verdict reads as taste. Sleeping matches the weight a Vault
- * "slept" carries, because it is the same decision. "Keep" is a deliberate
+ * How each Purge verdict reads as taste. Blacklisting matches the weight a Vault
+ * "blacklisted" carries, because it is the same decision. "Keep" is a deliberate
  * retention rather than an endorsement, so it counts for half.
  */
 const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
-  // Matched to the draw-side weight: sleeping is the clearest rejection there is,
+  // Matched to the draw-side weight: blacklisting is the clearest rejection there is,
   // reached deliberately through a review rather than in passing. This is the
   // signal the learner was missing entirely, so it keeps its full weight.
-  sleep: { positive: 0, total: 4 },
+  blacklist: { positive: 0, total: 4 },
   keep: { positive: 1, total: 2 },
   pin: { positive: 2, total: 2 },
   // Finishing something is real evidence and weaker than choosing it tonight.
@@ -307,6 +314,10 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   // edition and the beta demo share every tag with something worth playing.
   const gameTallies = new Map<number, Tally>();
   const eventsByDraw = new Map<string, EventRow[]>();
+  // A current Blacklisted row is the standing verdict. Its matching historical
+  // draw event is not a second vote. Reactivated games are absent from this set,
+  // so their ordinary historical draw event retains its normal, decaying weight.
+  const standingBlacklistKeys = standingDecisionKeys(purgeDecisions, "blacklist");
   for (const event of events) {
     const bucket = eventsByDraw.get(event.draw_id);
     if (bucket) bucket.push(event); else eventsByDraw.set(event.draw_id, [event]);
@@ -326,6 +337,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     for (const event of drawEvents) {
       const eventType = event.event_type as VaultDrawEventType;
       if (eventType === "drew_again" && hasStatedOpinion) continue;
+      if (eventType === "blacklisted" && standingBlacklistKeys.has(`${draw.user_id}::${Number(draw.steam_appid)}`)) continue;
       const signal = eventSignals[eventType];
       if (!signal) continue;
 
@@ -354,8 +366,8 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
 
   // A Purge decision is the most considered signal the app collects: the player
   // was looking at one game and deliberately chose its fate. Until now none of it
-  // reached the recommender - every sleep in the system happened in Purge, so the
-  // learner's "slept" weight had never once fired, and the same action taught the
+  // reached the recommender - every blacklist in the system happened in Purge, so the
+  // learner's "blacklisted" weight had never once fired, and the same action taught the
   // model or not depending on which page it happened on.
   for (const decision of purgeDecisions) {
     const signal = decisionSignals[decision.action];
@@ -363,7 +375,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     const genres = genresByAppId.get(decision.steamAppId);
     if (!genres?.length) continue;
 
-    const decay = recencyWeight(decision.reviewedAt);
+    const decay = decision.reviewedAt === null ? 1 : recencyWeight(decision.reviewedAt);
     if (decay <= 0) continue;
 
     const userTallies = tallies.get(decision.userId) ?? new Map<string, Tally>();
@@ -768,24 +780,43 @@ export async function listGenrePreferenceGlobals(): Promise<GenrePreference[]> {
 /**
  * The standing Purge verdict for each game, resolved to a Steam AppID.
  *
- * Only the most recent decision per game counts. A game kept and later slept has
- * changed its mind, not voted twice, and counting both would let a flip-flop
- * cancel itself out instead of recording where the player actually landed.
+ * Completion has a decision instant. Blacklisting is a permanent current-state
+ * verdict and therefore enters as undated standing evidence, never as invented
+ * history or a timestamped event.
  */
 async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promise<PurgeDecision[]> {
   // Read from the ownership row, not from purge_reviews.
   //
-  // purge_reviews was written by one page, and that page is gone: sleeping and
-  // finishing happen in the Library now. Both verdicts are already recorded on
-  // user_games as the timestamp of the decision, so reading them here means the
-  // learner keeps its strongest negative signal, costs no extra write on the
-  // action itself, and counts a decision wherever in the app it was made.
+  // purge_reviews was written by one page, and that page is gone. Completion is
+  // still recorded with its real instant. A blacklist comes from the current
+  // status only, with no made-up review instant.
   //
   // The catalogue AppID is on this row too, so the second lookup that
   // purge_reviews needed to turn a game id into genres is gone with it.
   const latest = new Map<string, PurgeDecision>();
 
-  for (const [column, action] of [["slept_at", "sleep"], ["completed_at", "complete"]] as const) {
+  // Standing state is intentionally unbounded by `since`: no expiry means a
+  // ninety-day-old blacklist remains an equally explicit current rejection.
+  for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("user_games")
+      .select("user_id, catalog_steam_appid")
+      .eq("status", "Blacklisted")
+      .order("user_id", { ascending: true })
+      .order("catalog_steam_appid", { ascending: true })
+      .range(offset, offset + DECISION_PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      const steamAppId = Number(row.catalog_steam_appid);
+      if (!Number.isFinite(steamAppId) || steamAppId <= 0) continue;
+      const userId = String(row.user_id);
+      latest.set(`${userId}::${steamAppId}`, Object.freeze({ userId, steamAppId, action: "blacklist", reviewedAt: null, standing: true }));
+    }
+    if (rows.length < DECISION_PAGE_SIZE) break;
+  }
+
+  for (const [column, action] of [["completed_at", "complete"]] as const) {
     // Paged explicitly: PostgREST caps a response at 1,000 rows, and a night's
     // worth of decisions across every account can pass that without erroring.
     for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
@@ -803,16 +834,18 @@ async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promis
         const decidedAt = row[column];
         if (!Number.isFinite(steamAppId) || steamAppId <= 0 || typeof decidedAt !== "string") continue;
 
-        // One verdict per game per user: a game that was slept and later
-        // finished should teach the later of the two, not both.
+        // A standing blacklist supersedes dated completion evidence. It is the
+        // player's current explicit verdict; a completed row has no current
+        // blacklist state and supplies normal, decaying dated evidence.
         const key = `${String(row.user_id)}::${steamAppId}`;
         const held = latest.get(key);
-        if (held && held.reviewedAt >= decidedAt) continue;
+        if (held?.standing || (held !== undefined && held.reviewedAt !== null && held.reviewedAt >= decidedAt)) continue;
         latest.set(key, {
           userId: String(row.user_id),
           steamAppId,
           action,
-          reviewedAt: decidedAt
+          reviewedAt: decidedAt,
+          standing: false
         });
       }
 
@@ -820,5 +853,5 @@ async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promis
     }
   }
 
-  return capDecisionsPerUser([...latest.values()], MAX_DECISIONS_PER_USER);
+  return capStandingDecisions([...latest.values()], MAX_DECISIONS_PER_USER);
 }

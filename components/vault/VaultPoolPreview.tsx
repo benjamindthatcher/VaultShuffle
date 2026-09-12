@@ -16,8 +16,8 @@ type VaultPoolPreviewProps = {
   winner?: VaultPoolEntry["game"] | null;
   highlightedId?: string | null;
   onSelect?: (gameId: string) => void;
-  sleepingId?: string | null;
-  onSleep?: (gameId: string) => void;
+  blacklistingId?: string | null;
+  onBlacklist?: (gameId: string) => void;
   pinnedIds?: string[];
   onPin?: (gameId: string) => void;
   onComplete?: (gameId: string) => void;
@@ -25,7 +25,7 @@ type VaultPoolPreviewProps = {
   allowActions?: boolean;
 };
 
-export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, sleepingId = null, onSleep, pinnedIds = [], onPin, onComplete, onUserScroll, allowActions = true }: VaultPoolPreviewProps) {
+export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, blacklistingId = null, onBlacklist, pinnedIds = [], onPin, onComplete, onUserScroll, allowActions = true }: VaultPoolPreviewProps) {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const railRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -129,7 +129,7 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
   // re-renders the one or two cards whose own state actually changed.
   const onSelectRef = useRef(onSelect);
   const onPinRef = useRef(onPin);
-  const onSleepRef = useRef(onSleep);
+  const onBlacklistRef = useRef(onBlacklist);
   const onCompleteRef = useRef(onComplete);
 
   // Assigned after the render rather than during it. Writing a ref while
@@ -141,13 +141,13 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
     onUserScrollRef.current = onUserScroll;
     onSelectRef.current = onSelect;
     onPinRef.current = onPin;
-    onSleepRef.current = onSleep;
+    onBlacklistRef.current = onBlacklist;
     onCompleteRef.current = onComplete;
   });
 
   const handleSelect = useCallback((gameId: string) => onSelectRef.current?.(gameId), []);
   const handlePin = useCallback((gameId: string) => onPinRef.current?.(gameId), []);
-  const handleSleep = useCallback((gameId: string) => onSleepRef.current?.(gameId), []);
+  const handleBlacklist = useCallback((gameId: string) => onBlacklistRef.current?.(gameId), []);
   const handleComplete = useCallback((gameId: string) => onCompleteRef.current?.(gameId), []);
   const handleToggleMenu = useCallback((gameId: string) => {
     setOpenMenuId((current) => current === gameId ? null : gameId);
@@ -168,14 +168,14 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
           highlighted={highlightedId === game.id}
           menuOpen={openMenuId === game.id}
           pinned={pinnedIds.includes(game.id)}
-          sleeping={sleepingId === game.id}
+          blacklisting={blacklistingId === game.id}
           allowActions={allowActions}
           menuRef={menuRef}
           onSelect={handleSelect}
           onToggleMenu={handleToggleMenu}
           onCloseMenu={handleCloseMenu}
           onPin={handlePin}
-          onSleep={handleSleep}
+          onBlacklist={handleBlacklist}
           onComplete={handleComplete}
         />
       ))}
@@ -193,20 +193,20 @@ type PoolCardProps = {
   highlighted: boolean;
   menuOpen: boolean;
   pinned: boolean;
-  sleeping: boolean;
+  blacklisting: boolean;
   allowActions: boolean;
   menuRef: RefObject<HTMLDivElement | null>;
   onSelect: (gameId: string) => void;
   onToggleMenu: (gameId: string) => void;
   onCloseMenu: () => void;
   onPin: (gameId: string) => void;
-  onSleep: (gameId: string) => void;
+  onBlacklist: (gameId: string) => void;
   onComplete: (gameId: string) => void;
 };
 
 const PoolCard = memo(function PoolCard({
-  game, score, index, highlighted, menuOpen, pinned, sleeping, allowActions, menuRef,
-  onSelect, onToggleMenu, onCloseMenu, onPin, onSleep, onComplete
+  game, score, index, highlighted, menuOpen, pinned, blacklisting, allowActions, menuRef,
+  onSelect, onToggleMenu, onCloseMenu, onPin, onBlacklist, onComplete
 }: PoolCardProps) {
   const durationLabel = formatGameDuration(game.duration);
 
@@ -244,7 +244,7 @@ const PoolCard = memo(function PoolCard({
         ><VaultIcon name="menu-dots" size={20} /></button>
         {menuOpen ? <div className={styles.menu} role="menu">
           <button type="button" role="menuitem" onClick={() => { onCloseMenu(); onPin(game.id); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Unpin game" : "Pin game"}</button>
-          <button type="button" role="menuitem" disabled={sleeping} onClick={() => { onCloseMenu(); onSleep(game.id); }}><VaultIcon name="sleep" size={18} />Sleep game</button>
+          <button type="button" role="menuitem" disabled={blacklisting} onClick={() => { onCloseMenu(); onBlacklist(game.id); }}><VaultIcon name="blacklist" size={18} />Blacklist game</button>
           <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { onCloseMenu(); onComplete(game.id); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button>
         </div> : null}
       </div> : null}

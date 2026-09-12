@@ -3,7 +3,7 @@
   "milestone": "M3",
   "generated_by": "database/v2/migration/manifest/build_destination_index.py",
   "generated_note": "GENERATED FILE. Do not hand-edit. Parsed from the migration SQL, which is owned by the physical-database worker and is only ever read here. Rerun the builder after that worker changes a migration.",
-  "boundary_note": "M1 (20260906093036), M2 (20260907163356) and M3 (20260910232654) are all applied and immutable; no migration may be edited or reapplied. M3 was applied at 2026-09-10T23:26:54Z and the local file was RENAMED, not edited, from the pre-apply 20260909214501 name, so its content hash is unchanged. 'applied' here means the destination is created by an applied, immutable migration file. 20260911234500_m3_legacy_preservation_followup.sql is PREPARED LOCALLY AND NOT APPLIED: its source record carries 'applied': false, and every column it adds to an already-applied relation is listed in that relation's 'pending_columns' and summarised under 'pending_columns' at the top level. A pending column is a resolvable manifest target but is NOT present on the target database, so no decision may be called closed on the strength of one until root applies that migration. This index proves a target name exists in the SQL. It does not certify the remote schema, security and rollback verification root still owns, and a newly discovered physical gap needs a new, separately reviewed migration rather than an edit.",
+  "boundary_note": "M1 (20260906093036), M2 (20260907163356) and M3 (20260910232654) are all applied and immutable; no migration may be edited or reapplied. M3 was applied at 2026-09-10T23:26:54Z and the local file was RENAMED, not edited, from the pre-apply 20260909214501 name, so its content hash is unchanged. 'applied' here means the destination is created by an applied, immutable migration file. The 20260911234500 preservation follow-up was applied by root on 12 September and is immutable at its recorded checksum. The 20260912193000 Blacklist migration is prepared locally and unapplied. Its new column is listed under 'pending_columns'; columns it retires remain in the current applied shape and are listed under 'pending_dropped_columns'. This index proves a target name exists in the SQL. It does not certify the remote schema, security and rollback verification root still owns, and a newly discovered physical gap needs a new, separately reviewed migration rather than an edit.",
   "physical_contract": {
     "path": "database/v2/M3-contract.md",
     "sha256": "2d7a77eb38f69cf6985ebf1b803bd187cc3f1b5033f9468da7480f044da3a68e",
@@ -147,7 +147,7 @@
     {
       "file": "20260911234500_m3_legacy_preservation_followup.sql",
       "origin": "m3-followup",
-      "applied": false,
+      "applied": true,
       "applied_at": null,
       "sha256": "beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59",
       "relations_defined": [
@@ -155,6 +155,26 @@
         "app.game_activity",
         "app.retired_library_games",
         "migration.legacy_family_access_orphans"
+      ],
+      "application_evidence": {
+        "file": "database/v2/m3-followup-target-validation-20260912.json",
+        "precheck_observed_at": "2026-09-12T14:56:33.376813+00:00",
+        "postcheck_observed_at": "2026-09-12T14:58:40.77722+00:00",
+        "note": "CLI reported success inside this observed window; no exact apply timestamp was returned, so applied_at remains null."
+      }
+    },
+    {
+      "file": "20260912193000_blacklist_semantics.sql",
+      "origin": "blacklist-followup",
+      "applied": false,
+      "applied_at": null,
+      "sha256": "a20e75cbca19918d4a5d8cb2778a98f50bf98641b7594c4c067abe58a8c9cca6",
+      "relations_defined": [
+        "app.game_state",
+        "app.game_state_legacy_measurements",
+        "app.purge_review_history",
+        "migration.legacy_purge_review_archive",
+        "migration.legacy_user_game_state_audit"
       ]
     }
   ],
@@ -170,28 +190,52 @@
     "relations": 92,
     "applied_relations": 92,
     "proposed_relations": 0,
-    "extended_relations": 13,
-    "columns": 993,
-    "pending_columns": 2
+    "extended_relations": 14,
+    "columns": 994,
+    "pending_columns": 1,
+    "pending_dropped_columns": 6
   },
   "pending_columns": {
-    "app.game_activity": {
+    "app.game_state": {
       "columns": [
-        "legacy_last_played_at"
+        "blacklisted"
       ],
       "from": [
-        "m3-followup"
+        "blacklist-followup"
       ],
       "status": "prepared locally, not applied to any target"
+    }
+  },
+  "pending_dropped_columns": {
+    "app.game_state": {
+      "columns": [
+        "restored_at",
+        "restored_from_previous_active_status",
+        "restored_from_slept_at",
+        "slept_at"
+      ],
+      "from": [
+        "blacklist-followup"
+      ],
+      "status": "present on target; retired by a locally prepared, unapplied migration"
     },
-    "app.retired_library_games": {
+    "app.game_state_legacy_measurements": {
       "columns": [
-        "legacy_ownership"
+        "raw_slept_at"
       ],
       "from": [
-        "m3-followup"
+        "blacklist-followup"
       ],
-      "status": "prepared locally, not applied to any target"
+      "status": "present on target; retired by a locally prepared, unapplied migration"
+    },
+    "migration.legacy_user_game_state_audit": {
+      "columns": [
+        "raw_slept_at"
+      ],
+      "from": [
+        "blacklist-followup"
+      ],
+      "status": "present on target; retired by a locally prepared, unapplied migration"
     }
   },
   "proposed_relations": [],
@@ -201,6 +245,7 @@
     "app.completion_events",
     "app.family_members",
     "app.game_activity",
+    "app.game_state",
     "app.library_sync_state",
     "app.pins",
     "app.playtime_daily",
@@ -1489,12 +1534,6 @@
         "m2",
         "m3",
         "m3-followup"
-      ],
-      "pending_columns": [
-        "legacy_last_played_at"
-      ],
-      "pending_from": [
-        "m3-followup"
       ]
     },
     "app.game_state": {
@@ -1515,9 +1554,27 @@
         "completion_dismissed_at",
         "completion_dismissed_playtime",
         "revision",
-        "updated_at"
+        "updated_at",
+        "blacklisted"
       ],
-      "extended_by": []
+      "extended_by": [
+        "blacklist-followup"
+      ],
+      "pending_columns": [
+        "blacklisted"
+      ],
+      "pending_from": [
+        "blacklist-followup"
+      ],
+      "pending_dropped_columns": [
+        "slept_at",
+        "restored_at",
+        "restored_from_slept_at",
+        "restored_from_previous_active_status"
+      ],
+      "pending_drop_from": [
+        "blacklist-followup"
+      ]
     },
     "app.game_state_legacy_measurements": {
       "origin": "m3",
@@ -1542,7 +1599,13 @@
         "source_snapshot_hash",
         "recorded_at"
       ],
-      "extended_by": []
+      "extended_by": [],
+      "pending_dropped_columns": [
+        "raw_slept_at"
+      ],
+      "pending_drop_from": [
+        "blacklist-followup"
+      ]
     },
     "app.library_games": {
       "origin": "m1",
@@ -1678,7 +1741,11 @@
         "last_played_at_review",
         "source_snapshot_hash"
       ],
-      "extended_by": []
+      "extended_by": [],
+      "pending_dropped_columns": [],
+      "pending_drop_from": [
+        "blacklist-followup"
+      ]
     },
     "app.retired_library_games": {
       "origin": "m1",
@@ -1693,12 +1760,6 @@
         "legacy_ownership"
       ],
       "extended_by": [
-        "m3-followup"
-      ],
-      "pending_columns": [
-        "legacy_ownership"
-      ],
-      "pending_from": [
         "m3-followup"
       ]
     },
@@ -2426,7 +2487,11 @@
         "source_snapshot_hash",
         "retention_class"
       ],
-      "extended_by": []
+      "extended_by": [],
+      "pending_dropped_columns": [],
+      "pending_drop_from": [
+        "blacklist-followup"
+      ]
     },
     "migration.legacy_schema_migration_ledger": {
       "origin": "m3",
@@ -2469,7 +2534,13 @@
         "retention_class",
         "evidence_disposition"
       ],
-      "extended_by": []
+      "extended_by": [],
+      "pending_dropped_columns": [
+        "raw_slept_at"
+      ],
+      "pending_drop_from": [
+        "blacklist-followup"
+      ]
     },
     "migration.library_row_map": {
       "origin": "m3",

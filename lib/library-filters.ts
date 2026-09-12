@@ -9,7 +9,7 @@ import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
  * toolbar could not express: show me things I have started, show me something
  * under ten hours, show me the RPGs.
  *
- * Status is deliberately absent - the Active/Slept/Completed tabs already own
+ * Status is deliberately absent - the Active/Blacklisted/Completed tabs already own
  * that - and so is platform, which the account menu's device mode covers
  * globally.
  */

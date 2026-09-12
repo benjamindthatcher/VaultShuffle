@@ -25,7 +25,7 @@ const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
   Completed: 4,
   "In Progress": 3,
   "Not Started": 2,
-  Slept: 1
+  Blacklisted: 1
 };
 
 export default function LibraryPage() {
@@ -34,7 +34,7 @@ export default function LibraryPage() {
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_LIBRARY_FILTERS);
   const [sort, setSort] = useState("hours");
   const [sortReversed, setSortReversed] = useState(false);
-  const [statusTab, setStatusTab] = useState<"active" | "slept" | "completed">("active");
+  const [statusTab, setStatusTab] = useState<"active" | "blacklisted" | "completed">("active");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [selectedSurface, setSelectedSurface] = useState<"recent" | "catalogue" | "pinned" | null>(null);
@@ -61,7 +61,7 @@ export default function LibraryPage() {
   useEffect(() => {
     setSelectedIds([]);
     const requestedTab = new URLSearchParams(window.location.search).get("tab");
-    if (requestedTab === "slept" || requestedTab === "completed" || requestedTab === "active") setStatusTab(requestedTab);
+    if (requestedTab === "blacklisted" || requestedTab === "completed" || requestedTab === "active") setStatusTab(requestedTab);
 
     return () => {
       if (undoTimerRef.current) window.clearTimeout(undoTimerRef.current);
@@ -108,8 +108,8 @@ export default function LibraryPage() {
   }
 
   const statusCounts = useMemo(() => ({
-    active: libraryGames.filter((game) => game.status !== "Slept" && game.status !== "Completed").length,
-    slept: libraryGames.filter((game) => game.status === "Slept").length,
+    active: libraryGames.filter((game) => game.status !== "Blacklisted" && game.status !== "Completed").length,
+    blacklisted: libraryGames.filter((game) => game.status === "Blacklisted").length,
     completed: libraryGames.filter((game) => game.status === "Completed").length
   }), [libraryGames]);
 
@@ -124,8 +124,8 @@ export default function LibraryPage() {
           game.genres.join(" ").toLowerCase().includes(queryText);
 
         const matchesStatus = statusTab === "active"
-          ? game.status !== "Slept" && game.status !== "Completed"
-          : statusTab === "slept" ? game.status === "Slept" : game.status === "Completed";
+          ? game.status !== "Blacklisted" && game.status !== "Completed"
+          : statusTab === "blacklisted" ? game.status === "Blacklisted" : game.status === "Completed";
 
         return matchesQuery && matchesStatus && matchesLibraryFilters(game, filters);
       })
@@ -137,7 +137,6 @@ export default function LibraryPage() {
         else if (sort === "added") comparison = sortableAddedDate(right) - sortableAddedDate(left);
         else if (sort === "duration") comparison = sortableDuration(left) - sortableDuration(right);
         else if (sort === "status") comparison = STATUS_SORT_RANK[right.status] - STATUS_SORT_RANK[left.status];
-        else if (statusTab === "slept") comparison = Date.parse(right.sleptAt || "") - Date.parse(left.sleptAt || "");
         else if (statusTab === "completed") comparison = Date.parse(right.completedAt || "") - Date.parse(left.completedAt || "");
         else comparison = sortableLastPlayed(right) - sortableLastPlayed(left);
 
@@ -162,11 +161,11 @@ export default function LibraryPage() {
   const pinnedGames = vaultState.pinnedIds
     .map((id) => libraryGames.find((game) => game.id === id) ?? allGames.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game))
-    .filter((game) => game.status !== "Slept" && game.status !== "Completed");
+    .filter((game) => game.status !== "Blacklisted" && game.status !== "Completed");
   const visiblePinnedGames = statusTab === "active" ? pinnedGames.filter((game) => filteredGames.some((item) => item.id === game.id)) : [];
   const ordinaryGames = filteredGames.filter((game) => !visiblePinnedGames.some((pinned) => pinned.id === game.id));
 
-  // Active is a shelf you browse; slept and completed are shelves you tidy.
+  // Active is a shelf you browse; blacklisted and completed are shelves you tidy.
   const selectionMode = statusTab !== "active";
   // Scoped to what is on screen, so "select all" and the count can never claim
   // more than the current search and filters are actually showing.
@@ -288,7 +287,7 @@ export default function LibraryPage() {
       </section>
 
       <div className={styles.statusTabs} role="tablist" aria-label={isLive ? "Library status" : "Preview status"}>
-        {(["active", "slept", "completed"] as const).map((tab) => (
+        {(["active", "blacklisted", "completed"] as const).map((tab) => (
           <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => setStatusTab(tab)}>
             <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{statusCounts[tab]}</strong>
           </button>
@@ -351,8 +350,8 @@ export default function LibraryPage() {
                   <VaultIcon name="restore-active" size={15} />
                   {bulkBusy
                     ? "Working…"
-                    : statusTab === "slept"
-                      ? `Wake ${selected.size} back up`
+                    : statusTab === "blacklisted"
+                      ? `Reactivate ${selected.size}`
                       : `Move ${selected.size} back to active`}
                 </button>
               </div>
@@ -361,12 +360,12 @@ export default function LibraryPage() {
         ) : null}
 
         <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>
-          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onSleep={(id) => void updateGame(id, { status: "Slept" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
+          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} onComplete={(id) => void markCompleted(id)} onRestore={(id) => void restoreCompleted(id)} onBlacklist={(id) => void updateGame(id, { status: "Blacklisted" })} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
             <div className={styles.placeholderGrid}>
               <PlaceholderSlots
                 count={4}
-                label={statusTab === "slept"
-                  ? "Games you put to sleep rest here, out of Vault draws."
+                label={statusTab === "blacklisted"
+                  ? "Blacklisted games stay out of Vault draws until you reactivate them."
                   : statusTab === "completed"
                     ? "Games you mark as finished collect here."
                     : "No games match this search."}
@@ -406,7 +405,7 @@ export default function LibraryPage() {
         onManagePins={() => { if (selectedGame) setPinCandidate(selectedGame); }}
         onComplete={() => selectedGame ? markCompleted(selectedGame.id) : Promise.resolve()}
         onRestore={() => selectedGame ? restoreCompleted(selectedGame.id) : Promise.resolve()}
-        onSleep={() => selectedGame ? updateGame(selectedGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null }) : Promise.resolve()}
+        onBlacklist={() => selectedGame ? updateGame(selectedGame.id, { status: "Blacklisted", completedAt: null }) : Promise.resolve()}
       />
       {undoGameId ? <div key={undoGameId} className={styles.undoToast} role="status">{libraryGames.find((game) => game.id === undoGameId)?.title ?? "Game"} marked as completed.<button type="button" onClick={() => void restoreCompleted(undoGameId)}>Undo</button></div> : null}
       {pinCandidate && !vaultState.pinnedIds.includes(pinCandidate.id) ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { if (pinCandidate) await recordVaultAction("pinned", pinCandidate.id, { replace_game_id: replaceId }); }} onClose={() => setPinCandidate(null)} /> : null}

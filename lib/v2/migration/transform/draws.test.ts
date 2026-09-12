@@ -342,6 +342,11 @@ test("resolves a draw event through the draw it belongs to, not by row position"
   assert.equal(event.event_type, "opened_on_steam");
 });
 
+test("legacy slept draw events become undated blacklisted events", () => {
+  const result = transformDraws(input({ draws: [drawRow()], drawEvents: [drawEventRow({ event_type: "slept" })] }));
+  assert.equal(result.draw_events[0].event_type, "blacklisted");
+});
+
 test("refuses a draw event referencing a draw that was not in this run", () => {
   assert.equal(
     code(() => transformDraws(input({ draws: [], drawEvents: [drawEventRow()] }))),
@@ -381,6 +386,11 @@ test("resolves a vault event's game through the library-row map and keeps the le
   assert.equal(event.legacy_game_id, LIBRARY_ROW_A1);
   assert.equal(event.action, "pinned");
   assert.equal(event.context, "{}");
+});
+
+test("legacy slept vault actions become undated blacklisted actions", () => {
+  const result = transformDraws(input({ vaultEvents: [vaultEventRow({ action: "slept" })] }));
+  assert.equal(result.vault_events[0].action, "blacklisted");
 });
 
 test("a vault event whose library row is not mapped keeps the legacy identity with a NULL target and reports it", () => {

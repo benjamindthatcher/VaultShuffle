@@ -575,15 +575,14 @@ test("app.game_state accepts the sparse authored row and holds manual_progress N
   const values = library.game_state
     .map(
       (entry) =>
-        `(${num(entry.account_id)}, ${num(entry.game_id)}, ${instant(entry.completed_at)}, ${instant(entry.slept_at)},` +
-        ` ${text(entry.previous_active_status)}, ${instant(entry.restored_at)}, ${instant(entry.restored_from_slept_at)},` +
-        ` ${text(entry.restored_from_previous_active_status)}, ${num(entry.manual_progress)}, ${text(entry.notes)},` +
+        `(${num(entry.account_id)}, ${num(entry.game_id)}, ${instant(entry.completed_at)}, ${bool(entry.blacklisted)},` +
+        ` ${text(entry.previous_active_status)}, ${num(entry.manual_progress)}, ${text(entry.notes)},` +
         ` ${instant(entry.review_requested_at)}, ${instant(entry.completion_dismissed_at)}, ${num(entry.completion_dismissed_playtime)})`,
     )
     .join(",\n");
   const result = runSql(
-    `insert into app.game_state (account_id, game_id, completed_at, slept_at, previous_active_status, restored_at,
-       restored_from_slept_at, restored_from_previous_active_status, manual_progress, notes, review_requested_at,
+    `insert into app.game_state (account_id, game_id, completed_at, blacklisted, previous_active_status,
+       manual_progress, notes, review_requested_at,
        completion_dismissed_at, completion_dismissed_playtime) values\n${values};`,
   );
   assert.equal(result.ok, true, result.stderr);
@@ -853,7 +852,7 @@ test("migration.legacy_user_game_state_audit accepts the complete bounded copy",
     .map(
       (entry) =>
         `(${num(entry.account_id)}, ${text(entry.source_user_id)}, ${exact(entry.steam_appid)}, ${instant(entry.raw_completed_at)},` +
-        ` ${instant(entry.raw_slept_at)}, ${num(entry.raw_prev_active_status)}, ${instant(entry.raw_dismissed_at)},` +
+        ` ${num(entry.raw_prev_active_status)}, ${instant(entry.raw_dismissed_at)},` +
         ` ${exact(entry.raw_dismissed_playtime)}, ${instant(entry.raw_review_requested_at)}, ${instant(entry.raw_last_played_at)},` +
         ` ${instant(entry.raw_last_observed_at)}, ${num(entry.raw_recency_code)}, ${instant(entry.raw_recency_evidence_at)},` +
         ` ${text(entry.raw_family_owner_steam_id)}, ${instant(entry.raw_family_verified_at)}, ${sha(entry.source_snapshot_hash)},` +
@@ -862,7 +861,7 @@ test("migration.legacy_user_game_state_audit accepts the complete bounded copy",
     .join(",\n");
   const result = runSql(
     `insert into migration.legacy_user_game_state_audit (account_id, source_user_id, steam_appid, raw_completed_at,
-       raw_slept_at, raw_prev_active_status, raw_dismissed_at, raw_dismissed_playtime, raw_review_requested_at,
+       raw_prev_active_status, raw_dismissed_at, raw_dismissed_playtime, raw_review_requested_at,
        raw_last_played_at, raw_last_observed_at, raw_recency_code, raw_recency_evidence_at, raw_family_owner_steam_id,
        raw_family_verified_at, source_snapshot_hash, retention_class, evidence_disposition) values\n${values};`,
   );
@@ -880,7 +879,7 @@ test("app.game_state_legacy_measurements accepts only the promoted sparse rows",
     .map(
       (entry) =>
         `(${num(entry.account_id)}, ${exact(entry.steam_app_id)}, ${text(entry.source_user_id)}, ${instant(entry.raw_completed_at)},` +
-        ` ${instant(entry.raw_slept_at)}, ${num(entry.raw_prev_active_status)}, ${instant(entry.raw_dismissed_at)},` +
+        ` ${num(entry.raw_prev_active_status)}, ${instant(entry.raw_dismissed_at)},` +
         ` ${exact(entry.raw_dismissed_playtime)}, ${instant(entry.raw_review_requested_at)}, ${instant(entry.raw_last_played_at)},` +
         ` ${instant(entry.raw_last_observed_at)}, ${num(entry.raw_recency_code)}, ${instant(entry.raw_recency_evidence_at)},` +
         ` ${text(entry.raw_family_owner_steam_id)}, ${instant(entry.raw_family_verified_at)}, ${text(entry.evidence_reason)},` +
@@ -889,7 +888,7 @@ test("app.game_state_legacy_measurements accepts only the promoted sparse rows",
     .join(",\n");
   const result = runSql(
     `insert into app.game_state_legacy_measurements (account_id, steam_app_id, source_user_id, raw_completed_at,
-       raw_slept_at, raw_prev_active_status, raw_dismissed_at, raw_dismissed_playtime, raw_review_requested_at,
+       raw_prev_active_status, raw_dismissed_at, raw_dismissed_playtime, raw_review_requested_at,
        raw_last_played_at, raw_last_observed_at, raw_recency_code, raw_recency_evidence_at, raw_family_owner_steam_id,
        raw_family_verified_at, evidence_reason, source_snapshot_hash) values\n${values};`,
   );

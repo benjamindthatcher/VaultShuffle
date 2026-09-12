@@ -31,7 +31,7 @@ type LibraryDetailsDrawerProps = {
   onManagePins?: () => void;
   onComplete?: () => Promise<void>;
   onRestore?: () => Promise<void>;
-  onSleep?: () => Promise<void>;
+  onBlacklist?: () => Promise<void>;
   previewMode?: boolean;
 };
 
@@ -50,7 +50,7 @@ export function LibraryDetailsDrawer({
   onManagePins,
   onComplete,
   onRestore,
-  onSleep,
+  onBlacklist,
   previewMode = false,
 }: LibraryDetailsDrawerProps) {
   const steamLink = useSteamPlayLink(game?.steamAppId, { forceStore: previewMode });
@@ -318,18 +318,18 @@ export function LibraryDetailsDrawer({
                 <div className={styles.pinnedActions}>
                   {steamAction}
                   <div className={styles.pinnedUtilities} role="group" aria-label="Pinned game actions">
-                    {game.status === "Completed" || game.status === "Slept" ? (
-                      <button type="button" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={18} /><span>Restore</span></button>
+                    {game.status === "Completed" || game.status === "Blacklisted" ? (
+                      <button type="button" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={18} /><span>Reactivate</span></button>
                     ) : (
                       <button type="button" disabled={!onTogglePin} onClick={onTogglePin}><VaultIcon name="unpin" size={18} /><span>Unpin</span></button>
                     )}
                     {game.status === "Completed" ? (
-                      <button type="button" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={18} /><span>Sleep</span></button>
-                    ) : game.status === "Slept" ? (
+                      <button type="button" disabled={saving || !onBlacklist} onClick={() => void onBlacklist?.()}><VaultIcon name="blacklist" size={18} /><span>Blacklist</span></button>
+                    ) : game.status === "Blacklisted" ? (
                       <button type="button" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={18} /><span>Mark complete</span></button>
                     ) : (
                       <>
-                        <button type="button" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={18} /><span>Sleep</span></button>
+                        <button type="button" disabled={saving || !onBlacklist} onClick={() => void onBlacklist?.()}><VaultIcon name="blacklist" size={18} /><span>Blacklist</span></button>
                         <button type="button" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={18} /><span>Mark complete</span></button>
                       </>
                     )}
@@ -359,17 +359,17 @@ export function LibraryDetailsDrawer({
                   <span>{familyLine}</span>
                 </p>
               ) : null}
-              {game.status === "Completed" || game.status === "Slept" ? (
+              {game.status === "Completed" || game.status === "Blacklisted" ? (
                 <div className={styles.quickActions} role="group" aria-label={`${game.status} game actions`}>
-                  <button type="button" title="Restore to Active" aria-label="Restore to Active" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={30} /></button>
+                  <button type="button" title="Reactivate" aria-label="Reactivate" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={30} /></button>
                   {game.status === "Completed"
-                    ? <button type="button" title="Move to Slept" aria-label="Move to Slept" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={30} /></button>
+                    ? <button type="button" title="Move to Blacklisted" aria-label="Move to Blacklisted" disabled={saving || !onBlacklist} onClick={() => void onBlacklist?.()}><VaultIcon name="blacklist" size={30} /></button>
                     : <button type="button" title="Mark as Completed" aria-label="Mark as Completed" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={30} /></button>}
                 </div>
               ) : (
                 <div className={styles.quickActions} role="group" aria-label="Game actions">
                   <button type="button" title={pinLabel} aria-label={pinLabel} disabled={!pinHandler} onClick={pinHandler}><VaultIcon name={pinSlot ? "unpin" : pinCount >= 3 ? "manage-pins" : "pin"} size={30} /></button>
-                  <button type="button" title="Sleep game" aria-label="Sleep game" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={30} /></button>
+                  <button type="button" title="Blacklist game" aria-label="Blacklist game" disabled={saving || !onBlacklist} onClick={() => void onBlacklist?.()}><VaultIcon name="blacklist" size={30} /></button>
                   <button type="button" title="Mark as Completed" aria-label="Mark as Completed" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={30} /></button>
                 </div>
               )}

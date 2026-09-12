@@ -16,6 +16,7 @@ import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
 import type { PinnedPlaytimeResult } from "@/lib/pinned-playtime";
 import { mergePinnedPlaytime } from "@/lib/pinned-playtime-view";
+import { applyGamePatch, restoreActiveGame, type GamePatch } from "@/lib/game-state";
 import {
   DEFAULT_GLOBAL_FILTERS,
   isDefaultGlobalFilters,
@@ -129,7 +130,7 @@ type AppDataContextValue = {
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
-  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }) => Promise<void>;
+  updateGame: (gameId: string, patch: GamePatch) => Promise<void>;
   restoreGame: (gameId: string, options?: { silent?: boolean }) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
   addGamesToCollection: (collectionId: string, gameIds: string[]) => Promise<void>;
@@ -743,10 +744,10 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function updateGame(
     gameId: string,
-    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }
+    patch: GamePatch
   ) {
     if (isLive) {
-      // The change lands before the request goes out. Sleeping a game used to
+      // The change lands before the request goes out. Blacklisting a game used to
       // wait on a round trip to Supabase, which is a quarter of a second of a
       // menu sitting there doing nothing after you pressed it - and the local
       // transform is the same one that was going to be applied afterwards
@@ -754,7 +755,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
       setLiveGames((current) => current.map((game) => game.id === gameId
         ? applyGamePatch(game, patch, liveGameSummary(game))
         : game));
-      if (patch.status === "Completed" || patch.status === "Slept") {
+      if (patch.status === "Completed" || patch.status === "Blacklisted") {
         setLiveVaultState((current) => ({
           ...current,
           pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
@@ -772,7 +773,6 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
           notes: patch.notes,
           priority: patch.priority,
           completed_at: patch.completedAt,
-          slept_at: patch.sleptAt,
           completion_suggestion_dismissed_at: patch.completionSuggestionDismissedAt,
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
@@ -784,7 +784,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     if (patch.status) {
       trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status, count: 1 });
     }
-    if (patch.status === "Completed" || patch.status === "Slept") {
+    if (patch.status === "Completed" || patch.status === "Blacklisted") {
       setGuestVaultState((current) => ({
         ...current,
         pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
@@ -1037,51 +1037,9 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
 }
 
-function applyGamePatch(
-  game: DemoGame,
-  patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
-  emptyNotesDescription = game.description
-): DemoGame {
-  const status = patch.status ?? game.status;
-  return {
-    ...game,
-    status,
-    completionPercent: status === "Completed"
-      ? Math.min(100, patch.completionPercent ?? game.completionPercent)
-      : Math.min(99, patch.completionPercent ?? game.completionPercent),
-    hoursPlayed: patch.hoursPlayed ?? game.hoursPlayed,
-    priority: patch.priority ?? game.priority,
-    notes: patch.notes ?? game.notes,
-    description: patch.notes === undefined
-      ? game.description
-      : patch.notes.trim() || emptyNotesDescription,
-    completedAt: patch.completedAt !== undefined
-      ? patch.completedAt
-      : status === "Completed" ? new Date().toISOString() : patch.status ? null : game.completedAt,
-    previousActiveStatus: (status === "Completed" || status === "Slept") && game.status !== "Completed" && game.status !== "Slept"
-      ? (game.previousActiveStatus ?? (game.status === "In Progress" ? "In Progress" : "Not Started"))
-      : game.previousActiveStatus,
-    sleptAt: patch.sleptAt !== undefined
-      ? patch.sleptAt
-      : status === "Slept" ? new Date().toISOString() : patch.status ? null : game.sleptAt,
-    completionSuggestionDismissedAt: patch.completionSuggestionDismissedAt ?? game.completionSuggestionDismissedAt,
-    completionSuggestionDismissedPlaytime: patch.completionSuggestionDismissedPlaytime ?? game.completionSuggestionDismissedPlaytime
-  };
-}
-
 function liveGameSummary(game: DemoGame) {
   const genreLabel = game.genres.slice(0, 2).join(" / ") || "Steam";
   return `${genreLabel} pick from your live VaultShuffle library.`;
-}
-
-function restoreActiveGame(game: DemoGame): DemoGame {
-  return {
-    ...game,
-    status: game.previousActiveStatus ?? (game.hoursPlayed > 0 ? "In Progress" : "Not Started"),
-    completedAt: null,
-    sleptAt: null,
-    previousActiveStatus: null
-  };
 }
 
 /**

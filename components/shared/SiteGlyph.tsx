@@ -99,7 +99,7 @@ function glyph(name: string): ReactNode {
     case "draw-from-vault": return <><rect x="2.8" y="7.8" width="9.2" height="12.6" rx="2.1" transform="rotate(-16 7.4 14.1)"/><rect x="12" y="4.4" width="9.2" height="12.6" rx="2.1" transform="rotate(13 16.6 10.7)"/></>;
     case "shuffle": return <><path d="M4 7h3c4 0 6 10 10 10h3M17 4l3 3-3 3M4 17h3c1.7 0 3-1.5 4.2-3.4M17 14l3 3-3 3"/></>;
     case "open-vault": return <><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3"/><path d="M12 8.5v-2m3 4 2-1m-2 4 2 1m-5 1v2m-3-4-2 1m2-4-2-1"/></>;
-    case "snooze": case "sleep": return <><path d="M20.5 14.8A8.6 8.6 0 0 1 9.2 3.5a8.6 8.6 0 1 0 11.3 11.3Z"/><path d="M16.4 4.2h3M17.9 2.7v3"/></>;
+    case "snooze": case "blacklist": return <><path d="M20.5 14.8A8.6 8.6 0 0 1 9.2 3.5a8.6 8.6 0 1 0 11.3 11.3Z"/><path d="M16.4 4.2h3M17.9 2.7v3"/></>;
     case "snooze-not-now": return <><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3 2M6 19l12-14"/></>;
     case "details": case "view-details": return <><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Z"/><circle cx="12" cy="12" r="2.8"/></>;
     case "add-game": return <><path d="M4 11h16l-1 7a2 2 0 0 1-2 1.7H7A2 2 0 0 1 5 18l-1-7Z"/><path d="M12 4v6M9 7h6"/></>;

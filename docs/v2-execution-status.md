@@ -1,6 +1,6 @@
 # VaultShuffle v2 execution status
 
-Updated: 11 September 2026 (London). Plan: [architecture and execution plan](VaultShuffle_v2_architecture_plan.md).
+Updated: 12 September 2026 (London). Plan: [architecture and execution plan](VaultShuffle_v2_architecture_plan.md).
 
 ## Authority and isolation
 
@@ -39,6 +39,79 @@ They remain the user's work and are not evidence that v2 has been implemented. N
 
 Read the plan and this ledger, inspect Git status, verify the target project marker, then continue the first incomplete milestone. Update this file with actual migrations, test commands, results and deviations. Never mark M3 complete for synthetic fixtures or M6 complete for a storage estimate. Keep production authoritative until the final gated cutover.
 
+## Immediate priority — permanent Blacklist, then resume M3
+
+**Latest resume:** A completed the database/V2 Blacklist batch. B completed the runtime
+conversion, standing-preference correction, real mocked-clock regression and
+the guest UI test. The browser execution is pending: sandbox listener failed
+with EPERM on port 8799, then automatic approval review rejected the ordinary
+local-only escalation because the account usage limit was reached. Do not
+bypass that rejection; rerun normally when allowance returns. B is now
+preparing only the independent prior-follow-up target rollback fixture
+(`database/v2/tests/m3-followup-target-rollback.sql`); remote execution remains
+root-owned. Maximum two active workers. A froze two UNAPPLIED Blacklist migrations
+(`supabase/migrations/20260912192336_replace_sleep_with_blacklist.sql` and
+`database/v2/supabase/migrations/20260912193000_blacklist_semantics.sql`) plus
+truthful applied/pending index changes. Its focused gate passed 178 unit tests,
+121 Python checks, 27 V2 PG integration tests, clean TypeScript, a fresh five-
+migration PG17 replay, and both V2 and legacy behavioral SQL fixtures. B's initial
+UI/runtime conversion passed 70 tests/build; its completed correction passed
+32 focused tests and TypeScript, preserving negative preference contribution
+from undated current Blacklisted state without new time/history metadata.
+Do not treat initial UI success as end-to-end feature completion. Generic M3
+loader remains paused until Blacklist is validated.
+
+The user's 12 September request replaces timed Library Sleep with permanent
+Blacklist using the same existing behavior. Active -> Blacklist -> inactive
+Blacklisted pool until explicit manual Reactivate -> active. No time limit or
+automatic expiry. Remove Sleep-only timestamps/history/restore metadata;
+do not build a new state/history/event subsystem. Existing completion/manual
+reactivation behavior and the separate Vault snooze feature remain. This
+explicit product decision supersedes old Sleep-timestamp preservation rules.
+After this narrow change is implemented and validated, **resume database M3**.
+
+Two agents are assigned (maximum two active, no delegation):
+
+- `m3_preservation_integration`, Sol/High: database/new migrations, V2
+  transform/manifest/load-contract updates and SQL tests. Owns database/v2/**,
+  necessary NEW legacy compatibility SQL, and narrow lib/v2/** changes.
+  Latest state is `app.game_state.blacklisted boolean NOT NULL DEFAULT false`
+  in the existing sparse state row. No timestamp denotes Blacklist membership.
+- `m3_remaining_domains`, Terra/Medium: non-V2 runtime, types, validation,
+  UI labels/actions/section, optimistic updates, classification/filters and
+  relevant tests. Owns app/**, components/** and lib/** excluding lib/v2/**.
+
+Both received the full bounded feature scope and must coordinate their SQL/
+status interface directly. Root reviews completed results, not intermediate
+implementation. New checkpoints: `docs/v2-blacklist-database-checkpoint.md`
+and `docs/v2-blacklist-runtime-checkpoint.md`.
+
+The generic M3 loader worker is stopped after hitting allowance; do not resume
+it concurrently with the Blacklist schema/transform work. Its partial pipeline
+and unresolved acceptance gaps remain saved. Once Blacklist completes, resume
+that worker on Sol/High, integrating the new schema before its all-domain
+actual PostgreSQL end-to-end gate.
+
+**New Git baseline:** user commit `0b2c934` (database update) includes previous
+work, on `codex/v2-architecture`. Preserve it and any unrelated subsequent
+changes; no root commit/push.
+
+**Critical applied-state update:** root successfully applied
+`20260911234500_m3_legacy_preservation_followup.sql` to the separate target
+`vbjtbwelnhbbdfrqczyf` via the normal CLI migration command after exact file
+inventory/hash verification and a fresh empty-target/drift/security precheck.
+SHA256 remains
+`beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59`.
+This fourth migration is now IMMUTABLE. Postcheck at 2026-09-12T14:58:40Z
+verified the four migration records, both new nullable columns, runtime now()
+default, exact widened orphan constraints, zero private browser grants,
+forced RLS and zero rows. Evidence:
+`database/v2/m3-followup-target-validation-20260912.json`.
+The earlier approval-service block cleared after the user's approval/retry.
+A owns fixing the stale local applied-index flag alongside the new schema.
+A target behavioral rollback fixture remains pending; local 27-test behavior
+was already proven. No source writes or real target load occurred.
+
 ## Current execution policy — maximum two workers
 
 **Wait override removed as a requirement:** the user withdrew the fixed
@@ -55,31 +128,20 @@ assigned batch finish autonomously; do not supervise routine intermediate work.
 This supersedes the preceding one-worker-only rule and older three-worker
 concurrency allowances. No worker may start or resume another worker itself.
 
-Current worker status (maximum two active):
+Current assignments are the two Blacklist batches described above. The
+general loader is paused. Its resumption packet is
+`docs/v2-m3-loader-resume-after-blacklist.md`; its older checkpoint is stale
+and must not be mistaken for current implementation progress.
 
-- `m3_preservation_integration` (Sol/High) finished its bounded acceptance:
-  provider128 unit / actualPG17, Python121 tests, owned TS/lint and builders
-  clean. Source enums/backoff physical gaps now fail closed, composite provider
-  keys coexist, V18 blocks pending columns, rollback wording is corrected.
-  Follow-up SHA remains `beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59`.
-  Root reviewed the completed delta and accepts the local preservation gate.
-- `m3_local_loader` (Sol/High) is the ONLY active worker, owning all load/**,
-  including the assembler returned by B. It is correcting concrete integration
-  gaps and finishing nonempty actual PG tests, transaction/replay/schema and
-  sequence proof. Let it finish; do not start duplicate implementation/review.
-- `m3_remaining_domains` (Terra/Medium) finished original transforms, boundary
-  repairs and a draft assembler. Its 6 assembler tests mainly used empty
-  inventory, so root supplied concrete physical-name/accounting/exception
-  corrections to C. B remains idle; all-domains* ownership is now C's.
+Previously accepted preservation work passed 128 provider/catalogue unit,
+17 actual PostgreSQL and 121 Python checks. Previously completed remaining
+transforms and boundary repairs are preserved. The generic assembler's empty
+fixtures did not establish all-domain acceptance.
 
-**Remote action blocked by approval-service allowance:** root tried only
-`/opt/homebrew/bin/supabase db query --help` through normal escalation to
-prepare separate-target validation after A's return. Automatic review rejected
-it because its service hit the usage limit (reported retry 20:05). No command
-ran and no new remote write occurred. Supabase connector tools had meanwhile
-become unavailable in the active tool set. Do not bypass the rejection with
-indirect CLI execution; retry ordinary authorized tooling only after allowance
-returns. The follow-up remains UNAPPLIED. Local loader work is unaffected.
+The earlier approval-service allowance block cleared after the user's
+approval. The fourth migration is applied, as recorded above. Connector
+availability may vary; inspect available tools once and use normal authorized
+target tooling rather than repeatedly retrying unavailable connectors.
 
 If account allowance blocks a worker, retain its checkpoint and queue rather
 than trying models repeatedly. Every worker must persist exact next steps.
@@ -102,10 +164,11 @@ root identified precommit ordering, self-derived schema fingerprint, incorrect
 per-relation counts and sequence-test gaps to repair. Exclusive ownership is
 still as in the dispatch. No routine intermediate supervision.
 
-Preservation return reports 492 transform tests, 27 preservation / 17 provider
+The earlier preservation return reported 492 transform tests, 27 preservation / 17 provider
 PG tests, locally prepared follow-up `20260911234500` SHA256
 `beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59`,
-**unapplied**, with 2 pending columns. Remaining-domain return reports 540
+unapplied at that checkpoint, with 2 pending columns. Root subsequently applied
+and verified it as recorded in the current section above. Remaining-domain return reports 540
 combined transform tests, 48 new tests / 14 PG tests, strict TS/lint clean.
 These are worker-reported results pending final integration acceptance.
 
@@ -124,8 +187,8 @@ No WARNING/ERROR severity returned. Preserve deny-by-default private access;
 do not add permissive policies to clear this advisory. Index/deletion cost
 requires the planned real-load/workload measurements; do not add every index
 or remove unused indexes from an empty rehearsal. Exact metadata-only evidence:
-`database/v2/m3-target-advisors-20260912.json`. No source query, auth mutation,
-DDL or data load was performed. The follow-up remains unapplied.
+`database/v2/m3-target-advisors-20260912.json`. That read-only gate performed no
+source query, auth mutation, DDL or data load; the later apply is recorded above.
 
 ## Current checkpoint — Codex dispatch, 11 September 2026
 
@@ -170,7 +233,8 @@ until actual consistent export, real rehearsal parity and measured storage.
 **Latest Claude returns now transferred to worker A:** provider batch has
 40 provider unit tests, 143 catalogue tests, reported 480 combined transform
 tests, 14 actual PG tests, clean repo typecheck/v2 lint. Preservation correction
-has 128 owned unit tests and 27 actual PG tests; the still-unapplied proposal
+has 128 owned unit tests and 27 actual PG tests; the proposal was unapplied at
+that checkpoint and later became the immutable fourth migration. It
 adds legacy ownership/clock preservation and retired-family disposition.
 Relevant completed evidence is in `docs/v2-m3-provider-checkpoint.md` and
 `docs/v2-m3-preservation-followup-checkpoint.md`. A must verify the corrected

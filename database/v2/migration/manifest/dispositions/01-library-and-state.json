@@ -48,9 +48,10 @@
           "decision_ref": "D-LIB-4"
         },
         "status": {
-          "disposition": "derived-retirement",
-          "recoverable_from": "Derived, not authored. 'Sampled' is computed from progress at lib/game-classification.ts:156 and rendered as In Progress at lib/app-view-model.ts:140. The terminal states are recoverable from app.game_state.completed_at and slept_at, which are migrated.",
-          "note": "readiness 8.4 confirms this as a non-gap for the active sub-states. It is NOT one of plan 14.2's five open fields.",
+          "disposition": "transformed",
+          "target": "app.game_state.blacklisted + app.game_state.completed_at",
+          "transform": "Legacy status='Slept' authoritatively sets blacklisted=true; no date or expiry is inferred. Completed remains represented by completed_at. Active sub-states remain derived by the runtime.",
+          "note": "The 12 September Blacklist product decision changed the terminal-state boundary: current Sleep membership survives as an undated permanent flag until manual Reactivate.",
           "evidence": [
             "readiness 8.4"
           ]
@@ -113,9 +114,9 @@
           "note": "Authored terminal state. One of the two fields whose disagreement with the stale user_game_state child is measured by probe P06."
         },
         "slept_at": {
-          "disposition": "preserved",
-          "target": "app.game_state.slept_at",
-          "note": "Authored terminal state; the second field probe P06 compares."
+          "disposition": "authorized-retirement",
+          "authorized_by": "12 September 2026 product decision replacing timed Sleep with permanent undated Blacklist",
+          "note": "The exact Sleep instant is intentionally discarded. Membership comes only from status='Slept'; no expiry, restoration clock, or timestamp archive remains."
         },
         "completion_suggestion_dismissed_at": {
           "disposition": "preserved",
@@ -284,9 +285,9 @@
           "note": "One of the two fields the divergence count in probe P06 compares against user_games. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state."
         },
         "slept_at": {
-          "disposition": "audit-archive",
-          "archive": "+migration.legacy_user_game_state_audit.raw_slept_at",
-          "note": "The second field probe P06 compares. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state."
+          "disposition": "authorized-retirement",
+          "authorized_by": "12 September 2026 product decision replacing timed Sleep with permanent undated Blacklist",
+          "note": "The stale child timestamp is validated as source syntax and then discarded; it creates neither membership nor audit history."
         },
         "prev_active_status": {
           "disposition": "audit-archive",

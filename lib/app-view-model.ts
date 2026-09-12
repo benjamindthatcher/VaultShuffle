@@ -197,7 +197,6 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       moodScores,
       completedAt: game.completed_at,
       previousActiveStatus: game.previous_active_status === "In Progress" ? "In Progress" : game.previous_active_status ? "Not Started" : null,
-      sleptAt: game.slept_at,
       completionSuggestionDismissedAt: game.completion_suggestion_dismissed_at,
       completionSuggestionDismissedPlaytime: game.completion_suggestion_dismissed_playtime,
       platforms: {
