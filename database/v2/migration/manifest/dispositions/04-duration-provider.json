@@ -1,0 +1,460 @@
+{
+  "domain": "Duration enrichment: provider estimates, alias rescue, job queue and human reviews",
+  "note": "The earlier readiness-3 physical gaps are closed by the applied immutable M3 migration: catalog.duration_estimates, catalog.review_decisions, catalog.provider_state and catalog.appid_terminal_rejections exist. Queue lifecycle facts now use those durable relations while raw queue archives remain staging-30d-post-cutover.",
+  "relations": {
+    "game_duration_estimates": {
+      "role": "Per-provider duration estimates with match status, confidence and a jsonb evidence document. The reconcile step chooses between these and writes the winner onto catalog_games.",
+      "summary": "Per-provider duration evidence is preserved in catalog.duration_estimates keyed (steam_app_id, provider), so a later re-reconcile does not need to re-fetch every provider.",
+      "disposition_class": "migrated",
+      "target": "catalog.duration_estimates",
+      "evidence": [
+        "readiness 3",
+        "readiness 4.5 (ordinal confidence)",
+        "readiness 8.5 (evidence jsonb is opaque)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_app_id": {
+          "disposition": "transformed",
+          "note": "Resolves through migration.game_map to catalog.games.id. Half of the natural (game, provider) key.",
+          "target": "catalog.duration_estimates.steam_app_id + catalog.duration_estimates.game_id",
+          "transform": "legacy steam appid -> catalog.games.id through migration.game_map. The raw appid is retained as half of the natural key, so an estimate for an app the catalogue does not hold still loads.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "provider": {
+          "disposition": "preserved",
+          "note": "Which duration provider produced the estimate. Coordinator ruling requires provider to be preserved as a SEPARATE fact from confidence, so it cannot be folded away.",
+          "target": "catalog.duration_estimates.provider",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "provider_game_id": {
+          "disposition": "preserved",
+          "note": "bigint. The provider's own identifier for the matched game - the key that makes an estimate re-checkable, and the anchor for the known HowLongToBeat AppID-identity mismatch on re-released SKUs, where rescue is by exact normalised title or alias rather than by AppID.",
+          "target": "catalog.duration_estimates.provider_game_id",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "main_story_minutes": {
+          "disposition": "preserved",
+          "note": "Already EXACT MINUTES; no unit conversion at any point. Would map to a per-provider estimate column, not to catalog.game_features, which holds only the reconciled winner.",
+          "target": "catalog.duration_estimates.main_story_minutes",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "main_extra_minutes": {
+          "disposition": "preserved",
+          "note": "The middle HowLongToBeat tier. Note the singular 'extra' here versus 'main_extras_minutes' on catalog_games - the two spellings are the same tier and a transform must not treat them as different columns.",
+          "target": "catalog.duration_estimates.main_extra_minutes",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "completionist_minutes": {
+          "disposition": "preserved",
+          "note": "Exact minutes for full completion.",
+          "target": "catalog.duration_estimates.completionist_minutes",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "submission_count": {
+          "disposition": "preserved",
+          "note": "How many provider submissions the estimate aggregates. This is the SAMPLE SIZE and is the only honest basis for the ordinal confidence; discarding it while keeping a confidence label would leave the label unjustifiable.",
+          "target": "catalog.duration_estimates.submission_count",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "match_status": {
+          "disposition": "preserved",
+          "note": "Whether and how the provider row was matched to the Steam app. Distinguishes a confident match from a title-similarity rescue, which is exactly the distinction the profile_steam AppID mismatch makes necessary.",
+          "target": "catalog.duration_estimates.match_status",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN"
+          ]
+        },
+        "match_confidence": {
+          "disposition": "preserved",
+          "note": "Text ordinal over none|low|medium|high. Same class as readiness 4.5: no defensible numeric image, and inventing one fabricates precision. Preserve as an ordinal label.",
+          "conflict": "readiness 4.5",
+          "target": "catalog.duration_estimates.match_confidence",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN"
+          ]
+        },
+        "provider_updated_at": {
+          "disposition": "preserved",
+          "note": "When the PROVIDER last updated the estimate, distinct from checked_at, which is when we looked. Both are needed to decide whether a refresh is due.",
+          "target": "catalog.duration_estimates.provider_updated_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "checked_at": {
+          "disposition": "preserved",
+          "note": "When we last fetched from the provider. NOT NULL in the source.",
+          "target": "catalog.duration_estimates.checked_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "next_refresh_at": {
+          "disposition": "preserved",
+          "note": "Provider refresh schedule preserved in the applied catalog.duration_estimates destination.",
+          "target": "catalog.duration_estimates.next_refresh_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "last_error_code": {
+          "disposition": "preserved",
+          "note": "Why the last fetch failed, as a code rather than free text. Earned history: a persistent provider failure should not be forgotten at cutover.",
+          "target": "catalog.duration_estimates.last_error_code",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "note": "When the estimate row was first created.",
+          "target": "catalog.duration_estimates.created_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "Row mutation clock; ordinarily a derived-retirement, but unresolved while the relation has no home.",
+          "target": "catalog.duration_estimates.updated_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1"
+        },
+        "evidence": {
+          "disposition": "preserved",
+          "note": "jsonb, NOT NULL. The raw provider response that justifies the estimate. Must be treated as OPAQUE TEXT and hashed as text, never re-serialised (readiness 8.5). Before export it must be checked for anything credential-shaped, since it holds provider responses.",
+          "target": "catalog.duration_estimates.evidence",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-1",
+          "snapshot_checks": [
+            "S-JSON-PRIVACY"
+          ]
+        }
+      },
+      "settled_decisions": [
+        "D-DUR-1 SETTLED: ruling 2 requires duration estimates and provider retry state, and plan 14.2 requires provider evidence and resolver parity. catalog.duration_estimates exists in the M3 migration with a unique (steam_app_id, provider), which is the key this decision asked for.",
+        "D-DUR-2 SETTLED: ruling 2 requires ordinal confidence WITHOUT fabricated probabilities. catalog.duration_estimates.match_confidence is a text ordinal constrained to none|low|medium|high, so no numeric image is invented."
+      ]
+    },
+    "game_duration_aliases": {
+      "role": "Operator-authored title aliases that rescue a duration match when AppID identity fails.",
+      "summary": "Hand-authored provider search aliases are preserved in catalog.duration_aliases as operator decisions a provider refresh must never overwrite.",
+      "disposition_class": "migrated",
+      "target": "catalog.duration_aliases",
+      "evidence": [
+        "readiness 3",
+        "coordinator ruling: preserve MANUAL DURATION DECISIONS"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_app_id": {
+          "disposition": "transformed",
+          "note": "Resolves through migration.game_map. The app the alias rescues.",
+          "target": "catalog.duration_aliases.steam_app_id + catalog.duration_aliases.game_id",
+          "transform": "legacy steam appid -> catalog.games.id through migration.game_map. The alias exists precisely to rescue an app whose identity did not match, so the raw appid is the key and game_id may be NULL.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3"
+        },
+        "search_title": {
+          "disposition": "preserved",
+          "note": "The exact title to search the provider for. Hand-authored; the entire value of the row. Nonempty text must not be truncated or dropped.",
+          "target": "catalog.duration_aliases.search_title",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3"
+        },
+        "release_year": {
+          "disposition": "preserved",
+          "note": "Disambiguates remakes and re-releases sharing a title. An integer YEAR, not a date: it must never be widened into a date or timestamp.",
+          "target": "catalog.duration_aliases.release_year",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3"
+        },
+        "review_status": {
+          "disposition": "preserved",
+          "note": "Whether the alias has been reviewed and accepted. An operator DECISION.",
+          "target": "catalog.duration_aliases.review_status",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN"
+          ]
+        },
+        "notes": {
+          "disposition": "preserved",
+          "note": "Operator notes explaining why the alias exists. Empty may normalise to null; nonempty must not be truncated or dropped.",
+          "target": "catalog.duration_aliases.notes",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3"
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "note": "When the alias was authored.",
+          "target": "catalog.duration_aliases.created_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "When it was last edited; for a hand-authored row this is a meaningful edit history, not mere row bookkeeping.",
+          "target": "catalog.duration_aliases.updated_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-3"
+        }
+      },
+      "settled_decisions": [
+        "D-DUR-3 SETTLED: ruling 2 requires aliases and manual duration decisions to be preserved, and plan 14.2 lists aliases explicitly. catalog.duration_aliases is a dedicated relation in the M3 migration, which is the second of the two options this decision offered."
+      ]
+    },
+    "game_duration_jobs": {
+      "role": "Work queue for duration enrichment, with a lock lease and retry state.",
+      "summary": "Per plan 14.2 and readiness 14 the queue is NOT a migration destination: in-flight work is not resumed and due work is rebuilt. Root's 11 September durability review added the missing half: current lifecycle state for a catalogued app reaches catalog.provider_state (evidence_kind='duration') and a terminal verdict for an uncatalogued app reaches catalog.appid_terminal_rejections, because migration.legacy_duration_job_archive is staging-30d-post-cutover. lib/duration-worker.ts is the sole writer: 'failed' is the verdict after MAX_ATTEMPTS (line 140-143), 'retry' carries the only record of the effective backoff (line 145), and a 'needs_review' row carries a provider verdict such as duration_not_found or known_title_no_provider_times (line 117-127) that re-running cannot change.",
+      "disposition_class": "migrated",
+      "target": "catalog.provider_state (mapped AppIDs) + catalog.appid_terminal_rejections (terminal verdicts for uncatalogued AppIDs); the transient queue itself is rebuilt after cutover",
+      "archive_purpose": "Preserve earned failure history so the rebuilt duration queue does not re-attempt known-bad apps against a provider we are rate-limited by, and so a systematic provider outage remains diagnosable after cutover.",
+      "archive_retention": "Operational provenance with no account key: retained until the v2 duration pipeline has re-derived its own failure set, reviewed at M7.",
+      "retention": {
+        "class": "operational-provenance",
+        "bound": "until the v2 duration pipeline has re-derived its own failure set",
+        "destination": "migration.legacy_duration_job_archive",
+        "carries_account_identity": false,
+        "review": "M7",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: shared catalogue evidence and job/worker summaries are bounded operational data with no account key"
+        ]
+      },
+      "evidence": [
+        "readiness 14 (queue relations are design confirmations, not migration conflicts)",
+        "plan 14.2"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_app_id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_duration_job_archive.steam_app_id",
+          "note": "The app the job was for; kept as the raw appid so an app absent from catalog_games is still recorded."
+        },
+        "status": {
+          "disposition": "preserved",
+          "note": "Archived verbatim AND mapped to durable lifecycle state; 'retry' becomes 'failed' with its fence, which is the only target shape whose CHECK permits a fence, and a needs_review verdict splits into a terminal rejection (duration_not_found / known_title_no_provider_times) or review_required state.",
+          "target": "catalog.provider_state.status",
+          "archive_also": "+migration.legacy_duration_job_archive.status"
+        },
+        "priority": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Scheduling input for a queue that is rebuilt after cutover from current demand.",
+          "note": "Retired as scheduling state, not as data."
+        },
+        "attempts": {
+          "disposition": "preserved",
+          "note": "Earned attempt history; also catalog.appid_terminal_rejections.attempts for an uncatalogued terminal verdict.",
+          "target": "catalog.provider_state.failure_count",
+          "archive_also": "+migration.legacy_duration_job_archive.attempts"
+        },
+        "next_attempt_at": {
+          "disposition": "preserved",
+          "target": "catalog.provider_state.next_attempt_at",
+          "note": "Also catalog.appid_terminal_rejections.retry_allowed_after for a terminal verdict on an AppID with no catalogue row. Reversed from derived-retirement by the 11 September durability review: nothing rebuilds a fence, so retiring it makes every failed app due at once after cutover."
+        },
+        "locked_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "A worker lease with no meaning after the freeze; readiness 14 confirms in-flight work is not resumed.",
+          "note": "A lease held at freeze time is reported to the operator, not carried."
+        },
+        "locked_by": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "The worker instance holding the lease. Meaningless after cutover, when no v2 worker will recognise the identifier.",
+          "note": "Also the column most likely to carry an environment or host identifier, so it is not exported."
+        },
+        "last_error_code": {
+          "disposition": "preserved",
+          "note": "The provider verdict code, which is what distinguishes a terminal rejection from a conflict awaiting a human.",
+          "target": "catalog.provider_state.last_error_code",
+          "archive_also": "+migration.legacy_duration_job_archive.last_error_code"
+        },
+        "last_error_message": {
+          "disposition": "preserved",
+          "note": "Kept verbatim within the durable 2000-character bound; an over-long value fails closed rather than being truncated.",
+          "target": "catalog.provider_state.last_error",
+          "archive_also": "+migration.legacy_duration_job_archive.last_error_message"
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_duration_job_archive.created_at",
+          "note": "When the job was queued; gives the failure history an age."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "catalog.provider_state.updated_at",
+          "note": "Also catalog.appid_terminal_rejections.last_attempt_at. The job row has no completed/processed instant, so updated_at is the only record of when the last attempt was made."
+        }
+      }
+    },
+    "catalog_duration_reviews": {
+      "role": "Human review responses on catalogue durations, optionally attributed to a reviewing user.",
+      "summary": "Operator duration reviews are preserved in catalog.review_decisions with decision_kind 'duration'. A review by a since-deleted account keeps a NULL reviewer rather than being dropped.",
+      "disposition_class": "migrated",
+      "target": "catalog.review_decisions",
+      "evidence": [
+        "readiness 3",
+        "coordinator ruling on manual duration decisions"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "transformed",
+          "note": "Resolves through migration.game_map. The app reviewed.",
+          "target": "catalog.review_decisions.steam_app_id + catalog.review_decisions.game_id",
+          "transform": "legacy steam appid -> catalog.games.id through migration.game_map.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4"
+        },
+        "response_text": {
+          "disposition": "preserved",
+          "note": "NOT NULL. The review itself. Nonempty text must not be truncated or dropped; empty may normalise to null.",
+          "target": "catalog.review_decisions.response_text",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4"
+        },
+        "response_kind": {
+          "disposition": "preserved",
+          "note": "What kind of response it is (correction, confirmation, rejection). The machine-readable half of the decision.",
+          "target": "catalog.review_decisions.response_kind",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN"
+          ]
+        },
+        "source_url": {
+          "disposition": "preserved",
+          "note": "Where the reviewer got their figure. The evidence behind the decision. Checked for embedded credentials before export.",
+          "target": "catalog.review_decisions.source_url",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4"
+        },
+        "reviewer_user_id": {
+          "disposition": "transformed",
+          "note": "Nullable uuid; resolve through migration.account_map to the nullable reviewer_account_id foreign key. A review by a since-deleted account keeps a null reviewer rather than being dropped.",
+          "target": "catalog.review_decisions.reviewer_account_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map. The shared catalogue decision intentionally keeps only the nullable account FK; the source reviewer UUID is available during bounded migration staging and is not retained in this shared row, so ON DELETE SET NULL removes account-linked personal identity while preserving the decision itself.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4"
+        },
+        "reviewed_at": {
+          "disposition": "preserved",
+          "note": "When the review was made; the ordering key when several reviews disagree.",
+          "target": "catalog.review_decisions.reviewed_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "When the review was last edited. For a hand-authored decision this is meaningful edit history, not mere row bookkeeping.",
+          "target": "catalog.review_decisions.updated_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-DUR-4"
+        }
+      },
+      "settled_decisions": [
+        "D-DUR-4 SETTLED: ruling 2 requires review/manual-decision destinations and plan 14.2 requires review provenance. catalog.review_decisions.reviewer_account_id is a nullable FK with ON DELETE SET NULL. The source reviewer UUID is bounded staging evidence, so the shared decision outlives the reviewer without leaving personal identity in the catalogue row."
+      ]
+    }
+  }
+}

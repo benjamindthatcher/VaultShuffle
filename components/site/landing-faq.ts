@@ -28,11 +28,6 @@ export const LANDING_FAQ: readonly LandingFaqItem[] = [
       "A guided draw ranks games before choosing one. Your filters and saved statuses determine what is eligible, while session, mood and goal help decide what fits best. It favours stronger matches without giving you the same result every time."
   },
   {
-    question: "Is VaultShuffle free?",
-    answer:
-      "Yes. VaultShuffle has no paid tier, subscription or payment-card requirement."
-  },
-  {
     question: "Do I have to sign in with Steam?",
     answer:
       "No. Try guest mode with a sample library, or import a public Steam profile using its URL, custom profile name or SteamID. Public-profile imports save your choices in a separate VaultShuffle profile accessed through this browser's session. Steam sign-in verifies that the Steam account is yours."

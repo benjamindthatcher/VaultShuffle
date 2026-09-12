@@ -1,0 +1,444 @@
+{
+  "domain": "Recommender warm start, operator configuration, tenant preferences, abuse control",
+  "note": "The `reco` schema exists but is EMPTY (readiness 3), so all four warm-start relations are unresolved. Three coordinator rulings govern this file: app_settings is tenant preference data; algorithm_weights is HAND-TUNED operator configuration and is versioned SEPARATELY from learned aggregates; api_rate_limits is application abuse control, distinct from M2's keyed provider budgets, and an unqualified reset-at-cutover is NOT approved.",
+  "relations": {
+    "user_genre_preferences": {
+      "role": "Per-user learned Beta-style tallies of genre preference within a mood context.",
+      "summary": "Per-account learned genre tallies are preserved as a versioned frozen warm-start snapshot in reco.user_genre_preferences, separate from any new learned state.",
+      "disposition_class": "migrated",
+      "target": "reco.user_genre_preferences",
+      "evidence": [
+        "readiness 3 (recommender warm start has no v2 relation of any kind)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "user_id": {
+          "disposition": "transformed",
+          "note": "Resolves through migration.account_map. Per-account learned evidence, so it is tenant data and inherits tenant isolation.",
+          "target": "reco.user_genre_preferences.account_id + reco.user_genre_preferences.source_user_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map; the legacy uuid is not lost because app.accounts.public_id retains it. The source uuid is retained so a tally whose account was merged or deleted keeps its provenance.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-1"
+        },
+        "genre": {
+          "disposition": "preserved",
+          "note": "The genre the tally is about. Its vocabulary comes from catalog_games.genres, which IS migrated, so the key remains resolvable.",
+          "target": "reco.user_genre_preferences.genre",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-1"
+        },
+        "context_mood": {
+          "disposition": "preserved",
+          "note": "The mood context. Second half of the key. Sourced from vault_draws.mood, so it is coupled to D-VLT-2.",
+          "target": "reco.user_genre_preferences.mood",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-1"
+        },
+        "positive": {
+          "disposition": "preserved",
+          "note": "double precision. The alpha side of a Beta-style tally. NOT an integer count: it is fractional because observations are weighted, so it must never be narrowed to an integer.",
+          "target": "reco.user_genre_preferences.positive",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-1"
+        },
+        "total": {
+          "disposition": "preserved",
+          "note": "double precision. The denominator. positive/total is the estimate, and total alone is the confidence, so neither is recoverable from the other and both must survive together.",
+          "target": "reco.user_genre_preferences.total",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-1"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "When the tally last moved. For learned evidence this is a decay input, not row bookkeeping: a stale tally should count for less.",
+          "target": "reco.user_genre_preferences.source_updated_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-1"
+        }
+      },
+      "settled_decisions": [
+        "D-RECO-1 SETTLED: ruling 1 requires versioned frozen warm-start evidence to be preserved separately from new learned state, and plan 14.2 says never to blindly discard sole remaining preference evidence. reco.warm_start_snapshots + reco.user_genre_preferences exist in the M3 migration.",
+        "D-RECO-2 SETTLED: the mood vocabulary keeps its source of truth because D-VLT-2 preserves draw history; context_mood no longer needs pinning from live definitions to survive."
+      ]
+    },
+    "genre_preference_globals": {
+      "role": "Cross-user aggregate genre tallies per mood context; the prior a new user starts from.",
+      "summary": "The global genre prior is preserved as part of the same versioned frozen warm-start snapshot.",
+      "disposition_class": "migrated",
+      "target": "reco.genre_preference_globals",
+      "evidence": [
+        "readiness 3",
+        "readiness 2.3 (shape alone does not classify a table)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "genre": {
+          "disposition": "preserved",
+          "note": "Genre key; vocabulary comes from the migrated catalogue.",
+          "target": "reco.genre_preference_globals.genre",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-3"
+        },
+        "context_mood": {
+          "disposition": "preserved",
+          "note": "Mood context; coupled to D-VLT-2 in the same way as user_genre_preferences.context_mood.",
+          "target": "reco.genre_preference_globals.mood",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-3"
+        },
+        "positive": {
+          "disposition": "preserved",
+          "note": "double precision alpha side. Fractional; never narrowed to an integer.",
+          "target": "reco.genre_preference_globals.positive",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-3"
+        },
+        "total": {
+          "disposition": "preserved",
+          "note": "double precision denominator, carrying the confidence of the global prior.",
+          "target": "reco.genre_preference_globals.total",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-3"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "Recency of the aggregate; a decay input rather than row bookkeeping.",
+          "target": "reco.genre_preference_globals.source_updated_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-3"
+        }
+      },
+      "settled_decisions": [
+        "D-RECO-3 SETTLED: the prior is preserved outright, so the recomputability question is moot. Ruling 1 and plan 14.2 both require it; reco.genre_preference_globals exists in the M3 migration."
+      ]
+    },
+    "game_preference_globals": {
+      "role": "Cross-user aggregate tallies per specific game, plus accumulated hours.",
+      "summary": "The global per-game prior is preserved in the frozen warm-start snapshot. total_hours keeps its unit and its rounding provenance explicitly, because it aggregates values already rounded on the import path.",
+      "disposition_class": "migrated",
+      "target": "reco.game_preference_globals",
+      "evidence": [
+        "readiness 3"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "transformed",
+          "note": "Resolves through migration.game_map to catalog.games.id.",
+          "target": "reco.game_preference_globals.game_id + reco.game_preference_globals.steam_app_id",
+          "transform": "legacy steam appid -> catalog.games.id through migration.game_map. The raw appid is retained so a prior for an app the catalogue no longer holds is not dropped.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-4"
+        },
+        "positive": {
+          "disposition": "preserved",
+          "note": "double precision alpha side of the per-game tally.",
+          "target": "reco.game_preference_globals.positive",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-4"
+        },
+        "total": {
+          "disposition": "preserved",
+          "note": "double precision denominator.",
+          "target": "reco.game_preference_globals.total",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-4"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "Recency of the aggregate.",
+          "target": "reco.game_preference_globals.source_updated_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-4"
+        },
+        "total_hours": {
+          "disposition": "preserved",
+          "note": "double precision, accumulated cross-user HOURS. It aggregates user_games.hours_played, which is itself a rounded derivative (lib/steam-owned-games.ts:32), so it cannot be converted to exact minutes after the fact without fabricating precision. If carried, it is carried as hours with explicit provenance.",
+          "target": "reco.game_preference_globals.total_hours",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-RECO-4"
+        }
+      },
+      "settled_decisions": [
+        "D-RECO-4 SETTLED: ruling 1 requires the warm-start evidence to survive, and the ruling on exact minutes versus rounded hours is satisfied by recording the unit and rounding provenance rather than by converting an already-rounded aggregate into false exact minutes."
+      ]
+    },
+    "algorithm_weights": {
+      "role": "HAND-TUNED operator configuration. lib/genre-preferences.ts:112 describes the table as edited by hand in the Supabase dashboard, and lib/genre-preference-worker.ts:79 describes it as carrying the live values so they can be tuned with an update statement rather than a deploy.",
+      "summary": "Hand-tuned operator weights are preserved in a VERSIONED operator configuration relation, deliberately separate from the learned warm-start aggregates, so a learning job can never overwrite a hand-set value and every change stays attributable.",
+      "disposition_class": "migrated",
+      "target": "reco.operator_weight_versions",
+      "evidence": [
+        "coordinator ruling, 9 September",
+        "readiness 2.3",
+        "lib/genre-preferences.ts:112",
+        "lib/genre-preference-worker.ts:79"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "key": {
+          "disposition": "preserved",
+          "note": "The tuning knob's name. Primary key; hand-authored.",
+          "target": "reco.operator_weight_versions.weight_key",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CFG-1"
+        },
+        "positive": {
+          "disposition": "preserved",
+          "note": "double precision. Despite the Beta-style name this is a HAND-SET value, not an observed count. It must not be routed into a relation whose semantics are 'accumulated evidence', which would let a learning job overwrite it.",
+          "target": "reco.operator_weight_versions.positive",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CFG-1"
+        },
+        "total": {
+          "disposition": "preserved",
+          "note": "double precision, hand-set. Same reasoning as `positive`.",
+          "target": "reco.operator_weight_versions.total",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CFG-1"
+        },
+        "note": {
+          "disposition": "preserved",
+          "note": "Free-text operator note explaining why the weight is what it is. This is the ONLY record of the tuning rationale and is exactly what a shape-based classification would have discarded. Nonempty text must not be truncated or dropped.",
+          "target": "reco.operator_weight_versions.note",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CFG-1"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "When the operator last tuned this knob. For hand-authored configuration this is meaningful change history, not row bookkeeping.",
+          "target": "reco.operator_weight_versions.source_updated_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CFG-1"
+        }
+      },
+      "settled_decisions": [
+        "D-CFG-1 SETTLED: ruling 1 requires manually tuned operator configuration to be preserved separately from both raw history and learned state, and plan 14.2 calls for versioned validated configuration. reco.operator_weight_versions exists in the M3 migration and is a different relation from the reco warm-start tables, which is exactly the separation the ruling demands.",
+        "D-CFG-2 SETTLED: the values migrate, so v2 does not ship with default weights and the previous tuning stays on record."
+      ]
+    },
+    "app_settings": {
+      "role": "PER-ACCOUNT preference data - (id, user_id, key, value) with UNIQUE (user_id, key) and a CASCADE foreign key to app_accounts. It is tenant data, NOT configuration.",
+      "summary": "Coordinator ruling: tenant preference data, belonging in app.account_preferences, whose plan 5.1 contract already describes exactly this import. An earlier draft filed it with algorithm_weights under configuration; that grouping was wrong.",
+      "disposition_class": "migrated",
+      "target": "app.account_preferences",
+      "evidence": [
+        "readiness 2.2",
+        "coordinator ruling, 9 September",
+        "M1:159 app.account_preferences"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "A per-row surrogate key for a row model that ceases to exist: app.account_preferences is keyed by account_id alone (M1:160). The identifying facts are user_id and key, both of which survive as the account and the JSON key.",
+          "note": "Not browser-visible, so no public-identity retention is required (contrast collections, readiness 6.4)."
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.account_preferences.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Becomes the primary key of the target, since all of an account's preferences collapse into one row."
+        },
+        "key": {
+          "disposition": "transformed",
+          "target": "app.account_preferences.preferences (object key)",
+          "transform": "A row's `key` becomes a KEY inside the jsonb document. UNIQUE (user_id, key) in the source guarantees no collision on collapse.",
+          "note": "M1:164 requires jsonb_typeof(preferences) = 'object', which this shape satisfies."
+        },
+        "value": {
+          "disposition": "transformed",
+          "target": "app.account_preferences.preferences (object value)",
+          "transform": "text -> JSON STRING value. Values that look numeric or boolean are NOT retyped: the source column is text and retyping would assert a schema the source never had.",
+          "note": "Plan 5.1 describes importing browser-local values once with explicit conflict precedence; that precedence is a runtime concern, but the migrated document is the base it resolves against.",
+          "conflict": "D-PREF-2 (16384-byte document bound)"
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "migration.legacy_account_preferences_evidence.source_created_at",
+          "note": "Per-KEY creation instant. The collapsed document has one updated_at for the whole account (M1:163), so per-key timing cannot be represented and is archived rather than silently dropped."
+        },
+        "updated_at": {
+          "disposition": "transformed",
+          "target": "app.account_preferences.updated_at",
+          "transform": "The per-account document timestamp takes MAX(updated_at) across that account's rows. Per-key timestamps are archived alongside created_at.",
+          "note": "Taking max rather than the load time keeps 'when did this account last change a preference' true."
+        }
+      },
+      "archive_purpose": "Retain per-key created_at/updated_at, which the single-document app.account_preferences structurally cannot hold, so 'when did this setting change' stays answerable after the row-to-document collapse.",
+    "archive_retention": "Durable private fact: the collapsed preference document and its per-key provenance are retained while the account exists, removed by account deletion and included in the account export. The raw staging copy is bounded to 30 days after validated cutover once the durable document carries the required provenance.",
+      "retention": {
+        "class": "durable-private-fact",
+        "bound": "while-the-account-exists",
+      "destination": "app.account_preferences",
+        "carries_account_identity": true,
+      "account_deletion": "The durable app.account_preferences row cascades from app.accounts(id); the raw migration.legacy_account_preferences_evidence copy also carries the mapped account key and source UUID and cascades before its staging window closes.",
+        "account_export": "Retired per-account preference values are the user's own settings and belong in the account export.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+      "note": "Per-account preferences, not global configuration: the durable destination carries an account key, so it is personal data. The staging archive is a bounded copy of per-key provenance."
+      },
+      "settled_decisions": [
+        "D-PREF-1 SETTLED (manifest-authored, constrained by ruling 12's 'preserve original facts first'): every legacy value is TEXT, so every value is preserved as a JSON STRING in the account_preferences document. A value that merely looks numeric or boolean is never silently retyped; typed interpretation is left to the reader. The raw key/value rows are additionally archived in migration.legacy_account_preferences_evidence, so the reshaping is reversible. Subject to coordinator review as an authored disposition.",
+        "D-PREF-2 SETTLED (handling): an account whose collapsed document exceeds M1's 16384-byte bound is a REPORTED CONFLICT and is never truncated. Whether any account exceeds it is snapshot check S-PREF-BOUND."
+      ],
+      "snapshot_checks": [
+        "S-PREF-BOUND"
+      ]
+    },
+    "api_rate_limits": {
+      "role": "APPLICATION ABUSE CONTROL: fixed windows keyed by (bucket, key_hash), where key_hash is a 64-hex digest derived from a session or client key.",
+      "summary": "Application abuse cooldown obligations are preserved in a separate private operational relation. They are NOT written into M2's keyed provider-budget tables, which model a different system.",
+      "disposition_class": "migrated",
+      "target": "ops.abuse_cooldowns",
+      "evidence": [
+        "readiness 7",
+        "coordinator ruling, 9 September",
+        "readiness 14 (roughly twenty class-A sweep rows wrongly treated the M2 quota tables as destinations)"
+      ],
+      "open_decisions": [
+        "D-ABUSE-3 OPEN (cutover): whether, and for how long, an UNEXPIRED legacy cooldown continues to bind after cutover. Ruling 4 settles the destination and requires the algorithm/version, source time/window and expiration needed for a conservative bridge to be recorded, and it explicitly authorises no reset or activation here. The bridge's actual behaviour is an M6/M7 cutover decision that depends on which windows are still outstanding at the freeze: snapshot check S-ABUSE-BRIDGE."
+      ],
+      "columns": {
+        "bucket": {
+          "disposition": "preserved",
+          "note": "Which abuse bucket the window belongs to (an endpoint or action class). Not a provider name, which is why the M2 provider tables are not a destination.",
+          "target": "ops.abuse_cooldowns.bucket",
+          "settled_by": [
+            "coordinator ruling 4, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-ABUSE-1",
+          "snapshot_checks": [
+            "S-ABUSE-BRIDGE"
+          ]
+        },
+        "key_hash": {
+          "disposition": "transformed",
+          "note": "PRIVATE. A 64-hex digest derived from a session or client key. readiness 7 states it must never leave the private export. It is counted, never printed, never reported by value, and never used as a join key in any artefact that leaves the private boundary.",
+          "target": "ops.abuse_cooldowns.key_digest",
+          "transform": "the 64-hex session-derived digest is carried inside the private boundary only. It is never reported by value, never used as a grouping label in any probe output, and never leaves the private export.",
+          "settled_by": [
+            "coordinator ruling 4, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-ABUSE-1",
+          "snapshot_checks": [
+            "S-ABUSE-BRIDGE"
+          ]
+        },
+        "window_started_at": {
+          "disposition": "preserved",
+          "note": "Start of the fixed window. Combined with the window length, this determines whether a cooldown is still OUTSTANDING at cutover - the precise fact the coordinator ruling requires be preserved.",
+          "target": "ops.abuse_cooldowns.window_started_at",
+          "settled_by": [
+            "coordinator ruling 4, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-ABUSE-1",
+          "snapshot_checks": [
+            "S-ABUSE-BRIDGE"
+          ]
+        },
+        "request_count": {
+          "disposition": "preserved",
+          "note": "Requests in the current window. Fixed-window counters have no token-bucket equivalent, so this cannot be converted into M2's model even if a destination existed.",
+          "target": "ops.abuse_cooldowns.request_count",
+          "settled_by": [
+            "coordinator ruling 4, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-ABUSE-1",
+          "snapshot_checks": [
+            "S-ABUSE-BRIDGE"
+          ]
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "Last increment. Distinguishes an active abuser from a stale window that has already lapsed, which is what bounds how many cooldowns actually need carrying.",
+          "target": "ops.abuse_cooldowns.source_updated_at",
+          "settled_by": [
+            "coordinator ruling 4, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-ABUSE-1",
+          "snapshot_checks": [
+            "S-ABUSE-BRIDGE"
+          ]
+        }
+      },
+      "settled_decisions": [
+        "D-ABUSE-1 SETTLED by ruling 4: ops.abuse_cooldowns is a separate private operational destination carrying algorithm_version, source_window_seconds, window_started_at and expires_at, which is exactly the conservative-bridge evidence the ruling names. The M2 provider-budget tables are untouched.",
+        "D-ABUSE-2 SETTLED: key_hash migrates as ops.abuse_cooldowns.key_digest and is counted, never printed. It stays inside the private boundary, is never reported by value and never appears in a probe result, a log or a conflict report."
+      ],
+      "snapshot_checks": [
+        "S-ABUSE-BRIDGE"
+      ]
+    }
+  }
+}

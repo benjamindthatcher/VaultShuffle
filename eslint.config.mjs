@@ -12,7 +12,11 @@ const config = [
       "node_modules/**",
       "data/**",
       "supabase/functions/**",
-      "scripts/**"
+      "scripts/**",
+      // Agent worktrees hold a second checkout of the whole app. Without this,
+      // every finding in the real source is reported twice and the counts stop
+      // meaning anything.
+      ".claude/**"
     ]
   },
   ...next,

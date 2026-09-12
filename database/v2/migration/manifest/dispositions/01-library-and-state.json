@@ -1,0 +1,740 @@
+{
+  "domain": "Library rows, per-game state, family access, playtime, completion history",
+  "note": "The highest-risk domain in M3. Two hazards dominate: the stale user_game_state child (readiness 5) and the authored hours_played write path (readiness 8.1).",
+  "relations": {
+    "user_games": {
+      "role": "The per-user library row. One row per (user, catalogue app). Ordinals skip 3,4,5,8,11,14,22-28,30,31, so 'priority' and 'rating' no longer exist on the live table.",
+      "summary": "Fans out into five v2 relations: app.library_games (exact minutes), app.game_state (authored state), app.game_activity (recency evidence), app.family_game_access (lender access), and app.library_legacy_measurements plus bounded migration.legacy_library_evidence for sparse legacy evidence.",
+      "disposition_class": "migrated",
+      "target": "app.library_games + app.game_state + app.game_activity + app.family_game_access",
+      "evidence": [
+        "readiness 2.1 (priority and rating are retired, inspection complete)",
+        "readiness 4.3 recency evidence source",
+        "readiness 4.8 family access without a member row",
+        "readiness 4.11 empty-string notes",
+        "readiness 8.1 authored hours_played",
+        "readiness 8.4 derived completion_percentage",
+        "readiness 8.5 date_added is DD/MM/YYYY text"
+      ],
+      "open_decisions": [
+        "D-LIB-3 OPEN (source value): the completed M3 contract preserves the legacy hours value and raw source text in bounded migration.legacy_library_evidence, and promotes unreproducible evidence to durable app.library_legacy_measurements, while app.library_games.playtime_minutes remains the exact-minute runtime value. The active-value precedence between those facts still depends on measured P05 conversion conflicts at the final source snapshot; neither value may be coerced, maxed or silently discarded."
+      ],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "migration.library_row_map.legacy_id",
+          "transform": "uuid -> (account_id, game_id). v2 keys the library by (account_id, game_id) and has no per-row surrogate, so the uuid becomes a map key rather than a column.",
+          "note": "MANDATORY map (readiness 6.3): seven legacy relations address a game by this uuid rather than by catalogue identity.",
+          "evidence": [
+            "readiness 6.3",
+            "lib/vault-state.ts:27,:32,:37",
+            "lib/collections.ts:38"
+          ]
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.library_games.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Same account resolution used by every app.* target."
+        },
+        "ownership": {
+          "disposition": "transformed",
+          "note": "Legacy distinguishes owned from wishlist-style rows. v2 app.library_games has account_id, game_id and playtime_minutes only (M1:226-231) and carries no ownership column; app.pins.scope has a 'wishlist' value (M1:374), which implies v2 expects the concept to exist somewhere. Dropping it silently would collapse wishlist rows into the owned library.",
+          "target": "app.library_games + app.family_game_access + app.retired_library_games.loss_reason",
+          "transform": "the legacy ownership label selects the destination rather than becoming a column: owned rows become app.library_games, family rows become app.family_game_access, and wishlist rows become retired measurements in app.retired_library_games with loss_reason recording the wishlist origin. Plan 14.2 states this directly ('Wishlist tombstones become retired measurements'), so no wishlist row collapses into the owned library.",
+          "settled_by": [
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-LIB-4"
+        },
+        "status": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Derived, not authored. 'Sampled' is computed from progress at lib/game-classification.ts:156 and rendered as In Progress at lib/app-view-model.ts:140. The terminal states are recoverable from app.game_state.completed_at and slept_at, which are migrated.",
+          "note": "readiness 8.4 confirms this as a non-gap for the active sub-states. It is NOT one of plan 14.2's five open fields.",
+          "evidence": [
+            "readiness 8.4"
+          ]
+        },
+        "hours_played": {
+          "disposition": "unresolved-decision",
+          "note": "The readiness 8.1 hazard. On the import path this is derived and rounded: Math.round(((minutes ?? 0)/60)*10)/10 at lib/steam-owned-games.ts:32. But the same field is also accepted and written by client-facing paths - lib/validation.ts:26 and :38, app/api/games/[id]/route.ts:14 and :26, and lib/games.ts:117 - while observed_playtime_minutes has no writer in lib/ or app/ at all. The completed M3 contract preserves the legacy numeric value and its raw source text in migration.legacy_library_evidence. Exact observed minutes remain separate in app.library_games.playtime_minutes. An hours discrepancy alone does not prove which path authored a row or which fact should be active at runtime. The unresolved decision is only that runtime precedence, and P05 must measure it at the final source snapshot; no value is maxed, rounded again or silently discarded.",
+          "blocked_on": "probe P05: count rows whose hours_played cannot be reproduced from observed_playtime_minutes by the import rounding, split by access_source",
+          "archive": "+migration.legacy_library_evidence.legacy_hours_played + migration.legacy_library_evidence.legacy_hours_played_raw + app.library_legacy_measurements.legacy_hours_played + app.library_legacy_measurements.legacy_hours_played_raw",
+          "evidence": [
+            "readiness 8.1",
+            "readiness 10 probe 5",
+            "lib/games.ts:117",
+            "database/v2/M3-contract.md: migration.legacy_library_evidence preserves authored hours"
+          ]
+        },
+        "completion_percentage": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_library_evidence.completion_percentage + app.library_legacy_measurements.legacy_completion_percentage + app.library_legacy_measurements.legacy_completion_percentage_raw",
+          "note": "Derived at import by inferredCompletionForPayload (lib/game-classification.ts:174) and re-derived on read by gameProgress (:161), with NO provenance flag distinguishing an authored value. Primary rule per readiness 8.4: do NOT populate app.game_state.manual_progress from it, because that would assert authorship the data cannot support. The whole column is retained as evidence so a later provenance decision remains possible.",
+          "evidence": [
+            "readiness 8.4"
+          ]
+        },
+        "date_added": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_library_evidence.date_added_raw + app.library_legacy_measurements.legacy_date_added_raw",
+          "note": "TEXT, not a date, and locale-formatted: lib/steam-owned-games.ts:19 produces it with toLocaleDateString('en-GB'), giving DD/MM/YYYY. lib/validation.ts:29 accepts any trimmed string up to 64 chars, so other formats may exist. Parsing '03/09/2026' with a default or US parser yields March 9, not 3 September. Retained as OPAQUE TEXT with NO date parsing at all, and a documented retirement. Coordinator ruling: retain raw evidence; never parse DD/MM/YYYY with a US or default parser.",
+          "evidence": [
+            "readiness 8.5",
+            "lib/steam-owned-games.ts:19",
+            "lib/validation.ts:29"
+          ]
+        },
+        "notes": {
+          "disposition": "transformed",
+          "target": "app.game_state.notes",
+          "transform": "Legacy is text NOT NULL and may be ''. v2 requires length(btrim(notes)) between 1 and 10000 (M1:245). Empty and whitespace-only normalise to NULL; the row is then suppressed entirely unless another state field is set, because app.game_state carries a disjunction check (M1:254-259). Nonempty text is NEVER truncated: over-length is a reported conflict.",
+          "note": "Plan section 2 records zero nonempty notes today, so this is currently a suppression rule rather than a data risk, but the feature is retained and the rule must exist.",
+          "conflict": "readiness 4.11"
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_library_evidence.created_at",
+          "note": "When the library row was created. app.library_games (M1:226-231) deliberately has no timestamps, and app.game_state.updated_at is a mutation clock, not a creation instant. Archived rather than retired because 'when did this game enter my library' is not recoverable from anything else once date_added is retired as unparseable."
+        },
+        "updated_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Row mutation bookkeeping, regenerated by v2 write paths into app.game_state.updated_at. Carries no fact about the user's library.",
+          "note": "Distinct from created_at above, which is archived."
+        },
+        "last_played_at": {
+          "disposition": "preserved",
+          "target": "app.game_activity.last_played_at",
+          "note": "Steam's reported last-played instant. app.game_activity requires last_observed_minutes or last_played_at to be non-null (M1:273)."
+        },
+        "completed_at": {
+          "disposition": "preserved",
+          "target": "app.game_state.completed_at",
+          "note": "Authored terminal state. One of the two fields whose disagreement with the stale user_game_state child is measured by probe P06."
+        },
+        "slept_at": {
+          "disposition": "preserved",
+          "target": "app.game_state.slept_at",
+          "note": "Authored terminal state; the second field probe P06 compares."
+        },
+        "completion_suggestion_dismissed_at": {
+          "disposition": "preserved",
+          "target": "app.game_state.completion_dismissed_at",
+          "note": "Direct semantic match."
+        },
+        "completion_suggestion_dismissed_playtime": {
+          "disposition": "transformed",
+          "target": "app.game_state.completion_dismissed_playtime",
+          "transform": "numeric -> integer. This is one of readiness 8.2's three narrowings and needs a stated rounding rule applied identically in the transform and the validator. Proposal: reject any value that is not integral rather than round, because a fractional dismissal baseline would indicate the unit is not what we think.",
+          "note": "Unit is NOT changed here - legacy and target are both minutes-or-unspecified; only the type narrows. Contrast user_game_pins.hours_at_pin, which is a genuine unit change.",
+          "conflict": "readiness 8.2"
+        },
+        "previous_active_status": {
+          "disposition": "preserved",
+          "target": "app.game_state.previous_active_status",
+          "note": "Legacy text; v2 constrains to 'Not Started'|'Sampled'|'In Progress' (M1:238-239). Remains one of plan 14.2's open fields (readiness 8.4 explicitly does not close it). Values outside the v2 domain are a reported conflict, not a coercion.",
+          "conflict": "probe PX-b: distribution of previous_active_status values against the v2 domain"
+        },
+        "catalog_steam_appid": {
+          "disposition": "transformed",
+          "target": "app.library_games.game_id",
+          "transform": "bigint steam appid -> catalog.games.id integer via migration.game_map.",
+          "note": "Has a RESTRICT FK to catalog_games, so every library row resolves (readiness 6.2). The steam appid itself survives on catalog.games.steam_app_id."
+        },
+        "last_observed_played_at": {
+          "disposition": "preserved",
+          "target": "app.game_activity.observed_at",
+          "note": "When the observation was made, as distinct from last_played_at, which is what was observed. Keeping both separate is required by the coordinator ruling on recency provider AND evidence kind."
+        },
+        "recency_source": {
+          "disposition": "transformed",
+          "target": "app.game_activity.evidence_source + app.game_activity.recency_evidence_kind",
+          "transform": "readiness 4.3: NO legacy value is in the v2 evidence_source list. Legacy allows steam_exact | observed_playtime_change | steam_recent_window (lib/recency.ts:25); v2 evidence_source allows steam_profile | steam_api | user | unknown (M1:269). The two answer DIFFERENT questions: legacy records what KIND of evidence exists, v2 records WHO reported it. evidence_source = 'steam_api' for all three legacy kinds, because all three are Steam-reported, and the KIND is carried EXPLICITLY in app.game_activity.recency_evidence_kind, which the M3 migration adds for this purpose. The earlier proposal encoded the kind in interval nullability; ruling 10 rejects that ('Interval nullability does not necessarily encode the original evidence kind; preserve it explicitly where needed'), and an interval start is never invented.",
+          "note": "Coordinator ruling: preserve recency provider AND evidence kind as separate facts. This split does that without weakening a frozen constraint.",
+          "conflict": "readiness 4.3",
+          "settled_by": [
+            "coordinator ruling 10, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-REC-1"
+        },
+        "recency_evidence_at": {
+          "disposition": "transformed",
+          "target": "app.game_activity.interval_ended_at",
+          "transform": "The upper bound of the evidence window. interval_started_at stays NULL for observed_playtime_change because legacy genuinely does not record it (readiness 4.3) and inventing a bound would fabricate evidence.",
+          "note": "M1:275 requires interval_ended_at >= interval_started_at, which a null start satisfies."
+        },
+        "observed_playtime_minutes": {
+          "disposition": "preserved",
+          "target": "app.library_games.playtime_minutes",
+          "note": "The exact measurement. NULL stays NULL and hours_played = 0 must NEVER become an observed zero - M1:224-225 states the invariant explicitly. This column is the reason exact minutes can be preserved separately from rounded hours. Whether it is the SOLE source is D-LIB-1, blocked on probe P05.",
+          "evidence": [
+            "readiness 8.1",
+            "M1:224-231"
+          ]
+        },
+        "review_requested_at": {
+          "disposition": "preserved",
+          "target": "app.game_state.review_requested_at",
+          "note": "Direct semantic match; also one of app.game_state's disjunction-satisfying fields (M1:254-259)."
+        },
+        "access_source": {
+          "disposition": "transformed",
+          "target": "app.family_game_access (row existence) + app.library_games (row existence)",
+          "transform": "Legacy encodes owned-versus-family access as a column on one relation; v2 encodes it as WHICH relation the row is in. A family row becomes an app.family_game_access row; an owned row stays in app.library_games.",
+          "note": "This is also the split key for probe P05, because the 1,262 family rows are the population where hours_played and observed_playtime_minutes disagree.",
+          "evidence": [
+            "readiness 8.1"
+          ]
+        },
+        "family_owner_steam_id": {
+          "disposition": "transformed",
+          "note": "readiness 4.8. Plain text with NO foreign key to user_family_members. v2 app.family_game_access (M1:331) requires a composite FK to app.family_members(account_id, id), so any family row whose lender row has since been removed cannot be represented as family access. Coordinator ruling forbids fabricating family access to make rows fit, so the options are (a) drop the access row and archive the evidence, or (b) synthesise a member row, which fabricates access and is therefore rejected.",
+          "target": "app.family_game_access + migration.legacy_family_access_orphans.source_steam_id",
+          "transform": "resolved to the composite FK app.family_game_access(account_id, member_id) by matching app.family_members.steam_id. A row whose lender record no longer exists does NOT get a synthesised member: ruling 8 says orphan family-access evidence is retained privately and does not manufacture a member or confer access, so it lands in migration.legacy_family_access_orphans with its disposition recorded. How many such rows exist is snapshot check S-FAM-ORPHAN.",
+          "settled_by": [
+            "coordinator ruling 8, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-FAM-3",
+          "snapshot_checks": [
+            "S-FAM-ORPHAN"
+          ]
+        },
+        "family_verified_at": {
+          "disposition": "transformed",
+          "target": "app.family_game_access.observed_at + app.family_game_access.provenance",
+          "transform": "A non-null family_verified_at means the access was confirmed, so provenance = 'verified' and observed_at = family_verified_at. A null means provenance = 'inferred' and observed_at falls back to the row's observation instant.",
+          "note": "M1:336-337 defaults provenance to 'inferred', so a missed mapping under-claims rather than over-claims, which is the safe direction."
+        }
+      },
+      "archive_purpose": "Hold legacy hours, completion and date-added evidence in app.library_legacy_measurements when it is not reproducible by the compact runtime model, with migration.legacy_library_evidence as the bounded reconciliation staging row. P05 can therefore choose active playtime precedence without re-reading the source and no fact is silently dropped.",
+      "archive_retention": "Durable private exceptions remain while the account exists, are removed by account deletion and included in the account export. The raw staging copy is bounded to 30 days after validated cutover and may expire only after the durable sparse row is populated. date_added_raw is never parsed while archived.",
+      "retention": {
+        "class": "durable-private-fact",
+        "bound": "while-the-account-exists",
+        "destination": "app.library_legacy_measurements",
+        "carries_account_identity": true,
+        "account_deletion": "Keyed to app.accounts(id) with ON DELETE CASCADE; account deletion removes the authored hours, the raw date text and the completion percentage along with the rest of the account's private derivatives.",
+        "account_export": "Authored hours, raw date text and completion percentage are the user's own figures and belong in the account export alongside the runtime library.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+        "note": "The sparse app.library_legacy_measurements row is the durable home for values the compact runtime model cannot reproduce. The migration.legacy_library_evidence row is bounded staging and may expire only after the sparse durable row is populated; an hours discrepancy alone does not prove authorship."
+      },
+      "settled_decisions": [
+        "D-LIB-1 SETTLED (destination) by ruling 6: exact observed minutes AND any authored/legacy hours that cannot be reproduced are both preserved, and the two are never max/coalesced. The remaining question is the ACTIVE-VALUE precedence for app.library_games.playtime_minutes, which ruling 6 says is chosen only after code evidence and measured probes: that is snapshot check S-LIB-PLAYTIME (probe P05), not a destination decision.",
+        "D-LIB-2 SETTLED: previous_active_status, completion_percentage and date_added are preserved as raw legacy evidence in bounded migration.legacy_library_evidence, with sparse unreproducible completion/date values also represented in app.library_legacy_measurements before staging expires. This satisfies plan 14.2's requirement to inspect them explicitly without parsing or silently dropping a nondefault fact."
+      ],
+      "snapshot_checks": [
+        "S-LIB-PLAYTIME",
+        "S-FAM-ORPHAN"
+      ]
+    },
+    "user_game_state": {
+      "role": "A STALE staging child of user_games on the exact join key a transform would naturally use: PRIMARY KEY (user_id, appid) with FK (user_id, appid) REFERENCES user_games(user_id, catalog_steam_appid) ON DELETE CASCADE.",
+      "summary": "QUARANTINED. The complete source copy is exported to bounded migration.legacy_user_game_state_audit for reconciliation. Rows whose raw code, timestamp, dismissed playtime or provenance is the sole surviving evidence are explicitly promoted to durable app.game_state_legacy_measurements before staging expires. It must NEVER resurrect authored state or activity; the transform contains no join from this table to any runtime relation.",
+      "disposition_class": "archive-only",
+      "target": "not migrated; quarantined for reconciliation counts only",
+      "archive_purpose": "Preserve the stale child tuple, including raw status codes, source timestamps, authored dismissed playtime, recency evidence and family-owner fields, so P06 reconciliation can compare it to user_games without making it runtime authority.",
+      "archive_retention": "The complete reconciliation copy is bounded to 30 days after validated cutover and may expire only after rows marked durable_sparse_required or durable_sparse_written have been promoted to app.game_state_legacy_measurements. The sparse durable exceptions remain while the account exists, are removed by account deletion and are included in the account export. Neither relation is a runtime record and neither resurrects authored state (readiness 5).",
+      "retention": {
+        "class": "bounded-migration-staging",
+        "bound": "30-days-after-validated-cutover",
+        "destination": "migration.legacy_user_game_state_audit",
+        "carries_account_identity": true,
+        "account_deletion": "The staging tuple is keyed to app.accounts(id) with ON DELETE CASCADE; the promoted sparse row has the same account cascade.",
+        "account_export": "The promoted sparse row is included as account-domain evidence alongside the durable user_games state; the bounded staging tuple is operator-only and is not an account export payload.",
+        "authority": [
+          "database/v2/M3-contract.md: the complete legacy_user_game_state_audit copy is bounded staging and only explicit durable_sparse dispositions reach app.game_state_legacy_measurements",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+        "note": "The physical registry classifies the complete stale child as staging-30d-post-cutover. The loader must promote only sole/conflicting facts before expiry to app.game_state_legacy_measurements, whose physical registry class is durable-account-lifetime; readiness 5 still forbids either archive from becoming runtime authority.",
+        "durable_promotion": {
+          "destination": "app.game_state_legacy_measurements",
+          "class": "durable-private-fact",
+          "bound": "while-the-account-exists",
+          "condition": "evidence_disposition in ('durable_sparse_required', 'durable_sparse_written')",
+          "account_deletion": "Keyed to app.accounts(id) with ON DELETE CASCADE.",
+          "account_export": "Included as account-domain stale-state evidence.",
+          "authority": "Explicitly promoted sparse evidence only; never runtime state or activity authority."
+        }
+      },
+      "evidence": [
+        "readiness 5 (highest-consequence correctness risk in M3)",
+        "docs/user-game-state-security.md (the app never reads it)",
+        "readiness 14.2 (routing this into app.game_state fails the disjunction check on exactly the rows it should not have read)",
+        "database/v2/M3-contract.md: migration.legacy_user_game_state_audit preserves every source field"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "user_id": {
+          "disposition": "audit-archive",
+          "archive": "migration.legacy_user_game_state_audit.account_id",
+          "note": "Resolved through migration.account_map so the reconciliation report can be per-account. The relation name deliberately contains 'audit' so it cannot be confused with state (readiness 5, control 1)."
+        },
+        "appid": {
+          "disposition": "audit-archive",
+          "archive": "migration.legacy_user_game_state_audit.steam_appid",
+          "note": "Kept as the raw steam appid, deliberately NOT resolved to catalog.games.id, so the audit relation shares no key shape with any target relation."
+        },
+        "completed_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_completed_at",
+          "note": "One of the two fields the divergence count in probe P06 compares against user_games. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state."
+        },
+        "slept_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_slept_at",
+          "note": "The second field probe P06 compares. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state."
+        },
+        "prev_active_status": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_prev_active_status",
+          "note": "Raw smallint code preserved in the reconciliation archive. Its meaning remains a source snapshot question for P08; ordering never decodes it, and it never feeds app.game_state."
+        },
+        "dismissed_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_dismissed_at",
+          "note": "Duplicates user_games.completion_suggestion_dismissed_at. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state."
+        },
+        "dismissed_playtime": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_dismissed_playtime",
+          "note": "Numeric authored evidence preserved at source precision in the reconciliation archive; it never feeds app.game_state and is never narrowed to satisfy a target type."
+        },
+        "review_requested_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_review_requested_at",
+          "note": "Duplicates user_games.review_requested_at. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_state."
+        },
+        "last_played_at": {
+          "disposition": "audit-archive",
+          "archive": "migration.legacy_user_game_state_audit.raw_last_played_at",
+          "note": "Duplicates user_games.last_played_at. Audit only; must never reach app.game_activity."
+        },
+        "last_observed_played_at": {
+          "disposition": "audit-archive",
+          "archive": "migration.legacy_user_game_state_audit.raw_last_observed_at",
+          "note": "Duplicates user_games.last_observed_played_at. Audit only."
+        },
+        "recency_source": {
+          "disposition": "audit-archive",
+          "note": "smallint code (1,2,3) where user_games uses text. Same control as prev_active_status: read the code book from live definitions or discard. Even once decoded, it is audit evidence only and never reaches app.game_activity. SETTLED as archive-only: the raw smallint is preserved verbatim and never reaches app.game_activity. Its MEANING is snapshot check S-UGS-CODEBOOK.",
+          "target": "migration.legacy_user_game_state_audit.raw_recency_code",
+          "settled_by": [
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-UGS-1",
+          "snapshot_checks": [
+            "S-UGS-CODEBOOK"
+          ],
+          "archive": "migration.legacy_user_game_state_audit.raw_recency_code"
+        },
+        "recency_evidence_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_recency_evidence_at",
+          "note": "Duplicates user_games.recency_evidence_at. Preserved as the native timestamptz in the reconciliation archive; it never feeds app.game_activity."
+        },
+        "family_owner_steam_id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_family_owner_steam_id",
+          "note": "Duplicates user_games.family_owner_steam_id. Preserved as raw archive evidence and never used to create family access."
+        },
+        "family_verified_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_user_game_state_audit.raw_family_verified_at",
+          "note": "Duplicates user_games.family_verified_at. Preserved as raw archive evidence and never used to set provenance = 'verified'."
+        }
+      },
+      "settled_decisions": [
+        "D-UGS-1 SETTLED (disposition): ruling 12 states that stale user_game_state never becomes transform authority, so every column here is archive-only regardless of what the code book turns out to mean. DECODING the smallint codes still requires the live routine/comment definitions and is never inferred from ordering: that is snapshot check S-UGS-CODEBOOK (probe P08)."
+      ],
+      "snapshot_checks": [
+        "S-UGS-CODEBOOK",
+        "S-STAGING-STALE"
+      ]
+    },
+    "user_family_members": {
+      "role": "Steam Family lenders whose libraries contribute shared access. Carries the lender's display fields, which the family shelf renders.",
+      "summary": "Migrated to app.family_members, including the M3 lender display, library-count and raw-error columns; four v2 caps are not guaranteed by the source.",
+      "disposition_class": "migrated",
+      "target": "app.family_members",
+      "evidence": [
+        "readiness 4.7",
+        "readiness 14.7 (the five-member cap is a TRIGGER, not a table constraint)",
+        "M1:315"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.family_members.id (+ optionally public_id)",
+          "transform": "uuid -> integer identity. readiness 6.4: the legacy uuid is not currently exposed to the browser, so retaining it as public_id is OPTIONAL and must be decided explicitly rather than defaulted.",
+          "note": "app.family_members.public_id has a gen_random_uuid() default, so not retaining the legacy uuid silently mints a new one. That is the decision.",
+          "conflict": "readiness 6.4 (retention optional, decide explicitly)"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.family_members.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Also the account whose five-member trigger cap applies."
+        },
+        "steam_id": {
+          "disposition": "transformed",
+          "target": "app.family_members.steam_id",
+          "transform": "text -> bigint with a checked round-trip. M1:318 requires steam_id > 0.",
+          "note": "Also the join key that user_games.family_owner_steam_id fails to reference (readiness 4.8)."
+        },
+        "display_name": {
+          "disposition": "preserved",
+          "note": "NOT NULL in legacy, and the family shelf renders it. app.family_members (M1:315-330) has NO destination column. Coordinator ruling: preserve lender display fields. Proposal: +app.family_members.display_name with the same btrim 1..80 bound used elsewhere. SETTLED: the M3 migration adds this column.",
+          "conflict": "readiness 4.7",
+          "target": "app.family_members.display_name",
+          "settled_by": [
+            "coordinator ruling 8, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-FAM-1"
+        },
+        "avatar_url": {
+          "disposition": "preserved",
+          "note": "No destination column in app.family_members. Same ruling and same proposal as display_name. SETTLED: the M3 migration adds this column.",
+          "conflict": "readiness 4.7",
+          "target": "app.family_members.avatar_url",
+          "settled_by": [
+            "coordinator ruling 8, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-FAM-1"
+        },
+        "profile_url": {
+          "disposition": "preserved",
+          "note": "No destination column in app.family_members. Same ruling and same proposal as display_name. SETTLED: the M3 migration adds this column.",
+          "conflict": "readiness 4.7",
+          "target": "app.family_members.profile_url",
+          "settled_by": [
+            "coordinator ruling 8, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-FAM-1"
+        },
+        "candidate_appids": {
+          "disposition": "transformed",
+          "target": "app.family_members.candidate_app_ids",
+          "transform": "bigint[] -> jsonb array of numbers. v2 bounds it to 10000 entries and 262144 bytes (M1:325-327); legacy is unbounded. Over-cap members are a reported conflict, NOT a truncated array.",
+          "note": "A JSON number cannot hold every bigint exactly. Steam appids are bounded to 4294967295 by catalog.games (M1:170-171), so the round-trip is safe for real values, but the transform must assert it per element rather than assume it.",
+          "conflict": "readiness 4.7; probe P07d counts cardinality(candidate_appids) > 10000"
+        },
+        "library_seen": {
+          "disposition": "transformed",
+          "target": "app.family_members.candidate_count",
+          "transform": "integer -> integer, but v2 checks candidate_count BETWEEN 0 AND 10000 (M1:324) while legacy is unbounded. Over-cap values are a reported conflict, not a clamp.",
+          "note": "Semantic check needed: legacy library_seen is the lender's observed library SIZE, while v2 candidate_count reads as the count of candidate_app_ids. If probe P07d shows they routinely differ, this is a mismapping, not a narrowing.",
+          "conflict": "readiness 4.7; probe P07d counts library_seen > 10000 and library_seen <> cardinality(candidate_appids)"
+        },
+        "games_imported": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Recomputable after the load as the count of app.family_game_access rows for (account_id, member_id). v2 derives shared access from the access relation rather than from a counter on the member.",
+          "note": "Retirement is only safe if D-LIB-4 does not drop orphaned family access rows. If it does, this count and the recomputed count will differ, and the difference belongs in the conflict report."
+        },
+        "last_synced_at": {
+          "disposition": "preserved",
+          "target": "app.family_members.checked_at",
+          "note": "Direct semantic match (M1:326)."
+        },
+        "last_error": {
+          "disposition": "transformed",
+          "target": "app.family_members.error_status + app.family_members.last_error",
+          "transform": "Free text -> the v2 enum private|error|ok|unknown plus the bounded raw text column added by M3. A null legacy error maps to 'ok' only if last_synced_at is non-null, otherwise 'unknown'; any nonempty error text maps to 'error' unless it is recognisably a privacy refusal, which maps to 'private'. Over-length raw text is a reported conflict, never truncated.",
+          "note": "The enum is a compact status projection; app.family_members.last_error retains the raw error text within its physical bound so the reason for a lender-sync failure is not discarded.",
+          "conflict": "free text collapses to a four-value enum"
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_family_member_evidence.created_at",
+          "note": "app.family_members has no created_at (M1:315-330). Archived because 'when did this lender appear' is not recoverable once the row is renumbered."
+        },
+        "updated_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Mutation bookkeeping with no v2 destination; checked_at carries the meaningful sync instant and is preserved.",
+          "note": "Distinct from created_at, which is archived."
+        }
+      },
+      "archive_purpose": "Retain the member creation instant, which app.family_members still cannot hold, so a support question about when a lender appeared remains answerable. The raw sync error now has a durable app.family_members.last_error destination.",
+      "archive_retention": "Durable private fact: retained while the account exists, removed by account deletion, included in the account export. Error text is operator-facing and contains no credential.",
+      "retention": {
+        "class": "durable-private-fact",
+        "bound": "while-the-account-exists",
+        "destination": "app.family_members",
+        "carries_account_identity": true,
+        "account_deletion": "Keyed to app.accounts(id) with ON DELETE CASCADE; account deletion removes the lender sync error text and the member creation instant.",
+        "account_export": "Family-member provenance and the last sync error are part of the account export; the error text is operator-facing and contains no credential.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+        "note": "The creation instant and the sync error are lasting facts about the account's family links, not migration bookkeeping."
+      },
+      "settled_decisions": [
+        "D-FAM-1 SETTLED by ruling 8: lender display metadata is preserved. The M3 migration adds app.family_members.display_name, avatar_url and profile_url, so the family shelf can still render the lender.",
+        "D-FAM-2 SETTLED: the five-member cap fires per row during the load, so the load PRE-CHECKS it before inserting rather than discovering it mid-transaction. The mechanism is decided; the measurement is snapshot check S-FAM-CAP (probe P07c)."
+      ],
+      "snapshot_checks": [
+        "S-FAM-CAP"
+      ]
+    },
+    "user_playtime_snapshots": {
+      "role": "Daily library-wide playtime snapshot. total_minutes is a RUNNING CUMULATIVE TOTAL, not a daily gain.",
+      "summary": "Migrated to app.playtime_daily with totals copied UNCHANGED. Converting to gains destroys the first day and the totals irreversibly and is forbidden.",
+      "disposition_class": "migrated",
+      "target": "app.playtime_daily",
+      "evidence": [
+        "readiness 8.6",
+        "lib/playtime-summary.ts:32 (the per-day gain is DERIVED by differencing)",
+        "M1:303"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.playtime_daily.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Part of the v2 primary key (account_id, activity_day)."
+        },
+        "captured_on": {
+          "disposition": "preserved",
+          "target": "app.playtime_daily.activity_day",
+          "note": "date -> date. A CIVIL DATE with no zone: it copies across unchanged and must NEVER be routed through a timestamp conversion (readiness 8.5). Parity checks must use the same UTC day-key derivation the product already uses at lib/playtime-summary.ts:36."
+        },
+        "total_minutes": {
+          "disposition": "preserved",
+          "target": "app.playtime_daily.observed_minutes",
+          "note": "bigint -> bigint, copied VERBATIM. This is lossless and preserves derivability of the daily gain. M1:306 requires observed_minutes >= 0, which a cumulative total satisfies. The semantic marker in D-PT-1 is what stops a future reader mistaking it for a gain.",
+          "evidence": [
+            "readiness 8.6"
+          ]
+        },
+        "games_with_playtime": {
+          "disposition": "preserved",
+          "note": "Coordinator ruling of 9 September: PRESERVE. app.playtime_daily (M1:303-311) has no column for it, so the M3 contract must add one. Proposal: +app.playtime_daily.games_with_playtime integer check (>= 0). This is a decision awaiting sign-off, not a gap. SETTLED: the M3 migration adds this column.",
+          "target": "app.playtime_daily.games_with_playtime",
+          "settled_by": [
+            "coordinator ruling 7, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-PT-2"
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.playtime_daily.recorded_at",
+          "note": "When the snapshot row was written, as distinct from the civil day it describes. M1:307 defaults it to now(), so a missed mapping would silently stamp every historical snapshot with the load time."
+        }
+      },
+      "settled_decisions": [
+        "D-PT-1 SETTLED by ruling 7, which OVERTURNS the earlier proposal: a per-row constant semantic string is unnecessary when the relation and contract already define cumulative semantics, so the meaning is documented rather than stamped on every row. Snapshots stay cumulative. (Contract observation for the coordinator: the M3 migration adds app.playtime_daily.observed_minutes_semantic anyway. That is the physical worker's call and is harmless, but the ruling did not ask for it.)",
+        "D-PT-2 SETTLED by ruling 7: games_with_playtime is added to daily history. app.playtime_daily.games_with_playtime exists in the M3 migration.",
+        "D-PT-3 SETTLED by ruling 7: negative or decreasing cumulative totals are preserved as CONFLICTS, never rewritten as inferred daily gains and never forced monotonic. Detecting them at the snapshot is snapshot check S-PT-MONOTONIC."
+      ],
+      "snapshot_checks": [
+        "S-PT-MONOTONIC"
+      ]
+    },
+    "purge_reviews": {
+      "role": "Historical purge-review decisions, including action = 'complete'. Ordinals skip 4, so a column was dropped.",
+      "summary": "Migrated to durable app.purge_review_history, with migration.legacy_purge_review_archive retaining the bounded raw source identity and reconciliation copy. Plan 14.2 keeps the historical decision and its review-time facts; no source row is discarded while the completion projection remains open.",
+      "disposition_class": "migrated",
+      "target": "app.purge_review_history + migration.legacy_purge_review_archive",
+      "archive_purpose": "Preserve historical purge decisions, including raw source identity and review-time facts that the durable row resolves. Rows with action = 'complete' additionally corroborate app.completion_events and must be reconcilable against it.",
+      "archive_retention": "The durable private decision is retained while the account exists, removed by account deletion and included in the account export. The raw migration copy is bounded to 30 days after validated cutover and expires only after the durable row is populated and D-PRG-1 reconciliation is recorded.",
+      "retention": {
+        "class": "durable-private-fact",
+        "bound": "while-the-account-exists",
+        "destination": "app.purge_review_history",
+        "carries_account_identity": true,
+        "account_deletion": "Keyed to app.accounts(id) with ON DELETE CASCADE; account deletion removes the user's purge decisions.",
+        "account_export": "A purge review is the user's own decision about their own game and belongs in the account export, with the playtime and progress recorded at review.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+        "note": "The durable app.purge_review_history row is the account-bounded home for the decision; migration.legacy_purge_review_archive is only the raw staging copy and is classified staging-30d-post-cutover in the physical registry. Rows with action = 'complete' must still be reconcilable against app.completion_events (PX-c)."
+      },
+      "evidence": [
+        "readiness 3 (bounded archive or documented retirement)"
+      ],
+      "open_decisions": [
+        "D-PRG-1 OPEN (source value): whether purge_reviews rows with action = 'complete' should ALSO project into completion history, or be archived only. Preservation itself is settled - the row is archived either way - but projecting them risks double-counting against completion_events while archiving only risks losing a completion the funnel never recorded. The answer depends on how many such rows have no matching completion_events row, which is snapshot check S-PRG-COMPLETE (probe PX-c)."
+      ],
+      "columns": {
+        "id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_purge_review_archive.legacy_id",
+          "note": "Retained so an archived decision is addressable."
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.purge_review_history.account_id + migration.legacy_purge_review_archive.account_id",
+          "transform": "Source UUID -> integer via migration.account_map for the durable row; the mapped account key is also retained on the bounded raw staging copy.",
+          "note": "The durable decision is account keyed and cascades on deletion; the raw source UUID is not placed in the durable row."
+        },
+        "game_id": {
+          "disposition": "transformed",
+          "target": "app.purge_review_history.game_id + app.purge_review_history.steam_app_id + migration.legacy_purge_review_archive.source_game_id",
+          "transform": "A user_games UUID is resolved through migration.library_row_map to catalog.games.id and its Steam AppID; a review whose library row is gone keeps the durable account decision with nullable game_id and the raw source UUID in migration.legacy_purge_review_archive rather than being dropped.",
+          "note": "The durable row keeps the resolved game identity where available; the bounded archive remains the raw identity evidence."
+        },
+        "action": {
+          "disposition": "preserved",
+          "note": "The decision the user made. action = 'complete' is completion history, which plan section 3 requires to survive. Whether those rows also become app.completion_events is D-PRG-1. SETTLED (preservation): the decision the user made is archived verbatim, so it cannot be lost while D-PRG-1 is answered. Whether it ALSO becomes a completion event is the separate open source-value question.",
+          "target": "app.purge_review_history.action + migration.legacy_purge_review_archive.action",
+          "settled_by": [
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-PRG-2",
+          "snapshot_checks": [
+            "S-PRG-COMPLETE"
+          ],
+          "archive": "+migration.legacy_purge_review_archive.action"
+        },
+        "reviewed_at": {
+          "disposition": "preserved",
+          "target": "app.purge_review_history.reviewed_at + migration.legacy_purge_review_archive.reviewed_at",
+          "note": "When the decision was made; it remains the ordering key of both the durable history and the bounded reconciliation copy."
+        },
+        "playtime_minutes_at_review": {
+          "disposition": "preserved",
+          "target": "app.purge_review_history.playtime_minutes_at_review + migration.legacy_purge_review_archive.playtime_minutes_at_review",
+          "note": "EXACT MINUTES at the moment of review. Preserved as minutes in the durable history and staging copy, never converted to hours (coordinator ruling on exact minutes versus rounded hours)."
+        },
+        "progress_at_review": {
+          "disposition": "preserved",
+          "target": "app.purge_review_history.progress_at_review + migration.legacy_purge_review_archive.progress_at_review",
+          "note": "The same derived completion_percentage as on user_games, snapshotted. Preserved in the durable history but never treated as authored progress (readiness 8.4)."
+        },
+        "last_played_at_review": {
+          "disposition": "preserved",
+          "target": "app.purge_review_history.last_played_at_review + migration.legacy_purge_review_archive.last_played_at_review",
+          "note": "Recency at the moment of review. Preserved in the durable history, never written to app.game_activity, because it is a historical snapshot and not a current observation."
+        }
+      },
+      "snapshot_checks": [
+        "S-PRG-COMPLETE"
+      ]
+    },
+    "completion_events": {
+      "role": "The completion funnel's event log. Records which SURFACE a completion was claimed from.",
+      "summary": "Migrated to app.completion_events, but two readiness conflicts block it: the source value domain (4.1) and the required game_id FK (4.2).",
+      "disposition_class": "migrated",
+      "target": "app.completion_events",
+      "evidence": [
+        "readiness 4.1",
+        "readiness 4.2",
+        "readiness 14.6",
+        "M1:405",
+        "lib/completion-events.ts:5"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.completion_events.id + (proposed) +app.completion_events.legacy_event_id",
+          "transform": "uuid -> bigint identity, with the legacy uuid retained so the source event ID survives.",
+          "note": "Coordinator ruling: preserve source event IDs. Without the retained uuid the funnel cannot be reconciled against pre-cutover analytics.",
+          "conflict": "needs D-CE-1"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.completion_events.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "NOT NULL in both."
+        },
+        "game_id": {
+          "disposition": "transformed",
+          "note": "readiness 4.2. Legacy is NULLABLE with NO foreign key; v2 requires game_id integer NOT NULL references catalog.games(id) (M1:408). Resolution order: library_row_map on game_id, then game_map on steam_appid. An event with neither is UNMIGRATABLE as-is, yet plan section 3 requires user history to survive losing ownership. Coordinator ruling: preserve unknown-game history. Proposal: a sentinel catalog.games row is NOT acceptable (it fabricates a game); instead relax to a nullable game_id in a new M3 migration, or archive the unresolvable events with their steam_appid.",
+          "conflict": "readiness 4.2",
+          "target": "app.completion_events.game_id + app.unknown_completion_history.source_game_id + app.unknown_completion_history.source_steam_appid + app.completion_event_registry.resolved_event_id",
+          "transform": "resolution order is migration.library_row_map on game_id, then migration.game_map on steam_appid. An event that resolves loads into app.completion_events. An event with neither identifier loads into app.unknown_completion_history with its original nullable identifiers intact, so history survives losing ownership without fabricating a catalogue row. app.completion_event_registry records which relation holds each legacy_event_id.",
+          "settled_by": [
+            "coordinator ruling 5, docs/v2-m3-b-database-batch.md",
+            "coordinator ruling 6, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CE-2"
+        },
+        "steam_appid": {
+          "disposition": "transformed",
+          "target": "app.completion_events.game_id (via migration.game_map)",
+          "transform": "The fallback resolution path when game_id is null or unresolvable. bigint appid -> catalog.games.id.",
+          "note": "Nullable in legacy, so it is a fallback and not a guarantee. Its presence or absence is exactly what probe P07g measures."
+        },
+        "source": {
+          "disposition": "transformed",
+          "note": "readiness 4.1. Legacy check allows sweep|sweep_bulk|library|vault|purge|details, defined at lib/completion-events.ts:5. v2 allows user|system|migration only. Collapsing all six to 'user' destroys the origin surface the completion funnel is measured on. Coordinator ruling requires the origin surface to be preserved, so a new column is needed rather than a lossy collapse.",
+          "conflict": "readiness 4.1",
+          "target": "app.completion_events.origin_surface + app.completion_events.source + app.unknown_completion_history.origin_surface",
+          "transform": "the legacy six (sweep|sweep_bulk|library|vault|purge|details) are preserved verbatim in origin_surface; the v2 source column records the ACTOR, which is 'user' for all six because all six are user actions. The funnel keeps the surface it is measured on.",
+          "settled_by": [
+            "coordinator ruling 5, docs/v2-m3-b-database-batch.md",
+            "coordinator ruling 6, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CE-1"
+        },
+        "claimed_at": {
+          "disposition": "preserved",
+          "target": "app.completion_events.occurred_at",
+          "note": "M1:414 requires undone_at >= occurred_at, an ordering the source does NOT enforce (readiness 14.6)."
+        },
+        "undone_at": {
+          "disposition": "preserved",
+          "target": "app.completion_events.undone_at",
+          "note": "Rows where undone_at < claimed_at exist in the source domain and are rejected by M1:414. They are a reported conflict, never silently swapped or nulled.",
+          "conflict": "readiness 14.6; probe P07k counts undone_at < claimed_at"
+        },
+        "hours_played": {
+          "disposition": "transformed",
+          "note": "double precision hours at the moment of completion. app.completion_events (M1:405-417) has no playtime column at all. readiness 8.2 lists this as the third numeric narrowing and explicitly conditions it on 'if any home is agreed'. Coordinator ruling requires exact minutes to be preserved separately from rounded hours, so if a home is agreed it must be MINUTES with checked rounding and stated provenance, never hours copied across.",
+          "target": "app.completion_events.legacy_hours_played + app.completion_events.legacy_hours_played_raw + app.completion_events.metric_provenance",
+          "transform": "the decimal hours are preserved EXACTLY as numeric(30,12) plus the raw source text, with metric_provenance recording that they are legacy authored/derived hours rather than exact observed minutes. Ruling 6 forbids treating an hours mismatch as author attribution and forbids max/coalescing incomparable observations, so no minutes value is synthesised from them.",
+          "settled_by": [
+            "coordinator ruling 5, docs/v2-m3-b-database-batch.md",
+            "coordinator ruling 6, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CE-3",
+          "snapshot_checks": [
+            "S-LIB-PLAYTIME"
+          ]
+        },
+        "estimate_minutes": {
+          "disposition": "preserved",
+          "note": "The duration estimate shown to the user at completion time. Already EXACT MINUTES, so no conversion is needed. No v2 destination exists. Losing it means the funnel can no longer ask whether people complete games that were estimated as short.",
+          "target": "app.completion_events.legacy_estimate_minutes",
+          "settled_by": [
+            "coordinator ruling 5, docs/v2-m3-b-database-batch.md",
+            "coordinator ruling 6, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CE-3"
+        },
+        "price_cents": {
+          "disposition": "preserved",
+          "note": "Price at the moment of completion, in cents. No v2 destination. catalog_games.price_currency is constrained to USD (readiness 4.12 confirms it), so the currency is unambiguous and the value is a faithful US observation. Losing it means cost-per-hour history cannot be reconstructed, because catalogue prices move.",
+          "target": "app.completion_events.legacy_price_cents",
+          "settled_by": [
+            "coordinator ruling 5, docs/v2-m3-b-database-batch.md",
+            "coordinator ruling 6, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CE-3"
+        }
+      },
+      "settled_decisions": [
+        "D-CE-1 SETTLED by ruling 5 and plan 14.2: completion origin surface AND source event identity are both preserved. v2 source keeps the ACTOR and app.completion_events.origin_surface carries the legacy six, with app.completion_events.legacy_event_id retaining the source event ID. Nothing collapses to a single 'user'.",
+        "D-CE-2 SETTLED by ruling 5: unknown-game completion history goes to a SEPARATE retained-history relation, app.unknown_completion_history, with the source event ID, the original nullable identifiers, the actor/surface, the occurred/undone state and metric provenance. M1's resolved-event invariant is untouched, no sentinel catalogue row is fabricated, and app.completion_event_registry keeps event IDs unique across the two relations so the later history read model cannot double-count."
+      ]
+    }
+  }
+}

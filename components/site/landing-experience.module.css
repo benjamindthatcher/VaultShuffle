@@ -400,35 +400,10 @@
 .sectionIntro { max-width: 840px; margin: 0 auto 68px; text-align: center; }
 .sectionIntro > p { margin: 22px 0 0; color: var(--landing-muted); font-size: 1rem; }
 
-.questionRail { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(230px, 0.82fr); gap: 24px; }
-.questionRail::before { content: ""; position: absolute; z-index: -1; top: 45px; left: 8%; right: 7%; height: 3px; background: linear-gradient(90deg, #913cff, #784aff 48%, #2d7bff); box-shadow: 0 0 18px rgba(111, 68, 255, 0.64); }
-.question { min-width: 0; margin: 0; padding: 0; border: 0; }
-.question legend { width: 100%; min-height: 120px; display: grid; align-content: start; justify-items: center; gap: 14px; padding: 0 10px; text-align: center; }
-.question legend > span,
-.skipNode { width: 90px; height: 90px; display: grid; place-items: center; border: 3px solid rgba(164, 82, 255, 0.72); border-radius: 50%; color: #fff; background: radial-gradient(circle at 50% 36%, rgba(104, 62, 180, 0.9), rgba(9, 7, 27, 0.98) 70%); box-shadow: 0 0 0 7px rgba(52, 37, 92, 0.7), 0 0 28px rgba(132, 57, 255, 0.4); font-size: 1.5rem; font-weight: 900; }
-.question legend strong { max-width: 220px; font-size: 1rem; line-height: 1.3; }
-.options { display: grid; gap: 9px; margin-top: 12px; }
-.option,
-.optionSelected { width: 100%; min-height: 62px; display: grid; grid-template-columns: 32px minmax(0, 1fr); align-items: center; gap: 11px; padding: 0 15px; border: 1px solid #3a2866; border-radius: 9px; color: #fff; background: rgba(7, 11, 29, 0.68); text-align: left; font-weight: 680; transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease; }
-.optionSelected { border-color: #a855f7; background: rgba(168, 85, 247, 0.2); box-shadow: 0 0 18px rgba(111, 55, 231, 0.2), inset 0 0 0 1px rgba(168, 85, 247, 0.18); }
-
 @media (hover: hover) {
   .steamAction:hover { transform: translateY(-1px); filter: brightness(1.1); border-color: rgba(175, 133, 255, 0.82); box-shadow: 0 16px 38px rgba(58, 66, 219, 0.34), 0 0 22px rgba(138, 74, 255, 0.18); }
-  .option:hover { transform: translateY(-1px); border-color: rgba(168, 85, 247, 0.7); background: rgba(17, 16, 49, 0.86); }
-  .optionSelected:hover { transform: translateY(-1px); border-color: #c084fc; box-shadow: 0 0 22px rgba(139, 69, 255, 0.28), inset 0 0 0 1px rgba(192, 132, 252, 0.22); }
-  .skipChoice button:hover { border-color: rgba(110, 231, 183, 0.75); color: #d1fae5; background: rgba(110, 231, 183, 0.2); box-shadow: 0 0 24px rgba(110, 231, 183, 0.14); }
   .logicFlow article > span:hover { transform: translateY(-4px) rotate(-3deg) scale(1.06); border-color: rgba(209, 132, 255, 0.92); color: #e4bcff; background: radial-gradient(circle, rgba(108, 52, 185, 0.9), rgba(10, 7, 30, 0.98)); box-shadow: 0 0 0 6px rgba(75, 44, 136, 0.45), 0 0 32px rgba(151, 72, 255, 0.42); }
 }
-
-.skipChoice { display: grid; align-content: start; justify-items: center; text-align: center; }
-.skipNode { width: 64px; height: 64px; margin-top: 14px; border-width: 2px; color: #b985ff; }
-.skipChoice p { min-height: 56px; margin: 27px 0 12px; color: #fff; font-size: 1rem; font-weight: 700; line-height: 1.3; }
-.skipChoice button { width: 100%; min-height: 54px; margin-top: 39px; padding: 10px 13px; border: 1px solid rgba(110, 231, 183, 0.45); border-radius: 9px; color: #a7f3d0; background: rgba(110, 231, 183, 0.12); font: inherit; font-weight: 700; transition: border-color 160ms ease, color 160ms ease, background 160ms ease, box-shadow 160ms ease; }
-
-.primed { width: fit-content; max-width: 100%; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: 48px auto 0; padding: 12px 20px; border: 1px solid rgba(157, 91, 255, 0.38); border-radius: 999px; color: var(--landing-muted); background: rgba(11, 10, 35, 0.72); font-size: 0.78rem; }
-.primed svg { color: #c77dff; }
-.primed strong { color: #fff; }
-.primed span { color: #7650c3; }
 
 .whySection { padding: 115px 0 130px; }
 .logicFlow { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin-top: 72px; }
@@ -486,11 +461,6 @@
   .proofRail article:nth-child(-n+2) { border-bottom: 1px solid var(--landing-line); }
   .demoSection { grid-template-columns: minmax(300px, 0.65fr) minmax(580px, 1.35fr); gap: 34px; }
   .demoStage { padding: 35px; }
-  .questionRail { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .skipChoice { grid-column: 1 / -1; width: min(360px, 100%); justify-self: center; margin-top: 28px; }
-  .skipNode { display: none; }
-  .skipChoice p { min-height: 0; margin-top: 0; }
-  .skipChoice button { margin-top: 0; }
   .logicFlow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .logicFlow::before { display: none; }
   .closing { grid-template-columns: 1fr; text-align: center; }
@@ -511,14 +481,6 @@
   .demoCopy > p { margin-inline: auto; }
   .demoChoices { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .demoStage { width: 100%; max-width: 760px; margin-inline: auto; }
-  .questionRail { grid-template-columns: 1fr; max-width: 620px; margin-inline: auto; }
-  .questionRail::before { top: 0; bottom: 80px; left: 45px; right: auto; width: 3px; height: auto; }
-  .question { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 20px; }
-  .question legend { min-height: 0; align-content: start; }
-  .question legend strong { font-size: 0.86rem; }
-  .options { margin-top: 0; }
-  .skipChoice { grid-column: auto; }
-  .skipChoice p { font-size: 0.86rem; }
 }
 
 @media (max-width: 680px) {
@@ -562,12 +524,6 @@
   .howSection,
   .whySection { padding: 88px 0; }
   .sectionIntro { margin-bottom: 50px; }
-  .questionRail::before { display: none; }
-  .question { grid-template-columns: 1fr; gap: 12px; }
-  .question legend { min-height: 0; grid-template-columns: 70px 1fr; align-items: center; justify-items: start; text-align: left; }
-  .question legend > span { width: 64px; height: 64px; font-size: 1.1rem; }
-  .question legend strong { max-width: none; }
-  .primed { border-radius: 15px; }
   .logicFlow { grid-template-columns: 1fr; }
   .logicFlow article { grid-template-columns: 62px minmax(0, 1fr); }
   .logicFlow article > span { width: 60px; height: 60px; }

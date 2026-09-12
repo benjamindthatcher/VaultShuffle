@@ -1,0 +1,321 @@
+{
+  "domain": "Derived views",
+  "note": "The live public schema holds 44 relations: 42 base tables and 2 VIEWS. Per the coordinator ruling the views are marked DERIVED. build_manifest.py enforces this mechanically: a relation with kind 'v' must use disposition_class 'derived-view', and every one of its columns must be 'derived-retirement'. A view carries no rows of its own, so nothing here can be migrated, archived or left unresolved - the only real question is whether each column's BASE fact is dispositioned somewhere else, and that is what the notes record.",
+  "relations": {
+    "user_games_with_catalog": {
+      "role": "The application's read model: user_games joined to catalog_games, plus quarantine flags.",
+      "summary": "DERIVED. Not migrated. Rebuilt in v2 from app.library_games, app.game_state, app.game_activity, catalog.games, catalog.game_metadata and catalog.game_features.",
+      "disposition_class": "derived-view",
+      "target": "rebuilt as a v2 read model; no rows are migrated",
+      "evidence": [
+        "readiness 2 (the two views need an explicit derived line so a coverage assertion can be written mechanically)",
+        "readiness 2.1 (the live view still publishes `rating` and `priority`, so the view body was REBUILT REMOTELY and differs from supabase/migrations/20260901193000_share_a_family_library.sql:289)",
+        "readiness 10 probe 4 (live routine and view definitions must be exported before mirroring legacy logic)"
+      ],
+      "open_decisions": [
+        "D-VIEW-1 OPEN (source value): the live view body differs from the repository migration - it publishes rating, priority, title, genre, store and steam_appid as TEXT, columns that no longer exist on live user_games. That the repository definition can be stale is settled; what the LIVE definition actually is can only be read from the source, so probe P04 must export it before any v2 read model mirrors it: snapshot check S-VIEW-DEFS."
+      ],
+      "columns": {
+        "id": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.id, which is dispositioned there (becomes migration.library_row_map)."
+        },
+        "user_id": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.user_id."
+        },
+        "title": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.name, dispositioned there as catalog.games.title."
+        },
+        "genre": {
+          "disposition": "derived-retirement",
+          "note": "A scalar projection of catalog_games.genres (text[]). The array is preserved as catalog.game_metadata.genres; this single-value flattening is a presentation choice."
+        },
+        "store": {
+          "disposition": "derived-retirement",
+          "note": "A literal or derived store label. VaultShuffle is Steam-only, so this is a constant in practice and carries no base fact."
+        },
+        "ownership": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.ownership, which is itself unresolved (D-LIB-3)."
+        },
+        "status": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.status, retired at source as derived (readiness 8.4)."
+        },
+        "rating": {
+          "disposition": "derived-retirement",
+          "note": "readiness 2.1: `rating` NO LONGER EXISTS on live user_games, yet the view still publishes it, so the view body was rebuilt remotely. The base column is retired; the inspection is complete."
+        },
+        "hours_played": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.hours_played, whose disposition is unresolved pending probe P05."
+        },
+        "completion_percentage": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.completion_percentage, archived at source as derived evidence."
+        },
+        "priority": {
+          "disposition": "derived-retirement",
+          "note": "readiness 2.1: `priority` NO LONGER EXISTS on live user_games. Same rebuilt-view evidence as `rating`."
+        },
+        "date_added": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.date_added. TEXT in DD/MM/YYYY; archived raw at source and NEVER parsed."
+        },
+        "notes": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.notes."
+        },
+        "steam_appid": {
+          "disposition": "derived-retirement",
+          "note": "Published as TEXT here while the base column catalog_steam_appid is BIGINT. A transform reading the view rather than the table would inherit a text appid; this is why the view is not a migration source."
+        },
+        "created_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.created_at."
+        },
+        "updated_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.updated_at."
+        },
+        "last_played_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.last_played_at."
+        },
+        "completed_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.completed_at."
+        },
+        "slept_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.slept_at."
+        },
+        "completion_suggestion_dismissed_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.completion_suggestion_dismissed_at."
+        },
+        "completion_suggestion_dismissed_playtime": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.completion_suggestion_dismissed_playtime."
+        },
+        "main_story_minutes": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.main_story_minutes."
+        },
+        "main_extras_minutes": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.main_extras_minutes, which is unresolved (no v2 destination)."
+        },
+        "completionist_minutes": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.completionist_minutes."
+        },
+        "duration_source": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_source, unresolved at source."
+        },
+        "duration_source_updated_at": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_source_updated_at, unresolved at source."
+        },
+        "duration_confidence": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_confidence, unresolved at source (ordinal versus numeric, readiness 4.5)."
+        },
+        "previous_active_status": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.previous_active_status."
+        },
+        "is_quarantined": {
+          "disposition": "derived-retirement",
+          "note": "Computed from the presence of a catalog_game_quarantine row. Recomputable wherever quarantine survives under D-CAT-9."
+        },
+        "quarantine_reason": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_game_quarantine.reason, unresolved at source."
+        },
+        "catalog_steam_appid": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.catalog_steam_appid, the BIGINT the text `steam_appid` above is projected from."
+        },
+        "capsule_url": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.capsule_url."
+        },
+        "header_url": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.header_url."
+        },
+        "price_currency": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.price_currency, unresolved at source (needs catalog.offer_prices)."
+        },
+        "price_initial": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.price_initial, unresolved at source."
+        },
+        "price_final": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.price_final, unresolved at source."
+        },
+        "discount_percent": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.discount_percent, unresolved at source."
+        },
+        "is_free": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.is_free, unresolved at source."
+        },
+        "duration_kind": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_kind, unresolved at source."
+        },
+        "steam_tags": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.tags (jsonb), preserved at source as catalog.game_metadata.weighted_tags."
+        },
+        "platform_windows": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.platform_windows, unresolved at source (no v2 column)."
+        },
+        "platform_mac": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.platform_mac, unresolved at source (no v2 column)."
+        },
+        "platform_linux": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.platform_linux, transformed at source into the linux_compatibility tri-state."
+        },
+        "deck_compatibility": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.deck_compatibility, unresolved at source (four-way versus tri-state, readiness 4.4)."
+        },
+        "review_positive": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.review_positive. The view publishing all three counts confirms the read model needs the triple, not just a score."
+        },
+        "review_negative": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.review_negative."
+        },
+        "review_total": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.review_total, the denominator of the displayed rating."
+        },
+        "release_date": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.release_date, unresolved at source (no v2 column). A CIVIL DATE."
+        },
+        "duration_status": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_status, unresolved at source."
+        },
+        "tags_status": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.tags_status, unresolved at source."
+        },
+        "short_description": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.short_description."
+        },
+        "last_observed_played_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.last_observed_played_at."
+        },
+        "recency_source": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.recency_source (TEXT here, unlike the smallint on the stale user_game_state child)."
+        },
+        "recency_evidence_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.recency_evidence_at."
+        },
+        "observed_playtime_minutes": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.observed_playtime_minutes, the exact-minutes column preserved at source."
+        },
+        "review_requested_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.review_requested_at."
+        },
+        "steam_categories": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.categories (text[]), transformed at source into catalog.game_metadata.categories jsonb."
+        },
+        "access_source": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.access_source, transformed at source into which relation holds the row."
+        },
+        "family_owner_steam_id": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.family_owner_steam_id, unresolved at source (readiness 4.8)."
+        },
+        "family_verified_at": {
+          "disposition": "derived-retirement",
+          "note": "From user_games.family_verified_at."
+        }
+      },
+      "snapshot_checks": [
+        "S-VIEW-DEFS"
+      ]
+    },
+    "catalog_duration_review_queue": {
+      "role": "Operator work list of catalogue durations awaiting human review.",
+      "summary": "DERIVED. Not migrated. Rebuilt in v2 from whatever relations D-CAT-9 and D-DUR-1 create, since every base column belongs to catalog_games or catalog_duration_reviews.",
+      "disposition_class": "derived-view",
+      "target": "rebuilt as a v2 operator read model; no rows are migrated",
+      "evidence": [
+        "readiness 2",
+        "readiness 10 probe 4 (export live view definitions before mirroring legacy logic)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.steam_appid / catalog_duration_reviews.steam_appid."
+        },
+        "name": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.name."
+        },
+        "header_url": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.header_url."
+        },
+        "capsule_url": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.capsule_url."
+        },
+        "duration_status": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_status; the column that selects rows INTO this queue, and unresolved at source."
+        },
+        "duration_kind": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_kind, unresolved at source."
+        },
+        "duration_source": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.duration_source, unresolved at source."
+        },
+        "users_that_imported": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.users_that_imported; the demand signal that PRIORITISES the queue. Retired at source as recomputable from app.library_games."
+        },
+        "review_total": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_games.review_total."
+        },
+        "reviewed_at": {
+          "disposition": "derived-retirement",
+          "note": "From catalog_duration_reviews.reviewed_at; null means not yet reviewed, which is what puts a row in the queue."
+        }
+      },
+      "settled_decisions": [
+        "D-VIEW-2 SETTLED: the queue is rebuildable, because D-CAT-9 is settled (catalog.review_decisions exists) and the catalog_games duration columns are preserved on catalog.game_features. The operator review workflow therefore has a queue in v2 and manual duration decisions have a home."
+      ]
+    }
+  }
+}

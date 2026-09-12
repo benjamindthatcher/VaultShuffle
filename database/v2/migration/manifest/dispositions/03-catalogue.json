@@ -1,0 +1,1038 @@
+{
+  "domain": "Shared game catalogue, quarantine, ingest queue and seed provenance",
+  "note": "catalog_games is the widest relation in the source (58 columns). The earlier readiness-3 physical gaps were closed by the applied immutable M3 migration: catalog.offers, catalog.offer_prices, catalog.provider_state and catalog.review_decisions now exist. The two preservation-follow-up columns are separately listed as pending in the generated destination index and do not affect this domain.",
+  "relations": {
+    "catalog_games": {
+      "role": "The shared catalogue. CHECK (steam_type = 'game') is forced, so every row claims to be a game including the ~1,900 DLC and demo entries known to be stored there.",
+      "summary": "Migrated to catalog.games + catalog.game_metadata + catalog.game_features, with prices in catalog.offers / catalog.offer_prices and legacy classification recorded as evidence in catalog.review_decisions rather than silently rewriting game_type.",
+      "disposition_class": "migrated",
+      "target": "catalog.games + catalog.game_metadata + catalog.game_features",
+      "evidence": [
+        "readiness 4.4 deck compatibility",
+        "readiness 4.5 duration confidence",
+        "readiness 4.12 catalogue columns with no target",
+        "readiness 4.13 forced steam_type",
+        "readiness 3 (historical gap closed by applied M3)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "transformed",
+          "target": "catalog.games.id + catalog.games.steam_app_id",
+          "transform": "bigint appid -> integer identity via migration.game_map, ordered by steam_appid; the appid itself is retained verbatim in steam_app_id. M1:170-171 bounds steam_app_id to 1..4294967295, so an out-of-range legacy appid is a reported conflict.",
+          "note": "readiness 6.2. The map is required because seven legacy relations key on appid and the target keys on an integer identity."
+        },
+        "name": {
+          "disposition": "preserved",
+          "target": "catalog.games.title",
+          "note": "v2 requires length(btrim(title)) between 1 and 500 (M1:172). Over-length is a reported conflict; never truncated."
+        },
+        "normalized_name": {
+          "disposition": "preserved",
+          "target": "catalog.games.normalized_sort_title",
+          "note": "v2 requires length between 1 and 500 (M1:173). Preserved rather than recomputed: recomputing would risk a different normalisation and silently change sort order and alias matching."
+        },
+        "steam_type": {
+          "disposition": "transformed",
+          "note": "readiness 4.13. Forced to 'game' by a source CHECK, so the source cannot distinguish game from dlc/demo even though catalog.games.game_type can express six values. A faithful migration inherits the misclassification wholesale. catalog_game_quarantine.steam_type is UNVALIDATED text and is the ONE place the source retains real type information (readiness 14.4), which makes it the natural input to this decision.",
+          "conflict": "readiness 4.13",
+          "target": "catalog.review_decisions.steam_type",
+          "transform": "recorded as legacy classification EVIDENCE with decision_kind 'catalogue_type', source_relation 'catalog_games' and an explicit precedence_rank. It does not set catalog.games.game_type, because the source CHECK forces 'game' and therefore carries no provider observation to assert.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-1",
+          "snapshot_checks": [
+            "S-CAT-CLASSIFY"
+          ]
+        },
+        "developer": {
+          "disposition": "preserved",
+          "note": "The applied M3 extension adds catalog.game_metadata.developer; the source value is preserved there.",
+          "target": "catalog.game_metadata.developer",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "publisher": {
+          "disposition": "preserved",
+          "note": "The applied M3 extension adds catalog.game_metadata.publisher; the source value is preserved there.",
+          "target": "catalog.game_metadata.publisher",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "genres": {
+          "disposition": "transformed",
+          "target": "catalog.game_metadata.genres",
+          "transform": "text[] -> jsonb array of strings. v2 checks jsonb_typeof = 'array' and pg_column_size <= 32768 (M1:198).",
+          "note": "An array-to-jsonb conversion is a real re-encoding; element order is preserved so the transform is reversible."
+        },
+        "categories": {
+          "disposition": "transformed",
+          "target": "catalog.game_metadata.categories",
+          "transform": "text[] -> jsonb array of strings, bounded to 32768 bytes (M1:199).",
+          "note": "Same re-encoding rule as genres."
+        },
+        "tags": {
+          "disposition": "transformed",
+          "target": "catalog.game_metadata.weighted_tags",
+          "transform": "jsonb -> jsonb, bounded to 65536 bytes (M1:200) and required to be an ARRAY. If any legacy tags document is an object rather than an array, it is a reported conflict, not a coerced wrapping.",
+          "note": "Treated as opaque and hashed as text for integrity (readiness 8.5). JSONB has already lost the original provider formatting, so the typed canonicalisation for parity is defined separately from the wire hash."
+        },
+        "short_description": {
+          "disposition": "preserved",
+          "target": "catalog.game_metadata.short_description",
+          "note": "varchar(1000) -> text bounded 10000 (M1:188). A widening, so no conflict is possible."
+        },
+        "release_date": {
+          "disposition": "preserved",
+          "note": "The applied M3 extension preserves this CIVIL DATE in catalog.game_metadata.release_date; it never passes through a timestamp conversion.",
+          "target": "catalog.game_metadata.release_date",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "is_free": {
+          "disposition": "preserved",
+          "note": "The applied M3 offer/price model preserves the source free-price fact without inferring another region or currency.",
+          "target": "catalog.offers.is_free + catalog.offer_prices.is_free",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-5"
+        },
+        "capsule_url": {
+          "disposition": "preserved",
+          "target": "catalog.game_metadata.capsule_image_url",
+          "note": "Rename only; v2 bounds length to 2048 (M1:190)."
+        },
+        "header_url": {
+          "disposition": "preserved",
+          "target": "catalog.game_metadata.header_image_url",
+          "note": "Rename only; bounded to 2048 (M1:189)."
+        },
+        "review_positive": {
+          "disposition": "preserved",
+          "note": "The applied M3 extension preserves review_positive/review_negative/review_total alongside the derived score, so the sample size remains available.",
+          "target": "catalog.game_features.review_positive",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-4"
+        },
+        "review_negative": {
+          "disposition": "preserved",
+          "note": "Same triple as review_positive; see D-CAT-4.",
+          "target": "catalog.game_features.review_negative",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-4"
+        },
+        "review_total": {
+          "disposition": "preserved",
+          "note": "The denominator of the displayed rating. Nullable, so a null total with nonzero positives is representable and must not be divided by.",
+          "target": "catalog.game_features.review_total",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-4"
+        },
+        "price_currency": {
+          "disposition": "preserved",
+          "note": "The source CHECK guarantees NULL or USD; the applied offer-price destination therefore records only US observations and never inferred GB or EU prices.",
+          "target": "catalog.offer_prices.currency",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-5"
+        },
+        "price_initial": {
+          "disposition": "preserved",
+          "note": "Integer cents preserved in the applied catalog.offer_prices destination.",
+          "target": "catalog.offer_prices.price_initial_cents",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-5"
+        },
+        "price_final": {
+          "disposition": "preserved",
+          "note": "Integer cents after discount preserved in the applied catalog.offer_prices destination.",
+          "target": "catalog.offer_prices.price_final_cents",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-5"
+        },
+        "discount_percent": {
+          "disposition": "preserved",
+          "note": "The smallint discount is preserved directly because it is not recoverable when either amount is null.",
+          "target": "catalog.offer_prices.discount_percent",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-5"
+        },
+        "popularity_rank": {
+          "disposition": "transformed",
+          "target": "catalog.game_features.popularity_rank",
+          "transform": "integer -> bigint (a widening). M1:220 requires >= 0, so a negative legacy rank is a reported conflict.",
+          "note": "The applied M3 extension provides destinations for this rank and the five associated popularity facts below."
+        },
+        "popularity_source": {
+          "disposition": "preserved",
+          "note": "Preserves the source attribution separately from the popularity value.",
+          "target": "catalog.game_features.popularity_source",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "popularity_metric": {
+          "disposition": "preserved",
+          "note": "Preserves which metric the rank measures; ranks from different metrics are not comparable.",
+          "target": "catalog.game_features.popularity_metric",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "popularity_low": {
+          "disposition": "preserved",
+          "note": "The lower bound of an owner-count band, preserved without collapsing it to a point estimate.",
+          "target": "catalog.game_features.popularity_low",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "popularity_high": {
+          "disposition": "preserved",
+          "note": "The upper bound of the same band; it remains separate so no midpoint precision is fabricated.",
+          "target": "catalog.game_features.popularity_high",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "popularity_ccu": {
+          "disposition": "preserved",
+          "note": "Concurrent-user observation, preserved as a different fact from the rank.",
+          "target": "catalog.game_features.popularity_ccu",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "source_captured_at": {
+          "disposition": "preserved",
+          "note": "A CIVIL DATE that copies to the applied M3 destination unchanged and never passes through a timestamp conversion.",
+          "target": "catalog.game_features.source_captured_on",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "first_seen_reason": {
+          "disposition": "preserved",
+          "note": "Why this app entered the catalogue — user import, seed run, or manual — preserved in the applied catalog.games extension.",
+          "target": "catalog.games.first_seen_reason",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "import_sighting_count": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "catalog_game_sightings.import_count holds the same counter with first/last seen instants, and that relation is archived in full. The value is therefore not lost, only de-duplicated.",
+          "note": "Retired here rather than in catalog_game_sightings, so exactly one copy survives."
+        },
+        "first_seen_at": {
+          "disposition": "preserved",
+          "target": "+catalog.games.first_seen_at",
+          "note": "The completed M3 physical contract adds catalog.games.first_seen_at. Load the source instant there explicitly; catalog.games.created_at remains the v2 row creation instant and is never used as a substitute for this source fact.",
+          "evidence": [
+            "database/v2/M3-contract.md: catalog.games.first_seen_at",
+            "database/v2/migration/manifest/physical-destination-index.json"
+          ]
+        },
+        "last_seen_at": {
+          "disposition": "preserved",
+          "note": "Last time the app was seen in any import or seed, preserved distinctly from metadata_fetched_at and updated_at.",
+          "target": "catalog.games.last_seen_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "metadata_fetched_at": {
+          "disposition": "preserved",
+          "target": "catalog.game_metadata.fetched_at",
+          "note": "Direct semantic match (M1:196). Legacy NOT NULL, v2 nullable - a widening."
+        },
+        "created_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "first_seen_at carries the meaningful 'when did this app enter the catalogue' fact in catalog.games.first_seen_at; created_at is only the v2 row creation instant and is not the source first-seen fact.",
+          "note": "Retired as a duplicate load-time clock. The source first-seen instant is retained in catalog.games.first_seen_at."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "catalog.games.updated_at",
+          "note": "M1:177 defaults to now(), so a missed mapping restamps the entire catalogue with the load instant."
+        },
+        "users_that_imported": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Recomputable after the load as the distinct account count in app.library_games for that game_id. It is a denormalised counter, not an independent observation.",
+          "note": "Recomputation will DIFFER from the stored value wherever a user has since been deleted. That difference belongs in the conflict report, not in a silent overwrite."
+        },
+        "main_story_minutes": {
+          "disposition": "preserved",
+          "target": "catalog.game_features.main_duration_minutes",
+          "note": "Already EXACT MINUTES; no unit conversion. M1:212-213 requires >= 0."
+        },
+        "main_extras_minutes": {
+          "disposition": "preserved",
+          "note": "The applied M3 extension adds catalog.game_features.extras_duration_minutes, preserving the middle duration tier.",
+          "target": "catalog.game_features.extras_duration_minutes",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "completionist_minutes": {
+          "disposition": "preserved",
+          "target": "catalog.game_features.completion_duration_minutes",
+          "note": "Exact minutes; rename only. M1:214-215 requires >= 0."
+        },
+        "duration_source": {
+          "disposition": "preserved",
+          "note": "Which provider supplied the duration. catalog.game_features has no provider column. Coordinator ruling requires provider and evidence kind to be preserved as SEPARATE facts, so this cannot be folded into confidence.",
+          "target": "catalog.game_features.duration_source",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "duration_source_game_id": {
+          "disposition": "preserved",
+          "note": "The provider's matched-game identifier is preserved in the applied extension so duration evidence stays re-checkable.",
+          "target": "catalog.game_features.duration_source_game_id",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "duration_source_updated_at": {
+          "disposition": "preserved",
+          "note": "When the provider last updated the estimate, preserved distinctly from the fetch instant.",
+          "target": "catalog.game_features.duration_source_updated_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "duration_confidence": {
+          "disposition": "preserved",
+          "note": "The applied M3 duration_confidence_label preserves the text ordinal without fabricating a numeric probability; the numeric confidence remains NULL.",
+          "conflict": "readiness 4.5",
+          "target": "catalog.game_features.duration_confidence_label",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-3"
+        },
+        "duration_status": {
+          "disposition": "preserved",
+          "note": "Enrichment lifecycle state preserved in catalog.game_features; catalog.provider_state also exists in applied M3 for per-provider retry state.",
+          "target": "catalog.game_features.duration_status",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "duration_kind": {
+          "disposition": "preserved",
+          "note": "What kind of duration this is, preserved in catalog.game_features so it can be rendered honestly.",
+          "target": "catalog.game_features.duration_kind",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "tags_source": {
+          "disposition": "preserved",
+          "note": "Which provider supplied the tags. catalog.game_metadata.provider_name (M1:194) is a plausible home, but it would then be shared with the metadata provider, which is a different fact.",
+          "target": "catalog.game_features.tags_source",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-8"
+        },
+        "tags_status": {
+          "disposition": "preserved",
+          "note": "Tag enrichment lifecycle state preserved in catalog.game_features, with its scheduling fence and attempt instant in the applied M3 catalog.provider_state relation.",
+          "target": "catalog.game_features.tags_status",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-8"
+        },
+        "tags_fetched_at": {
+          "disposition": "preserved",
+          "note": "When tags were last fetched, distinct from metadata_fetched_at.",
+          "target": "catalog.game_features.tags_fetched_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-8"
+        },
+        "tags_processing_started_at": {
+          "disposition": "preserved",
+          "target": "catalog.provider_state.processing_started_at",
+          "note": "Root's 11 September durability review reversed the earlier derived-retirement. catalog.provider_state (M3) is the per-(game, provider, evidence_kind) lifecycle row and carries the lease instant that catalog.games has no column for. It is retained as evidence of the attempt in flight at the freeze and is never resumed: it is written only where the target's own CHECK permits it (status 'processing' or 'failed'), and no v2 worker reads it to continue that attempt."
+        },
+        "tags_next_attempt_at": {
+          "disposition": "preserved",
+          "target": "catalog.provider_state.next_attempt_at",
+          "note": "Root's 11 September durability review reversed the earlier derived-retirement. The previous entry claimed the schedule is 'rebuilt from tags_status after cutover', but a 'failed' status alone does not say WHEN the work becomes eligible again, and no rebuild derives a fence from it; every failed app would have become due at once after cutover. The effective backoff now survives in catalog.provider_state, beside the earned tags_failure_count in catalog.games."
+        },
+        "tags_failure_count": {
+          "disposition": "preserved",
+          "note": "Consecutive failures. Unlike the schedule, this is EARNED HISTORY: resetting it to zero re-subjects known-bad apps to the full retry budget against a provider we are rate-limited by. Not a lease.",
+          "target": "catalog.game_features.tags_failure_count",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-8"
+        },
+        "tags_last_error": {
+          "disposition": "preserved",
+          "note": "Why the last tag fetch failed. The only record of a systematic provider failure. Free text; must be checked for anything provider-credential-shaped before export.",
+          "target": "catalog.game_features.tags_last_error",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-8"
+        },
+        "platform_windows": {
+          "disposition": "transformed",
+          "note": "The applied M3 extension preserves Windows compatibility alongside the other platform facts.",
+          "target": "catalog.game_features.windows_compatibility",
+          "transform": "boolean -> text tri-state: true -> 'supported', false -> 'unsupported', NULL -> 'unknown'. NULL never becomes 'unsupported'.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "platform_mac": {
+          "disposition": "transformed",
+          "note": "The applied M3 extension preserves Mac compatibility alongside the other platform facts.",
+          "target": "catalog.game_features.mac_compatibility",
+          "transform": "boolean -> the same text tri-state the other platform columns use: true -> 'supported', false -> 'unsupported', NULL -> 'unknown'. NULL never becomes 'unsupported'.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        },
+        "platform_linux": {
+          "disposition": "transformed",
+          "target": "catalog.game_features.linux_compatibility",
+          "transform": "boolean -> tri-state: true->'supported', false->'unsupported', NULL->'unknown' (M1:208-209). NULL must never become 'unsupported'.",
+          "note": "Same tri-state discipline as readiness 8.3. A missed mapping defaults to 'unknown', which under-claims rather than over-claims."
+        },
+        "deck_compatibility": {
+          "disposition": "transformed",
+          "note": "The applied M3 deck_compatibility_detail preserves the four-way Steam category so Playable and Verified remain distinct; the tri-state is only the compact projection.",
+          "conflict": "readiness 4.4",
+          "target": "catalog.game_features.deck_compatibility_detail + catalog.game_features.deck_compatibility",
+          "transform": "the FOUR-way smallint is preserved verbatim in deck_compatibility_detail; the existing three-value tri-state is derived from it for the compact read path. Nothing is collapsed away, because the detail column keeps Playable distinct from Verified.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-2"
+        },
+        "deck_checked_at": {
+          "disposition": "preserved",
+          "note": "Preserves the observation instant that dates the Deck rating.",
+          "target": "catalog.game_features.deck_checked_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-2"
+        },
+        "duration_manual_override": {
+          "disposition": "preserved",
+          "note": "Marks a duration an operator set by hand, which must never be overwritten by a provider refresh. Coordinator ruling: preserve MANUAL DURATION DECISIONS. Applied M3 provides catalog.review_decisions for the authored evidence; this projection flag remains in catalog.game_features so refresh cannot overwrite the chosen duration.",
+          "target": "catalog.game_features.duration_manual_override",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-7"
+        }
+      },
+      "settled_decisions": [
+        "D-CAT-1 SETTLED (destination): ruling 2 says a forced legacy steam_type='game' is legacy classification evidence to be preserved WITHOUT asserting a new provider check. steam_type is therefore recorded in catalog.review_decisions with decision_kind 'catalogue_type' and an explicit precedence_rank, and it never silently rewrites catalog.games.game_type. The reconciliation PROOF that the precedence rule is deterministic against real rows is a snapshot check, not a design decision.",
+        "D-CAT-2 SETTLED: ruling 2 requires the four-way Deck detail. catalog.game_features.deck_compatibility_detail preserves the smallint so Playable and Verified stay distinguishable.",
+        "D-CAT-3 SETTLED: ruling 2 requires ordinal confidence WITHOUT fabricated probabilities. catalog.game_features.duration_confidence_label preserves the ordinal; the numeric(5,4) column is not fed from it.",
+        "D-CAT-4 SETTLED: ruling 2 requires review counts. catalog.game_features.review_positive / review_negative / review_total preserve the triple, so the displayed rating keeps its sample size.",
+        "D-CAT-5 SETTLED: ruling 2 requires offers/current prices. catalog.offers and catalog.offer_prices exist in the M3 migration and hold the actual US observations without indefinite price history."
+      ],
+      "snapshot_checks": [
+        "S-CAT-CLASSIFY"
+      ]
+    },
+    "catalog_game_quarantine": {
+      "role": "Apps detected as non-games and held out of the catalogue, with the rule that matched.",
+      "summary": "Quarantine evidence is preserved in catalog.review_decisions with decision_kind 'quarantine' and an explicit precedence_rank, so it never silently rewrites catalog.games.game_type.",
+      "disposition_class": "migrated",
+      "target": "catalog.review_decisions",
+      "evidence": [
+        "readiness 3",
+        "readiness 14.4",
+        "docs/catalogue-quarantine.md"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "transformed",
+          "note": "Resolves through migration.game_map ONLY if the app is also in catalog_games; a quarantined app may not be, in which case it has no catalogue identity at all and the review decision has nothing to hang on.",
+          "target": "catalog.review_decisions.steam_app_id + catalog.review_decisions.game_id",
+          "transform": "legacy steam appid -> catalog.games.id through migration.game_map. game_id stays NULL when the quarantined app is not in catalog_games at all, which is a real case: the review decision then keeps its steam_app_id and survives without a catalogue identity.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "name": {
+          "disposition": "preserved",
+          "note": "The app name as observed. For a quarantined app absent from catalog_games this is the ONLY record of what it was.",
+          "target": "catalog.review_decisions.name",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "steam_type": {
+          "disposition": "preserved",
+          "note": "readiness 14.4: UNVALIDATED text, unlike catalog_games.steam_type which is forced to 'game'. This is the ONE place the source retains real type information and is therefore the natural input to D-CAT-1. Its values may fall outside v2's game_type domain, which must be measured before any target constraint is written.",
+          "conflict": "readiness 14.4",
+          "target": "catalog.review_decisions.steam_type",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN",
+            "S-CAT-CLASSIFY"
+          ]
+        },
+        "matched_rule": {
+          "disposition": "preserved",
+          "note": "Which quarantine rule fired. Coordinator ruling: legacy classification is PROVENANCE. This column IS that provenance.",
+          "target": "catalog.review_decisions.matched_rule",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "reason": {
+          "disposition": "preserved",
+          "note": "Human-readable reason, NOT NULL.",
+          "target": "catalog.review_decisions.reason",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "genres": {
+          "disposition": "transformed",
+          "note": "text[] observed at quarantine time; the evidence the rule fired on.",
+          "target": "catalog.review_decisions.genres",
+          "transform": "text[] -> jsonb array, preserving element order and every value.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "categories": {
+          "disposition": "transformed",
+          "note": "text[] observed at quarantine time; the other half of the rule evidence.",
+          "target": "catalog.review_decisions.categories",
+          "transform": "text[] -> jsonb array, preserving element order and every value; the array is not summarised and no element is dropped.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "review_status": {
+          "disposition": "transformed",
+          "note": "Whether a human has since reviewed the quarantine. An operator DECISION, not a provider observation, and therefore must survive.",
+          "target": "catalog.review_decisions.decision_status",
+          "transform": "legacy quarantine review status -> the v2 decision_status vocabulary (pending / excluded / allowed / approved / rejected / needs_review / retained / unresolved). The mapping must be asserted against the live value domain, not assumed; an unmapped value is a reported conflict rather than a coerced 'unresolved'.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN",
+            "S-CAT-CLASSIFY"
+          ]
+        },
+        "source": {
+          "disposition": "preserved",
+          "note": "Which pipeline detected it.",
+          "target": "catalog.review_decisions.source",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "first_detected_at": {
+          "disposition": "preserved",
+          "note": "First detection instant.",
+          "target": "catalog.review_decisions.created_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "last_detected_at": {
+          "disposition": "transformed",
+          "note": "Most recent detection; distinguishes a one-off from a recurring re-appearance.",
+          "target": "catalog.review_decisions.source_payload",
+          "transform": "carried as the explicit key 'last_detected_at' inside source_payload, because review_decisions has one created_at and one updated_at and the source has THREE distinct instants (first detection, last detection, row mutation). Naming the key keeps the fact addressable instead of dumping the source row as an opaque blob.",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "reviewed_at": {
+          "disposition": "preserved",
+          "note": "When the human review happened.",
+          "target": "catalog.review_decisions.reviewed_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "review_notes": {
+          "disposition": "preserved",
+          "note": "Operator notes. Nonempty text must not be truncated or dropped (coordinator ruling); empty may normalise to null.",
+          "target": "catalog.review_decisions.review_notes",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "Row mutation clock preserved on the applied catalog.review_decisions destination.",
+          "target": "catalog.review_decisions.updated_at",
+          "settled_by": [
+            "coordinator ruling 2, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-CAT-9"
+        }
+      },
+      "settled_decisions": [
+        "D-CAT-9 SETTLED: ruling 2 requires review/manual-decision destinations, and plan 14.2 assigns quarantine to manual decisions and review provenance. catalog.review_decisions exists in the M3 migration and is shared, by design, with duration reviews and the manual duration override. Its unique (source_relation, source_record_key) keeps the three sources separable."
+      ],
+      "snapshot_checks": [
+        "S-CAT-CLASSIFY"
+      ]
+    },
+    "catalog_game_sightings": {
+      "role": "How often an app has been seen in user imports, with first and last sighting instants.",
+      "summary": "Catalogue sighting provenance is preserved in the durable shared catalog.game_sightings relation (readiness 3). It carries no account key.",
+      "disposition_class": "archive-only",
+      "target": "catalog.game_sightings",
+      "archive_purpose": "Preserve import-frequency provenance, which is the signal the catalogue uses to decide what is worth enriching, and which is NOT recoverable after cutover because it counts historical imports that will not be replayed.",
+      "archive_retention": "Operational provenance with no account key: retained until the v2 catalogue has accumulated its own equivalent sighting history, reviewed at M7. Not permanent by default.",
+      "retention": {
+        "class": "operational-provenance",
+        "bound": "until the v2 catalogue has accumulated equivalent sighting history",
+        "destination": "catalog.game_sightings",
+        "carries_account_identity": false,
+        "review": "M7",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: shared catalogue evidence and job/worker summaries are bounded operational data with no account key"
+        ],
+        "note": "Shared catalogue observation, not personal data; it carries no account key."
+      },
+      "evidence": [
+        "readiness 3"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.game_sightings.steam_app_id",
+          "note": "Kept as the raw appid so an app absent from catalog_games is still recorded."
+        },
+        "import_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.game_sightings.import_count",
+          "note": "bigint. This is the surviving copy of the counter also denormalised on catalog_games.import_sighting_count, which is retired against it."
+        },
+        "first_seen_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.game_sightings.first_seen_at",
+          "note": "First import sighting."
+        },
+        "last_seen_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.game_sightings.last_seen_at",
+          "note": "Most recent import sighting; distinguishes a live app from a dormant one."
+        }
+      }
+    },
+    "catalog_ingest_queue": {
+      "role": "Work queue for fetching catalogue metadata, with retry state and a jsonb source payload.",
+      "summary": "Per plan 14.2 and readiness 14 the queue is NOT a migration destination: in-flight work is not resumed and due work is rebuilt. Root's 11 September durability review added the missing half: the TERMINAL verdicts must also reach catalog.appid_terminal_rejections (M3), because migration.legacy_ingest_queue_archive is staging-30d-post-cutover and ensure_catalogue_entries (supabase/migrations/20260829224231_reparent_product_data_to_app_accounts.sql:157-172) re-queues any requested AppID with no catalog_games row -- which is exactly what a rejected AppID is. Once the archive expires, every already-rejected non-game would be re-fetched and re-classified forever; lib/catalogue.ts:167-177 records that this churn already happened once.",
+      "disposition_class": "migrated",
+      "target": "catalog.appid_terminal_rejections (terminal verdicts) + catalog.provider_state (mapped AppIDs); the transient queue itself is rebuilt after cutover",
+      "archive_purpose": "Preserve rejection decisions and earned failure history so the rebuilt queue does not re-attempt known-bad apps against a rate-limited provider, and so a permanently rejected app is not silently re-ingested.",
+      "archive_retention": "Operational provenance with no account key: retained until the v2 ingest pipeline has re-derived its own rejection set, reviewed at M7.",
+      "retention": {
+        "class": "operational-provenance",
+        "bound": "until the v2 ingest pipeline has re-derived its own rejection set",
+        "destination": "migration.legacy_ingest_queue_archive",
+        "carries_account_identity": false,
+        "review": "M7",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: shared catalogue evidence and job/worker summaries are bounded operational data with no account key"
+        ]
+      },
+      "evidence": [
+        "readiness 14 (queue relations are design confirmations, not migration conflicts)",
+        "plan 14.2"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.steam_appid",
+          "note": "Identifies the queued app."
+        },
+        "status": {
+          "disposition": "preserved",
+          "note": "Archived verbatim AND mapped to a durable terminal verdict for 'rejected'/'failed' on an AppID with no catalogue row; 'pending'/'processing' stay archive-only in-flight work that is deliberately not resumed.",
+          "target": "catalog.appid_terminal_rejections.terminal_status",
+          "archive_also": "+migration.legacy_ingest_queue_archive.status"
+        },
+        "reason": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.reason",
+          "note": "Why the app was queued."
+        },
+        "priority": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Scheduling input for a queue that is rebuilt after cutover; the rebuilt queue derives its own priorities from current demand.",
+          "note": "Retired as scheduling state, not as data."
+        },
+        "requested_count": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.requested_count",
+          "note": "Demand signal. Distinct from catalog_game_sightings.import_count, which counts sightings rather than queue requests."
+        },
+        "source_rank": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.source_rank",
+          "note": "Rank in the seed source that requested it; ties the queue entry back to a catalog_seed_runs row."
+        },
+        "source_payload": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "The provider payload that justified queueing. Per plan 14.2 payloads are NOT migrated; the app can be re-fetched from the provider, and the payload is the largest column here.",
+          "note": "jsonb. If it is archived at all it must be treated as opaque text and hashed as text, never re-serialised (readiness 8.5). The proposal is not to archive it."
+        },
+        "attempts": {
+          "disposition": "preserved",
+          "note": "Earned attempt history. Losing it restarts a known-bad app at zero attempts against a rate-limited provider.",
+          "target": "catalog.appid_terminal_rejections.attempts",
+          "archive_also": "+migration.legacy_ingest_queue_archive.attempts"
+        },
+        "next_attempt_at": {
+          "disposition": "preserved",
+          "target": "catalog.appid_terminal_rejections.retry_allowed_after",
+          "note": "Also catalog.provider_state.next_attempt_at when the AppID has a catalogue row (a 'refresh' or 'seed' queue row). Reversed from derived-retirement by the 11 September durability review: the fence is the only record of when a failed identity becomes eligible again."
+        },
+        "processing_started_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "An in-flight worker lease with no meaning after the freeze.",
+          "note": "readiness 14 confirms in-flight work is not resumed."
+        },
+        "last_error": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.last_error",
+          "note": "Why the last attempt failed. Free text; checked for anything provider-credential-shaped before export."
+        },
+        "rejection_reason": {
+          "disposition": "preserved",
+          "note": "The classifier's verbatim verdict text, never summarised; an over-long value fails closed rather than being truncated.",
+          "target": "catalog.appid_terminal_rejections.reason",
+          "archive_also": "+migration.legacy_ingest_queue_archive.rejection_reason"
+        },
+        "first_requested_at": {
+          "disposition": "preserved",
+          "note": "When the identity was first requested, kept beside the terminal verdict.",
+          "target": "catalog.appid_terminal_rejections.first_requested_at",
+          "archive_also": "+migration.legacy_ingest_queue_archive.first_requested_at"
+        },
+        "last_requested_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.last_requested_at",
+          "note": "Most recent demand."
+        },
+        "processed_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_ingest_queue_archive.processed_at",
+          "note": "Completion instant; separates finished work from abandoned work."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "catalog.appid_terminal_rejections.last_attempt_at",
+          "note": "Also catalog.provider_state.updated_at for a mapped AppID. A 'failed' row has no processed_at, so updated_at is the only instant recording when the last attempt happened; without it the terminal verdict cannot satisfy the target's NOT NULL last_attempt_at."
+        }
+      }
+    },
+    "catalog_seed_runs": {
+      "role": "Provenance for each catalogue seeding run: source, metric, capture date and a source digest.",
+      "summary": "Seed-run provenance is preserved in the durable shared catalog.seed_runs relation (readiness 3). It carries no account key.",
+      "disposition_class": "archive-only",
+      "target": "catalog.seed_runs",
+      "archive_purpose": "Preserve the provenance of the seeded catalogue: which source and metric produced which apps, and the digest that makes a run reproducible. Without it the catalogue's origin is unattributable and a bad seed cannot be traced or reversed.",
+      "archive_retention": "Operational provenance with no account key: retained for as long as seeded rows remain in catalog.games, because it is the only attribution for those rows. Reviewed at M7.",
+      "retention": {
+        "class": "operational-provenance",
+        "bound": "while seeded rows remain in catalog.games",
+        "destination": "catalog.seed_runs",
+        "carries_account_identity": false,
+        "review": "M7",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: shared catalogue evidence and job/worker summaries are bounded operational data with no account key"
+        ],
+        "note": "Permanence is permitted here because the archive carries no account key and is the only attribution for the seeded catalogue rows."
+      },
+      "evidence": [
+        "readiness 3"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.legacy_id",
+          "note": "Run identity, referenced by catalog_ingest_queue.source_rank context."
+        },
+        "source": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.source",
+          "note": "Which provider or file the seed came from."
+        },
+        "metric": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.metric",
+          "note": "Which metric the run ranked by; two runs on different metrics are not comparable."
+        },
+        "captured_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.captured_on",
+          "note": "A CIVIL DATE (date, not timestamptz). Copies across unchanged and must NEVER be routed through a timestamp conversion (readiness 8.5)."
+        },
+        "requested_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.requested_count",
+          "note": "How many apps the run asked for."
+        },
+        "accepted_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.accepted_count",
+          "note": "How many were accepted; the gap against requested_count is the quarantine rate."
+        },
+        "source_url": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.source_url",
+          "note": "Where the seed came from. Checked for an embedded API key before export - a provider URL is the most likely place for one to hide."
+        },
+        "source_sha256": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.source_sha256",
+          "note": "Digest of the seed input, which is what makes the run reproducible. A content digest, not a credential."
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.seed_runs.created_at",
+          "note": "When the run executed, as distinct from captured_at, which is the date the DATA describes."
+        }
+      }
+    },
+    "guest_catalogue_pool": {
+      "role": "A refreshed, ordered pool of catalogue apps shown to signed-out visitors.",
+      "summary": "Fully derived presentation cache. Rebuilt by the v2 guest surface from catalog.games; nothing here is user data or an observation.",
+      "disposition_class": "archive-only",
+      "target": "not migrated; rebuilt after cutover",
+      "evidence": [
+        "readiness 3 (not named as a required v2 home)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "steam_appid": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Recomputed by the v2 guest-pool refresh from catalog.games. The pool is a cache of a query, not a record of anything that happened.",
+          "note": "Retiring it changes which games a signed-out visitor sees first after cutover, which is a cosmetic difference, not data loss."
+        },
+        "position": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Assigned by the refresh that rebuilds the pool.",
+          "note": "No user has an expectation about this ordering; it is refreshed on a schedule already."
+        },
+        "refreshed_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Set by the next refresh after cutover.",
+          "note": "Staleness bookkeeping for a cache that will be rebuilt."
+        }
+      }
+    },
+    "catalog_duration_import_runs": {
+      "role": "Provenance for bulk duration-data import runs, including a source digest, expected counts and a jsonb manifest.",
+      "summary": "Duration-import provenance is preserved in the durable shared catalog.duration_imports relation (readiness 3); the manifest payload remains opaque.",
+      "disposition_class": "archive-only",
+      "target": "catalog.duration_imports",
+      "archive_purpose": "Preserve the provenance of imported duration data: which file, which digest, how many rows staged versus imported. This is the audit trail for every duration in the catalogue and is not reconstructible from the durations themselves.",
+      "archive_retention": "Operational provenance with no account key: retained for as long as imported durations remain in catalog.game_features. Reviewed at M7.",
+      "retention": {
+        "class": "operational-provenance",
+        "bound": "while imported durations remain in catalog.game_features",
+        "destination": "catalog.duration_imports",
+        "carries_account_identity": false,
+        "review": "M7",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: shared catalogue evidence and job/worker summaries are bounded operational data with no account key"
+        ],
+        "note": "No account key; this is catalogue provenance."
+      },
+      "evidence": [
+        "readiness 3",
+        "readiness 8.5 (manifest jsonb is opaque)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.legacy_id",
+          "note": "Run identity."
+        },
+        "source": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.source",
+          "note": "Which duration provider or file the run imported from."
+        },
+        "imported_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.imported_count",
+          "note": "Rows actually applied."
+        },
+        "skipped_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.skipped_count",
+          "note": "Rows rejected; the gap against imported_count is the match failure rate."
+        },
+        "source_updated_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.source_updated_at",
+          "note": "When the PROVIDER last updated the source file, distinct from when we imported it."
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.created_at",
+          "note": "When the run started."
+        },
+        "source_sha256": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.source_sha256",
+          "note": "Digest of the imported file; makes the run reproducible. A content digest, not a credential."
+        },
+        "expected_app_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.expected_app_count",
+          "note": "The count the run expected; a mismatch against staged_row_count is how a truncated download was detected."
+        },
+        "staged_row_count": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.staged_row_count",
+          "note": "Rows staged before the apply step."
+        },
+        "status": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.status",
+          "note": "Terminal state of the run; distinguishes a completed import from an abandoned one whose partial effects may still be in the catalogue."
+        },
+        "completed_at": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.completed_at",
+          "note": "Null on an abandoned run, which is itself the evidence."
+        },
+        "manifest": {
+          "disposition": "audit-archive",
+          "archive": "+catalog.duration_imports.manifest",
+          "note": "jsonb, NOT NULL. Archived as OPAQUE TEXT and hashed as text, never re-serialised (readiness 8.5). It is the per-run detail that makes the counts above auditable."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": false,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "types": [
+      "node"
+    ],
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "lib/v2/migration/transform/library.ts",
+    "lib/v2/migration/transform/library-shared.ts",
+    "lib/v2/migration/transform/library-state.ts",
+    "lib/v2/migration/transform/family.ts",
+    "lib/v2/migration/transform/history.ts",
+    "lib/v2/migration/transform/library.test.ts",
+    "lib/v2/migration/transform/library-state.test.ts",
+    "lib/v2/migration/transform/family.test.ts",
+    "lib/v2/migration/transform/history.test.ts",
+    "lib/v2/migration/transform/library-constraints.integration.ts"
+  ]
+}

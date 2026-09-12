@@ -1,0 +1,2954 @@
+{
+  "index_version": "1",
+  "milestone": "M3",
+  "generated_by": "database/v2/migration/manifest/build_destination_index.py",
+  "generated_note": "GENERATED FILE. Do not hand-edit. Parsed from the migration SQL, which is owned by the physical-database worker and is only ever read here. Rerun the builder after that worker changes a migration.",
+  "boundary_note": "M1 (20260906093036), M2 (20260907163356) and M3 (20260910232654) are all applied and immutable; no migration may be edited or reapplied. M3 was applied at 2026-09-10T23:26:54Z and the local file was RENAMED, not edited, from the pre-apply 20260909214501 name, so its content hash is unchanged. 'applied' here means the destination is created by an applied, immutable migration file. 20260911234500_m3_legacy_preservation_followup.sql is PREPARED LOCALLY AND NOT APPLIED: its source record carries 'applied': false, and every column it adds to an already-applied relation is listed in that relation's 'pending_columns' and summarised under 'pending_columns' at the top level. A pending column is a resolvable manifest target but is NOT present on the target database, so no decision may be called closed on the strength of one until root applies that migration. This index proves a target name exists in the SQL. It does not certify the remote schema, security and rollback verification root still owns, and a newly discovered physical gap needs a new, separately reviewed migration rather than an edit.",
+  "physical_contract": {
+    "path": "database/v2/M3-contract.md",
+    "sha256": "2d7a77eb38f69cf6985ebf1b803bd187cc3f1b5033f9468da7480f044da3a68e",
+    "description": "Prose contract owned by the physical-database worker. Recorded by hash only; destination NAMES come from the SQL, not prose, so a contract edit cannot silently redefine a target."
+  },
+  "sources": [
+    {
+      "file": "20260906093036_m1_private_foundation.sql",
+      "origin": "m1",
+      "applied": true,
+      "applied_at": null,
+      "sha256": "54fe0a7defd029e91568b78d51393670ac7ca6edcf915919670c7f64c2476389",
+      "relations_defined": [
+        "app.account_capabilities",
+        "app.account_preferences",
+        "app.accounts",
+        "app.collection_games",
+        "app.collections",
+        "app.completion_events",
+        "app.family_game_access",
+        "app.family_members",
+        "app.game_activity",
+        "app.game_state",
+        "app.library_games",
+        "app.library_sync_state",
+        "app.pins",
+        "app.playtime_daily",
+        "app.retired_library_games",
+        "app.sessions",
+        "app.snoozes",
+        "app.steam_profiles",
+        "app.vault_state",
+        "catalog.game_features",
+        "catalog.game_metadata",
+        "catalog.games",
+        "ops.account_aliases",
+        "ops.account_merges",
+        "ops.auth_intents",
+        "ops.project_marker"
+      ]
+    },
+    {
+      "file": "20260907163356_m2_jobs_quota_publish.sql",
+      "origin": "m2",
+      "applied": true,
+      "applied_at": null,
+      "sha256": "f09d7ca900f3cdaaee81eff0f507adc5869865f16eb7f340eeb1729223bc5aba",
+      "relations_defined": [
+        "app.game_activity",
+        "app.library_observation_anomalies",
+        "app.library_observation_fences",
+        "app.library_sync_state",
+        "catalog.games",
+        "ops.enrichment_outbox",
+        "ops.job_requests",
+        "ops.jobs",
+        "ops.provider_call_charges",
+        "ops.provider_controls",
+        "ops.provider_quota_daily",
+        "ops.provider_token_buckets"
+      ]
+    },
+    {
+      "file": "20260910232654_m3_preservation_schema.sql",
+      "origin": "m3",
+      "applied": true,
+      "applied_at": "2026-09-10T23:26:54Z",
+      "sha256": "605b72a3d9df1328ec27033c3420c1813a238f6e15bd8fc28f971cddaf30a24a",
+      "relations_defined": [
+        "app.account_capability_evidence",
+        "app.accounts",
+        "app.collection_games",
+        "app.completion_event_registry",
+        "app.completion_events",
+        "app.family_access_orphans",
+        "app.family_members",
+        "app.game_activity",
+        "app.game_state_legacy_measurements",
+        "app.library_legacy_measurements",
+        "app.pins",
+        "app.playtime_daily",
+        "app.purge_review_history",
+        "app.unknown_completion_history",
+        "app.vault_draw_events",
+        "app.vault_draws",
+        "app.vault_events",
+        "app.vault_state",
+        "catalog.appid_terminal_rejections",
+        "catalog.duration_aliases",
+        "catalog.duration_estimates",
+        "catalog.duration_imports",
+        "catalog.game_features",
+        "catalog.game_metadata",
+        "catalog.game_sightings",
+        "catalog.games",
+        "catalog.offer_prices",
+        "catalog.offers",
+        "catalog.provider_state",
+        "catalog.review_decisions",
+        "catalog.seed_runs",
+        "migration.account_map",
+        "migration.applied_steps",
+        "migration.collection_map",
+        "migration.conflict_report",
+        "migration.cutover_state",
+        "migration.game_map",
+        "migration.legacy_account_merge_audit",
+        "migration.legacy_account_preferences_evidence",
+        "migration.legacy_auth_intent_audit",
+        "migration.legacy_collection_membership_evidence",
+        "migration.legacy_duration_job_archive",
+        "migration.legacy_family_access_orphans",
+        "migration.legacy_family_member_evidence",
+        "migration.legacy_import_freeze_report",
+        "migration.legacy_ingest_queue_archive",
+        "migration.legacy_library_evidence",
+        "migration.legacy_manual_session_audit",
+        "migration.legacy_purge_review_archive",
+        "migration.legacy_schema_migration_ledger",
+        "migration.legacy_user_game_state_audit",
+        "migration.library_row_map",
+        "migration.relation_counts",
+        "migration.retention_holds",
+        "migration.runs",
+        "migration.session_map",
+        "ops.abuse_cooldowns",
+        "ops.account_merges",
+        "ops.data_retention_registry",
+        "ops.legacy_worker_runs",
+        "ops.retention_classes",
+        "reco.game_preference_globals",
+        "reco.genre_preference_globals",
+        "reco.operator_weight_versions",
+        "reco.user_genre_preferences",
+        "reco.warm_start_snapshots",
+        "support.contact_messages",
+        "support.feedback_submissions",
+        "support.retention_policy_decisions"
+      ]
+    },
+    {
+      "file": "20260911234500_m3_legacy_preservation_followup.sql",
+      "origin": "m3-followup",
+      "applied": false,
+      "applied_at": null,
+      "sha256": "beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59",
+      "relations_defined": [
+        "app.family_access_orphans",
+        "app.game_activity",
+        "app.retired_library_games",
+        "migration.legacy_family_access_orphans"
+      ]
+    }
+  ],
+  "schemas": [
+    "app",
+    "catalog",
+    "migration",
+    "ops",
+    "reco",
+    "support"
+  ],
+  "totals": {
+    "relations": 92,
+    "applied_relations": 92,
+    "proposed_relations": 0,
+    "extended_relations": 13,
+    "columns": 993,
+    "pending_columns": 2
+  },
+  "pending_columns": {
+    "app.game_activity": {
+      "columns": [
+        "legacy_last_played_at"
+      ],
+      "from": [
+        "m3-followup"
+      ],
+      "status": "prepared locally, not applied to any target"
+    },
+    "app.retired_library_games": {
+      "columns": [
+        "legacy_ownership"
+      ],
+      "from": [
+        "m3-followup"
+      ],
+      "status": "prepared locally, not applied to any target"
+    }
+  },
+  "proposed_relations": [],
+  "extended_relations": [
+    "app.accounts",
+    "app.collection_games",
+    "app.completion_events",
+    "app.family_members",
+    "app.game_activity",
+    "app.library_sync_state",
+    "app.pins",
+    "app.playtime_daily",
+    "app.retired_library_games",
+    "catalog.game_features",
+    "catalog.game_metadata",
+    "catalog.games",
+    "ops.account_merges"
+  ],
+  "retention_registry": {
+    "classes": {
+      "bounded-operational": {
+        "scope": "operational",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": true,
+        "description": "Operational history bounded by its own expiry, lease or retention column rather than by the cutover window. Deleted with the account wherever an account key exists."
+      },
+      "durable-account-lifetime": {
+        "scope": "account_domain",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": true,
+        "description": "Lasting private fact about one account. Lives while the account exists, is removed by account deletion through a cascading key, and is included in that account export."
+      },
+      "durable-catalogue-evidence": {
+        "scope": "shared_catalogue",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": false,
+        "description": "Shared catalogue or provider evidence with no account key. Current useful evidence retained with bounded revisions; obsolete raw payloads expire on their own relation rule."
+      },
+      "migration-bookkeeping-permanent": {
+        "scope": "bookkeeping",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": false,
+        "description": "Run metadata, counts, conflict classes and the schema ledger. Contains no source rows and no personal data, so plan 13 staging bound does not apply."
+      },
+      "operational-config": {
+        "scope": "operational",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": false,
+        "description": "Operator configuration, quota and provider control state. No account key and no user content, so neither deletion nor export applies."
+      },
+      "shared-evidence-de-identifiable": {
+        "scope": "shared_catalogue",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": true,
+        "description": "Shared catalogue evidence that carries an operator or reviewer account link and must survive that account. Account deletion de-identifies the row rather than removing it, which is only honest because the relation holds no account UUID."
+      },
+      "staging-30d-post-cutover": {
+        "scope": "migration_staging",
+        "max_days_after_cutover": 30,
+        "personal_data_allowed": true,
+        "description": "Raw migration staging and export evidence. Purged within 30 days of a validated cutover unless an explicit recorded recovery-incident hold applies. Never the only home of a lasting fact."
+      },
+      "support-pending-decision": {
+        "scope": "support",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": true,
+        "description": "Support content whose deletion deadline is deliberately unresolved until M6 or M7. The pending decision does not waive account deletion or account export."
+      },
+      "ui-history-90d": {
+        "scope": "operational",
+        "max_days_after_cutover": null,
+        "personal_data_allowed": true,
+        "description": "Plan 13 UI draw, impression and action history. The cleanup candidate view keeps at most the latest 100 draws per account and removes rows older than 90 days; completion history is a separate durable domain."
+      }
+    },
+    "relations": {
+      "app.account_capabilities": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Compact projected capability row."
+      },
+      "app.account_capability_evidence": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Raw legacy capability tuples with provenance. Retained durably because the v2 projection deliberately reduces false and NULL to unknown."
+      },
+      "app.account_preferences": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored preferences, including per-key legacy provenance carried inside the preferences document."
+      },
+      "app.accounts": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "id",
+        "account_uuid_columns": [
+          "public_id"
+        ],
+        "deletion_mode": "account_row",
+        "export_scope": "account_export",
+        "rationale": "The account row itself. Deleting it drives every cascade below. last_login_at and last_seen_at are two separate legacy instants on this row."
+      },
+      "app.collection_games": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored membership, ordering and notes up to the M1 note bound."
+      },
+      "app.collections": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored collections retaining their legacy public UUID."
+      },
+      "app.completion_event_registry": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_event_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "One row per legacy completion event UUID across both destinations."
+      },
+      "app.completion_events": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_event_id",
+          "legacy_game_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Resolved completion history with legacy event and game UUIDs."
+      },
+      "app.family_access_orphans": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Sole surviving evidence of family access with no lender row. Confers no access and manufactures no member."
+      },
+      "app.family_game_access": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Family access edges."
+      },
+      "app.family_members": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_member_id",
+          "public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Lender roster with legacy member identity and display metadata."
+      },
+      "app.game_activity": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Sparse recency evidence."
+      },
+      "app.game_state": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored per-game state and notes."
+      },
+      "app.game_state_legacy_measurements": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_user_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Sparse durable evidence promoted only for stale state facts that are sole evidence or unresolved; never a runtime state/activity source."
+      },
+      "app.library_games": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Compact owned library with exact observed minutes."
+      },
+      "app.library_legacy_measurements": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Sparse durable evidence for legacy numeric and raw text that the exact observed minutes cannot reproduce. Authorship defaults to unknown."
+      },
+      "app.library_observation_anomalies": {
+        "introduced_in": "m2",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Per-account import anomaly evidence."
+      },
+      "app.library_observation_fences": {
+        "introduced_in": "m2",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Per-account observation fence."
+      },
+      "app.library_sync_state": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Per-account import fence and generation."
+      },
+      "app.pins": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored pins and their baselines."
+      },
+      "app.playtime_daily": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Cumulative daily observed totals and games-with-playtime coverage."
+      },
+      "app.purge_review_history": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored purge review decisions. Durable account history, not staging."
+      },
+      "app.retired_library_games": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Retained measurements for lost access."
+      },
+      "app.sessions": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Session lifecycle. The exported representation carries kinds and timestamps, never the token digest."
+      },
+      "app.snoozes": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Authored suppression."
+      },
+      "app.steam_profiles": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Provider profile identity for the account."
+      },
+      "app.unknown_completion_history": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_event_id",
+          "source_game_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Completion events that resolve to no catalogue or library identity."
+      },
+      "app.vault_draw_events": {
+        "introduced_in": "m3",
+        "retention_class": "ui-history-90d",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "UI draw impressions/actions. Events cascade with their draw and the M6 cleanup candidate view removes aged rows or children of draws beyond the latest 100; source UUIDs still cascade and remain exportable while retained."
+      },
+      "app.vault_draws": {
+        "introduced_in": "m3",
+        "retention_class": "ui-history-90d",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "public_id",
+          "source_collection_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "UI draw history. The M6 cleanup candidate view retains at most the latest 100 draws per account and removes rows older than 90 days using the account/time index; source UUIDs still cascade on account deletion and remain exportable while retained."
+      },
+      "app.vault_events": {
+        "introduced_in": "m3",
+        "retention_class": "ui-history-90d",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "public_id",
+          "legacy_game_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "UI product action history. The M6 cleanup candidate view removes rows older than 90 days using the account/time index; completion history remains durable separately."
+      },
+      "app.vault_state": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "current_draw_ref"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Current pick. current_draw_ref is a draw UUID scoped to this account and goes with the cascade."
+      },
+      "catalog.appid_terminal_rejections": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Durable terminal rejection and backoff state so a failed identity is not retried forever."
+      },
+      "catalog.duration_aliases": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Reviewed search aliases."
+      },
+      "catalog.duration_estimates": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Provider duration observations per AppID and provider."
+      },
+      "catalog.duration_imports": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Durable provenance for imported duration facts that remain."
+      },
+      "catalog.game_features": {
+        "introduced_in": "m1",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Shared catalogue features, durations, reviews, popularity and tag evidence."
+      },
+      "catalog.game_metadata": {
+        "introduced_in": "m1",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Shared catalogue metadata."
+      },
+      "catalog.game_sightings": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Durable destination for legacy catalogue sighting counts. Aggregate counts only, no account key."
+      },
+      "catalog.games": {
+        "introduced_in": "m1",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Shared catalogue identity and first/last seen provenance."
+      },
+      "catalog.offer_prices": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Observed US price points with a per-row retention_until; no perpetual price history."
+      },
+      "catalog.offers": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Observed US offers."
+      },
+      "catalog.provider_state": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Provider retry state for catalogued games."
+      },
+      "catalog.review_decisions": {
+        "introduced_in": "m3",
+        "retention_class": "shared-evidence-de-identifiable",
+        "holds_personal_data": true,
+        "account_fk_column": "reviewer_account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "de_identify",
+        "export_scope": "operator_only",
+        "rationale": "Shared catalogue decision that must survive the reviewer account. It carries no reviewer UUID, so ON DELETE SET NULL genuinely de-identifies it; the source reviewer UUID lives only in bounded staging."
+      },
+      "catalog.seed_runs": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Durable seed provenance for catalogue rows that remain."
+      },
+      "migration.account_map": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Legacy account UUID to target account. Cascades so a deletion cannot leave the legacy identifier behind."
+      },
+      "migration.applied_steps": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Phase ledger and restart watermarks."
+      },
+      "migration.collection_map": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Legacy collection UUID to target collection."
+      },
+      "migration.conflict_report": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Conflict classes, counts and decisions. Raw values never appear here."
+      },
+      "migration.cutover_state": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "The single validated-cutover instant that starts the staging window."
+      },
+      "migration.game_map": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "AppID to catalogue game."
+      },
+      "migration.legacy_account_merge_audit": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "mapped_source_account_id",
+        "account_uuid_columns": [
+          "source_account_id",
+          "target_account_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw merge rows. The durable merge audit is ops.account_merges."
+      },
+      "migration.legacy_account_preferences_evidence": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_account_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw per-key preferences. The durable values and their per-key provenance live in app.account_preferences."
+      },
+      "migration.legacy_auth_intent_audit": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_account_id",
+          "target_account_id",
+          "legacy_intent_id",
+          "legacy_session_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Promotion intents without token, nonce or digest. Both mapped accounts cascade."
+      },
+      "migration.legacy_collection_membership_evidence": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_collection_id",
+          "source_game_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw membership rows and ordering conflicts. Durable notes and ordering live on app.collection_games."
+      },
+      "migration.legacy_duration_job_archive": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Raw duration job rows. Terminal verdicts are extracted to catalog.appid_terminal_rejections with measured counts before expiry."
+      },
+      "migration.legacy_family_access_orphans": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_user_id",
+          "source_member_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw orphan access rows. The durable evidence lives in app.family_access_orphans."
+      },
+      "migration.legacy_family_member_evidence": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_member_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw lender rows. The durable lender facts live on app.family_members."
+      },
+      "migration.legacy_import_freeze_report": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_user_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Per-account import state at freeze. The source games payload and processing token are never copied."
+      },
+      "migration.legacy_ingest_queue_archive": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Raw ingest queue rows. Terminal verdicts are extracted to catalog.appid_terminal_rejections with measured counts before expiry."
+      },
+      "migration.legacy_library_evidence": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw library rows. Anything the exact observed minutes cannot reproduce must reach app.library_legacy_measurements before this expires."
+      },
+      "migration.legacy_manual_session_audit": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_session_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Manual session lifecycle without any token digest."
+      },
+      "migration.legacy_purge_review_archive": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_id",
+          "source_game_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Raw purge review rows. The durable authored decisions live in app.purge_review_history."
+      },
+      "migration.legacy_schema_migration_ledger": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Legacy migration ledger replay record. Contains no source rows and no personal data."
+      },
+      "migration.legacy_user_game_state_audit": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_user_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Complete stale user_game_state reconciliation staging. Rows needing lasting sole evidence are explicitly promoted to app.game_state_legacy_measurements before this 30-day window closes; the staging child never becomes transform authority."
+      },
+      "migration.library_row_map": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Legacy per-user library row UUID to account and game."
+      },
+      "migration.relation_counts": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Per-relation source, loaded, archived and conflict counts."
+      },
+      "migration.retention_holds": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Recorded recovery-incident holds, each bounded by its own expiry."
+      },
+      "migration.runs": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Run metadata and snapshot identity."
+      },
+      "migration.session_map": {
+        "introduced_in": "m3",
+        "retention_class": "staging-30d-post-cutover",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "legacy_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Legacy session UUID to target session."
+      },
+      "ops.abuse_cooldowns": {
+        "introduced_in": "m3",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Cooldown obligations. Only a key digest is stored; where the source bucket is account keyed, the mapped account cascades."
+      },
+      "ops.account_aliases": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "source_account_id",
+        "account_uuid_columns": [
+          "source_public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Merge alias. Cascades from either account, taking the source public UUID with it."
+      },
+      "ops.account_merges": {
+        "introduced_in": "m1",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "source_account_id",
+        "account_uuid_columns": [
+          "source_public_id",
+          "target_public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Durable merge audit. Cascades from either account; the source and target public UUIDs cannot outlive them."
+      },
+      "ops.auth_intents": {
+        "introduced_in": "m1",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade_via_parent",
+        "export_scope": "operator_only",
+        "rationale": "Short-lived promotion intent bound to a session by compound key; the session cascade removes it with the account."
+      },
+      "ops.data_retention_registry": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "This registry."
+      },
+      "ops.enrichment_outbox": {
+        "introduced_in": "m2",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Catalogue enrichment work items keyed by game."
+      },
+      "ops.job_requests": {
+        "introduced_in": "m2",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Idempotent job request keys."
+      },
+      "ops.jobs": {
+        "introduced_in": "m2",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Job records keyed by account; lease and attempt tokens are operational, not exported."
+      },
+      "ops.legacy_worker_runs": {
+        "introduced_in": "m3",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Legacy worker history bounded by retention_until: 14 days routine, 30 days failure, measured from the source run start."
+      },
+      "ops.project_marker": {
+        "introduced_in": "m1",
+        "retention_class": "operational-config",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Stable project marker. Remains schema_version = m1."
+      },
+      "ops.provider_call_charges": {
+        "introduced_in": "m2",
+        "retention_class": "bounded-operational",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [],
+        "deletion_mode": "cascade",
+        "export_scope": "operator_only",
+        "rationale": "Per-attempt provider charges."
+      },
+      "ops.provider_controls": {
+        "introduced_in": "m2",
+        "retention_class": "operational-config",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Provider enablement and mode."
+      },
+      "ops.provider_quota_daily": {
+        "introduced_in": "m2",
+        "retention_class": "operational-config",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Daily provider quota counters."
+      },
+      "ops.provider_token_buckets": {
+        "introduced_in": "m2",
+        "retention_class": "operational-config",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Provider token buckets."
+      },
+      "ops.retention_classes": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "The retention vocabulary itself."
+      },
+      "reco.game_preference_globals": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Global game aggregate with no account key."
+      },
+      "reco.genre_preference_globals": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Global genre aggregate with no account key."
+      },
+      "reco.operator_weight_versions": {
+        "introduced_in": "m3",
+        "retention_class": "operational-config",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Hand-tuned operator weights, versioned separately from learned values."
+      },
+      "reco.user_genre_preferences": {
+        "introduced_in": "m3",
+        "retention_class": "durable-account-lifetime",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_user_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Per-account warm-start aggregate. A pseudonymous aggregate with an account key is still personal data, so it cascades and takes the source user UUID with it."
+      },
+      "reco.warm_start_snapshots": {
+        "introduced_in": "m3",
+        "retention_class": "durable-catalogue-evidence",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "Frozen snapshot header. Versioned; replacing one creates a new version."
+      },
+      "support.contact_messages": {
+        "introduced_in": "m3",
+        "retention_class": "support-pending-decision",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_account_public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Support contact content. The purge deadline is unresolved; account deletion and export are not."
+      },
+      "support.feedback_submissions": {
+        "introduced_in": "m3",
+        "retention_class": "support-pending-decision",
+        "holds_personal_data": true,
+        "account_fk_column": "account_id",
+        "account_uuid_columns": [
+          "source_account_public_id"
+        ],
+        "deletion_mode": "cascade",
+        "export_scope": "account_export",
+        "rationale": "Feedback content. The purge deadline is unresolved; account deletion and export are not."
+      },
+      "support.retention_policy_decisions": {
+        "introduced_in": "m3",
+        "retention_class": "migration-bookkeeping-permanent",
+        "holds_personal_data": false,
+        "account_fk_column": null,
+        "account_uuid_columns": [],
+        "deletion_mode": "no_account_link",
+        "export_scope": "no_personal_data",
+        "rationale": "The pending support content-retention decision. Deliberately unresolved until M6 or M7."
+      }
+    },
+    "totals": {
+      "classes": 9,
+      "registered_relations": 92,
+      "personal_data_relations": 57
+    },
+    "description": "Parsed from ops.retention_classes and ops.data_retention_registry in the M3 migration SQL, which the database worker owns. Read only; the manifest validator resolves retention claims against it rather than restating a class in prose."
+  },
+  "relations": {
+    "app.account_capabilities": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "library_visibility",
+        "playtime_visibility",
+        "last_played_visibility",
+        "checked_at",
+        "status"
+      ],
+      "extended_by": []
+    },
+    "app.account_capability_evidence": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "source_account_kind",
+        "evidence_precedence",
+        "raw_library_visible",
+        "raw_playtime_visible",
+        "raw_last_played_visible",
+        "raw_checked_at",
+        "raw_games_count",
+        "raw_visibility_status",
+        "projection_status",
+        "conflict_code",
+        "source_snapshot_hash",
+        "captured_at",
+        "evidence"
+      ],
+      "extended_by": []
+    },
+    "app.account_preferences": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "version",
+        "preferences",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "app.accounts": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "public_id",
+        "account_kind",
+        "lifecycle_status",
+        "display_name",
+        "created_at",
+        "last_seen_at",
+        "library_revision",
+        "state_revision",
+        "locale",
+        "store_country",
+        "currency",
+        "last_login_at"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "app.collection_games": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "collection_id",
+        "game_id",
+        "position",
+        "note",
+        "legacy_position",
+        "legacy_created_at",
+        "legacy_order",
+        "position_resolution"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "app.collections": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "public_id",
+        "account_id",
+        "collection_kind",
+        "name",
+        "description",
+        "rules",
+        "revision",
+        "created_at",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "app.completion_event_registry": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_event_id",
+        "account_id",
+        "record_kind",
+        "resolved_event_id",
+        "unknown_history_id",
+        "source_snapshot_hash",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "app.completion_events": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "game_id",
+        "occurred_at",
+        "undone_at",
+        "source",
+        "dedupe_key",
+        "legacy_event_id",
+        "origin_surface",
+        "legacy_game_id",
+        "legacy_steam_appid",
+        "legacy_hours_played",
+        "legacy_hours_played_raw",
+        "legacy_estimate_minutes",
+        "legacy_price_cents",
+        "metric_provenance"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "app.family_access_orphans": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "game_id",
+        "steam_app_id",
+        "lender_steam_id",
+        "observed_at",
+        "disposition",
+        "confers_access",
+        "source_snapshot_hash",
+        "recorded_at"
+      ],
+      "extended_by": []
+    },
+    "app.family_game_access": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "member_id",
+        "game_id",
+        "observed_at",
+        "provenance"
+      ],
+      "extended_by": []
+    },
+    "app.family_members": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "public_id",
+        "account_id",
+        "steam_id",
+        "candidate_app_ids",
+        "candidate_count",
+        "checked_at",
+        "error_status",
+        "legacy_member_id",
+        "display_name",
+        "avatar_url",
+        "profile_url",
+        "legacy_library_seen",
+        "legacy_games_imported",
+        "last_synced_at",
+        "last_error"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "app.game_activity": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "last_observed_minutes",
+        "last_played_at",
+        "observed_at",
+        "evidence_source",
+        "interval_started_at",
+        "interval_ended_at",
+        "observation_scope",
+        "last_played_source",
+        "recency_evidence_kind",
+        "legacy_last_played_at"
+      ],
+      "extended_by": [
+        "m2",
+        "m3",
+        "m3-followup"
+      ],
+      "pending_columns": [
+        "legacy_last_played_at"
+      ],
+      "pending_from": [
+        "m3-followup"
+      ]
+    },
+    "app.game_state": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "completed_at",
+        "slept_at",
+        "previous_active_status",
+        "restored_at",
+        "restored_from_slept_at",
+        "restored_from_previous_active_status",
+        "manual_progress",
+        "notes",
+        "review_requested_at",
+        "completion_dismissed_at",
+        "completion_dismissed_playtime",
+        "revision",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "app.game_state_legacy_measurements": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "steam_app_id",
+        "source_user_id",
+        "raw_completed_at",
+        "raw_slept_at",
+        "raw_prev_active_status",
+        "raw_dismissed_at",
+        "raw_dismissed_playtime",
+        "raw_review_requested_at",
+        "raw_last_played_at",
+        "raw_last_observed_at",
+        "raw_recency_code",
+        "raw_recency_evidence_at",
+        "raw_family_owner_steam_id",
+        "raw_family_verified_at",
+        "evidence_reason",
+        "source_snapshot_hash",
+        "recorded_at"
+      ],
+      "extended_by": []
+    },
+    "app.library_games": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "playtime_minutes"
+      ],
+      "extended_by": []
+    },
+    "app.library_legacy_measurements": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "steam_app_id",
+        "ownership_kind",
+        "observed_minutes_at_freeze",
+        "legacy_hours_played",
+        "legacy_hours_played_raw",
+        "legacy_completion_percentage",
+        "legacy_completion_percentage_raw",
+        "legacy_date_added_raw",
+        "discrepancy_kind",
+        "conversion_formula",
+        "authorship",
+        "authorship_evidence",
+        "source_snapshot_hash",
+        "recorded_at"
+      ],
+      "extended_by": []
+    },
+    "app.library_observation_anomalies": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "id",
+        "event_key",
+        "account_id",
+        "game_id",
+        "job_id",
+        "attempt_id",
+        "reason",
+        "prior_minutes",
+        "incoming_minutes",
+        "observed_at",
+        "source",
+        "detail"
+      ],
+      "extended_by": []
+    },
+    "app.library_observation_fences": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "observation_scope",
+        "last_confirmed_at",
+        "attempt_id"
+      ],
+      "extended_by": []
+    },
+    "app.library_sync_state": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "generation",
+        "in_flight_job_id",
+        "authoritative_snapshot_at",
+        "snapshot_hash",
+        "applied_generation",
+        "observed_count",
+        "last_result",
+        "updated_at",
+        "last_full_fetch_started_at",
+        "last_full_authoritative_at",
+        "active_request_key"
+      ],
+      "extended_by": [
+        "m2"
+      ]
+    },
+    "app.pins": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "scope",
+        "slot",
+        "game_id",
+        "pinned_at",
+        "personal_minutes_baseline",
+        "legacy_hours_at_pin",
+        "legacy_hours_at_pin_raw",
+        "baseline_conversion_status"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "app.playtime_daily": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "activity_day",
+        "observed_minutes",
+        "coverage",
+        "recorded_at",
+        "observed_minutes_semantic",
+        "games_with_playtime"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "app.purge_review_history": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "game_id",
+        "steam_app_id",
+        "action",
+        "reviewed_at",
+        "playtime_minutes_at_review",
+        "progress_at_review",
+        "last_played_at_review",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "app.retired_library_games": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "last_personal_minutes",
+        "last_observed_at",
+        "access_lost_at",
+        "loss_reason",
+        "legacy_ownership"
+      ],
+      "extended_by": [
+        "m3-followup"
+      ],
+      "pending_columns": [
+        "legacy_ownership"
+      ],
+      "pending_from": [
+        "m3-followup"
+      ]
+    },
+    "app.sessions": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "token_digest",
+        "session_kind",
+        "created_at",
+        "last_seen_at",
+        "expires_at",
+        "revoked_at"
+      ],
+      "extended_by": []
+    },
+    "app.snoozes": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "game_id",
+        "snoozed_at",
+        "until_at",
+        "reason",
+        "source"
+      ],
+      "extended_by": []
+    },
+    "app.steam_profiles": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "steam_id",
+        "verified",
+        "display_name",
+        "steam_display_name",
+        "avatar_url",
+        "profile_url",
+        "created_at",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "app.unknown_completion_history": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "legacy_event_id",
+        "account_id",
+        "source_game_id",
+        "source_steam_appid",
+        "actor",
+        "origin_surface",
+        "occurred_at",
+        "undone_at",
+        "state",
+        "legacy_hours_played",
+        "legacy_hours_played_raw",
+        "legacy_estimate_minutes",
+        "legacy_price_cents",
+        "metric_provenance",
+        "source_snapshot_hash",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "app.vault_draw_events": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "public_id",
+        "account_id",
+        "draw_id",
+        "event_type",
+        "occurred_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "app.vault_draws": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "public_id",
+        "account_id",
+        "game_id",
+        "steam_app_id",
+        "drawn_at",
+        "session",
+        "mood",
+        "goal",
+        "source_collection_id",
+        "collection_id",
+        "selected_genres",
+        "eligible_pool_count",
+        "reroll_index",
+        "finalist_app_ids",
+        "source_snapshot_hash",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "app.vault_events": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "public_id",
+        "account_id",
+        "game_id",
+        "legacy_game_id",
+        "action",
+        "context",
+        "occurred_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "app.vault_state": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "current_game_id",
+        "current_draw_ref",
+        "revision",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "catalog.appid_terminal_rejections": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "steam_app_id",
+        "evidence_kind",
+        "provider",
+        "terminal_status",
+        "reason",
+        "attempts",
+        "last_error_code",
+        "first_requested_at",
+        "last_attempt_at",
+        "source_relation",
+        "retry_allowed_after",
+        "source_snapshot_hash",
+        "recorded_at"
+      ],
+      "extended_by": []
+    },
+    "catalog.duration_aliases": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "steam_app_id",
+        "game_id",
+        "search_title",
+        "release_year",
+        "review_status",
+        "notes",
+        "created_at",
+        "updated_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "catalog.duration_estimates": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "game_id",
+        "steam_app_id",
+        "provider",
+        "provider_game_id",
+        "main_story_minutes",
+        "main_extra_minutes",
+        "completionist_minutes",
+        "submission_count",
+        "match_status",
+        "match_confidence",
+        "provider_updated_at",
+        "checked_at",
+        "next_refresh_at",
+        "last_error_code",
+        "created_at",
+        "updated_at",
+        "evidence",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "catalog.duration_imports": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "source",
+        "imported_count",
+        "skipped_count",
+        "expected_app_count",
+        "staged_row_count",
+        "status",
+        "source_sha256",
+        "source_updated_at",
+        "created_at",
+        "completed_at",
+        "manifest",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "catalog.game_features": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "game_id",
+        "feature_revision",
+        "deck_compatibility",
+        "linux_compatibility",
+        "family_compatibility",
+        "main_duration_minutes",
+        "completion_duration_minutes",
+        "duration_confidence",
+        "review_score",
+        "popularity_rank",
+        "updated_at",
+        "extras_duration_minutes",
+        "duration_source",
+        "duration_source_game_id",
+        "duration_source_updated_at",
+        "duration_confidence_label",
+        "duration_status",
+        "duration_kind",
+        "duration_manual_override",
+        "windows_compatibility",
+        "mac_compatibility",
+        "deck_compatibility_detail",
+        "deck_checked_at",
+        "review_positive",
+        "review_negative",
+        "review_total",
+        "popularity_source",
+        "popularity_metric",
+        "popularity_low",
+        "popularity_high",
+        "popularity_ccu",
+        "popularity_observed_on",
+        "source_captured_on",
+        "tags_source",
+        "tags_status",
+        "tags_fetched_at",
+        "tags_failure_count",
+        "tags_last_error"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "catalog.game_metadata": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "game_id",
+        "short_description",
+        "header_image_url",
+        "capsule_image_url",
+        "genres",
+        "categories",
+        "weighted_tags",
+        "provider_name",
+        "provider_revision",
+        "fetched_at",
+        "updated_at",
+        "developer",
+        "publisher",
+        "release_date"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "catalog.game_sightings": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "steam_app_id",
+        "game_id",
+        "import_count",
+        "first_seen_at",
+        "last_seen_at",
+        "source_snapshot_hash",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "catalog.games": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "steam_app_id",
+        "title",
+        "normalized_sort_title",
+        "game_type",
+        "lifecycle_status",
+        "created_at",
+        "updated_at",
+        "title_source",
+        "first_seen_at",
+        "first_seen_reason",
+        "last_seen_at"
+      ],
+      "extended_by": [
+        "m2",
+        "m3"
+      ]
+    },
+    "catalog.offer_prices": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "offer_id",
+        "observed_at",
+        "currency",
+        "price_initial_cents",
+        "price_final_cents",
+        "discount_percent",
+        "is_free",
+        "is_current",
+        "source_observed_at",
+        "retention_until",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "catalog.offers": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "game_id",
+        "provider",
+        "region_code",
+        "source_offer_id",
+        "is_free",
+        "first_observed_at",
+        "last_observed_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "catalog.provider_state": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "game_id",
+        "provider",
+        "evidence_kind",
+        "status",
+        "failure_count",
+        "next_attempt_at",
+        "processing_started_at",
+        "fetched_at",
+        "last_error_code",
+        "last_error",
+        "source_snapshot_hash",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "catalog.review_decisions": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "game_id",
+        "steam_app_id",
+        "decision_kind",
+        "source_relation",
+        "source_record_key",
+        "source",
+        "precedence_rank",
+        "decision_status",
+        "name",
+        "steam_type",
+        "matched_rule",
+        "reason",
+        "genres",
+        "categories",
+        "response_text",
+        "response_kind",
+        "source_url",
+        "reviewer_account_id",
+        "reviewed_at",
+        "review_notes",
+        "duration_manual_override",
+        "source_payload",
+        "created_at",
+        "updated_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "catalog.seed_runs": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "source",
+        "metric",
+        "captured_on",
+        "requested_count",
+        "accepted_count",
+        "source_url",
+        "source_sha256",
+        "created_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "migration.account_map": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "account_id",
+        "source_kind",
+        "source_snapshot_hash",
+        "mapped_at"
+      ],
+      "extended_by": []
+    },
+    "migration.applied_steps": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "run_id",
+        "phase",
+        "status",
+        "restart_watermark",
+        "started_at",
+        "finished_at",
+        "source_snapshot_hash",
+        "details"
+      ],
+      "extended_by": []
+    },
+    "migration.collection_map": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "account_id",
+        "collection_id",
+        "source_snapshot_hash",
+        "mapped_at"
+      ],
+      "extended_by": []
+    },
+    "migration.conflict_report": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "run_id",
+        "conflict_class",
+        "source_relation",
+        "source_column",
+        "conflict_count",
+        "decision",
+        "details",
+        "reported_at"
+      ],
+      "extended_by": []
+    },
+    "migration.cutover_state": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "singleton",
+        "validated_cutover_at",
+        "validated_by",
+        "staging_retention_days",
+        "parity_report_ref",
+        "notes",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "migration.game_map": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "steam_appid",
+        "game_id",
+        "source_snapshot_hash",
+        "mapped_at"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_account_merge_audit": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_merge_id",
+        "mapped_source_account_id",
+        "mapped_target_account_id",
+        "source_account_id",
+        "target_account_id",
+        "verified_steam_id",
+        "merge_mode",
+        "created_at",
+        "analytics_delivered_at",
+        "source_tombstone_present",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_account_preferences_evidence": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "source_account_id",
+        "preference_key",
+        "value",
+        "source_created_at",
+        "source_updated_at",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_auth_intent_audit": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_intent_id",
+        "account_id",
+        "source_account_id",
+        "legacy_session_id",
+        "created_at",
+        "expires_at",
+        "consumed_at",
+        "target_account_id",
+        "target_mapped_account_id",
+        "verified_steam_id",
+        "outcome",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_collection_membership_evidence": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "source_collection_id",
+        "source_game_id",
+        "collection_id",
+        "source_position",
+        "source_created_at",
+        "source_notes",
+        "position_resolution",
+        "conflict_group",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_duration_job_archive": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "steam_app_id",
+        "status",
+        "attempts",
+        "last_error_code",
+        "last_error_message",
+        "created_at",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_family_access_orphans": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "source_user_id",
+        "source_member_id",
+        "source_steam_id",
+        "steam_appid",
+        "observed_at",
+        "raw_games_imported",
+        "disposition",
+        "source_snapshot_hash",
+        "created_at",
+        "evidence"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_family_member_evidence": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_member_id",
+        "account_id",
+        "steam_id",
+        "created_at",
+        "raw_last_error",
+        "raw_library_seen",
+        "raw_games_imported",
+        "source_snapshot_hash",
+        "retention_class",
+        "retention_review_at",
+        "evidence"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_import_freeze_report": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "source_user_id",
+        "status",
+        "total_games",
+        "imported_games",
+        "play_history_missing",
+        "last_error",
+        "started_at",
+        "updated_at",
+        "completed_at",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_ingest_queue_archive": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "steam_appid",
+        "status",
+        "reason",
+        "requested_count",
+        "source_rank",
+        "attempts",
+        "last_error",
+        "rejection_reason",
+        "first_requested_at",
+        "last_requested_at",
+        "processed_at",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_library_evidence": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "account_id",
+        "steam_appid",
+        "legacy_hours_played",
+        "legacy_hours_played_raw",
+        "completion_percentage",
+        "completion_percentage_raw",
+        "date_added_raw",
+        "created_at",
+        "source_updated_at",
+        "reproducible_from_observed",
+        "conversion_formula",
+        "source_snapshot_hash",
+        "retention_class",
+        "evidence"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_manual_session_audit": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_session_id",
+        "account_id",
+        "created_at",
+        "last_seen_at",
+        "expires_at",
+        "expired_at_freeze",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_purge_review_archive": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "account_id",
+        "source_game_id",
+        "action",
+        "reviewed_at",
+        "playtime_minutes_at_review",
+        "progress_at_review",
+        "last_played_at_review",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_schema_migration_ledger": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "source_migration",
+        "source_version",
+        "source_sha256",
+        "target_migration",
+        "target_sha256",
+        "applied_at",
+        "status",
+        "notes",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "migration.legacy_user_game_state_audit": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "account_id",
+        "source_user_id",
+        "steam_appid",
+        "raw_completed_at",
+        "raw_slept_at",
+        "raw_prev_active_status",
+        "raw_dismissed_at",
+        "raw_dismissed_playtime",
+        "raw_review_requested_at",
+        "raw_last_played_at",
+        "raw_last_observed_at",
+        "raw_recency_code",
+        "raw_recency_evidence_at",
+        "raw_family_owner_steam_id",
+        "raw_family_verified_at",
+        "source_snapshot_hash",
+        "captured_at",
+        "retention_class",
+        "evidence_disposition"
+      ],
+      "extended_by": []
+    },
+    "migration.library_row_map": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "account_id",
+        "game_id",
+        "steam_appid",
+        "source_snapshot_hash",
+        "mapped_at"
+      ],
+      "extended_by": []
+    },
+    "migration.relation_counts": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "run_id",
+        "relation_name",
+        "source_rows",
+        "loaded_rows",
+        "archived_rows",
+        "conflict_rows",
+        "source_snapshot_hash",
+        "counted_at"
+      ],
+      "extended_by": []
+    },
+    "migration.retention_holds": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "relation",
+        "incident_ref",
+        "approved_by",
+        "rationale",
+        "opened_at",
+        "expires_at",
+        "released_at"
+      ],
+      "extended_by": []
+    },
+    "migration.runs": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "run_id",
+        "snapshot_key",
+        "source_project_ref",
+        "source_snapshot_hash",
+        "started_at",
+        "finished_at",
+        "status",
+        "current_phase",
+        "operator_role"
+      ],
+      "extended_by": []
+    },
+    "migration.session_map": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "account_id",
+        "session_id",
+        "source_snapshot_hash",
+        "mapped_at"
+      ],
+      "extended_by": []
+    },
+    "ops.abuse_cooldowns": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "bucket",
+        "key_digest",
+        "account_id",
+        "window_started_at",
+        "source_window_seconds",
+        "request_count",
+        "source_updated_at",
+        "observed_at",
+        "expires_at",
+        "algorithm_version",
+        "status",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "ops.account_aliases": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "source_account_id",
+        "target_account_id",
+        "source_public_id",
+        "created_at",
+        "expires_at"
+      ],
+      "extended_by": []
+    },
+    "ops.account_merges": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "source_account_id",
+        "target_account_id",
+        "mode",
+        "verified_steam_id",
+        "reason",
+        "created_at",
+        "legacy_merge_id",
+        "legacy_merge_mode",
+        "source_public_id",
+        "target_public_id",
+        "analytics_delivered_at"
+      ],
+      "extended_by": [
+        "m3"
+      ]
+    },
+    "ops.auth_intents": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "id",
+        "account_id",
+        "session_id",
+        "intent_kind",
+        "nonce_digest",
+        "created_at",
+        "expires_at",
+        "consumed_at",
+        "outcome"
+      ],
+      "extended_by": []
+    },
+    "ops.data_retention_registry": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "relation",
+        "introduced_in",
+        "retention_class",
+        "holds_personal_data",
+        "account_fk_column",
+        "account_uuid_columns",
+        "deletion_mode",
+        "export_scope",
+        "rationale"
+      ],
+      "extended_by": []
+    },
+    "ops.enrichment_outbox": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "id",
+        "provider",
+        "game_id",
+        "catalog_revision",
+        "kind",
+        "status",
+        "attempt",
+        "available_at",
+        "last_error_code",
+        "last_error_detail",
+        "created_at",
+        "enqueued_at",
+        "completed_at"
+      ],
+      "extended_by": []
+    },
+    "ops.job_requests": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "request_key",
+        "account_id",
+        "job_id",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "ops.jobs": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "id",
+        "job_kind",
+        "lane",
+        "account_id",
+        "game_id",
+        "provider",
+        "generation",
+        "catalog_revision",
+        "first_request_key",
+        "dedupe_key",
+        "status",
+        "attempt",
+        "max_attempts",
+        "available_at",
+        "lease_token",
+        "lease_expires_at",
+        "fetch_started_at",
+        "attempt_id",
+        "attempt_token",
+        "charged_at",
+        "provider_mode",
+        "queue_name",
+        "message_id",
+        "queue_acknowledged",
+        "result_hash",
+        "protocol_version",
+        "observed_count",
+        "result_code",
+        "result_detail",
+        "retry_policy",
+        "provider_retry_at",
+        "library_changed_count",
+        "activity_changed_count",
+        "retired_count",
+        "sweep_deferred_count",
+        "enrichment_enqueued_count",
+        "applied_library_revision",
+        "applied_state_revision",
+        "applied_generation",
+        "completed_lease_token",
+        "body_observed_at",
+        "retain_until",
+        "created_at",
+        "updated_at",
+        "completed_at"
+      ],
+      "extended_by": []
+    },
+    "ops.legacy_worker_runs": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "legacy_id",
+        "worker_name",
+        "status",
+        "run_class",
+        "started_at",
+        "finished_at",
+        "duration_ms",
+        "counts",
+        "summary",
+        "error_message",
+        "retention_until",
+        "source_snapshot_hash",
+        "retention_class"
+      ],
+      "extended_by": []
+    },
+    "ops.project_marker": {
+      "origin": "m1",
+      "applied": true,
+      "columns": [
+        "marker",
+        "project_name",
+        "expected_project_ref",
+        "schema_version",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "ops.provider_call_charges": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "attempt_id",
+        "attempt_token",
+        "job_id",
+        "account_id",
+        "scope_game_id",
+        "provider",
+        "endpoint",
+        "lane",
+        "units",
+        "status",
+        "provider_mode",
+        "provider_subject",
+        "fetch_started_at",
+        "charged_at",
+        "expires_at",
+        "completed_at"
+      ],
+      "extended_by": []
+    },
+    "ops.provider_controls": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "provider",
+        "mode",
+        "reason",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "ops.provider_quota_daily": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "provider",
+        "usage_date",
+        "lane_scope",
+        "daily_limit",
+        "charged_units",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "ops.provider_token_buckets": {
+      "origin": "m2",
+      "applied": true,
+      "columns": [
+        "provider",
+        "bucket_scope",
+        "capacity",
+        "refill_per_second",
+        "tokens",
+        "last_refilled_at",
+        "updated_at"
+      ],
+      "extended_by": []
+    },
+    "ops.retention_classes": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "retention_class",
+        "scope",
+        "max_days_after_cutover",
+        "personal_data_allowed",
+        "description"
+      ],
+      "extended_by": []
+    },
+    "reco.game_preference_globals": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "snapshot_id",
+        "steam_app_id",
+        "game_id",
+        "positive",
+        "total",
+        "total_hours",
+        "source_updated_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "reco.genre_preference_globals": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "snapshot_id",
+        "genre",
+        "mood",
+        "positive",
+        "total",
+        "source_updated_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "reco.operator_weight_versions": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "config_version",
+        "weight_key",
+        "positive",
+        "total",
+        "note",
+        "source_updated_at",
+        "effective_at",
+        "supersedes_id",
+        "source_snapshot_hash",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "reco.user_genre_preferences": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "snapshot_id",
+        "account_id",
+        "source_user_id",
+        "genre",
+        "mood",
+        "positive",
+        "total",
+        "source_updated_at",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "reco.warm_start_snapshots": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "id",
+        "snapshot_key",
+        "source_project_ref",
+        "source_captured_at",
+        "source_manifest_hash",
+        "snapshot_version",
+        "status",
+        "frozen_at",
+        "created_at"
+      ],
+      "extended_by": []
+    },
+    "support.contact_messages": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "source_record_id",
+        "source_account_public_id",
+        "account_id",
+        "enquiry_type",
+        "email",
+        "subject",
+        "message",
+        "dedupe_hash",
+        "status_code",
+        "created_at",
+        "updated_at",
+        "retention_policy_key",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "support.feedback_submissions": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "source_record_id",
+        "source_account_public_id",
+        "account_id",
+        "feedback_type",
+        "message",
+        "contact_allowed",
+        "contact_email",
+        "route",
+        "app_area",
+        "client_context",
+        "dedupe_hash",
+        "status_code",
+        "created_at",
+        "updated_at",
+        "retention_policy_key",
+        "source_snapshot_hash"
+      ],
+      "extended_by": []
+    },
+    "support.retention_policy_decisions": {
+      "origin": "m3",
+      "applied": true,
+      "columns": [
+        "policy_key",
+        "review_milestone",
+        "decision_status",
+        "rationale",
+        "decided_at",
+        "created_at"
+      ],
+      "extended_by": []
+    }
+  }
+}

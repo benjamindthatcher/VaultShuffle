@@ -1,0 +1,592 @@
+{
+  "domain": "Collections, pins, snoozes, vault state and draw history",
+  "note": "Three of these relations (vault_draws, vault_draw_events, vault_events) have NO v2 relation of any kind. app.vault_state.current_draw_ref is already a dangling uuid with no referent (readiness 3).",
+  "relations": {
+    "collections": {
+      "role": "User-defined custom and smart collections.",
+      "summary": "Migrated to app.collections. Collection UUIDs are retained as public_id, which readiness 6.4 requires because they are browser-visible.",
+      "disposition_class": "migrated",
+      "target": "app.collections",
+      "evidence": [
+        "readiness 6.4",
+        "M1:343",
+        "lib/collections.ts:38"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.collections.id + app.collections.public_id",
+          "transform": "uuid -> bigint identity, with the legacy uuid retained VERBATIM in public_id. Not retaining it would silently mint a new uuid from the M1:344 default and break every browser-held collection link.",
+          "note": "readiness 6.4 names this as a required public-identity retention, not an optional one."
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.collections.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Also part of the composite key (account_id, id) that app.collection_games references."
+        },
+        "name": {
+          "disposition": "preserved",
+          "target": "app.collections.name",
+          "note": "v2 requires length(btrim(name)) between 1 and 200 (M1:347). Over-length is a reported conflict; nonempty text is never truncated.",
+          "conflict": "probe P07h covers name/description length checks"
+        },
+        "description": {
+          "disposition": "preserved",
+          "target": "app.collections.description",
+          "note": "v2 bounds to 2000 chars (M1:348). Empty may normalise to NULL; nonempty is never truncated."
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.collections.created_at",
+          "note": "Direct match."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "app.collections.updated_at",
+          "note": "Direct match. Also the sort key of collections_account_idx (M1:359), so a missed mapping would stamp every collection with the load time and reorder the user's list."
+        },
+        "kind": {
+          "disposition": "transformed",
+          "target": "app.collections.collection_kind",
+          "transform": "Legacy kind -> v2 'custom'|'smart' (M1:346). M1:355 additionally requires that a 'smart' collection have non-null rules, which legacy does not enforce, so a smart collection with no rules is a reported conflict.",
+          "note": "Values outside the v2 pair are a conflict, not a coercion to 'custom'.",
+          "conflict": "probe PX-d: distribution of kind, and smart collections with empty rules"
+        },
+        "rules": {
+          "disposition": "preserved",
+          "target": "app.collections.rules",
+          "transform": "jsonb -> jsonb. Treated as OPAQUE and hashed as text for integrity; never re-serialised (readiness 8.5). Legacy is NOT NULL, v2 is nullable with checks that it is an object and at most 16384 bytes (M1:356-357).",
+          "note": "A legacy custom collection storing '{}' is representable. An over-size rules document is a reported conflict. JSONB::text differs from TypeScript canonical JSON, and the M2 review already established that the wire representation is what gets hashed."
+        }
+      }
+    },
+    "collection_games": {
+      "role": "Ordered membership of games in a collection.",
+      "summary": "Migrated to app.collection_games. v2 adds a uniqueness constraint on position that legacy does not have, so a deterministic renumbering may be required.",
+      "disposition_class": "migrated",
+      "target": "app.collection_games",
+      "evidence": [
+        "readiness 4.9",
+        "M1:361"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "collection_id": {
+          "disposition": "transformed",
+          "target": "app.collection_games.collection_id (+ account_id)",
+          "transform": "uuid -> bigint via the collections identity map; the owning account is denormalised into account_id to satisfy the composite FK at M1:370-371.",
+          "note": "v2's key is (account_id, collection_id, game_id), so the account must be resolved even though legacy does not store it here."
+        },
+        "game_id": {
+          "disposition": "transformed",
+          "target": "app.collection_games.game_id",
+          "transform": "A user_games UUID, resolved through migration.library_row_map to catalog.games.id.",
+          "note": "readiness 6.3: this is one of the six relations with a real FK to user_games(id), which is why the library-row map is mandatory."
+        },
+        "notes": {
+          "disposition": "transformed",
+          "target": "app.collection_games.note",
+          "transform": "Column rename plus a v2 length bound of 10000 (M1:366). Empty may normalise to NULL; nonempty is never truncated.",
+          "note": "Legacy is nullable here, unlike user_games.notes which is NOT NULL, so no suppression rule applies."
+        },
+        "position": {
+          "disposition": "transformed",
+          "note": "readiness 4.9. Ordering is an acceptance requirement, and v2's new uniqueness means duplicates or gaps cannot load as-is. The renumbering rule must be agreed and its remap recorded before the load, not chosen during it.",
+          "conflict": "readiness 4.9",
+          "target": "app.collection_games.position + app.collection_games.legacy_position + app.collection_games.position_resolution + migration.legacy_collection_membership_evidence.source_position",
+          "transform": "the source position is retained verbatim in legacy_position and in the membership evidence archive. Gaps are carried through unchanged, because ruling 9 makes them legal. Duplicates within one collection are broken by a stable deterministic order (source position, then the recorded original order evidence, then game identity), and position_resolution records which rows were adjusted so the remap is auditable rather than silent.",
+          "settled_by": [
+            "coordinator ruling 9, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-COL-1",
+          "snapshot_checks": [
+            "S-COL-DUPES"
+          ]
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.collection_games.legacy_created_at",
+          "note": "The M3 extension preserves the original membership instant separately from the runtime created_at clock, so a duplicate-position resolution never discards when the game entered the collection."
+        }
+      },
+      "archive_purpose": "Retain the original position evidence used to explain any stable duplicate-position reorder under D-COL-1; the durable app.collection_games extension carries legacy_position, legacy_order and position_resolution.",
+      "archive_retention": "Durable private fact: retained while the account exists, removed by account deletion, included in the account export. The original positions are the only record of the ordering the user chose.",
+      "retention": {
+        "class": "durable-private-fact",
+        "bound": "while-the-account-exists",
+        "destination": "app.collection_games",
+        "carries_account_identity": true,
+        "account_deletion": "Keyed to app.accounts(id) with ON DELETE CASCADE; account deletion removes the original membership positions.",
+        "account_export": "Collection membership and its original ordering are the user's own arrangement and belong in the account export.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+        "note": "The pre-renumbering positions are the only record of the order the user chose, so they are bounded by the account rather than by whether the renumbering was accepted."
+      },
+      "settled_decisions": [
+        "D-COL-1 SETTLED by ruling 9, which CORRECTS the earlier proposal. Position GAPS are legal under the new uniqueness constraint and are NOT load blockers, so the previous 'renumber densely from 0' proposal is withdrawn: dense renumbering would destroy real gap evidence that the constraint permits. Only DUPLICATE positions need resolving, and they are resolved by a stable deterministic ordering derived from the source ordering semantics and original order evidence, with no member dropped. The before/after pair is recorded per row in migration.legacy_collection_membership_evidence and surfaced through app.collection_games.position_resolution. Nonempty notes are preserved without truncation. How many duplicates exist is snapshot check S-COL-DUPES."
+      ],
+      "snapshot_checks": [
+        "S-COL-DUPES"
+      ]
+    },
+    "user_game_pins": {
+      "role": "Up to three pinned games per scope.",
+      "summary": "Migrated to app.pins. hours_at_pin is a genuine UNIT CHANGE from hours to minutes and needs checked rounding with stated provenance.",
+      "disposition_class": "migrated",
+      "target": "app.pins",
+      "evidence": [
+        "readiness 8.2",
+        "M1:373"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.pins.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Part of the v2 primary key (account_id, scope, slot)."
+        },
+        "game_id": {
+          "disposition": "transformed",
+          "target": "app.pins.game_id",
+          "transform": "A user_games UUID, resolved through migration.library_row_map to catalog.games.id.",
+          "note": "readiness 6.3. v2 additionally requires unique (account_id, scope, game_id) (M1:382), which legacy does not enforce, so the same game pinned to two slots in one scope is a reported conflict."
+        },
+        "slot": {
+          "disposition": "preserved",
+          "target": "app.pins.slot",
+          "note": "v2 checks slot BETWEEN 1 AND 3 (M1:376). A legacy slot outside that range is a reported conflict, not a clamp.",
+          "conflict": "probe PX-e: pins with slot outside 1..3, and duplicate (user, scope, game)"
+        },
+        "pinned_at": {
+          "disposition": "preserved",
+          "target": "app.pins.pinned_at",
+          "note": "M1:377 defaults to now(), so a missed mapping silently restamps every pin with the load time."
+        },
+        "scope": {
+          "disposition": "preserved",
+          "target": "app.pins.scope",
+          "note": "v2 allows library|wishlist|family|all (M1:375). Values outside that set are a reported conflict.",
+          "conflict": "probe PX-e covers the scope distribution"
+        },
+        "hours_at_pin": {
+          "disposition": "transformed",
+          "target": "app.pins.personal_minutes_baseline",
+          "transform": "UNIT CHANGE: double precision HOURS -> integer MINUTES. Rounding rule must be stated once and applied identically in the transform and the validator. Proposal: minutes = round(hours * 60) with a checked inverse - the transform records the original hours in the conflict report whenever round(minutes/60*10)/10 does not reproduce the source value to one decimal place.",
+          "note": "Coordinator ruling: preserve exact minutes separately from rounded hours, with explicit provenance and CHECKED rounding for any unit conversion. hours_at_pin is itself already a rounded derivative of minutes on the import path, so this conversion cannot recover precision that was never stored; it must not pretend otherwise. M1:378-379 requires personal_minutes_baseline >= 0, so a negative legacy value is a conflict.",
+          "conflict": "readiness 8.2 (one of three numeric narrowings)",
+          "evidence": [
+            "readiness 8.2",
+            "lib/steam-owned-games.ts:32"
+          ]
+        }
+      }
+    },
+    "user_game_snoozes": {
+      "role": "Temporarily hidden games.",
+      "summary": "Migrated to app.snoozes. v2 adds an ordering check the source does not enforce.",
+      "disposition_class": "migrated",
+      "target": "app.snoozes",
+      "evidence": [
+        "readiness 4.10",
+        "readiness 14.6",
+        "M1:385"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.snoozes.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Part of the v2 primary key (account_id, game_id)."
+        },
+        "game_id": {
+          "disposition": "transformed",
+          "target": "app.snoozes.game_id",
+          "transform": "A user_games UUID, resolved through migration.library_row_map to catalog.games.id.",
+          "note": "readiness 6.3."
+        },
+        "snoozed_at": {
+          "disposition": "preserved",
+          "target": "app.snoozes.snoozed_at",
+          "note": "M1:391 defaults to now(); a missed mapping restamps every snooze with the load time."
+        },
+        "snoozed_until": {
+          "disposition": "preserved",
+          "target": "app.snoozes.until_at",
+          "note": "Rename only. v2 adds check (until_at is null or until_at >= snoozed_at) (M1:393), which the source does not enforce, so a snooze whose end precedes its start is representable in the source and REJECTED by the target. Such a row is a reported conflict, never silently swapped, nulled or clamped.",
+          "conflict": "readiness 4.10; probe P07b counts snoozes with snoozed_until < snoozed_at"
+        }
+      }
+    },
+    "user_vault_state": {
+      "role": "The user's currently drawn game.",
+      "summary": "Migrated to app.vault_state. The v2 relation also has current_draw_ref, which is a dangling uuid until a draw relation exists.",
+      "disposition_class": "migrated",
+      "target": "app.vault_state",
+      "evidence": [
+        "readiness 3",
+        "readiness 6.4",
+        "M1:397",
+        "lib/vault-state.ts:27,:32,:37"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.vault_state.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Primary key of the v2 relation."
+        },
+        "current_game_id": {
+          "disposition": "transformed",
+          "target": "app.vault_state.current_game_id",
+          "transform": "A user_games UUID, resolved through migration.library_row_map to catalog.games.id.",
+          "note": "readiness 6.3. Nullable in both; a null current game is a real state, not a missing value."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "app.vault_state.updated_at",
+          "note": "M1:401 defaults to now()."
+        }
+      },
+      "settled_decisions": [
+        "D-VLT-1 SETTLED: app.vault_state.current_draw_ref is populated with the legacy vault_draws.id, which now resolves because D-VLT-2 preserves draw history and retains the legacy uuid as app.vault_draws.public_id. The 'leave it NULL' fallback is no longer needed."
+      ]
+    },
+    "vault_draws": {
+      "role": "Every draw the vault has served, with the filter context and the finalist pool. This is the recommender's ground-truth serve log.",
+      "summary": "Draw serve history is preserved in app.vault_draws with the legacy uuid retained as public_id, so app.vault_state.current_draw_ref resolves. Retention follows plan 13's UI-history policy.",
+      "disposition_class": "migrated",
+      "target": "app.vault_draws",
+      "evidence": [
+        "readiness 3 (three draw relations have no v2 relation of any kind)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "note": "readiness 6.4 recommends retaining draw UUIDs as public_id the same way collection UUIDs are, so app.vault_state.current_draw_ref resolves once a draw relation exists.",
+          "target": "app.vault_draws.public_id + app.vault_draws.id",
+          "transform": "uuid -> bigint identity; the legacy uuid is retained verbatim in public_id per readiness 6.4, so app.vault_state.current_draw_ref resolves against a value that still exists.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "note": "Would resolve through migration.account_map to an integer account id.",
+          "target": "app.vault_draws.account_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map; the legacy uuid is not lost because app.accounts.public_id retains it.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "steam_appid": {
+          "disposition": "transformed",
+          "note": "References catalog_games DIRECTLY rather than via a library uuid (readiness 6.2), so it resolves through migration.game_map without the library-row map.",
+          "target": "app.vault_draws.game_id + app.vault_draws.steam_app_id",
+          "transform": "legacy steam appid -> catalog.games.id through migration.game_map. The raw appid is retained alongside the resolved id so a draw against an app the catalogue no longer holds is still readable.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "drawn_at": {
+          "disposition": "preserved",
+          "note": "The serve instant, and the ordering key of any draw history.",
+          "target": "app.vault_draws.drawn_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "session": {
+          "disposition": "preserved",
+          "note": "Session-length filter context (a product facet, NOT an auth session and not a credential).",
+          "target": "app.vault_draws.session",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "mood": {
+          "disposition": "preserved",
+          "note": "Mood filter context. Also the context_mood dimension of user_genre_preferences and genre_preference_globals, so retiring it here would orphan the warm-start aggregates' second key.",
+          "target": "app.vault_draws.mood",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "goal": {
+          "disposition": "preserved",
+          "note": "Goal filter context.",
+          "target": "app.vault_draws.goal",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "collection_id": {
+          "disposition": "transformed",
+          "note": "Nullable filter narrowing the draw to one collection; would resolve through the collections identity map.",
+          "target": "app.vault_draws.collection_id + app.vault_draws.source_collection_id",
+          "transform": "legacy collection uuid -> integer collection id through migration.collection_map; the source uuid is retained so a draw that narrowed to a since-deleted collection keeps its context.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "selected_genres": {
+          "disposition": "preserved",
+          "note": "text[] of the genres the user selected. Carried as an array or jsonb; either way it is the input side of the learned genre preferences.",
+          "target": "app.vault_draws.selected_genres",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "eligible_pool_count": {
+          "disposition": "preserved",
+          "note": "How many games were eligible when the draw was served. Not recomputable after the fact, because the library and catalogue both move.",
+          "target": "app.vault_draws.eligible_pool_count",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "reroll_index": {
+          "disposition": "preserved",
+          "note": "Which reroll within a draw session this was. Distinguishes a first draw from a rejected-and-redrawn one, which is exactly the signal the recommender is measured on.",
+          "target": "app.vault_draws.reroll_index",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        },
+        "finalist_appids": {
+          "disposition": "preserved",
+          "note": "bigint[] of the finalists the winner was chosen from. The counterfactual set - the only record of what was NOT chosen - and therefore the highest-value column here for any future ranking work.",
+          "target": "app.vault_draws.finalist_app_ids",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-2"
+        }
+      },
+      "settled_decisions": [
+        "D-VLT-2 SETTLED: a draw-history destination exists. Ruling 1 makes preserving draw/impression/action history, source IDs, bounded finalists and provenance mandatory rather than an open decision, and plan 14.2 assigns the same destination. app.vault_draws is created by the M3 migration.",
+        "D-VLT-3 SETTLED: retention is plan 13's UI-history policy (latest 100 draws / 90 days), held separately from product completion history. It is a durable domain relation, so ruling 12's 30-day raw-staging expiry does not apply to it."
+      ],
+      "snapshot_checks": [
+        "S-VALUE-DOMAIN"
+      ]
+    },
+    "vault_draw_events": {
+      "role": "Impression and interaction events against a specific draw.",
+      "summary": "Draw impression/action events are preserved in app.vault_draw_events, keyed to the preserved draw. Retention follows plan 13's UI-history policy alongside app.vault_draws.",
+      "disposition_class": "migrated",
+      "target": "app.vault_draw_events",
+      "evidence": [
+        "readiness 3"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "note": "Event identity; would become a bigint identity.",
+          "target": "app.vault_draw_events.public_id + app.vault_draw_events.id",
+          "transform": "uuid -> bigint identity with the legacy uuid retained as public_id.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-4"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "note": "Would resolve through migration.account_map.",
+          "target": "app.vault_draw_events.account_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map; the legacy uuid is not lost because app.accounts.public_id retains it.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-4"
+        },
+        "draw_id": {
+          "disposition": "transformed",
+          "note": "References vault_draws.id, so it cannot be resolved until D-VLT-2 decides whether draws are retained at all.",
+          "target": "app.vault_draw_events.draw_id",
+          "transform": "legacy draw uuid -> app.vault_draws.id by joining on the retained app.vault_draws.public_id. Resolvable because D-VLT-2 is settled.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-4"
+        },
+        "event_type": {
+          "disposition": "preserved",
+          "note": "What happened to the draw. The value domain must be read from live definitions before any target constraint is written, so the target does not reject values the source really holds.",
+          "target": "app.vault_draw_events.event_type",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-4",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN"
+          ]
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "note": "Event instant.",
+          "target": "app.vault_draw_events.occurred_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-4"
+        }
+      },
+      "settled_decisions": [
+        "D-VLT-4 SETTLED: retention is plan 13's UI-history policy (latest 100 draws / 90 days). Ruling 1 makes preserving impression/action history mandatory, so unbounded growth was never the alternative to discarding it."
+      ],
+      "snapshot_checks": [
+        "S-VALUE-DOMAIN"
+      ]
+    },
+    "vault_events": {
+      "role": "User actions against a library game from the vault surface, with a free-form jsonb context.",
+      "summary": "Vault action history is preserved in app.vault_events. context is carried as opaque jsonb and is never re-serialised; its key distribution must be checked for personal data before export.",
+      "disposition_class": "migrated",
+      "target": "app.vault_events",
+      "evidence": [
+        "readiness 3",
+        "readiness 6.3 (vault_events.game_id has a real FK to user_games(id))"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "note": "Event identity.",
+          "target": "app.vault_events.public_id + app.vault_events.id",
+          "transform": "uuid -> bigint identity with the legacy uuid retained as public_id.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-5"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "note": "Would resolve through migration.account_map.",
+          "target": "app.vault_events.account_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map; the legacy uuid is not lost because app.accounts.public_id retains it.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-5"
+        },
+        "game_id": {
+          "disposition": "transformed",
+          "note": "A user_games UUID with a real FK (readiness 6.3), so it needs migration.library_row_map. Nullable, so an event with no game is a real state.",
+          "target": "app.vault_events.game_id + app.vault_events.legacy_game_id",
+          "transform": "legacy user_games uuid -> catalog game id through migration.library_row_map; the source uuid is retained in legacy_game_id so an event whose library row was deleted keeps its referent. NULL stays NULL: an event with no game is a real state.",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-5"
+        },
+        "action": {
+          "disposition": "preserved",
+          "note": "The action taken. Value domain must be read from live definitions before writing a target constraint.",
+          "target": "app.vault_events.action",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-5",
+          "snapshot_checks": [
+            "S-VALUE-DOMAIN"
+          ]
+        },
+        "context": {
+          "disposition": "preserved",
+          "note": "jsonb, NOT NULL. Must be treated as OPAQUE TEXT and hashed as text, never re-serialised (readiness 8.5). Its contents are unaudited, so before any export it must be checked for personal data rather than assumed safe.",
+          "target": "app.vault_events.context",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-5",
+          "snapshot_checks": [
+            "S-JSON-PRIVACY"
+          ]
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "note": "Event instant.",
+          "target": "app.vault_events.occurred_at",
+          "settled_by": [
+            "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-VLT-5"
+        }
+      },
+      "settled_decisions": [
+        "D-VLT-5 SETTLED: retention is plan 13's UI-history policy, the same as app.vault_draws and app.vault_draw_events."
+      ],
+      "snapshot_checks": [
+        "S-VALUE-DOMAIN",
+        "S-JSON-PRIVACY"
+      ]
+    }
+  }
+}

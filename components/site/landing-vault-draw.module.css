@@ -1,0 +1,71 @@
+/* The landing page's copy of the Vault's draw.
+   Everything that has a counterpart on /vault wears the Vault's own class from
+   vault.module.css, so the two cannot drift apart. What lives here is only what
+   the landing page needs on top: a width to sit in, and a draw bar that holds
+   the two buttons alone rather than the mode picker and deck tools beside them. */
+
+/* The setup is a column of single-line rows, so it takes the same width the app
+   gives a list rather than the full 1360px the section around it is allowed. */
+.stage {
+  width: min(1040px, 100%);
+  margin-inline: auto;
+  display: grid;
+  gap: 18px;
+}
+
+/* The Vault's bar is three columns - mode picker, deck tools, draw. Only the
+   draw came across, so one centred column is the whole bar. The surface, border
+   and padding are the feature treatment the real bar wears.
+
+   Sized to the buttons rather than to the stage: 340px is the cap the Vault puts
+   on the draw control itself, so the bar is that plus its own padding. Spanning
+   the full width of the setup above it left the draw adrift in a purple field
+   several times wider than anything in it. */
+.drawBar {
+  width: min(100%, 368px);
+  /* Centred with justify-self rather than an auto margin: an auto inline margin
+     also stops a grid item stretching, which is how the phone layout - where the
+     bar is meant to take the full width - ended up inset on both sides. */
+  justify-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding: 14px;
+  border: 1px solid var(--vault-feature-border);
+  border-radius: var(--vault-feature-radius);
+  background: var(--vault-feature-surface);
+}
+
+/* Where the Vault drops its own cap on the draw control, so the bar goes back to
+   taking whatever width the page gives it. */
+@media (max-width: 720px) {
+  .drawBar {
+    width: auto;
+    justify-self: stretch;
+  }
+}
+
+/* Said out loud on the page rather than only to a screen reader: on /vault the
+   deck rail below the bar shows how the setup is narrowing things down, and
+   without it there is nothing else here reporting progress. */
+.status {
+  margin: 0;
+  color: var(--vault-text-soft);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+/* The demo pool is fourteen games, and saying so is the difference between a
+   worked example and a claim about your library. */
+.poolNote {
+  margin: 0;
+  color: var(--vault-text-soft);
+  font-size: 0.74rem;
+  text-align: center;
+}
+
+.poolNote a {
+  color: #c77dff;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
