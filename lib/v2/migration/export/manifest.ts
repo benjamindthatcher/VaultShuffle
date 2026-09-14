@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
 import type { IdentityEvidence } from "./profile.ts";
-import type { RelationDigest, RowSecurityEvidence, SnapshotWatermark } from "./snapshot.ts";
+import type {
+  RelationDigest,
+  RowSecurityEvidence,
+  SnapshotViewDefinition,
+  SnapshotWatermark,
+} from "./snapshot.ts";
 
 /**
  * The run manifest is the only durable claim about what an export is. Every
@@ -18,6 +23,7 @@ export const MANIFEST_FILENAME = "manifest.json";
 export const MANIFEST_DIGEST_FILENAME = "manifest.sha256";
 export const INCOMPLETE_FILENAME = "INCOMPLETE";
 export const FAILURE_FILENAME = "FAILED.json";
+export const SCHEMA_VIEWS_SIDECAR_SUFFIX = ".schema-views.json";
 
 export type ManifestRelation = RelationDigest & { file: string };
 
@@ -84,6 +90,30 @@ export type RunManifest = {
 };
 
 /**
+ * Supplementary view bodies captured in the export transaction.
+ *
+ * This stays adjacent to the run so manifest-v2 readers retain their strict
+ * three-entry run-directory contract. The run id, source identity, transaction
+ * watermark and manifest digest bind it unambiguously to one completed export.
+ */
+export type SchemaViewsSidecar = {
+  sidecar_version: 1;
+  run_id: string;
+  manifest_sha256: string;
+  source: {
+    project_ref: string | null;
+    database: string;
+    current_user: string;
+  };
+  snapshot: {
+    snapshot_xmin: string;
+    current_snapshot: string;
+    transaction_start_utc: string;
+  };
+  views: readonly SnapshotViewDefinition[];
+};
+
+/**
  * JSON with object keys in sorted order.
  *
  * `JSON.stringify` preserves insertion order, so a manifest assembled in a
@@ -108,6 +138,35 @@ function sortKeys(value: unknown): unknown {
 export function serializeManifest(manifest: RunManifest): { text: string; sha256: string } {
   const text = `${stableStringify(manifest)}\n`;
   return { text, sha256: createHash("sha256").update(text, "utf8").digest("hex") };
+}
+
+export function schemaViewsSidecarFilename(runId: string): string {
+  return `${runId}${SCHEMA_VIEWS_SIDECAR_SUFFIX}`;
+}
+
+export function buildSchemaViewsSidecar(input: {
+  runId: string;
+  manifestSha256: string;
+  identity: IdentityEvidence;
+  watermark: SnapshotWatermark;
+  views: readonly SnapshotViewDefinition[];
+}): SchemaViewsSidecar {
+  return {
+    sidecar_version: 1,
+    run_id: input.runId,
+    manifest_sha256: input.manifestSha256,
+    source: {
+      project_ref: input.identity.projectRef,
+      database: input.identity.currentDatabase,
+      current_user: input.identity.currentUser,
+    },
+    snapshot: {
+      snapshot_xmin: input.watermark.snapshotXmin,
+      current_snapshot: input.watermark.currentSnapshot,
+      transaction_start_utc: input.watermark.transactionStartUtc,
+    },
+    views: input.views,
+  };
 }
 
 export function buildManifest(input: {

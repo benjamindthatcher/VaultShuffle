@@ -82,8 +82,8 @@
         "tags": {
           "disposition": "transformed",
           "target": "catalog.game_metadata.weighted_tags",
-          "transform": "jsonb -> jsonb, bounded to 65536 bytes (M1:200) and required to be an ARRAY. If any legacy tags document is an object rather than an array, it is a reported conflict, not a coerced wrapping.",
-          "note": "Treated as opaque and hashed as text for integrity (readiness 8.5). JSONB has already lost the original provider formatting, so the typed canonicalisation for parity is defined separately from the wire hash."
+          "transform": "A legacy numeric JSON object is losslessly re-expressed as a key-sorted [{tag,weight}] JSON array, preserving decoded tag strings and exact numeric tokens without JavaScript Number conversion. An existing valid array remains unchanged. Duplicate decoded keys and non-numeric weights are conflicts. Output remains bounded to 65536 bytes (M1:200).",
+          "note": "The source export preserves the original jsonb wire bytes. The representation adapter is reversible in JSON semantic terms because each unique object key and exact numeric value becomes one tagged array member; object member order was not a jsonb fact."
         },
         "short_description": {
           "disposition": "preserved",
@@ -733,12 +733,12 @@
         "first_seen_at": {
           "disposition": "audit-archive",
           "archive": "+catalog.game_sightings.first_seen_at",
-          "note": "First import sighting."
+          "note": "First import sighting. On overlap this dedicated timeline is authoritative for catalog.game_sightings; the independent catalog_games.first_seen_at remains preserved in catalog.games.first_seen_at."
         },
         "last_seen_at": {
           "disposition": "audit-archive",
           "archive": "+catalog.game_sightings.last_seen_at",
-          "note": "Most recent import sighting; distinguishes a live app from a dormant one."
+          "note": "Most recent import sighting; distinguishes a live app from a dormant one. On overlap it is preserved here independently of catalog_games.last_seen_at in catalog.games.last_seen_at."
         }
       }
     },
@@ -1018,9 +1018,10 @@
           "note": "Rows staged before the apply step."
         },
         "status": {
-          "disposition": "audit-archive",
-          "archive": "+catalog.duration_imports.status",
-          "note": "Terminal state of the run; distinguishes a completed import from an abandoned one whose partial effects may still be in the catalogue."
+          "disposition": "transformed",
+          "target": "catalog.duration_imports.status",
+          "transform": "The source writer's successful terminal label 'completed' becomes the destination's equivalent 'succeeded'; labels already in the destination vocabulary remain unchanged and unknown labels fail closed.",
+          "note": "Terminal state of the run; distinguishes a completed import from an abandoned one whose partial effects may still be in the catalogue. The completion instant and all other run evidence remain independent fields."
         },
         "completed_at": {
           "disposition": "audit-archive",

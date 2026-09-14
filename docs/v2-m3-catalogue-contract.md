@@ -49,9 +49,9 @@ the map disagrees with in either direction.
 | Source fact | Transform output | Preservation rule |
 |---|---|---|
 | `steam_appid`, `name`, `normalized_name`, `first_seen_reason`, `first_seen_at`, `last_seen_at`, `updated_at` | `catalog.games` | AppID text is kept; names use PostgreSQL character and trim bounds; instants retain UTC microseconds. |
-| `developer`, `publisher`, `short_description`, `capsule_url`, `header_url`, `release_date`, `genres`, `categories`, `tags`, `metadata_fetched_at` | `catalog.game_metadata` | Nullable text stays nullable; developer/publisher are bounded to 1000 characters; the civil date stays a date; arrays preserve order and SQL NULL elements; JSON text is validated and carried without JavaScript numeric conversion. |
+| `developer`, `publisher`, `short_description`, `capsule_url`, `header_url`, `release_date`, `genres`, `categories`, `tags`, `metadata_fetched_at` | `catalog.game_metadata` | Nullable text stays nullable; developer/publisher are bounded to 1000 characters; the civil date stays a date; arrays preserve order and SQL NULL elements. A legacy numeric tag map becomes a key-sorted `[{tag,weight}]` array without converting numeric tokens through JavaScript numbers; an existing valid array remains unchanged. |
 | `main_story_minutes`, `main_extras_minutes`, `completionist_minutes`, duration source/id/time/confidence/status/kind/override, platform flags, Deck value/time, review counts, popularity values and tag lifecycle fields | `catalog.game_features` | Minutes and counts are checked as exact nonnegative integers; bigint values remain decimal text; NULL is distinct from zero; platform NULL becomes `unknown`; Deck 0/1/2/3 remains four-way while its tri-state projection is separate. |
-| `import_sighting_count`, `first_seen_at`, `last_seen_at` | `catalog.game_sightings` | The duplicate facts are emitted from the catalogue row when no dedicated row is supplied. If `catalog_game_sightings` is supplied, overlapping rows must agree exactly and the dedicated relation is recorded as the provenance. |
+| `import_sighting_count`, `first_seen_at`, `last_seen_at` | `catalog.game_sightings` | The duplicate facts are emitted from the catalogue row when no dedicated row is supplied. If `catalog_game_sightings` is supplied, its dedicated import-sighting timestamps take this destination while the catalogue timestamps remain independently preserved in `catalog.games`; the one shared import counter must still agree. |
 | `is_free`, `price_currency`, `price_initial`, `price_final`, `discount_percent`, `metadata_fetched_at` | `catalog.offers` and `catalog.offer_prices` | Only the structural US/USD observation is accepted; no conversion or region inference occurs. Provider and `retention_until` are explicit policy inputs. Prices retain NULL/zero and fail if the target check would be violated. |
 | `steam_type` | `catalog.review_decisions` | The source `CHECK` forces `game`; it is retained as `catalogue_type` evidence at precedence 10 and never used to overwrite `catalog.games.game_type`. Reviewer, review time, or manual attribution is not invented. |
 | `users_that_imported` | `reconciliation` | This denormalised count has no compact catalogue target. It remains source evidence for comparison with a later distinct-account recomputation; it is never silently replaced. |
@@ -61,8 +61,10 @@ The optional `catalog_game_sightings` input preserves sightings that have no
 resolved through the same map when an entry exists; an otherwise valid AppID
 keeps `game_id = NULL` rather than creating a catalogue game. Its non-null
 source count and first/last instants are checked against the target ordering
-constraint. Duplicate dedicated rows and disagreements with the duplicated
-`catalog_games` facts fail closed.
+constraint. Duplicate dedicated rows and disagreements in the single shared
+import counter fail closed. Timestamp differences do not compete: the
+dedicated timeline goes to `catalog.game_sightings`, while `catalog.games`
+retains the catalogue row's own first/last-seen timeline.
 
 Offers are sorted by mapped game ID before `offer_ref` is assigned, then price
 rows are rewritten to that key. This makes a retry over a permuted COPY order

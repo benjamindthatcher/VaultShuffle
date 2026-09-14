@@ -1,4 +1,4 @@
-import { comparePgDecimals, comparePgTimestamps, type PgDecimal, type PgTimestamp } from "./scalars.ts";
+import { comparePgDecimals, comparePgTimestamps, type PgTimestamp } from "./scalars.ts";
 import {
   asObject,
   canonicalUuid,
@@ -6,6 +6,7 @@ import {
   checkRowRunIdentity,
   codePointLength,
   ConflictCollector,
+  decimalTimesIntegerToInteger,
   ensureArray,
   indexAccountMap,
   libraryFailure,
@@ -40,7 +41,6 @@ import type { AccountMapTargetRecord } from "./accounts.ts";
 
 const RELATION = "user_game_state";
 
-const ZERO = BigInt(0);
 /** `raw_prev_active_status` and `raw_recency_code` are PostgreSQL smallint. */
 const SMALLINT_MIN = BigInt("-32768");
 const SMALLINT_MAX = BigInt("32767");
@@ -137,21 +137,16 @@ function sameTimestamp(left: PgTimestamp | null, right: PgTimestamp | null): boo
   return comparePgTimestamps(left, right) === 0;
 }
 
-function sameDecimalText(left: string | null, right: PgDecimal | null): boolean {
+function sameIntegerText(left: string | null, right: bigint | null): boolean {
   if (left === null && right === null) return true;
   if (left === null || right === null) return false;
   // Both sides came from the same exact-decimal parser, so this is an exact
   // value comparison and never a float round-trip.
   const parsed = optionalDecimal(left, RELATION, "dismissed_playtime");
   if (parsed === null) return false;
-  return comparePgDecimals(parsed, right) === 0;
-}
-
-function isIntegral(value: PgDecimal): boolean {
-  if (value.coefficient === ZERO) return true;
-  if (value.scale <= 0) return true;
-  const divisor = BigInt(10) ** BigInt(value.scale);
-  return value.coefficient % divisor === ZERO;
+  const expected = optionalDecimal(right.toString(10), RELATION, "dismissed_playtime");
+  if (expected === null) return false;
+  return comparePgDecimals(parsed, expected) === 0;
 }
 
 function smallint(value: string | null, field: string): number | null {
@@ -345,8 +340,9 @@ export function transformLegacyGameState(
 
     const reasons: LegacyStateEvidenceReason[] = [];
 
-    // Unresolved code books have no other home at all: nothing in the compact
-    // model records a smallint whose meaning is still a source question.
+    // These stale-only code books do not need decoding to preserve their fact:
+    // the exact smallints live in the durable sparse evidence relation and
+    // never become active state or activity authority.
     if (fields.raw_prev_active_status !== null || fields.raw_recency_code !== null) {
       reasons.push("unresolved_codebook");
       conflicts.record({
@@ -354,19 +350,22 @@ export function transformLegacyGameState(
         source_relation: RELATION,
         source_column: fields.raw_recency_code !== null ? "recency_source" : "prev_active_status",
         decision:
-          "UNRESOLVED for root (D-UGS-1 / S-UGS-CODEBOOK): the smallint code books are not decoded and are never inferred from ordering. The raw code is preserved verbatim and promoted to app.game_state_legacy_measurements; it never reaches app.game_state or app.game_activity.",
-        details: { status: "unresolved", decision_ref: "D-UGS-1" },
+          "D-UGS-1 RESOLVED: the stale smallint is preserved verbatim as opaque evidence in app.game_state_legacy_measurements. Its meaning is not decoded or inferred because it never reaches app.game_state or app.game_activity and cannot become active authority.",
+        details: { status: "resolved", decision_ref: "D-UGS-1" },
       });
     }
 
-    if (dismissedPlaytime !== null && !isIntegral(dismissedPlaytime)) {
+    const dismissedPlaytimeMinutes = dismissedPlaytime === null
+      ? null
+      : decimalTimesIntegerToInteger(dismissedPlaytime, BigInt(60));
+    if (dismissedPlaytime !== null && dismissedPlaytimeMinutes === null) {
       reasons.push("non_integral_dismissed_playtime");
       conflicts.record({
         conflict_class: "state_non_integral_dismissed_playtime",
         source_relation: RELATION,
         source_column: "dismissed_playtime",
         decision:
-          "A fractional dismissal baseline cannot narrow to the integer destination and is not rounded. It is preserved at source precision in the staging copy and promoted to the durable sparse relation.",
+          "The source-hours dismissal baseline does not convert to an integral destination minute and is not rounded. It is preserved at source precision in the staging copy and promoted to the durable sparse relation.",
         details: { status: "resolved" },
       });
     }
@@ -383,6 +382,9 @@ export function transformLegacyGameState(
         details: { status: "unresolved" },
       });
     } else {
+      const dismissedPlaytimeAgrees = dismissedPlaytime === null
+        ? fact.dismissed_playtime === null
+        : dismissedPlaytimeMinutes !== null && sameIntegerText(fact.dismissed_playtime, dismissedPlaytimeMinutes);
       const disagrees =
         !sameTimestamp(fields.raw_completed_at, fact.completed_at) ||
         !sameTimestamp(fields.raw_dismissed_at, fact.dismissed_at) ||
@@ -390,7 +392,7 @@ export function transformLegacyGameState(
         !sameTimestamp(fields.raw_last_played_at, fact.last_played_at) ||
         !sameTimestamp(fields.raw_last_observed_at, fact.last_observed_at) ||
         !sameTimestamp(fields.raw_recency_evidence_at, fact.recency_evidence_at) ||
-        !sameDecimalText(fact.dismissed_playtime, dismissedPlaytime);
+        !dismissedPlaytimeAgrees;
       if (disagrees) {
         reasons.push("stale_conflict");
         conflicts.record({

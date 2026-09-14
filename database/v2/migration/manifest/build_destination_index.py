@@ -80,12 +80,18 @@ MIGRATION_SOURCES = (
         True,
         None,
     ),
-    # Prepared locally for the user-authorized Sleep -> Blacklist replacement.
-    # It is intentionally unapplied; additions and drops are both surfaced as
-    # pending schema so a final load cannot run against the old target shape.
+    # Applied by root on 13 September; immutable. Exact apply time was not
+    # returned. See blacklist-target-validation-20260913.json.
     (
         "20260912193000_blacklist_semantics.sql",
         "blacklist-followup",
+        True,
+        None,
+    ),
+    # Prepared from the real M3 preflight; local replay only. Root owns apply.
+    (
+        "20260913220031_m3_reco_game_precision.sql",
+        "m3-reco-precision",
         False,
         None,
     ),
@@ -558,10 +564,11 @@ def build(
             "destination is created by an applied, immutable migration file. "
             "The 20260911234500 preservation follow-up was applied by root on "
             "12 September and is immutable at its recorded checksum. The "
-            "20260912193000 Blacklist migration is prepared locally and "
-            "unapplied. Its new column is listed under 'pending_columns'; "
-            "columns it retires remain in the current applied shape and are "
-            "listed under 'pending_dropped_columns'. This index "
+            "20260912193000 Blacklist migration was applied by root on 13 "
+            "September. The 20260913220031 recommendation precision correction "
+            "is prepared locally and unapplied; it changes three existing columns' "
+            "numeric modifiers, retains their nonnegative/order constraints, and adds an explicit "
+            "finite-value check without changing indexes, RLS or ACL. This index "
             "proves a target name exists in the SQL. It does not certify the "
             "remote schema, security and rollback verification root still "
             "owns, and a newly discovered physical gap needs a new, separately "

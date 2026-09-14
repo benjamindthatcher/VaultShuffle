@@ -63,6 +63,10 @@ export type PipelineInput = Readonly<{
   /** Bookkeeping instants, supplied rather than read from a clock. */
   instants: Readonly<{ startedAt: string; finishedAt: string }>;
   specs?: readonly TargetRelationSpec[];
+  /** Local scalar/FK binding for explicitly adapted batches. */
+  specsForBatches?: (batches: readonly LoadBatch[]) => readonly TargetRelationSpec[];
+  /** Stable relation inventory used by the independently pinned fingerprint. */
+  schemaRelations?: readonly string[];
   stagingLimits?: StagingLimits;
 }>;
 
@@ -91,7 +95,6 @@ export async function runLoaderPipeline(input: PipelineInput): Promise<PipelineR
   const manifestFingerprint = assertSha256(input.manifestFingerprint, "manifest_fingerprint");
   const expectedSchemaFingerprint = assertSha256(input.expectedSchemaFingerprint, "schema_fingerprint");
   const target = assertLocalTarget(input.target);
-  const specs = input.specs ?? TARGET_RELATION_SPECS;
   const phases: PipelinePhase[] = [];
 
   const staged = await stageVerifiedRun(
@@ -107,8 +110,12 @@ export async function runLoaderPipeline(input: PipelineInput): Promise<PipelineR
     const transformFingerprint = canonicalSha256(outcome.batches);
     phases.push("transform");
 
+    if (input.specs !== undefined && input.specsForBatches !== undefined) {
+      throw loaderFailure("loader_contract_invalid", { field: "spec_source" });
+    }
+    const specs = input.specsForBatches?.(outcome.batches) ?? input.specs ?? TARGET_RELATION_SPECS;
     const plan = prepareLoadPlan(specs, outcome.batches);
-    const actualSchemaFingerprint = sha256Text(readSchemaFingerprint(target, specs.map((spec) => spec.relation)));
+    const actualSchemaFingerprint = sha256Text(readSchemaFingerprint(target, input.schemaRelations ?? specs.map((spec) => spec.relation)));
 
     const accountingByRelation = new Map(outcome.sourceAccounting.map((entry) => [entry.relation, entry]));
     if (accountingByRelation.size !== outcome.sourceAccounting.length) {
@@ -186,7 +193,13 @@ export async function runLoaderPipeline(input: PipelineInput): Promise<PipelineR
     const differences = compareReconciliations(expected, observed);
     phases.push("reconcile");
 
-    if (differences.length !== 0) throw loaderFailure("loader_reconciliation_failed", { field: "post_commit_observation" });
+    if (differences.length !== 0) throw loaderFailure("loader_reconciliation_failed", {
+      field: "post_commit_observation",
+      relation: differences[0]?.relation ?? "unknown",
+      kind: differences[0]?.kind ?? "unknown",
+      count: differences.length,
+      affected: differences.map((difference) => `${difference.relation}:${difference.kind}${difference.column ? `:${difference.column}` : ""}`).join(","),
+    });
     const report = buildReconciliationReport(
       {
         runId,

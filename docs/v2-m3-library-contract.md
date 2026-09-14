@@ -101,6 +101,13 @@ facts as follows.
   `manual_progress`. Whitespace-only notes are counted and become `NULL`. This
   is unconditional on access channel: a family-sourced row's engaged state
   (a note, a Completed/Slept status) survives here the same as an owned row's.
+  Legacy `completion_suggestion_dismissed_playtime` is exact decimal hours,
+  matching its writer's direct use of `game.hours_played`. It is multiplied by
+  60 with exact decimal arithmetic before reaching the destination's integer
+  minutes. A non-integral minute, negative value, or int32 overflow fails
+  closed; no rounding or clamping occurs. The original exact hours text is
+  also retained independently as `completion_dismissed_hours_raw` in
+  `migration.legacy_library_evidence.evidence`.
 * Activity rows (`app.game_activity`) source `observed_at` (the receipt time)
   from `recency_evidence_at`, and `last_played_at` from `last_observed_played_at`
   -- never the other way, and never the raw legacy `last_played_at` column
@@ -151,7 +158,9 @@ facts as follows.
 
 The transform also returns complete `authoritative_facts` for the stale-state
 reconciliation hand-off. Each fact contains all comparison timestamps,
-family provenance, exact dismissal text, and `source_snapshot_hash`.
+family provenance, the converted integer-minute dismissal baseline, and
+`source_snapshot_hash`. The source-hours spelling remains separate in the
+legacy evidence record.
 
 ## Stale `user_game_state`
 
@@ -162,10 +171,15 @@ fact: target account membership, canonical AppID, same-run hash, exact cached
 timestamp structure, exact decimal text, and nullable string shape.
 
 The source smallint code books are not decoded. Values in the reviewed source
-domains (previous status 1/2 and recency 1/2/3) remain unresolved evidence;
-values outside those domains fail as invalid enums. A stale row is promoted
+domains (previous status 1/2 and recency 1/2/3) are preserved as opaque stale
+evidence in `app.game_state_legacy_measurements`; interpreting them is not
+required because they never become active state or activity authority. Values
+outside those source domains fail as invalid enums. A stale row is promoted
 only when it is an orphan, disagrees with an authoritative fact, carries
-unresolved code/provenance, or contains a non-integral dismissal baseline. An
+unresolved code/provenance, or contains a source-hours dismissal baseline that
+does not convert to an integral minute. Exact source hours are compared with
+the authoritative fact only after conversion to minutes, so stale evidence
+cannot replace or falsely disagree with authoritative state because of units. An
 all-NULL conflict remains reconciliation-only because the sparse destination
 requires one raw value.
 
@@ -174,7 +188,9 @@ requires one raw value.
 `transformFamilyBatch` assigns deterministic member IDs by `(account_id,
 steam_id)`, preserves every member and candidate array, records the five-member
 cap as a load conflict without dropping rows, and retains `library_seen` and
-`games_imported` without clamping. Display names use the target trim rule;
+`games_imported` without clamping. `legacy_games_imported` is an independent
+historical counter and is not claimed to equal the current resolved-access
+count; a disagreement rewrites neither value. Display names use the target trim rule;
 avatar/profile URLs preserve exact text, including whitespace, subject only to
 their length bounds. Overlength compact fields are null in the compact record
 and kept in bounded JSON evidence. Evidence over its JSONB bound fails closed.
@@ -232,7 +248,10 @@ snapshot, so a nonempty result here at the real export still blocks final
 load/commit rather than being waved through as a proven-absent case.
 
 Purge reviews remain authored decision history and never generate completion
-events. `action = complete` is counted against the open snapshot decision.
+events. For `action = complete`, active, undone-only and eventless populations
+are counted separately. Existing completion events remain authoritative, an
+undone event stays undone, and eventless review history is exposed as legacy
+history rather than current completion state.
 Equal-time decisions sort by the full durable tuple, with the archive's source
 UUID as a final tie-breaker, so output is independent of input order.
 
@@ -247,8 +266,8 @@ Root's 11 September follow-up (`docs/v2-m3-preservation-followup-batch.md`)
 and its acceptance review (`docs/v2-m3-preservation-final-review.md`) closed
 the wishlist-retirement, activity-observation and divergent-play-fact gaps
 this section used to describe as open loader decisions. `database/v2/
-proposals/m3_legacy_preservation_followup.sql` (unapplied; root's to review)
-supplies the minimal schema change: a nullable `access_lost_at` under a
+supabase/migrations/20260911234500_m3_legacy_preservation_followup.sql`
+(applied by root on 12 September) supplies the schema change: a nullable `access_lost_at` under a
 NULL-safe CHECK, `app.retired_library_games.legacy_ownership`,
 `app.game_activity.legacy_last_played_at`, and a `'retired'` disposition
 literal on both orphan relations. Each constraint it replaces is matched by
@@ -259,12 +278,13 @@ already registered in `ops.data_retention_registry` as
 the newly stored facts inherit deletion and export rather than needing a
 registry change.
 
-Two exception streams remain by design, not as unresolved gaps:
+Two exception streams remain explicit gates:
 `recency_exceptions` (a recency-field combination no reviewed writer explains,
 or a family-access measurement with no durable personal destination) and
 `completion_ordering_exceptions` (an inverted completion clock). Both are
-non-empty-blocks-load conditions, proven currently empty on real evidence but
-not schema-guaranteed to stay that way, and both are visible to a pre-commit
+non-empty-blocks-load conditions. The verified real snapshot contains three
+family-access recency measurements whose subject cannot be attributed safely;
+completion ordering is empty. Both are visible to a pre-commit
 gate through their redacted `migration.conflict_report` counterparts. Remote
 source authentication, remote TLS, real snapshot parity, and target apply
 remain outside this pure batch.

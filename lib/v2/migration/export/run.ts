@@ -20,6 +20,8 @@ import {
   MANIFEST_DIGEST_FILENAME,
   MANIFEST_FILENAME,
   buildManifest,
+  buildSchemaViewsSidecar,
+  schemaViewsSidecarFilename,
   serializeManifest,
   stableStringify,
   type ManifestRelation,
@@ -62,6 +64,8 @@ export type ExportRunResult = {
   runDirectory: string;
   manifest: RunManifest;
   manifestSha256: string;
+  /** Adjacent same-snapshot view metadata, present for real plans with views. */
+  schemaViewsSidecarPath: string | null;
 };
 
 const DEFAULT_CONNECT_TIMEOUT_MS = 15_000;
@@ -256,7 +260,7 @@ export async function runExport(options: ExportRunOptions): Promise<ExportRunRes
     connection = await WireConnection.connect(
       connectOptions(profile, options.connectTimeoutMs ?? DEFAULT_CONNECT_TIMEOUT_MS, caCertificatesPem),
     );
-    const identity = await assertSourceIdentity(connection, profile.identity);
+    const loginIdentity = await assertSourceIdentity(connection, profile.identity);
     const tlsProtocol = profile.transport === "tcp" ? connection.tlsProtocol() : null;
     if (profile.transport === "tcp" && !tlsProtocol) {
       throw new ExportError(
@@ -269,6 +273,8 @@ export async function runExport(options: ExportRunOptions): Promise<ExportRunRes
     const snapshot = await streamSnapshot(connection, {
       plan: options.plan,
       statementTimeoutMs: options.statementTimeoutMs ?? DEFAULT_STATEMENT_TIMEOUT_MS,
+      activateRole: profile.activateRole,
+      expectedSessionUser: profile.user,
       openRelationOutput: async (relation) =>
         openRelationFile(join(relationsDirectory, relationFileName(relation))),
       onRelationComplete: async (digest) => {
@@ -282,6 +288,21 @@ export async function runExport(options: ExportRunOptions): Promise<ExportRunRes
       onCopyChunk: options.onCopyChunk,
     });
 
+    // The connection identity is checked before the transaction while the
+    // generated login is current_user. A read-only Supabase profile then uses a
+    // verified transaction-local role. Record the role that actually read the
+    // rows as currentUser/source.user and retain the authenticated login as
+    // sessionUser.
+    const identity = snapshot.effectiveUser
+      ? {
+          ...loginIdentity,
+          currentUser: snapshot.effectiveUser,
+          sessionUser: snapshot.sessionUser ?? loginIdentity.sessionUser,
+          transactionIsolation: "repeatable read",
+          transactionReadOnly: "on",
+        }
+      : loginIdentity;
+
     const finishedAt = Date.now();
     const manifest = buildManifest({
       runId,
@@ -292,7 +313,7 @@ export async function runExport(options: ExportRunOptions): Promise<ExportRunRes
         host: profile.host,
         port: profile.port,
         database: profile.database,
-        user: profile.user,
+        user: snapshot.effectiveUser ?? profile.user,
       },
       tlsProtocol,
       identity,
@@ -319,6 +340,26 @@ export async function runExport(options: ExportRunOptions): Promise<ExportRunRes
     await syncDirectory(relationsDirectory);
     await syncDirectory(partialDirectory);
 
+    // Keep supplementary view bodies adjacent to the run: strict manifest-v2
+    // readers require the run directory itself to contain only the manifest,
+    // its digest and the relation directory. Write this create-once file before
+    // publishing the run, then fsync the parent. A crash can leave a sidecar
+    // next to a `.partial` run, but never a reported complete pair missing it.
+    const schemaViewsSidecarPath = snapshot.viewDefinitions.length > 0
+      ? join(options.outputRoot, schemaViewsSidecarFilename(runId))
+      : null;
+    if (schemaViewsSidecarPath) {
+      const sidecar = buildSchemaViewsSidecar({
+        runId,
+        manifestSha256: serialized.sha256,
+        identity,
+        watermark: snapshot.watermark,
+        views: snapshot.viewDefinitions,
+      });
+      await writePrivateFile(schemaViewsSidecarPath, `${stableStringify(sidecar)}\n`);
+      await syncDirectory(options.outputRoot);
+    }
+
     // Only now is the run complete: sentinel out, then the rename that gives the
     // directory its final name, then an fsync of the parent so the rename
     // survives a crash.
@@ -327,7 +368,13 @@ export async function runExport(options: ExportRunOptions): Promise<ExportRunRes
     await rename(partialDirectory, finalDirectory);
     await syncDirectory(options.outputRoot);
 
-    return { runId, runDirectory: finalDirectory, manifest, manifestSha256: serialized.sha256 };
+    return {
+      runId,
+      runDirectory: finalDirectory,
+      manifest,
+      manifestSha256: serialized.sha256,
+      schemaViewsSidecarPath,
+    };
   } catch (error) {
     const failure = describeFailure(error);
     await writePrivateFile(

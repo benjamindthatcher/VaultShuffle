@@ -606,7 +606,7 @@ export type DurationImportRunSourceRow = Readonly<{
   source_sha256: string | null;
   expected_app_count: string | null;
   staged_row_count: string | null;
-  status: "planned" | "running" | "succeeded" | "partial" | "failed" | "abandoned";
+  status: "planned" | "running" | "succeeded" | "completed" | "partial" | "failed" | "abandoned";
   completed_at: string | null;
   manifest: string;
   runId?: string;
@@ -719,13 +719,17 @@ export function transformDurationImportRuns(input: DurationImportRunsTransformIn
     // UNVALIDATED in the source; the target's six-value vocabulary is
     // asserted here rather than assumed, matching the same value-domain
     // discipline `catalogue.ts` applies to `catalog_games.first_seen_reason`.
-    const status = enumCell(
+    const sourceStatus = enumCell(
       cell(row, "status", IMPORT_RUNS_RELATION),
       "status",
       IMPORT_RUNS_RELATION,
-      ["planned", "running", "succeeded", "partial", "failed", "abandoned"] as const,
+      ["planned", "running", "succeeded", "completed", "partial", "failed", "abandoned"] as const,
       true,
     ) as string;
+    // The only source-specific spelling is the terminal value written by
+    // 20260825153000_record_hltb_validation_run.sql. The destination calls
+    // that same successful terminal state `succeeded`.
+    const status = sourceStatus === "completed" ? "succeeded" : sourceStatus;
     const completedAt = timestamp(cell(row, "completed_at", IMPORT_RUNS_RELATION), "completed_at", IMPORT_RUNS_RELATION, false);
     if (completedAt !== null && completedAt.epochMicros < createdAt.epochMicros) {
       // M3 catalog.duration_imports check (completed_at >= created_at).

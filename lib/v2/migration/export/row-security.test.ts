@@ -66,6 +66,12 @@ function scriptedConnection(script: ServerScript, log: string[], counters: { ope
       if (/^(BEGIN|COMMIT|ROLLBACK)/.test(sql)) return queryResult([]);
       if (/^SET /.test(sql)) return queryResult([]);
       if (sql.includes("pg_current_wal_lsn")) throw new ExportError("pg.42501", "no wal access here");
+      if (sql.includes("pg_has_role(session_user")) {
+        return queryResult([["temporary_login", "temporary_login", "true"]]);
+      }
+      if (sql.includes("current_user, session_user, r.rolsuper::text")) {
+        return queryResult([["supabase_read_only_user", "temporary_login", "false", "true", "on"]]);
+      }
 
       if (sql.includes("r.rolsuper::text")) {
         rowSecurityCalls += 1;
@@ -126,6 +132,29 @@ async function run(script: ServerScript, log: string[] = [], counters = { opened
   });
   return { result, log, counters };
 }
+
+test("an existing Supabase read-only membership is activated transaction-locally before visibility checks", async () => {
+  const log: string[] = [];
+  const { connection, openRelationOutput } = scriptedConnection({ rowSecurity: () => "off", rolbypassrls: "true" }, log, {
+    opened: 0,
+  });
+  const result = await streamSnapshot(connection, {
+    plan: PLAN,
+    statementTimeoutMs: 1000,
+    activateRole: "supabase_read_only_user",
+    expectedSessionUser: "temporary_login",
+    openRelationOutput,
+  });
+
+  const begin = log.findIndex((sql) => sql.startsWith("BEGIN"));
+  const activation = log.findIndex((sql) => sql === 'SET LOCAL ROLE "supabase_read_only_user"');
+  const rowSecurity = log.findIndex((sql) => sql === `SET LOCAL "row_security" = 'off'`);
+  assert.ok(begin >= 0 && activation > begin && rowSecurity > activation, log.join(" | "));
+  assert.equal(result.effectiveUser, "supabase_read_only_user");
+  assert.equal(result.sessionUser, "temporary_login");
+  assert.equal(result.rowSecurity.roleIsSuperuser, false);
+  assert.equal(result.rowSecurity.roleBypassesRowSecurity, true);
+});
 
 test("the transaction pins row_security = off, transaction-locally, before it reads anything", async () => {
   const log: string[] = [];

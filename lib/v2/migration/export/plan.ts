@@ -183,10 +183,10 @@ export function loadExportPlanFromInventory(
 /**
  * Constraints exactly as the inventory captured them.
  *
- * They are compared against `pg_get_constraintdef(oid, true)` at export time, so
- * they are ordered here the way the catalog query orders them - by constraint
- * name within the relation - rather than in the order the capture happened to
- * write them.
+ * They are compared against canonical non-pretty
+ * `pg_get_constraintdef(oid, false)` text under the inventory's pinned interval
+ * rendering. They are ordered here the way the catalog query orders them - by
+ * constraint name within the relation - rather than in capture order.
  */
 function inventoryConstraints(value: unknown, relationName: string, kind: string): ExpectedConstraint[] {
   // The capture records `null` for a view or materialized view, which cannot

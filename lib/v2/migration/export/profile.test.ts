@@ -13,7 +13,7 @@ const CERTIFICATE = [
   "",
 ].join("\n");
 
-function tcpProfile(tls: Record<string, unknown> = {}) {
+function tcpProfile(tls: Record<string, unknown> = {}, connectionOverrides: Record<string, unknown> = {}) {
   return parseConnectionProfile(
     JSON.stringify({
       profile_version: 1,
@@ -26,6 +26,7 @@ function tcpProfile(tls: Record<string, unknown> = {}) {
         database: "postgres",
         user: "source_reader",
         password: "synthetic-password",
+        ...connectionOverrides,
       },
       identity: {
         project_ref: "pfvblcopcmairdfeqdep",
@@ -38,6 +39,15 @@ function tcpProfile(tls: Record<string, unknown> = {}) {
     }),
   );
 }
+
+test("a profile can activate only Supabase's fixed read-only role", () => {
+  const profile = tcpProfile({}, { activate_role: "supabase_read_only_user" });
+  assert.equal(profile.activateRole, "supabase_read_only_user");
+  assert.throws(
+    () => tcpProfile({}, { activate_role: "postgres" }),
+    (error: unknown) => error instanceof ExportError && error.code === "profile_role_activation_refused",
+  );
+});
 
 test("a TCP profile loads its absolute CA bundle for certificate verification", async () => {
   const directory = await mkdtemp(join(tmpdir(), "vs-profile-"));

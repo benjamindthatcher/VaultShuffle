@@ -296,6 +296,15 @@ test("manifest jsonb survives verbatim and status is asserted against the target
   assert.equal(result.duration_imports[0].status, "succeeded");
 });
 
+test("the source completed import label maps to the target succeeded terminal state", () => {
+  const result = transformDurationImportRuns({
+    runIdentity: RUN,
+    rows: [importRunRow({ status: "completed" })],
+  });
+  assert.equal(result.duration_imports[0].status, "succeeded");
+  assert.equal(result.duration_imports[0].completed_at?.canonicalUtc, "2026-01-01T01:00:00.000000Z");
+});
+
 test("an unknown import status fails rather than passing through", () => {
   assert.equal(
     failureCode(() =>

@@ -39,6 +39,8 @@ test("all 44 source relations are accounted exactly once, even when every source
   assert.equal((result.gameMap as { run_identity: { run_id: string } }).run_identity.run_id, RUN.runId);
   assert.equal((result.accountMap as { run: { runId: string } }).run.runId, RUN.runId);
   assert.equal(result.exceptionCounts.settings_withheld, 0);
+  assert.deepEqual(result.blockerSummary, []);
+  assert.deepEqual(result.unresolvedConflictSummary, []);
 });
 
 test("a missing relation fails before any transform can treat a partial source as complete", () => {
@@ -52,7 +54,8 @@ test("target additions are explicit and withheld streams are never target batche
   const result = assembleAllDomains(staged(), RUN, EVIDENCE);
   assert.ok(result.targetContractAdditions.some((entry) => entry.relation === "reco.warm_start_snapshots"));
   assert.equal(result.batches.some((entry) => /withheld/.test(entry.relation)), false);
-  assert.equal(result.batches.some((entry) => entry.relation === "migration.legacy_account_preferences_evidence"), true);
+  assert.equal(result.batches.some((entry) => entry.relation === "migration.legacy_account_preferences_evidence"), false);
+  assert.equal(result.blockers, result.targetContractAdditions.length);
 });
 
 test("source relation order cannot change the shared maps or assembled batches", () => {
@@ -91,4 +94,16 @@ test("duplicate and non-inventory staged relations cannot evade exact accounting
     () => assembleAllDomains(Object.freeze({ ...duplicate, relations: Object.freeze([...duplicate.relations, duplicate.relations[0]]) }) as StagedRun, RUN, EVIDENCE),
     (error: unknown) => error instanceof LoaderError && error.loaderCode === "loader_source_coverage",
   );
+});
+
+test("wide rebuild-only relations are accounted without reconstructing unused records", () => {
+  const source = staged();
+  const relations = source.relations.map((relation) =>
+    relation.relation === "public.user_games_with_catalog" || relation.relation === "public.catalog_duration_review_queue"
+      ? Object.freeze({ ...relation, rowCount: 37, readRows: () => { throw new Error("coverage-only rows must remain lazy"); }, get rows() { throw new Error("coverage-only rows must remain lazy"); } })
+      : relation,
+  );
+  const result = assembleAllDomains(Object.freeze({ ...source, relations: Object.freeze(relations) }) as StagedRun, RUN, EVIDENCE);
+  assert.equal(result.sourceAccounting.find((entry) => entry.relation === "public.user_games_with_catalog")?.sourceRows, 37);
+  assert.equal(result.sourceAccounting.find((entry) => entry.relation === "public.catalog_duration_review_queue")?.sourceRows, 37);
 });

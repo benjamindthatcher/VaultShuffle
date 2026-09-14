@@ -3,7 +3,8 @@ import { isAbsolute } from "node:path";
 import { assertIdentifier, assertSha256, assertUuid, canonicalSha256, quoteIdentifier, quoteRelation } from "./canonical.ts";
 import { encodeCopyRow } from "./copy.ts";
 import { loaderFailure } from "./errors.ts";
-import type { LoadPlan, PreparedRelation } from "./contract.ts";
+import type { LoadBatch, LoadPlan, PreparedRelation, TargetRelationSpec } from "./contract.ts";
+import type { TargetColumn, TargetScalarKind } from "./copy.ts";
 
 /**
  * The only way this loader reaches a database.
@@ -110,7 +111,9 @@ function execute(descriptor: LocalTargetDescriptor, sql: string): SqlOutcome {
       },
     },
   );
-  if (result.error !== undefined) throw loaderFailure("loader_target_failed", { field: "spawn" });
+  if (result.error !== undefined) throw loaderFailure("loader_target_failed", {
+    field: "spawn", system_code: (result.error as NodeJS.ErrnoException).code ?? "unknown",
+  });
   return Object.freeze({
     ok: result.status === 0,
     stdout: (result.stdout ?? "").trim(),
@@ -143,17 +146,23 @@ function copyStatement(relation: PreparedRelation): string {
  * Advance an identity sequence past the highest value this load wrote.
  *
  * Writing a generated identity explicitly leaves the sequence untouched, so
- * the first runtime insert would collide with a migrated row. `setval` with
- * `is_called = true` from the table's own max is the deterministic repair, and
- * it is part of the same transaction as the rows it repairs.
+ * the first runtime insert would collide with a migrated row. `ALTER SEQUENCE
+ * ... RESTART WITH` is transactional (unlike `setval`) and makes the next
+ * generated value one greater than the table's current maximum.
  */
 function sequenceStatement(relation: PreparedRelation): string {
   if (relation.identityColumn === null) return "";
   const column = quoteIdentifier(relation.identityColumn);
   const table = quoteRelation(relation.relation);
-  return `select setval(pg_get_serial_sequence('${relation.relation}', '${assertIdentifier(
-    relation.identityColumn,
-  )}'), coalesce((select max(${column}) from ${table}), 1), (select count(*) > 0 from ${table}));\n`;
+  return `do $loader_sequence$
+    declare v_sequence regclass; v_next bigint;
+    begin
+      v_sequence := pg_get_serial_sequence('${relation.relation}', '${assertIdentifier(relation.identityColumn)}')::regclass;
+      if v_sequence is null then raise exception 'loader_sequence_missing'; end if;
+      select coalesce(max(${column}) + 1, 1) into v_next from ${table};
+      execute format('alter sequence %s restart with %s', v_sequence, v_next);
+    end
+  $loader_sequence$;\n`;
 }
 
 /**
@@ -398,7 +407,11 @@ export function readSchemaFingerprint(
   descriptor: LocalTargetDescriptor,
   relations: readonly string[],
 ): string {
-  const names = relations.map((relation) => `'${assertQualified(relation)}'`).join(", ");
+  const requested = [...relations].map(assertQualified).sort();
+  if (new Set(requested).size !== requested.length || requested.length === 0) {
+    throw loaderFailure("loader_contract_invalid", { field: "schema_relations" });
+  }
+  const names = requested.map((relation) => `'${relation}'`).join(", ");
   const rows = queryRows(
     descriptor,
     `select format('%s.%s|%s|%s|%s', table_schema, table_name, column_name, data_type, is_nullable)
@@ -406,7 +419,92 @@ export function readSchemaFingerprint(
       where table_schema || '.' || table_name in (${names})
       order by table_schema, table_name, column_name;`,
   );
-  return rows.join("\n");
+  // Include an explicit marker for every requested relation. Without this, a
+  // nonexistent relation contributes zero catalogue rows and is
+  // indistinguishable from never having been requested.
+  return requested.map((relation) => {
+    const columns = rows.filter((row) => row.startsWith(`${relation}|`));
+    return columns.length === 0 ? `${relation}|<missing>` : columns.join("\n");
+  }).join("\n");
+}
+
+const TARGET_KIND_BY_UDT: Readonly<Record<string, TargetScalarKind>> = Object.freeze({
+  text: "text", varchar: "text", bpchar: "text", name: "text",
+  int2: "integer", int4: "integer", int8: "integer",
+  numeric: "numeric", float4: "numeric", float8: "numeric",
+  bool: "boolean", timestamptz: "timestamptz", date: "date",
+  uuid: "uuid", jsonb: "jsonb", bytea: "bytea-hex",
+});
+
+/**
+ * Bind a target-shaped all-domain plan to the local catalogue after the caller
+ * has supplied an independent schema fingerprint. This routine never decides
+ * whether a schema is trusted; it only obtains COPY scalar kinds, identity
+ * flags and FK order for columns already named by explicit adapters.
+ */
+export function discoverLocalTargetSpecs(
+  descriptor: LocalTargetDescriptor,
+  batches: readonly LoadBatch[],
+): readonly TargetRelationSpec[] {
+  assertLocalTarget(descriptor);
+  const relations = batches.map((batch) => assertQualified(batch.relation));
+  if (new Set(relations).size !== relations.length) {
+    throw loaderFailure("loader_contract_invalid", { field: "duplicate_batch" });
+  }
+  const selected = new Set(relations);
+  const dependencies = new Map<string, Set<string>>();
+  if (relations.length > 0) {
+    const literalRelations = relations.map((relation) => `'${relation}'`).join(",");
+    for (const line of queryRows(descriptor, `
+      select child_ns.nspname || '.' || child.relname || chr(31) || parent_ns.nspname || '.' || parent.relname
+        from pg_constraint c
+        join pg_class child on child.oid = c.conrelid
+        join pg_namespace child_ns on child_ns.oid = child.relnamespace
+        join pg_class parent on parent.oid = c.confrelid
+        join pg_namespace parent_ns on parent_ns.oid = parent.relnamespace
+       where c.contype = 'f'
+         and child_ns.nspname || '.' || child.relname in (${literalRelations})
+         and parent_ns.nspname || '.' || parent.relname in (${literalRelations})
+       order by 1;`)) {
+      const [child, parent] = line.split(String.fromCharCode(31));
+      if (child && parent && child !== parent) (dependencies.get(child) ?? dependencies.set(child, new Set()).get(child)!).add(parent);
+    }
+  }
+
+  return Object.freeze(batches.map((batch) => {
+    const keys = new Set(batch.rows.flatMap((row) => Object.keys(row)));
+    if (keys.size === 0) throw loaderFailure("loader_contract_invalid", { relation: batch.relation, field: "empty_batch" });
+    const [schema, table] = batch.relation.split(".");
+    const rows = queryRows(descriptor, `
+      select column_name || chr(31) || udt_name || chr(31) || is_nullable || chr(31) ||
+             case when column_default is null then '0' else '1' end || chr(31) || is_identity
+        from information_schema.columns
+       where table_schema = '${schema}' and table_name = '${table}'
+       order by ordinal_position;`);
+    const columns: TargetColumn[] = [];
+    let identityColumn: string | undefined;
+    const found = new Set<string>();
+    for (const line of rows) {
+      const [name, udt, nullable, hasDefault, isIdentity] = line.split(String.fromCharCode(31));
+      if (!name || !udt) throw loaderFailure("loader_target_coverage", { relation: batch.relation });
+      if (keys.has(name)) {
+        const kind = TARGET_KIND_BY_UDT[udt];
+        if (!kind) throw loaderFailure("loader_contract_invalid", { relation: batch.relation, field: name });
+        columns.push(Object.freeze({ name, kind, nullable: nullable === "YES" }));
+        found.add(name);
+        if (isIdentity === "YES") identityColumn = name;
+      } else if (nullable === "NO" && hasDefault === "0" && isIdentity !== "YES") {
+        throw loaderFailure("loader_target_coverage", { relation: batch.relation, field: name });
+      }
+    }
+    for (const key of keys) if (!found.has(key)) throw loaderFailure("loader_target_coverage", { relation: batch.relation, field: key });
+    return Object.freeze({
+      relation: batch.relation,
+      columns: Object.freeze(columns),
+      dependsOn: Object.freeze([...(dependencies.get(batch.relation) ?? [])].filter((entry) => selected.has(entry)).sort()),
+      ...(identityColumn === undefined ? {} : { identityColumn }),
+    });
+  }));
 }
 
 function assertQualified(relation: string): string {

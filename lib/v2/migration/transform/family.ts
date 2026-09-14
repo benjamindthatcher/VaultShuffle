@@ -861,9 +861,9 @@ export function transformFamilyBatch(
     );
   }
 
-  // `games_imported` is retired as recomputable from the access relation. If
-  // the recomputed count disagrees, the retirement claim is not safe and the
-  // difference belongs in the conflict report rather than being ignored.
+  // The legacy counter is historical evidence, independently retained from
+  // the current resolved-access count. A disagreement is expected evidence,
+  // not permission to rewrite either count.
   for (const member of members) {
     const recomputed = accessCountByMember.get(member.id) ?? 0;
     if (member.legacy_games_imported !== null && member.legacy_games_imported !== recomputed) {
@@ -872,8 +872,8 @@ export function transformFamilyBatch(
         source_relation: MEMBER_RELATION,
         source_column: "games_imported",
         decision:
-          "The recomputed app.family_game_access count differs from the legacy games_imported counter, so the counter is not a safe retirement. The raw value is preserved in legacy_games_imported and the difference is counted.",
-        details: { status: "unresolved" },
+          "RESOLVED: legacy_games_imported preserves the historical source counter independently of the current app.family_game_access count. Neither count is rewritten or treated as a reconstruction of the other.",
+        details: { status: "resolved" },
       });
     }
   }

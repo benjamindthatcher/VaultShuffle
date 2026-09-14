@@ -529,6 +529,7 @@ test("a purge review keeps its decision and never becomes a completion event", (
   assert.equal(result.legacy_purge_review_archive[0].source_game_id, ROW_A10);
   assert.equal(result.legacy_purge_review_archive[0].retention_class, "staging-30d-post-cutover");
   assert.equal(conflictCount(result, "purge_complete_without_completion_event"), 1);
+  assert.equal(result.conflicts.find((entry) => entry.conflict_class === "purge_complete_without_completion_event")?.details.status, "resolved");
 });
 
 test("legacy sleep purge decisions become permanent blacklist decisions", () => {
@@ -537,13 +538,25 @@ test("legacy sleep purge decisions become permanent blacklist decisions", () => 
   assert.equal(result.legacy_purge_review_archive[0].action, "blacklist");
 });
 
-test("a complete review with a matching completion event is counted separately", () => {
+test("active, undone, and eventless purge completions stay review history without creating events", () => {
   const result = transformHistoryBatch(
-    input({ purgeReviews: [review({ action: "complete" })], completionEvents: [event()] }),
+    input({
+      purgeReviews: [
+        review({ id: REVIEW_1, action: "complete" }),
+        review({ id: REVIEW_2, action: "complete", game_id: ROW_A220, reviewed_at: "2026-02-06 00:00:00+00" }),
+      ],
+      completionEvents: [
+        event(),
+        event({ id: EVENT_2, game_id: ROW_A220, steam_appid: "220", undone_at: "2026-02-03 00:00:00+00" }),
+      ],
+    }),
   );
-  assert.equal(conflictCount(result, "purge_complete_with_completion_event"), 1);
-  assert.equal(conflictCount(result, "purge_complete_without_completion_event"), 0);
-  assert.equal(result.completion_events.length, 1);
+  assert.equal(conflictCount(result, "purge_complete_with_active_completion_event"), 1);
+  assert.equal(conflictCount(result, "purge_complete_with_undone_completion_event"), 1);
+  assert.equal(result.completion_events.length, 2);
+  assert.equal(result.completion_events.filter((entry) => entry.undone_at !== null).length, 1);
+  assert.equal(result.purge_review_history.length, 2);
+  assert.equal(result.legacy_purge_review_archive.length, 2);
 });
 
 test("a review whose library row is gone keeps the decision with a null identity", () => {

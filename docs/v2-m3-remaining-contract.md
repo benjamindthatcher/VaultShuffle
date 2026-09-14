@@ -50,11 +50,15 @@ Sources: `user_genre_preferences`, `genre_preference_globals`,
 * **`double precision` is read as text.** The COPY cell is PostgreSQL's
   shortest round-trip rendering of the float, which is the exact value; it is
   parsed as a decimal and never passed through a JavaScript number.
-* **The precision boundary is real.** A float8 carries up to 17 significant
-  digits; `numeric(30, 12)` does not. Such a row is **withheld** into
-  `withheld_counters` with its exact source text plus a `counter_unrepresentable`
-  blocker — never rounded, which would change a recorded counter. Root decides
-  whether the column widens or the precision loss is acceptable.
+* **The precision boundary is explicit.** A float8 carries up to 17 significant
+  digits; `numeric(30, 12)` does not. The locally prepared, unapplied
+  `20260913220031_m3_reco_game_precision.sql` changes `positive`, `total` and
+  `total_hours` on `reco.game_preference_globals` to unconstrained numeric.
+  The real snapshot demonstrated the need on all three fields. They accept
+  exact finite source values without rounding or a JavaScript-number
+  conversion, retain their nonnegative/order checks, and explicitly reject
+  PostgreSQL's nonfinite numeric values. Every other recommendation numeric
+  remains bounded by `numeric(30, 12)` and is withheld if it cannot fit.
 * **`positive <= total`** is compared exactly on decimal text and fails closed.
 * **A global counter for an uncatalogued app keeps its AppID** with a NULL
   `game_id` (the target FK is `on delete set null`).

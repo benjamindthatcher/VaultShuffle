@@ -14,6 +14,7 @@ import { quoteLiteral, type WireConnection } from "./wire.ts";
  */
 
 export const PROFILE_ROLE_SOURCE = "source-read-only";
+export const SUPABASE_READ_ONLY_ROLE = "supabase_read_only_user";
 
 export type ProfileTransport = "tcp" | "unix-socket";
 
@@ -37,13 +38,23 @@ export type ConnectionProfile = {
   port: number;
   database: string;
   user: string;
+  /** Existing Supabase role activated transaction-locally after login. */
+  activateRole: string | null;
   password: Secret | null;
   caCertificatesPemPath: string | null;
   identity: SourceIdentityExpectations;
 };
 
 const ALLOWED_TOP_LEVEL = new Set(["profile_version", "role", "label", "connection", "identity", "tls"]);
-const ALLOWED_CONNECTION = new Set(["transport", "host", "port", "database", "user", "password"]);
+const ALLOWED_CONNECTION = new Set([
+  "transport",
+  "host",
+  "port",
+  "database",
+  "user",
+  "password",
+  "activate_role",
+]);
 const ALLOWED_IDENTITY = new Set([
   "project_ref",
   "expected_database",
@@ -162,6 +173,7 @@ export function parseConnectionProfile(text: string): ConnectionProfile {
   const database = requireString(connection, "database", "profile.connection");
   const user = requireString(connection, "user", "profile.connection");
   const passwordText = optionalString(connection, "password", "profile.connection");
+  const activateRole = optionalString(connection, "activate_role", "profile.connection");
 
   if (transport === "tcp" && host.startsWith("/")) {
     throw new ExportError("profile_invalid", "A tcp profile needs a hostname, not a socket path.");
@@ -176,6 +188,12 @@ export function parseConnectionProfile(text: string): ConnectionProfile {
     throw new ExportError(
       "profile_password_required",
       "A tcp profile must carry a password. An unauthenticated remote connection is not an acceptable source.",
+    );
+  }
+  if (activateRole !== null && activateRole !== SUPABASE_READ_ONLY_ROLE) {
+    throw new ExportError(
+      "profile_role_activation_refused",
+      `The only supported transaction role is ${JSON.stringify(SUPABASE_READ_ONLY_ROLE)}. Refusing to activate an arbitrary database role.`,
     );
   }
 
@@ -245,6 +263,7 @@ export function parseConnectionProfile(text: string): ConnectionProfile {
     port: port as number,
     database,
     user,
+    activateRole,
     password: passwordText === null ? null : new Secret(passwordText, `${label} password`),
     caCertificatesPemPath,
     identity,

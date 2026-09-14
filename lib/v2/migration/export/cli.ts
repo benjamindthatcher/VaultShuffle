@@ -153,7 +153,13 @@ export function parseExportCliArgs(args: readonly string[]): ParsedCliOptions {
 }
 
 export type ExportCliResult =
-  | { status: "complete"; runId: string; runDirectory: string; manifestSha256: string }
+  | {
+      status: "complete";
+      runId: string;
+      runDirectory: string;
+      manifestSha256: string;
+      schemaViewsSidecarPath: string | null;
+    }
   | { status: "help"; usage: string };
 
 /** Run the CLI flow without calling process.exit, which keeps it testable. */
@@ -200,6 +206,7 @@ export async function runExportCli(args: readonly string[]): Promise<ExportCliRe
     runId: result.runId,
     runDirectory: result.runDirectory,
     manifestSha256: result.manifestSha256,
+    schemaViewsSidecarPath: result.schemaViewsSidecarPath,
   };
 }
 
@@ -216,6 +223,7 @@ async function main(): Promise<void> {
         run_id: result.runId,
         run_directory: result.runDirectory,
         manifest_sha256: result.manifestSha256,
+        schema_views_sidecar: result.schemaViewsSidecarPath,
       })}\n`,
     );
   } catch (error) {

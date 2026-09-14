@@ -662,6 +662,15 @@ export function decimalToScaledInteger(value: PgDecimal, targetScale: number): b
   return value.sign < 0 ? -scaled : scaled;
 }
 
+/** Exact integer product, or null when multiplication still leaves a fraction. */
+export function decimalTimesIntegerToInteger(value: PgDecimal, factor: bigint): bigint | null {
+  if (typeof factor !== "bigint") libraryFailure("library_invalid_decimal", "decimal_factor", null);
+  const signed = (value.sign < 0 ? -value.coefficient : value.coefficient) * factor;
+  if (value.scale <= 0) return signed * TEN ** BigInt(-value.scale);
+  const divisor = TEN ** BigInt(value.scale);
+  return signed % divisor === ZERO ? signed / divisor : null;
+}
+
 /** True when the value fits `numeric(precision, scale)` with no rounding. */
 export function fitsNumeric(value: PgDecimal, precision: number, scale: number): boolean {
   const scaled = decimalToScaledInteger(value, scale);

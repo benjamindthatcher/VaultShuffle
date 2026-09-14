@@ -10,15 +10,15 @@
   },
   "physical_destination_index": {
     "path": "physical-destination-index.json",
-    "sha256": "d2c679dc5f2b0ac0d5bd44264569040142124bffe3b71276d7f4ed0703b24625",
+    "sha256": "2ef7fd7fa160ff09542521a8ee768d76d439609ea3277045ae38df4971423053",
     "totals": {
       "relations": 92,
       "applied_relations": 92,
       "proposed_relations": 0,
       "extended_relations": 14,
-      "columns": 994,
-      "pending_columns": 1,
-      "pending_dropped_columns": 6
+      "columns": 988,
+      "pending_columns": 0,
+      "pending_dropped_columns": 0
     },
     "description": "Generated from the M1/M2/M3 migration SQL. The validator uses this sidecar to resolve every concrete target and archive reference; rerun its builder whenever the physical migration changes."
   },
@@ -59,7 +59,7 @@
     },
     {
       "file": "01-library-and-state.json",
-      "sha256": "9d9f68c0ee07eb9e68bd8cfb6db9621e30f6a74d0f25448e45b12a4a758d4121",
+      "sha256": "3912d847512ad39ef092dca8fe9a3a7d6a7c0e553eae07f86743ecc8f6276552",
       "relations": [
         "completion_events",
         "purge_reviews",
@@ -85,7 +85,7 @@
     },
     {
       "file": "03-catalogue.json",
-      "sha256": "37e9f3957573bb8e5b7115ab521af16b993c711b4a1c6c45154b0a898c6de58d",
+      "sha256": "c57eca184b6333a986a808a3e7ae4e7c343af096e95ef052d0819ba4c9590ac9",
       "relations": [
         "catalog_duration_import_runs",
         "catalog_game_quarantine",
@@ -108,7 +108,7 @@
     },
     {
       "file": "05-reco-and-config.json",
-      "sha256": "9c142bb058326d49df14b4cc82f9aee2f30e356afaae425c3854cbb2b0b7c8e1",
+      "sha256": "9e477eb0963a463228ac6a8695d1b8ea63f969440a2845ab570cf1c4052d4c95",
       "relations": [
         "algorithm_weights",
         "api_rate_limits",
@@ -130,7 +130,7 @@
     },
     {
       "file": "07-views.json",
-      "sha256": "e39c06af5a92351d6861309b1abd581f27b023355de3a4fc0d916c7618f5e2ea",
+      "sha256": "9aa456a3fd721b1af91c710bba5a9b42711feac896ace8d613a9ff33af993cc5",
       "relations": [
         "catalog_duration_review_queue",
         "user_games_with_catalog"
@@ -175,12 +175,12 @@
     "views": 2,
     "columns": 486,
     "by_disposition": {
-      "preserved": 211,
-      "transformed": 100,
-      "derived-retirement": 93,
+      "preserved": 212,
+      "transformed": 101,
+      "derived-retirement": 92,
       "authorized-retirement": 2,
       "audit-archive": 79,
-      "unresolved-decision": 1
+      "unresolved-decision": 0
     }
   },
   "relations": [
@@ -1176,7 +1176,8 @@
       "decision_file": "03-catalogue.json",
       "column_count": 12,
       "column_dispositions": {
-        "audit-archive": 12
+        "transformed": 1,
+        "audit-archive": 11
       },
       "columns": [
         {
@@ -1265,9 +1266,10 @@
           "name": "status",
           "type": "text",
           "nullable": false,
-          "disposition": "audit-archive",
-          "note": "Terminal state of the run; distinguishes a completed import from an abandoned one whose partial effects may still be in the catalogue.",
-          "archive": "+catalog.duration_imports.status"
+          "disposition": "transformed",
+          "note": "Terminal state of the run; distinguishes a completed import from an abandoned one whose partial effects may still be in the catalogue. The completion instant and all other run evidence remain independent fields.",
+          "target": "catalog.duration_imports.status",
+          "transform": "The source writer's successful terminal label 'completed' becomes the destination's equivalent 'succeeded'; labels already in the destination vocabulary remain unchanged and unknown labels fail closed."
         },
         {
           "ordinal": 11,
@@ -1884,7 +1886,7 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "disposition": "audit-archive",
-          "note": "First import sighting.",
+          "note": "First import sighting. On overlap this dedicated timeline is authoritative for catalog.game_sightings; the independent catalog_games.first_seen_at remains preserved in catalog.games.first_seen_at.",
           "archive": "+catalog.game_sightings.first_seen_at"
         },
         {
@@ -1893,7 +1895,7 @@
           "type": "timestamp with time zone",
           "nullable": false,
           "disposition": "audit-archive",
-          "note": "Most recent import sighting; distinguishes a live app from a dormant one.",
+          "note": "Most recent import sighting; distinguishes a live app from a dormant one. On overlap it is preserved here independently of catalog_games.last_seen_at in catalog.games.last_seen_at.",
           "archive": "+catalog.game_sightings.last_seen_at"
         }
       ],
@@ -2043,9 +2045,9 @@
           "type": "jsonb",
           "nullable": false,
           "disposition": "transformed",
-          "note": "Treated as opaque and hashed as text for integrity (readiness 8.5). JSONB has already lost the original provider formatting, so the typed canonicalisation for parity is defined separately from the wire hash.",
+          "note": "The source export preserves the original jsonb wire bytes. The representation adapter is reversible in JSON semantic terms because each unique object key and exact numeric value becomes one tagged array member; object member order was not a jsonb fact.",
           "target": "catalog.game_metadata.weighted_tags",
-          "transform": "jsonb -> jsonb, bounded to 65536 bytes (M1:200) and required to be an ARRAY. If any legacy tags document is an object rather than an array, it is a reported conflict, not a coerced wrapping."
+          "transform": "A legacy numeric JSON object is losslessly re-expressed as a key-sorted [{tag,weight}] JSON array, preserving decoded tag strings and exact numeric tokens without JavaScript Number conversion. An existing valid array remains unchanged. Duplicate decoded keys and non-numeric weights are conflicts. Output remains bounded to 65536 bytes (M1:200)."
         },
         {
           "ordinal": 10,
@@ -4678,7 +4680,7 @@
           "type": "double precision",
           "nullable": false,
           "disposition": "preserved",
-          "note": "double precision alpha side of the per-game tally.",
+          "note": "Exact finite double-precision alpha-side text, preserved in unconstrained numeric by the locally prepared 20260913220031 correction after the real population exceeded numeric(30,12).",
           "target": "reco.game_preference_globals.positive",
           "decision_ref": "D-RECO-4",
           "settled_by": [
@@ -4692,7 +4694,7 @@
           "type": "double precision",
           "nullable": false,
           "disposition": "preserved",
-          "note": "double precision denominator.",
+          "note": "Exact finite double-precision denominator text, preserved in unconstrained numeric by the locally prepared 20260913220031 correction after the real population exceeded numeric(30,12); the target retains total >= positive.",
           "target": "reco.game_preference_globals.total",
           "decision_ref": "D-RECO-4",
           "settled_by": [
@@ -4720,7 +4722,7 @@
           "type": "double precision",
           "nullable": false,
           "disposition": "preserved",
-          "note": "double precision, accumulated cross-user HOURS. It aggregates user_games.hours_played, which is itself a rounded derivative (lib/steam-owned-games.ts:32), so it cannot be converted to exact minutes after the fact without fabricating precision. If carried, it is carried as hours with explicit provenance.",
+          "note": "double precision, accumulated cross-user HOURS. Its exact finite PostgreSQL text is loaded as an unconstrained nonnegative numeric by the locally prepared 20260913220031 correction; no float round-trip, rounding or unit conversion occurs. The correction also explicitly excludes nonfinite target numerics.",
           "target": "reco.game_preference_globals.total_hours",
           "decision_ref": "D-RECO-4",
           "settled_by": [
@@ -5480,7 +5482,7 @@
       "kind": "r",
       "rls": true,
       "role": "Historical purge-review decisions, including action = 'complete'. Ordinals skip 4, so a column was dropped.",
-      "summary": "Migrated to durable app.purge_review_history, with migration.legacy_purge_review_archive retaining the bounded raw source identity and reconciliation copy. Plan 14.2 keeps the historical decision and its review-time facts; no source row is discarded while the completion projection remains open.",
+      "summary": "Migrated to durable app.purge_review_history, with migration.legacy_purge_review_archive retaining the bounded raw source identity and reconciliation copy. Complete actions remain legacy review history and never synthesize or revive completion events.",
       "disposition_class": "migrated",
       "target": "app.purge_review_history + migration.legacy_purge_review_archive",
       "archive_purpose": "Preserve historical purge decisions, including raw source identity and review-time facts that the durable row resolves. Rows with action = 'complete' additionally corroborate app.completion_events and must be reconcilable against it.",
@@ -5498,9 +5500,7 @@
         ],
         "note": "The durable app.purge_review_history row is the account-bounded home for the decision; migration.legacy_purge_review_archive is only the raw staging copy and is classified staging-30d-post-cutover in the physical registry. Rows with action = 'complete' must still be reconcilable against app.completion_events (PX-c)."
       },
-      "open_decisions": [
-        "D-PRG-1 OPEN (source value): whether purge_reviews rows with action = 'complete' should ALSO project into completion history, or be archived only. Preservation itself is settled - the row is archived either way - but projecting them risks double-counting against completion_events while archiving only risks losing a completion the funnel never recorded. The answer depends on how many such rows have no matching completion_events row, which is snapshot check S-PRG-COMPLETE (probe PX-c)."
-      ],
+      "open_decisions": [],
       "evidence": [
         "readiness 3 (bounded archive or documented retirement)"
       ],
@@ -5547,7 +5547,7 @@
           "type": "text",
           "nullable": false,
           "disposition": "preserved",
-          "note": "The decision the user made. action = 'complete' is completion history, which plan section 3 requires to survive. Whether those rows also become app.completion_events is D-PRG-1. SETTLED (preservation): the decision the user made is archived verbatim, so it cannot be lost while D-PRG-1 is answered. Whether it ALSO becomes a completion event is the separate open source-value question.",
+          "note": "The decision the user made is preserved verbatim in durable review history. D-PRG-1 is settled: complete actions do not create app.completion_events or current state, and an existing undone event remains undone.",
           "target": "app.purge_review_history.action + migration.legacy_purge_review_archive.action",
           "archive": "+migration.legacy_purge_review_archive.action",
           "decision_ref": "D-PRG-2",
@@ -5932,9 +5932,9 @@
       "decision_file": "01-library-and-state.json",
       "column_count": 13,
       "column_dispositions": {
-        "preserved": 4,
+        "preserved": 5,
         "transformed": 6,
-        "derived-retirement": 2,
+        "derived-retirement": 1,
         "audit-archive": 1
       },
       "columns": [
@@ -6041,9 +6041,9 @@
           "name": "games_imported",
           "type": "integer",
           "nullable": false,
-          "disposition": "derived-retirement",
-          "note": "Retirement is only safe if D-LIB-4 does not drop orphaned family access rows. If it does, this count and the recomputed count will differ, and the difference belongs in the conflict report.",
-          "recoverable_from": "Recomputable after the load as the count of app.family_game_access rows for (account_id, member_id). v2 derives shared access from the access relation rather than from a counter on the member."
+          "disposition": "preserved",
+          "note": "Historical source counter retained independently of the current app.family_game_access count. The real snapshot contains disagreements, so neither count is rewritten or claimed to reconstruct the other.",
+          "target": "app.family_members.legacy_games_imported"
         },
         {
           "ordinal": 10,
@@ -6533,9 +6533,7 @@
         ],
         "note": "The sparse app.library_legacy_measurements row is the durable home for values the compact runtime model cannot reproduce. The migration.legacy_library_evidence row is bounded staging and may expire only after the sparse durable row is populated; an hours discrepancy alone does not prove authorship."
       },
-      "open_decisions": [
-        "D-LIB-3 OPEN (source value): the completed M3 contract preserves the legacy hours value and raw source text in bounded migration.legacy_library_evidence, and promotes unreproducible evidence to durable app.library_legacy_measurements, while app.library_games.playtime_minutes remains the exact-minute runtime value. The active-value precedence between those facts still depends on measured P05 conversion conflicts at the final source snapshot; neither value may be coerced, maxed or silently discarded."
-      ],
+      "open_decisions": [],
       "evidence": [
         "readiness 2.1 (priority and rating are retired, inspection complete)",
         "readiness 4.3 recency evidence source",
@@ -6552,8 +6550,7 @@
         "transformed": 12,
         "derived-retirement": 1,
         "authorized-retirement": 1,
-        "audit-archive": 3,
-        "unresolved-decision": 1
+        "audit-archive": 4
       },
       "columns": [
         {
@@ -6613,10 +6610,9 @@
           "name": "hours_played",
           "type": "numeric(10,1)",
           "nullable": false,
-          "disposition": "unresolved-decision",
-          "note": "The readiness 8.1 hazard. On the import path this is derived and rounded: Math.round(((minutes ?? 0)/60)*10)/10 at lib/steam-owned-games.ts:32. But the same field is also accepted and written by client-facing paths - lib/validation.ts:26 and :38, app/api/games/[id]/route.ts:14 and :26, and lib/games.ts:117 - while observed_playtime_minutes has no writer in lib/ or app/ at all. The completed M3 contract preserves the legacy numeric value and its raw source text in migration.legacy_library_evidence. Exact observed minutes remain separate in app.library_games.playtime_minutes. An hours discrepancy alone does not prove which path authored a row or which fact should be active at runtime. The unresolved decision is only that runtime precedence, and P05 must measure it at the final source snapshot; no value is maxed, rounded again or silently discarded.",
+          "disposition": "audit-archive",
+          "note": "P05 on the verified real snapshot found zero owned-row disagreements with the exact legacy JavaScript rounding path; family rows have unknown personal minutes and are never assigned to the borrower. Exact observed minutes remain runtime authority for owned rows. Legacy hours and raw spelling remain independent evidence and are never maxed, coerced or silently discarded. Final freeze repeats this measurement.",
           "archive": "+migration.legacy_library_evidence.legacy_hours_played + migration.legacy_library_evidence.legacy_hours_played_raw + app.library_legacy_measurements.legacy_hours_played + app.library_legacy_measurements.legacy_hours_played_raw",
-          "blocked_on": "probe P05: count rows whose hours_played cannot be reproduced from observed_playtime_minutes by the import rounding, split by access_source",
           "evidence": [
             "readiness 8.1",
             "readiness 10 probe 5",
@@ -6721,9 +6717,9 @@
           "type": "numeric",
           "nullable": true,
           "disposition": "transformed",
-          "note": "Unit is NOT changed here - legacy and target are both minutes-or-unspecified; only the type narrows. Contrast user_game_pins.hours_at_pin, which is a genuine unit change.",
+          "note": "The legacy completion-dismiss writer stores game.hours_played directly. V2 defines the integer destination as minutes, consistent with the exact-minute core model.",
           "target": "app.game_state.completion_dismissed_playtime",
-          "transform": "numeric -> integer. This is one of readiness 8.2's three narrowings and needs a stated rounding rule applied identically in the transform and the validator. Proposal: reject any value that is not integral rather than round, because a fractional dismissal baseline would indicate the unit is not what we think.",
+          "transform": "Exact decimal hours * 60 -> checked nonnegative integer minutes. No rounding or clamping; a value that is not an integral minute or exceeds int32 is a hard blocker. Original exact decimal hours text is retained separately in migration.legacy_library_evidence.evidence.",
           "conflict": "readiness 8.2"
         },
         {
@@ -6913,13 +6909,12 @@
       "archive_purpose": null,
       "archive_retention": null,
       "retention": null,
-      "open_decisions": [
-        "D-VIEW-1 OPEN (source value): the live view body differs from the repository migration - it publishes rating, priority, title, genre, store and steam_appid as TEXT, columns that no longer exist on live user_games. That the repository definition can be stale is settled; what the LIVE definition actually is can only be read from the source, so probe P04 must export it before any v2 read model mirrors it: snapshot check S-VIEW-DEFS."
-      ],
+      "open_decisions": [],
       "evidence": [
         "readiness 2 (the two views need an explicit derived line so a coverage assertion can be written mechanically)",
         "readiness 2.1 (the live view still publishes `rating` and `priority`, so the view body was REBUILT REMOTELY and differs from supabase/migrations/20260901193000_share_a_family_library.sql:289)",
-        "readiness 10 probe 4 (live routine and view definitions must be exported before mirroring legacy logic)"
+        "readiness 10 probe 4 (live routine and view definitions must be exported before mirroring legacy logic)",
+        "verified real export sidecar bound to preflight 11 run ID, UTC watermark and manifest digest"
       ],
       "decision_file": "07-views.json",
       "column_count": 60,

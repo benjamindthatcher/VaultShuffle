@@ -20,6 +20,7 @@ import {
   remainingRows,
   remainingRun,
   requireColumns,
+  unconstrainedNumericText,
   uuidText,
   type AccountMapTargetRecord,
   type GameMap,
@@ -45,8 +46,11 @@ import {
  * 2. **`double precision` is read as text, never as a number.** The COPY cell
  *    is PostgreSQL's shortest round-trip decimal rendering of the float, which
  *    is the exact value; passing it through a JavaScript `number` on the way
- *    to a `numeric(30, 12)` column would re-round it. Anything that will not
- *    fit the destination is refused rather than rounded.
+ *    to a numeric column would re-round it. Every bounded numeric destination
+ *    remains checked. All three numeric fields on `game_preference_globals`
+ *    use the approved unconstrained numeric correction, based on the measured
+ *    real population, and preserve exact finite values without a JavaScript-
+ *    number round trip.
  * 3. **A setting is not a secret store, and this transform does not decide
  *    that it is.** `app_settings` is an open key/value table; a key whose
  *    semantics this batch cannot verify is quarantined into evidence with a
@@ -328,6 +332,26 @@ function tally(
   return Object.freeze({ positive, total });
 }
 
+/** Exact finite counters for the one real-source relation whose target is unconstrained numeric. */
+function gameTally(row: Record<string, unknown>): Readonly<{ positive: string; total: string }> {
+  const positive = unconstrainedNumericText(
+    cell(row, "positive", GAME_GLOBAL_RELATION),
+    GAME_GLOBAL_RELATION,
+    "positive",
+    { nonNegative: true },
+  );
+  const total = unconstrainedNumericText(
+    cell(row, "total", GAME_GLOBAL_RELATION),
+    GAME_GLOBAL_RELATION,
+    "total",
+    { nonNegative: true },
+  );
+  if (compareNumericText(total, positive) < 0) {
+    remainingFailure("remaining_order_conflict", GAME_GLOBAL_RELATION, "total");
+  }
+  return Object.freeze({ positive, total });
+}
+
 const UNREPRESENTABLE_COUNTER_DECISION =
   "UNRESOLVED for root: this counter is a source `double precision` value with more significant digits than the " +
   "target numeric(30, 12) can hold. Rounding it would change a recorded preference counter, so the row is withheld " +
@@ -530,27 +554,13 @@ export function transformRecoConfigBatch(input: RecoConfigInput): RecoConfigResu
     // `game_id` is a nullable FK with ON DELETE SET NULL: a global counter for
     // an app the catalogue never held is still real evidence, keyed by AppID.
     const gameId = games.has(appIdText) ? games.lookup(appIdText) : null;
-    const gameCounters = tally(row, GAME_GLOBAL_RELATION);
-    const totalHours = numericTextOrNull(
+    const gameCounters = gameTally(row);
+    const totalHours = unconstrainedNumericText(
       cell(row, "total_hours", GAME_GLOBAL_RELATION),
       GAME_GLOBAL_RELATION,
       "total_hours",
       { nonNegative: true },
     );
-    if (gameCounters === null || totalHours === null) {
-      withheldCounters.push(
-        Object.freeze({
-          source_relation: GAME_GLOBAL_RELATION as "game_preference_globals",
-          key: appIdText,
-          positive_raw: cell(row, "positive", GAME_GLOBAL_RELATION),
-          total_raw: cell(row, "total", GAME_GLOBAL_RELATION),
-          total_hours_raw: cell(row, "total_hours", GAME_GLOBAL_RELATION),
-          source_snapshot_hash: run.snapshotHash,
-        }),
-      );
-      blockers.record("counter_unrepresentable", GAME_GLOBAL_RELATION, "total_hours", UNREPRESENTABLE_COUNTER_DECISION);
-      continue;
-    }
     if (gameId === null) unmappedGames += 1;
     gameGlobals.push(
       Object.freeze({

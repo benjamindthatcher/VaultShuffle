@@ -2,21 +2,23 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { chmod, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test, { after, before } from "node:test";
 import { buildManifest, serializeManifest, type ManifestRelation, type RunManifest } from "../export/manifest.ts";
 import { inspectRun, type ReaderExpectations, type VerifiedRun } from "../read/reader.ts";
 import { buildGameMap } from "../transform/games.ts";
+import { canonicalSha256 } from "./canonical.ts";
 import { transformLibraryBatch, type UserGamesSourceRow } from "../transform/library.ts";
 import { transformSupportOpsBatch } from "../transform/support-ops.ts";
 import { LoaderError } from "./errors.ts";
 import { runLoaderPipeline, type TransformOutcome } from "./pipeline.ts";
-import { TARGET_RELATION_SPECS } from "./contract.ts";
+import { prepareLoadPlan, TARGET_RELATION_SPECS } from "./contract.ts";
 import { asRecords, type StagedRun } from "./staging.ts";
-import { queryRows, type LocalTargetDescriptor } from "./target.ts";
+import { applyLoadPlan, queryRows, type LocalTargetDescriptor } from "./target.ts";
 import type { AccountMapTargetRecord } from "../transform/accounts.ts";
+import { writePrivateReconciliationReport } from "./reconcile.ts";
 
 /**
  * End-to-end acceptance for the local migration loader against a real
@@ -55,8 +57,8 @@ const SNAPSHOT = "ab".repeat(32);
 const MANIFEST_FINGERPRINT = "cd".repeat(32);
 // Frozen from the reviewed M1+M2+M3+preservation-follow-up fixture schema.
 // The expected value is deliberately not learned from the target under test.
-const FIXTURE_SCHEMA_FINGERPRINT = "d01cbebb6654c8f50213fe7d80f9b50b80db360403b4f187e263fb9e2bde3530";
-const FIXTURE_SCHEMA_WITH_ACCOUNTS_FINGERPRINT = "cafbb9d479f73ac9f2c1be4d5f2c3d370489389ac73aa15a83d0fcb8077de89b";
+const FIXTURE_SCHEMA_FINGERPRINT = "2a2b4c6fccd63f8c99cccb39151fb180f34cec9b8f6ef435ea440a26331cdfb3";
+const FIXTURE_SCHEMA_WITH_ACCOUNTS_FINGERPRINT = "7c0ce2adf39ec7a65ec2c1700c18342b5361696d2d67b9ded9239f8a8aa2817d";
 const ACCOUNT_A = "aa000000-0000-4000-8000-00000000000a";
 const ACCOUNT_B = "aa000000-0000-4000-8000-00000000000b";
 const ROW_OWNED = "bb000000-0000-4000-8000-000000000001";
@@ -603,8 +605,8 @@ test("a schema that drifted from the plan fails the fingerprint gate", async () 
       specs: drifted as typeof TARGET_RELATION_SPECS,
     }),
   );
-  // The plan cannot even be applied against a relation that is not there.
-  assert.equal(code, "loader_target_failed");
+  assert.equal(code, "loader_publication_refused");
+  assert.equal(sql(`select count(*) from migration.runs where run_id = '77777777-7777-4777-8777-777777777777';`), "0");
 });
 
 test("exact large numbers, microsecond instants and JSON survive the round trip", async () => {
@@ -669,6 +671,52 @@ test("a sequence-backed relation accepts the next runtime insert after the load"
   sql(`delete from app.accounts where id = ${Number(inserted)};`);
 });
 
+test("a failure after identity repair rolls the sequence restart back", () => {
+  resetTarget();
+  sql("truncate app.accounts cascade;");
+  const beforeSequence = sql("select last_value::text || ':' || is_called::text from app.accounts_id_seq;");
+  const accountSpec = Object.freeze({
+    relation: "app.accounts",
+    identityColumn: "id",
+    columns: Object.freeze([
+      Object.freeze({ name: "id", kind: "integer" as const, nullable: false }),
+      Object.freeze({ name: "account_kind", kind: "text" as const, nullable: false }),
+    ]),
+  });
+  const catalogSpec = Object.freeze({
+    relation: "catalog.games",
+    columns: Object.freeze([
+      Object.freeze({ name: "id", kind: "integer" as const, nullable: false }),
+      Object.freeze({ name: "steam_app_id", kind: "integer" as const, nullable: false }),
+      Object.freeze({ name: "title", kind: "text" as const, nullable: false }),
+      Object.freeze({ name: "normalized_sort_title", kind: "text" as const, nullable: false }),
+    ]),
+  });
+  const batches = Object.freeze([
+    Object.freeze({ relation: "app.accounts", rows: Object.freeze([Object.freeze({ id: 40, account_kind: "steam" })]) }),
+    Object.freeze({ relation: "catalog.games", rows: Object.freeze([]) }),
+  ]);
+  const plan = prepareLoadPlan(Object.freeze([accountSpec, catalogSpec]), batches);
+  const runId = "9a999999-9999-4999-8999-999999999999";
+  assert.throws(
+    () => applyLoadPlan(TARGET, plan, {
+      runId,
+      snapshotKey: "sequence-rollback",
+      snapshotHash: SNAPSHOT,
+      startedAt: INSTANTS.startedAt,
+      finishedAt: INSTANTS.finishedAt,
+      schemaFingerprint: FIXTURE_SCHEMA_WITH_ACCOUNTS_FINGERPRINT,
+      manifestFingerprint: MANIFEST_FINGERPRINT,
+      transformFingerprint: canonicalSha256(batches),
+      stagingFingerprint: "ef".repeat(32),
+    }, [], []),
+    (error: unknown) => error instanceof LoaderError && error.loaderCode === "loader_reconciliation_failed",
+  );
+  assert.equal(sql("select last_value::text || ':' || is_called::text from app.accounts_id_seq;"), beforeSequence);
+  assert.equal(sql("select count(*) from app.accounts where id = 40;"), "0");
+  assert.equal(sql(`select count(*) from migration.runs where run_id = '${runId}';`), "0");
+});
+
 test("the reconciliation report is private, machine-readable and labelled synthetic", async () => {
   resetTarget();
   const result = await runPipeline({
@@ -694,6 +742,10 @@ test("the reconciliation report is private, machine-readable and labelled synthe
   const libraryRelation = result.expected.relations.find((relation) => relation.relation === "app.library_games");
   assert.ok(libraryRelation);
   assert.ok(Object.keys(libraryRelation.byAccount).length > 0);
+
+  const reportPath = join(root, "reconciliation.json");
+  writePrivateReconciliationReport(reportPath, result.report);
+  assert.equal(statSync(reportPath).mode & 0o777, 0o600);
 });
 
 test("queryRows refuses a descriptor that is not an explicit local socket", () => {

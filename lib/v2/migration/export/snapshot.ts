@@ -69,6 +69,20 @@ export const REQUIRED_TRANSACTION_LOCAL_SETTINGS: ReadonlyArray<readonly [string
   ["row_security", "off"],
 ];
 
+/**
+ * Rendering settings used only while comparing the live catalog with the
+ * frozen source inventory.
+ *
+ * `pg_get_constraintdef` delegates interval constants to PostgreSQL's interval
+ * output function. The same parsed CHECK therefore renders `00:15:00` under
+ * the inventory's `postgres` style and `PT15M` under the export stream's
+ * `iso_8601` style. Pinning the catalog query to the inventory representation
+ * keeps an exact text comparison without weakening the drift guard.
+ */
+export const REQUIRED_SCHEMA_CONTRACT_SETTINGS: ReadonlyArray<readonly [string, string]> = [
+  ["IntervalStyle", "postgres"],
+];
+
 export type PlannedColumn = {
   ordinal: number;
   name: string;
@@ -126,6 +140,14 @@ export type SnapshotWatermark = {
   /** `transaction_timestamp()`, explicit UTC. */
   transactionStartUtc: string;
   backendPid: string;
+};
+
+/** A view body captured inside the same snapshot as the exported rows. */
+export type SnapshotViewDefinition = {
+  schema: string;
+  name: string;
+  definition: string;
+  sha256: string;
 };
 
 /**
@@ -218,6 +240,10 @@ export type SnapshotOptions = {
   openRelationOutput: (relation: PlannedRelation) => Promise<RelationOutput>;
   /** Server-side cap per statement. 0 disables it, which is not recommended. */
   statementTimeoutMs: number;
+  /** Existing, fixed read-only role granted to the authenticated session. */
+  activateRole?: string | null;
+  /** Login identity that must remain `session_user` after role activation. */
+  expectedSessionUser?: string;
   /**
    * Awaited before the next relation is streamed, so a caller can act at a
    * known point inside the open snapshot. The concurrency test writes to the
@@ -237,6 +263,11 @@ export type SnapshotResult = {
   sessionSettings: Readonly<Record<string, string>>;
   rowSecurity: RowSecurityEvidence;
   walLsnAvailable: boolean;
+  /** Supplementary view metadata; empty for fixture plans without a full contract. */
+  viewDefinitions: readonly SnapshotViewDefinition[];
+  /** Effective data-access identity after an optional transaction-local SET ROLE. */
+  effectiveUser: string | null;
+  sessionUser: string | null;
 };
 
 function parseCopyRowCount(commandTag: string): number {
@@ -299,6 +330,21 @@ async function applySessionSettings(
   return observed;
 }
 
+async function applySchemaContractSettings(connection: WireConnection): Promise<void> {
+  for (const [name, value] of REQUIRED_SCHEMA_CONTRACT_SETTINGS) {
+    await connection.query(`SET LOCAL ${quoteIdentifier(name)} = ${quoteLiteral(value)}`);
+    const result = await connection.query(`SELECT current_setting(${quoteLiteral(name)})`);
+    const observed = result.rows[0]?.[0] ?? "";
+    if (observed !== value) {
+      throw new ExportError(
+        "schema_setting_rejected",
+        `The server reports ${name} as ${JSON.stringify(observed)} after it was set to ${JSON.stringify(value)}. Refusing to compare constraint text under an unknown representation.`,
+        { setting: name, expected: value, actual: observed },
+      );
+    }
+  }
+}
+
 /** `current_setting('row_security')`, read from the server rather than assumed. */
 async function readRowSecuritySetting(connection: WireConnection): Promise<string> {
   const result = await connection.query("SELECT current_setting('row_security')");
@@ -311,13 +357,116 @@ function parseOptionalCatalogBoolean(value: string | null | undefined): boolean 
   return null;
 }
 
+type ActivatedRoleEvidence = {
+  currentUser: string;
+  sessionUser: string;
+};
+
+/**
+ * Activate Supabase's role already granted to a generated read-only login.
+ *
+ * The Management API deliberately grants this membership with INHERIT disabled,
+ * so authenticating as the temporary login is not enough. PostgreSQL itself
+ * proves membership before `SET LOCAL ROLE`; the following read-back proves the
+ * effective and session identities, BYPASSRLS, non-superuser status and the
+ * enclosing read-only transaction.
+ */
+async function activateReadOnlyRole(
+  connection: WireConnection,
+  role: string,
+  expectedSessionUser: string,
+): Promise<ActivatedRoleEvidence> {
+  const before = await connection.query(
+    `SELECT current_user, session_user, pg_has_role(session_user, ${quoteLiteral(role)}, 'MEMBER')::text`,
+  );
+  const beforeRow = before.rows[0] ?? [];
+  if (
+    beforeRow[0] !== expectedSessionUser ||
+    beforeRow[1] !== expectedSessionUser ||
+    beforeRow[2] !== "true"
+  ) {
+    throw new ExportError(
+      "source_role_membership_missing",
+      "The authenticated source login does not hold the expected read-only role membership; refusing to export.",
+    );
+  }
+
+  await connection.query(`SET LOCAL ROLE ${quoteIdentifier(role)}`);
+  const after = await connection.query(
+    "SELECT current_user, session_user, r.rolsuper::text, r.rolbypassrls::text, " +
+      "current_setting('transaction_read_only') " +
+      "FROM pg_catalog.pg_roles r WHERE r.rolname=current_user",
+  );
+  const row = after.rows[0] ?? [];
+  if (
+    row[0] !== role ||
+    row[1] !== expectedSessionUser ||
+    row[2] !== "false" ||
+    row[3] !== "true" ||
+    row[4] !== "on"
+  ) {
+    throw new ExportError(
+      "source_role_activation_invalid",
+      "The activated source role did not prove the required read-only, non-superuser, BYPASSRLS identity; refusing to export.",
+    );
+  }
+  return { currentUser: row[0], sessionUser: row[1] };
+}
+
+async function assertActivatedRoleScope(
+  connection: WireConnection,
+  contract: ExportSchemaContract,
+): Promise<void> {
+  const result = await connection.query(
+    "SELECT c.relname, has_table_privilege(current_user, c.oid, 'SELECT')::text, " +
+      "has_table_privilege(current_user, c.oid, 'INSERT')::text, " +
+      "has_table_privilege(current_user, c.oid, 'UPDATE')::text, " +
+      "has_table_privilege(current_user, c.oid, 'DELETE')::text, " +
+      "has_table_privilege(current_user, c.oid, 'TRUNCATE')::text, " +
+      "has_table_privilege(current_user, c.oid, 'REFERENCES')::text, " +
+      "has_table_privilege(current_user, c.oid, 'TRIGGER')::text " +
+      "FROM pg_catalog.pg_class c " +
+      "JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace " +
+      `WHERE n.nspname=${quoteLiteral(contract.schema)} AND c.relkind IN ('r','v','m','p') ` +
+      "ORDER BY c.relname",
+  );
+  if (result.rows.length !== contract.relations.length) {
+    throw new ExportError(
+      "source_role_scope_invalid",
+      "The activated source role privilege scope does not cover the complete inventoried relation set.",
+    );
+  }
+  for (const row of result.rows) {
+    const canSelect = row[1] === "true";
+    const canWrite = row.slice(2).some((value) => value === "true");
+    if (!canSelect || canWrite) {
+      throw new ExportError(
+        "source_role_scope_invalid",
+        "The activated source role lacks SELECT or holds a table write privilege in the inventoried schema; refusing to export.",
+        { relation: `${contract.schema}.${row[0] ?? "unknown"}` },
+      );
+    }
+  }
+
+  const createPrivileges = await connection.query(
+    `SELECT has_schema_privilege(current_user, ${quoteLiteral(contract.schema)}, 'CREATE')::text, ` +
+      "has_database_privilege(current_user, current_database(), 'CREATE')::text",
+  );
+  if (createPrivileges.rows[0]?.some((value) => value === "true")) {
+    throw new ExportError(
+      "source_role_scope_invalid",
+      "The activated source role can create source schema or database objects; refusing to use it as the read-only export identity.",
+    );
+  }
+}
+
 /**
  * Make a policy-filtered read impossible before the first relation is opened.
  *
- * Ordering is the whole point: this runs as the first statement inside the
- * export transaction, ahead of the watermark, the schema contract and every
- * COPY. A guard applied after a read has already happened proves nothing about
- * that read.
+ * Ordering is the whole point: this runs immediately after any transaction-local
+ * activation of the already granted read-only role, ahead of the watermark,
+ * schema contract and every COPY. A guard applied after a read has already
+ * happened proves nothing about that read.
  *
  * `SET LOCAL` rather than `SET`, so the connection cannot be handed back to
  * anything else still carrying a setting that turns a normal filtered query
@@ -596,7 +745,9 @@ export async function assertSchemaContract(
   }
 
   const constraintResult = await connection.query(
-    "SELECT c.relname, con.conname, con.contype, pg_get_constraintdef(con.oid, true) " +
+    // Match the inventory's canonical (non-pretty) constraint rendering.
+    // Pretty output removes parentheses and falsely reports unchanged CHECKs.
+    "SELECT c.relname, con.conname, con.contype, pg_get_constraintdef(con.oid, false) " +
       "FROM pg_catalog.pg_constraint con " +
       "JOIN pg_catalog.pg_class c ON c.oid = con.conrelid " +
       "JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace " +
@@ -668,6 +819,62 @@ async function readWatermark(
 }
 
 /**
+ * Capture view bodies inside the export transaction.
+ *
+ * View definitions are supplementary migration evidence rather than row files,
+ * but reading them on another connection could bind them to a different schema
+ * revision. The complete inventory determines the expected names, and an exact
+ * set comparison makes a missing or unexpected body a failed export.
+ */
+async function readViewDefinitions(
+  connection: WireConnection,
+  contract: ExportSchemaContract | undefined,
+): Promise<SnapshotViewDefinition[]> {
+  if (!contract) return [];
+  const expectedNames = contract.relations
+    .filter((relation) => relation.kind === "v" || relation.kind === "m")
+    .map((relation) => relation.name)
+    .sort();
+  if (expectedNames.length === 0) return [];
+
+  const result = await connection.query(
+    "SELECT c.relname, pg_get_viewdef(c.oid, false) " +
+      "FROM pg_catalog.pg_class c " +
+      "JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace " +
+      `WHERE n.nspname = ${quoteLiteral(contract.schema)} AND c.relkind IN ('v', 'm') ` +
+      "ORDER BY c.relname",
+  );
+  const actualNames = result.rows.map((row) => row[0] ?? "");
+  if (
+    actualNames.length !== expectedNames.length ||
+    actualNames.some((name, index) => name !== expectedNames[index])
+  ) {
+    throw new ExportError(
+      "schema_view_definition_drift",
+      "The source catalog returned a different set of view definitions than the inventoried schema; refusing to export.",
+      { expected: expectedNames.length, actual: actualNames.length },
+    );
+  }
+
+  return result.rows.map((row) => {
+    const name = row[0] ?? "";
+    const definition = row[1] ?? "";
+    if (!name || !definition) {
+      throw new ExportError(
+        "schema_view_definition_invalid",
+        "The source catalog returned an empty view definition; refusing to export.",
+      );
+    }
+    return {
+      schema: contract.schema,
+      name,
+      definition,
+      sha256: createHash("sha256").update(definition, "utf8").digest("hex"),
+    };
+  });
+}
+
+/**
  * Run the whole snapshot inside one transaction.
  *
  * The caller owns the connection and the output files; this owns the
@@ -682,29 +889,34 @@ export async function streamSnapshot(
 
   await connection.query("BEGIN TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY");
   try {
-    // First, before the watermark, the schema contract or any relation. From
-    // here on a relation this role cannot see in full raises an error rather
-    // than returning the part of it the policies admit.
+    const activatedRole = options.activateRole
+      ? await activateReadOnlyRole(connection, options.activateRole, options.expectedSessionUser ?? "")
+      : null;
+
+    // Before the watermark, schema contract or any relation: from here on a
+    // relation this role cannot see in full raises rather than returning only
+    // the part its policies admit.
     const rowVisibility = await assertCompleteRowVisibility(connection);
 
-    const sessionSettings = await applySessionSettings(connection, options.statementTimeoutMs);
     await assertTransactionDiscipline(connection);
 
-    // This statement takes the snapshot: in repeatable read the transaction's
-    // snapshot is acquired by the first statement that needs one, and every
-    // COPY below is then reading exactly what this recorded.
-    const watermark = await readWatermark(connection, walLsnAvailable);
-
-    // The whole inventoried scope is checked before the first relation is read,
-    // inside this snapshot. `include` decides which files are written; it must
-    // never decide how much of the schema has to still match the inventory the
-    // disposition manifest was written against. A table added, dropped, retyped
-    // or given a new constraint outside the narrowed set is exactly the drift
-    // that would make a narrow export mean something different from what its
-    // manifest claims.
+    // Compare the complete contract before selecting output formatting. The
+    // inventory stores PostgreSQL's `postgres` interval representation, while
+    // relation files deliberately use `iso_8601`.
     if (options.plan.schemaContract) {
+      await applySchemaContractSettings(connection);
       await assertSchemaContract(connection, options.plan.schemaContract);
+      if (activatedRole) {
+        await assertActivatedRoleScope(connection, options.plan.schemaContract);
+      }
     }
+
+    const sessionSettings = await applySessionSettings(connection, options.statementTimeoutMs);
+
+    // The preceding catalog checks and this watermark all use the transaction's
+    // one repeatable-read snapshot. Every COPY below reads that same snapshot.
+    const watermark = await readWatermark(connection, walLsnAvailable);
+    const viewDefinitions = await readViewDefinitions(connection, options.plan.schemaContract);
 
     const relations: RelationDigest[] = [];
     for (const relation of options.plan.relations) {
@@ -799,6 +1011,9 @@ export async function streamSnapshot(
       sessionSettings,
       rowSecurity: { ...rowVisibility, settingAtClose: rowSecurityAtClose },
       walLsnAvailable,
+      viewDefinitions,
+      effectiveUser: activatedRole?.currentUser ?? null,
+      sessionUser: activatedRole?.sessionUser ?? null,
     };
   } catch (error) {
     try {

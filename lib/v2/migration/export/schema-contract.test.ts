@@ -77,6 +77,7 @@ test("complete schema contracts validate every relation, column and constraint",
   const queries: string[] = [];
   await assertSchemaContract(connectionFor(matchingCatalog(), queries), CONTRACT);
   assert.equal(queries.length, 3);
+  assert.match(queries[2] ?? "", /pg_get_constraintdef\(con\.oid, false\)/);
 });
 
 test("schema contract rejects relation scope and relation metadata drift", async (t) => {

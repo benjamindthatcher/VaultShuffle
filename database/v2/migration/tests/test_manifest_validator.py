@@ -340,33 +340,37 @@ class TestCommittedArtefactsAreValid(MutationHarness):
         self.assertEqual(blacklist["file"], BLACKLIST_MIGRATION.name)
         self.assertEqual(blacklist["sha256"], BLACKLIST_MIGRATION_SHA256)
         self.assertEqual(BLACKLIST_MIGRATION_SHA256, hashlib.sha256(BLACKLIST_MIGRATION.read_bytes()).hexdigest())
-        self.assertFalse(blacklist["applied"])
+        self.assertTrue(blacklist["applied"])
         self.assertIsNone(blacklist["applied_at"])
         self.assertEqual(index["proposed_relations"], [])
         self.assertEqual(index["totals"]["proposed_relations"], 0)
         self.assertEqual(
             index["totals"]["applied_relations"], index["totals"]["relations"]
         )
-        self.assertEqual(index["totals"]["pending_columns"], 1)
-        self.assertEqual(index["totals"]["pending_dropped_columns"], 6)
-        self.assertEqual(
-            index["pending_columns"],
-            {"app.game_state": {
-                "columns": ["blacklisted"],
-                "from": ["blacklist-followup"],
-                "status": "prepared locally, not applied to any target",
-            }},
-        )
-        self.assertEqual(
-            index["pending_dropped_columns"]["app.game_state"]["columns"],
-            ["restored_at", "restored_from_previous_active_status", "restored_from_slept_at", "slept_at"],
-        )
+        self.assertEqual(index["totals"]["pending_columns"], 0)
+        self.assertEqual(index["totals"]["pending_dropped_columns"], 0)
+        self.assertEqual(index["pending_columns"], {})
+        self.assertEqual(index["pending_dropped_columns"], {})
+        self.assertIn("blacklisted", index["relations"]["app.game_state"]["columns"])
+        self.assertNotIn("slept_at", index["relations"]["app.game_state"]["columns"])
 
     def test_strict_final_load_rejects_pending_unapplied_schema(self):
+        # Keep the pre-apply regression independent of the live applied state.
+        index = json.loads((MANIFEST.parent / "physical-destination-index.json").read_text())
+        next(s for s in index["sources"] if s["origin"] == "blacklist-followup")["applied"] = False
+        index["pending_columns"] = {"app.game_state": {"columns": ["blacklisted"]}}
+        index["pending_dropped_columns"] = {"app.game_state": {"columns": ["slept_at"]}}
+        failures = validator.validate(
+            self.manifest, json.loads(INVENTORY.read_text()),
+            strict_final_load=True, destination_index=index,
+        )
+        self.assertTrue(any("V18" in failure for failure in failures))
+
+    def test_applied_blacklist_and_unapplied_precision_have_distinct_gates(self):
         result = run_validator(MANIFEST, INVENTORY, "--final-load")
         self.assertEqual(result.returncode, 1)
+        self.assertIn("V13", result.stderr)
         self.assertIn("V18", result.stderr)
-        self.assertIn("1 pending additions, 6 pending drops, 1 unapplied migrations (blacklist-followup)", result.stderr)
 
     def test_manual_sessions_migrate_while_security_intents_expire(self):
         """The intent FK decision must not expire the long-lived manual cookie."""
@@ -520,7 +524,7 @@ class TestValidatorCatchesDrift(MutationHarness):
 
     def test_v10_tampered_disposition_counts(self):
         man = copy.deepcopy(self.manifest)
-        man["totals"]["by_disposition"]["unresolved-decision"] = 0
+        man["totals"]["by_disposition"]["unresolved-decision"] = 1
         self.assert_fails_with(man, self.inventory, "V10")
 
     def test_v10_wrong_source_project(self):
@@ -618,7 +622,7 @@ class TestValidatorCatchesDrift(MutationHarness):
         man = copy.deepcopy(self.manifest)
         rel = next(r for r in man["relations"] if r["name"] == "user_games")
         col = next(c for c in rel["columns"] if c["name"] == "hours_played")
-        col.pop("blocked_on")
+        col["disposition"] = "unresolved-decision"
         self.assert_fails_with(man, self.inventory, "V11")
 
 

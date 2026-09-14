@@ -25,6 +25,7 @@ export type StagingLimits = Readonly<{
 const DEFAULT_MAX_ROWS = 2_000_000;
 const DEFAULT_MAX_CELLS = 40_000_000;
 const DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
+const MAX_CONFIGURED_BYTES = 1024 * 1024 * 1024;
 
 type StageIdentity = Readonly<{ dev: number; ino: number; size: number; mtimeMs: number; nlink: number }>;
 
@@ -77,7 +78,7 @@ export async function stageVerifiedRun(
   if (
     !Number.isSafeInteger(maxRows) || maxRows < 1 || maxRows > DEFAULT_MAX_ROWS ||
     !Number.isSafeInteger(maxCells) || maxCells < 1 || maxCells > DEFAULT_MAX_CELLS ||
-    !Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > DEFAULT_MAX_BYTES
+    !Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > MAX_CONFIGURED_BYTES
   ) throw loaderFailure("loader_stage_limit", { field: "limits" });
   if (existsSync(directory)) throw loaderFailure("loader_stage_failed", { field: "directory_exists" });
   try {

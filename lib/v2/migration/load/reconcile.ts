@@ -1,8 +1,11 @@
-import { OrderedChecksum, canonicalSha256, quoteRelation, sha256Text } from "./canonical.ts";
+import { OrderedChecksum, canonicalJson, canonicalSha256, quoteRelation, sha256Text } from "./canonical.ts";
+import { closeSync, fsyncSync, lstatSync, openSync, writeSync } from "node:fs";
+import { dirname, isAbsolute } from "node:path";
 import { loaderFailure } from "./errors.ts";
 import { queryRows, type LocalTargetDescriptor } from "./target.ts";
 import type { LoadPlan } from "./contract.ts";
 import type { TargetScalarKind } from "./copy.ts";
+import { parsePgDecimal } from "../transform/scalars.ts";
 
 /**
  * Reconciliation: prove the target holds what the transforms said, per
@@ -24,6 +27,7 @@ export type RelationReconciliation = Readonly<{
   sha256: string;
   /** Per-account digests, present only where the relation has an account key. */
   byAccount: Readonly<Record<string, Readonly<{ rows: number; sha256: string }>>>;
+  byColumn: Readonly<Record<string, string>>;
 }>;
 
 export type RunReconciliation = Readonly<{
@@ -77,13 +81,17 @@ export function expectedReconciliation(
     );
     const whole = new OrderedChecksum();
     const perAccount = new Map<string, OrderedChecksum>();
+    const perColumn = relation.columns.map(() => new OrderedChecksum());
     const accountRows = new Map<string, number>();
     // Rows are hashed in the plan's own deterministic order, which the
     // transforms already sorted; the digest therefore depends on the values,
     // not on when a row happened to be produced.
-    const sortedRows = [...relation.rows].map((row) => [...row]).sort(compareRows);
+    const sortedRows = [...relation.rows].map((row) => row.map((cell, index) =>
+      cell === null ? null : canonicalReconciliationCell(cell, relation.columnKinds[index]),
+    )).sort(compareRows);
     for (const row of sortedRows) {
       whole.update(row);
+      row.forEach((cell, index) => perColumn[index]?.update([cell]));
       if (accountIndex >= 0) {
         const key = row[accountIndex] ?? "null";
         const checksum = perAccount.get(key) ?? new OrderedChecksum();
@@ -103,6 +111,7 @@ export function expectedReconciliation(
         rows: finished.rows,
         sha256: finished.sha256,
         byAccount: Object.freeze(byAccount),
+        byColumn: Object.freeze(Object.fromEntries(relation.columns.map((column, index) => [column, perColumn[index]!.finish().sha256]))),
       }),
     );
   }
@@ -138,15 +147,19 @@ export function observedReconciliation(
     );
     const whole = new OrderedChecksum();
     const perAccount = new Map<string, OrderedChecksum>();
+    const perColumn = relation.columns.map(() => new OrderedChecksum());
     const accountRows = new Map<string, number>();
     const parsed = rows
-      .map((line) => line.split(UNIT_SEPARATOR).map((cell) => (cell === "\\N" ? null : cell)))
+      .map((line) => line.split(UNIT_SEPARATOR).map((cell, index) =>
+        cell === "\\N" ? null : canonicalObservedCell(cell, relation.columnKinds[index]),
+      ))
       .sort(compareRows);
     for (const row of parsed) {
       if (row.length !== relation.columns.length) {
         throw loaderFailure("loader_reconciliation_failed", { relation: relation.relation });
       }
       whole.update(row);
+      row.forEach((cell, index) => perColumn[index]?.update([cell]));
       if (accountIndex >= 0) {
         const key = row[accountIndex] ?? "null";
         const checksum = perAccount.get(key) ?? new OrderedChecksum();
@@ -166,10 +179,34 @@ export function observedReconciliation(
         rows: finished.rows,
         sha256: finished.sha256,
         byAccount: Object.freeze(byAccount),
+        byColumn: Object.freeze(Object.fromEntries(relation.columns.map((column, index) => [column, perColumn[index]!.finish().sha256]))),
       }),
     );
   }
   return finishRun(run, relations);
+}
+
+function canonicalObservedCell(cell: string, kind: TargetScalarKind | undefined): string {
+  return canonicalReconciliationCell(cell, kind);
+}
+
+function canonicalReconciliationCell(cell: string, kind: TargetScalarKind | undefined): string {
+  if (kind === "numeric") {
+    const parsed = parsePgDecimal(cell);
+    if (parsed === null) throw loaderFailure("loader_reconciliation_failed", { field: "numeric_readback" });
+    const canonical = parsed.toCanonicalString();
+    const unscaled = canonical.includes(".") ? canonical.replace(/0+$/, "").replace(/\.$/, "") : canonical;
+    return /^-?0$/.test(unscaled) ? "0" : unscaled;
+  }
+  if (kind !== "jsonb") return cell;
+  try {
+    // This is a comparison representation only. COPY retains the original
+    // numeric token text; typed EXCEPT ALL inside the transaction is the
+    // authoritative exact-value proof.
+    return canonicalJson(JSON.parse(cell));
+  } catch {
+    throw loaderFailure("loader_reconciliation_failed", { field: "jsonb_readback" });
+  }
 }
 
 function quotedColumnText(column: string, kind: TargetScalarKind | undefined): string {
@@ -184,7 +221,7 @@ function quotedColumnText(column: string, kind: TargetScalarKind | undefined): s
     case "bytea-hex":
       return `'\\x' || encode("${column}", 'hex')`;
     case "boolean":
-      return `case when "${column}" then 't' else 'f' end`;
+      return `case when "${column}" is null then null when "${column}" then 't' else 'f' end`;
     case "text":
     case "integer":
     case "numeric":
@@ -221,10 +258,11 @@ function finishRun(
 
 export type ReconciliationDifference = Readonly<{
   relation: string;
-  kind: "missing" | "unexpected" | "row_count" | "checksum" | "account_checksum";
+  kind: "missing" | "unexpected" | "row_count" | "checksum" | "account_checksum" | "column_checksum";
   expected: string | number;
   observed: string | number;
   accountKey?: string;
+  column?: string;
 }>;
 
 /** Compare claim with observation, and say exactly where they differ. */
@@ -255,6 +293,13 @@ export function compareReconciliations(
           observed: actual.sha256,
         }),
       );
+    }
+    for (const [column, digest] of Object.entries(relation.byColumn)) {
+      const observedDigest = actual.byColumn[column];
+      if (observedDigest !== digest) differences.push(Object.freeze({
+        relation: relation.relation, kind: "column_checksum", column,
+        expected: digest, observed: observedDigest ?? "absent",
+      }));
     }
     for (const [accountKey, digest] of Object.entries(relation.byAccount)) {
       const actualDigest = actual.byAccount[accountKey];
@@ -320,4 +365,29 @@ export function buildReconciliationReport(
     matched: differences.length === 0,
   });
   return Object.freeze({ report, sha256: canonicalSha256(report) });
+}
+
+/** Write the value-free reconciliation report once, under an owner-only parent. */
+export function writePrivateReconciliationReport(
+  path: string,
+  value: Readonly<{ report: Readonly<Record<string, unknown>>; sha256: string }>,
+): void {
+  if (!isAbsolute(path)) throw loaderFailure("loader_contract_invalid", { field: "report_path" });
+  const parent = lstatSync(dirname(path));
+  if (!parent.isDirectory() || parent.isSymbolicLink() || (parent.mode & 0o077) !== 0) {
+    throw loaderFailure("loader_stage_failed", { field: "report_parent_mode" });
+  }
+  if (canonicalSha256(value.report) !== value.sha256) {
+    throw loaderFailure("loader_reconciliation_failed", { field: "report_digest" });
+  }
+  let fd: number | null = null;
+  try {
+    fd = openSync(path, "wx", 0o600);
+    writeSync(fd, `${canonicalJson(value.report)}\n`, undefined, "utf8");
+    fsyncSync(fd);
+  } catch (error) {
+    throw error instanceof Error && "loaderCode" in error ? error : loaderFailure("loader_stage_failed", { field: "report_write" });
+  } finally {
+    if (fd !== null) closeSync(fd);
+  }
 }

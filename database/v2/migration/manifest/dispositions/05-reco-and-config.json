@@ -168,7 +168,7 @@
         },
         "positive": {
           "disposition": "preserved",
-          "note": "double precision alpha side of the per-game tally.",
+          "note": "Exact finite double-precision alpha-side text, preserved in unconstrained numeric by the locally prepared 20260913220031 correction after the real population exceeded numeric(30,12).",
           "target": "reco.game_preference_globals.positive",
           "settled_by": [
             "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
@@ -178,7 +178,7 @@
         },
         "total": {
           "disposition": "preserved",
-          "note": "double precision denominator.",
+          "note": "Exact finite double-precision denominator text, preserved in unconstrained numeric by the locally prepared 20260913220031 correction after the real population exceeded numeric(30,12); the target retains total >= positive.",
           "target": "reco.game_preference_globals.total",
           "settled_by": [
             "coordinator ruling 1, docs/v2-m3-b-database-batch.md",
@@ -198,7 +198,7 @@
         },
         "total_hours": {
           "disposition": "preserved",
-          "note": "double precision, accumulated cross-user HOURS. It aggregates user_games.hours_played, which is itself a rounded derivative (lib/steam-owned-games.ts:32), so it cannot be converted to exact minutes after the fact without fabricating precision. If carried, it is carried as hours with explicit provenance.",
+          "note": "double precision, accumulated cross-user HOURS. Its exact finite PostgreSQL text is loaded as an unconstrained nonnegative numeric by the locally prepared 20260913220031 correction; no float round-trip, rounding or unit conversion occurs. The correction also explicitly excludes nonfinite target numerics.",
           "target": "reco.game_preference_globals.total_hours",
           "settled_by": [
             "coordinator ruling 1, docs/v2-m3-b-database-batch.md",

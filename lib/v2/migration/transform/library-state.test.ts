@@ -168,25 +168,26 @@ test("an unresolved smallint code book is promoted as sole evidence", () => {
     [[1, "10", ACCOUNT_A, "unresolved_codebook", 1]],
   );
   assert.equal(conflictCount(prev, "state_unresolved_codebook"), 1);
+  assert.equal(prev.conflicts.find((entry) => entry.conflict_class === "state_unresolved_codebook")?.details.status, "resolved");
 
   const recency = transformLegacyGameState(input([stateRow({ recency_source: "2" })], [fact()]));
   assert.equal(recency.game_state_legacy_measurements[0].evidence_reason, "unresolved_codebook");
   assert.equal(recency.game_state_legacy_measurements[0].raw_recency_code, 2);
 });
 
-test("a fractional dismissal baseline is promoted at source precision, never rounded", () => {
-  const result = transformLegacyGameState(input([stateRow({ dismissed_playtime: "7.25" })], [fact()]));
+test("a source-hours dismissal baseline that is not an integral minute is promoted, never rounded", () => {
+  const result = transformLegacyGameState(input([stateRow({ dismissed_playtime: "7.251" })], [fact()]));
   assert.equal(result.game_state_legacy_measurements[0].evidence_reason, "multiple");
-  assert.equal(result.game_state_legacy_measurements[0].raw_dismissed_playtime, "7.25");
+  assert.equal(result.game_state_legacy_measurements[0].raw_dismissed_playtime, "7.251");
   assert.equal(conflictCount(result, "state_non_integral_dismissed_playtime"), 1);
   // The disagreement with the authoritative NULL is a separate reason, so the
   // combined reason is 'multiple' rather than either one alone.
   assert.equal(conflictCount(result, "state_stale_conflict"), 1);
 });
 
-test("an integral dismissal baseline that matches the library row is not promoted", () => {
+test("an exact source-hours dismissal baseline is compared to authoritative minutes", () => {
   const result = transformLegacyGameState(
-    input([stateRow({ dismissed_playtime: "30" })], [fact({ dismissed_playtime: "30" })]),
+    input([stateRow({ dismissed_playtime: "0.5" })], [fact({ dismissed_playtime: "30" })]),
   );
   assert.equal(result.game_state_legacy_measurements.length, 0);
   assert.equal(result.legacy_user_game_state_audit[0].evidence_disposition, "reconcile_only");
@@ -350,21 +351,21 @@ test("the durable owner bound counts characters, as PostgreSQL length() does", (
   );
 });
 
-test("dismissal baselines are compared by exact value, not by spelling", () => {
+test("dismissal baselines are converted to minutes and compared by exact value", () => {
   const agreeing = transformLegacyGameState(
     input(
-      [stateRow({ dismissed_at: "2026-01-01 00:00:00+00", dismissed_playtime: "12.0" })],
+      [stateRow({ dismissed_at: "2026-01-01 00:00:00+00", dismissed_playtime: "0.2" })],
       [fact({ dismissed_at: instant("2026-01-01 00:00:00+00"), dismissed_playtime: "12" })],
     ),
   );
   assert.equal(agreeing.game_state_legacy_measurements.length, 0);
   assert.equal(conflictCount(agreeing, "state_stale_conflict"), 0);
   // The staging copy still keeps the source spelling's own scale.
-  assert.equal(agreeing.legacy_user_game_state_audit[0].raw_dismissed_playtime, "12.0");
+  assert.equal(agreeing.legacy_user_game_state_audit[0].raw_dismissed_playtime, "0.2");
 
   const disagreeing = transformLegacyGameState(
     input(
-      [stateRow({ dismissed_at: "2026-01-01 00:00:00+00", dismissed_playtime: "12.01" })],
+      [stateRow({ dismissed_at: "2026-01-01 00:00:00+00", dismissed_playtime: "0.201" })],
       [fact({ dismissed_at: instant("2026-01-01 00:00:00+00"), dismissed_playtime: "12" })],
     ),
   );

@@ -267,6 +267,7 @@ test("a wishlist row becomes a retired measurement carrying the verbatim legacy 
     },
   ]);
   assert.equal(conflictCount(result, "retired_wishlist_access_lost_at_unprovable"), 1);
+  assert.equal(result.conflicts.find((entry) => entry.conflict_class === "retired_wishlist_access_lost_at_unprovable")?.details.status, "resolved");
 });
 
 test("a wishlist family row still produces a family access candidate carrying ownership='Wishlist'", () => {
@@ -299,7 +300,7 @@ test("game_state is emitted only when the M1 disjunction is satisfied", () => {
         previous_active_status: "Sampled",
         review_requested_at: "2026-02-03 10:00:00+00",
         completion_suggestion_dismissed_at: "2026-02-04 10:00:00+00",
-        completion_suggestion_dismissed_playtime: "120",
+        completion_suggestion_dismissed_playtime: "2",
       }),
     ]),
   );
@@ -334,10 +335,41 @@ test("game_state is emitted only when the M1 disjunction is satisfied", () => {
 });
 
 test("a dismissal baseline with no state field is reported rather than invented into a state row", () => {
-  const result = transformLibraryBatch(input([row({ completion_suggestion_dismissed_playtime: "30" })]));
+  const result = transformLibraryBatch(input([row({ completion_suggestion_dismissed_playtime: "1.5" })]));
   assert.equal(result.game_state.length, 0);
   assert.equal(conflictCount(result, "library_dismissal_baseline_without_state"), 1);
-  assert.equal(result.legacy_library_evidence[0].evidence.completion_dismissed_playtime, "30");
+  assert.equal(result.legacy_library_evidence[0].evidence.completion_dismissed_playtime, "90");
+  assert.equal(result.legacy_library_evidence[0].evidence.completion_dismissed_hours_raw, "1.5");
+});
+
+test("dismissal source hours convert to exact minutes while raw hours remain audit evidence", () => {
+  const exact = transformLibraryBatch(
+    input([
+      row({
+        completion_suggestion_dismissed_at: "2026-02-04 10:00:00+00",
+        completion_suggestion_dismissed_playtime: "0.05",
+      }),
+    ]),
+  );
+  assert.equal(exact.game_state[0].completion_dismissed_playtime, 3);
+  assert.equal(exact.legacy_library_evidence[0].evidence.completion_dismissed_hours_raw, "0.05");
+
+  const zero = transformLibraryBatch(
+    input([
+      row({
+        completion_suggestion_dismissed_at: "2026-02-04 10:00:00+00",
+        completion_suggestion_dismissed_playtime: "0",
+      }),
+    ]),
+  );
+  assert.equal(zero.game_state[0].completion_dismissed_playtime, 0);
+  assert.equal(zero.legacy_library_evidence[0].evidence.completion_dismissed_hours_raw, "0");
+
+  const absent = transformLibraryBatch(
+    input([row({ completion_suggestion_dismissed_at: "2026-02-04 10:00:00+00" })]),
+  );
+  assert.equal(absent.game_state[0].completion_dismissed_playtime, null);
+  assert.equal("completion_dismissed_hours_raw" in absent.legacy_library_evidence[0].evidence, false);
 });
 
 test("observed_at is sourced from recency_evidence_at (the receipt time), never last_observed_played_at directly", () => {
@@ -744,7 +776,7 @@ test("a map or row from another run is refused", () => {
 
 test("values that cannot reach a destination without loss fail explicitly", () => {
   assert.throws(
-    () => transformLibraryBatch(input([row({ completion_suggestion_dismissed_playtime: "12.5" })])),
+    () => transformLibraryBatch(input([row({ completion_suggestion_dismissed_playtime: "0.001" })])),
     (error: unknown) => error instanceof LibraryTransformError && error.libraryCode === "library_unrepresentable_value",
   );
   assert.throws(

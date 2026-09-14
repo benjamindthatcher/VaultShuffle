@@ -1,0 +1,95 @@
+{
+  "target_project_ref": "vbjtbwelnhbbdfrqczyf",
+  "migration": {
+    "version": "20260912193000",
+    "name": "blacklist_semantics",
+    "file": "database/v2/supabase/migrations/20260912193000_blacklist_semantics.sql",
+    "sha256": "a20e75cbca19918d4a5d8cb2778a98f50bf98641b7594c4c067abe58a8c9cca6",
+    "applied": true,
+    "applied_at": null,
+    "apply_time_note": "Normal CLI reported Migrations applied after the precheck and before the postcheck; exact application timestamp was not returned."
+  },
+  "precheck": {
+    "rows": {
+      "runs": 0,
+      "audit": 0,
+      "games": 0,
+      "state": 0,
+      "accounts": 0,
+      "measurements": 0
+    },
+    "marker": {
+      "marker": true,
+      "created_at": "2026-09-06T09:30:36.922278+00:00",
+      "project_name": "VaultShuffle2",
+      "schema_version": "m1",
+      "expected_project_ref": "vbjtbwelnhbbdfrqczyf"
+    },
+    "checked_at": "2026-09-13T00:41:38.225586+00:00",
+    "migrations": [
+      {
+        "name": "m1_private_foundation",
+        "version": "20260906093036"
+      },
+      {
+        "name": "m2_jobs_quota_publish",
+        "version": "20260907163356"
+      },
+      {
+        "name": "m3_preservation_schema",
+        "version": "20260910232654"
+      },
+      {
+        "name": "m3_legacy_preservation_followup",
+        "version": "20260911234500"
+      }
+    ],
+    "unforced_rls": 0,
+    "browser_grants": 0,
+    "blacklisted_column": 0
+  },
+  "postcheck": {
+    "runs": 0,
+    "games": 0,
+    "accounts": 0,
+    "versions": [
+      "20260906093036",
+      "20260907163356",
+      "20260910232654",
+      "20260911234500",
+      "20260912193000"
+    ],
+    "checked_at": "2026-09-13T00:44:24.391774+00:00",
+    "unforced_rls": 0,
+    "browser_grants": 0,
+    "blacklist_column": {
+      "type": "boolean",
+      "default": "false",
+      "nullable": "NO"
+    },
+    "obsolete_columns": 0
+  },
+  "behavior": {
+    "result": {
+      "games": 0,
+      "state": 0,
+      "result": "blacklist_rollback_passed",
+      "accounts": 0,
+      "checked_at": "2026-09-13T00:43:57.790543+00:00"
+    }
+  },
+  "behavior_scope": "Synthetic rollback fixture passed via management SQL under its existing admin role. SET ROLE vault_app was unavailable on the connector role, so remote execution omits that role switch; actual vault_app access and cross-tenant isolation were already tested on fresh local PG17. Remote function still used account context, tested cross-account rejection, repeat actions, sparse-row cleanup, notes/playtime and separate snoozes. No grants were changed to run this test.",
+  "prior_followup_behavior": {
+    "result": "m3_followup_rollback_passed"
+  },
+  "security_advisors": [
+    {
+      "name": "rls_enabled_no_policy",
+      "level": "INFO",
+      "count": 58,
+      "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+    }
+  ],
+  "runtime_ui": "Playwright guest Active -> Blacklist -> Blacklisted -> Reactivate -> Active: 1 passed on 13 September; runtime checkpoint has command.",
+  "boundary": "Only rehearsal target migrated. Fixtures rolled back, zero accounts/games/runs remain. Production compatibility migration remains unapplied pending coordinated application release. No deployment or real data load."
+}

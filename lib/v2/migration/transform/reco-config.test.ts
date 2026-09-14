@@ -78,6 +78,17 @@ function userGenreRow(overrides: Record<string, unknown> = {}): Record<string, u
   };
 }
 
+function gameGlobalRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    steam_appid: "440",
+    positive: "5",
+    total: "9",
+    total_hours: "12.5",
+    updated_at: "2026-08-01 00:00:00+00",
+    ...overrides,
+  };
+}
+
 function settingsRow(overrides: Record<string, unknown> = {}): Record<string, unknown> {
   return {
     id: "50000000-0000-4000-8000-000000000001",
@@ -144,6 +155,46 @@ test("a float8 counter too precise for numeric(30,12) is withheld with a blocker
   const blocker = result.blockers.find((entry) => entry.code === "counter_unrepresentable");
   assert.ok(blocker, "an unrepresentable counter must block");
   assert.doesNotMatch(blocker.decision, /0\.30000000000000004/);
+});
+
+test("game counters preserve long finite and exponent values in unconstrained numeric", () => {
+  const result = transformRecoConfigBatch(input({
+    gamePreferenceGlobals: [
+      gameGlobalRow({
+        steam_appid: "440",
+        positive: "0.30000000000000004",
+        total: "1.2345678901234567e+20",
+        total_hours: "0.30000000000000004",
+      }),
+      gameGlobalRow({
+        steam_appid: "999999",
+        positive: "1.0000000000000002e+20",
+        total: "1.0000000000000003e+20",
+        total_hours: "1.2345678901234567e+20",
+      }),
+    ],
+  }));
+  assert.deepEqual(result.game_preference_globals.map((row) => [row.positive, row.total, row.total_hours]), [
+    ["0.30000000000000004", "123456789012345670000", "0.30000000000000004"],
+    ["100000000000000020000", "100000000000000030000", "123456789012345670000"],
+  ]);
+  assert.equal(result.withheld_counters.length, 0);
+  assert.equal(result.blockers.length, 0);
+});
+
+test("game counters reject non-finite values and compare exact unconstrained decimals", () => {
+  for (const field of ["positive", "total", "total_hours"] as const) {
+    assert.equal(
+      failureCode(() => transformRecoConfigBatch(input({ gamePreferenceGlobals: [gameGlobalRow({ [field]: "Infinity" })] }))),
+      "remaining_invalid_decimal",
+    );
+  }
+  assert.equal(
+    failureCode(() => transformRecoConfigBatch(input({
+      gamePreferenceGlobals: [gameGlobalRow({ positive: "1.0000000000000003", total: "1.0000000000000002" })],
+    }))),
+    "remaining_order_conflict",
+  );
 });
 
 test("positive above total is the target's own CHECK and fails closed", () => {

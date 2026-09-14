@@ -3,6 +3,7 @@ import { ExportError } from "../shared/redaction.ts";
 import {
   CatalogueValueError,
   encodeJsonStringArray,
+  encodeJsonNumericObjectAsWeightedArray,
   inspectJsonDocument,
   parsePgTextArray,
   pgBtrim,
@@ -1040,10 +1041,16 @@ function jsonArrayDocument(value: string | null, field: string): { text: string;
     throw error;
   }
   if (!document) catalogueFailure("catalogue_json_shape_conflict", SOURCE_RELATION, field);
+  if (document.topLevelType === "object") {
+    try {
+      const text = encodeJsonNumericObjectAsWeightedArray(value, { field: `${SOURCE_RELATION}.${field}` });
+      return { text, utf8Bytes: Buffer.byteLength(text, "utf8") };
+    } catch (error) {
+      if (error instanceof CatalogueValueError) catalogueFailure("catalogue_json_shape_conflict", SOURCE_RELATION, field);
+      throw error;
+    }
+  }
   if (document.topLevelType !== "array") {
-    // M1 requires jsonb_typeof(weighted_tags) = 'array'.  A legacy object is
-    // a reported conflict, never wrapped in a one-element array: wrapping
-    // would change what the document means.
     catalogueFailure("catalogue_json_shape_conflict", SOURCE_RELATION, field);
   }
   return { text: document.sourceText, utf8Bytes: document.utf8Bytes };
@@ -1745,14 +1752,11 @@ export function transformCatalogue(
 
     const existing = gameSightingsByAppId.get(appId.text);
     if (existing !== undefined) {
-      if (
-        existing.import_count !== importCount ||
-        existing.first_seen_at.epochMicros !== firstSeenAt.epochMicros ||
-        existing.last_seen_at.epochMicros !== lastSeenAt.epochMicros
-      ) {
-        // The duplicate counter is a source fact, not a preference.  A
-        // disagreement is retained as a stable conflict so neither relation
-        // is silently discarded.
+      if (existing.import_count !== importCount) {
+        // The counter has only one destination, so disagreement remains a
+        // hard conflict. The timestamps are distinct timelines: catalog.games
+        // already preserves the catalogue row's first/last seen instants,
+        // while this relation preserves the dedicated import-sighting times.
         catalogueFailure("catalogue_sighting_conflict", SIGHTING_SOURCE_RELATION, "steam_appid");
       }
     }

@@ -485,6 +485,7 @@ export function transformHistoryBatch(
   const registry: CompletionRegistryRecord[] = [];
   const seenEventIds = new Set<string>();
   const completionsByAccountGame = new Set<string>();
+  const activeCompletionsByAccountGame = new Set<string>();
 
   for (const raw of completionRows) {
     const row = asObject(raw, COMPLETION_RELATION);
@@ -636,6 +637,7 @@ export function transformHistoryBatch(
     }
 
     completionsByAccountGame.add(`${accountId}:${gameId}`);
+    if (undoneAt === null) activeCompletionsByAccountGame.add(`${accountId}:${gameId}`);
     resolvedEvents.push(
       Object.freeze({
         ...metrics,
@@ -752,16 +754,20 @@ export function transformHistoryBatch(
     }
 
     if (action === "complete") {
-      const matched = gameId !== null && completionsByAccountGame.has(`${accountId}:${gameId}`);
+      const key = gameId === null ? null : `${accountId}:${gameId}`;
+      const matchedActive = key !== null && activeCompletionsByAccountGame.has(key);
+      const matchedAny = key !== null && completionsByAccountGame.has(key);
       conflicts.record({
-        conflict_class: matched
-          ? "purge_complete_with_completion_event"
-          : "purge_complete_without_completion_event",
+        conflict_class: matchedActive
+          ? "purge_complete_with_active_completion_event"
+          : matchedAny
+            ? "purge_complete_with_undone_completion_event"
+            : "purge_complete_without_completion_event",
         source_relation: PURGE_RELATION,
         source_column: "action",
         decision:
-          "UNRESOLVED for root (D-PRG-1 / S-PRG-COMPLETE): whether an action='complete' review also projects into completion history is an open snapshot decision. This transform generates no completion event; the population is counted on both sides so the decision can be made from measured evidence.",
-        details: { status: "unresolved", decision_ref: "D-PRG-1" },
+          "D-PRG-1 RESOLVED: the purge action remains durable legacy review history only. It never generates a completion event, overwrites current state, or revives an undone event; existing completion events remain the sole completion authority.",
+        details: { status: "resolved", decision_ref: "D-PRG-1", destination: "app.purge_review_history" },
       });
     }
 

@@ -52,3 +52,12 @@ Root review corrected the four orphan inserts to override their own identity
 columns too, added the empty `migration.runs` precondition, and populated the
 two new preservation columns in the cascade fixture. These edits are also
 awaiting actual PostgreSQL execution; this packet is prepared, not validated.
+
+## Target execution — 13 September 2026
+
+Root executed this exact fixture through Supabase `execute_sql` on
+`vbjtbwelnhbbdfrqczyf`, removing only psql backslash commands and appending a
+success-result SELECT. It returned `m3_followup_rollback_passed`; the fixture's
+rollback and absent-ID assertions completed. This closes the target behavior
+gate. The command did not mutate migration history or retain synthetic rows.
+Evidence is included in `database/v2/blacklist-target-validation-20260913.json`.

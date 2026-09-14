@@ -492,6 +492,19 @@ test("dedicated sighting rows reconcile the duplicated catalogue facts", () => {
   assert.equal(result.game_sightings[0].import_count, "37");
 });
 
+test("dedicated sighting times and catalogue times survive as independent timelines", () => {
+  const result = run([sourceRow()], { sightings: [{
+    steam_appid: "440",
+    import_count: "37",
+    first_seen_at: "2025-01-01 00:00:00+00",
+    last_seen_at: "2025-02-01 00:00:00+00",
+  }] });
+  assert.equal(result.games[0].first_seen_at?.canonicalUtc, "2026-01-02T03:04:05.000006Z");
+  assert.equal(result.games[0].last_seen_at?.canonicalUtc, "2026-09-01T00:00:00.000000Z");
+  assert.equal(result.game_sightings[0].first_seen_at.canonicalUtc, "2025-01-01T00:00:00.000000Z");
+  assert.equal(result.game_sightings[0].last_seen_at.canonicalUtc, "2025-02-01T00:00:00.000000Z");
+});
+
 test("a sighting-only AppID keeps its provenance with a NULL game identity", () => {
   const result = run([sourceRow()], {
     sightings: [
@@ -510,7 +523,7 @@ test("a sighting-only AppID keeps its provenance with a NULL game identity", () 
   assert.equal(sighting.last_seen_at.canonicalUtc, "2001-01-01T00:00:00.000000Z");
 });
 
-test("duplicate sighting facts fail closed on disagreement or repeated source rows", () => {
+test("duplicate sighting counters fail closed on disagreement and repeated source rows are refused", () => {
   assert.equal(
     failureCode(() =>
       run([sourceRow()], {
@@ -727,8 +740,23 @@ test("an empty tag array and an empty text array stay empty rather than absent",
   assert.deepEqual(metadata.genres_elements, []);
 });
 
-test("a tag document that is not an array is a conflict, never wrapped", () => {
-  assert.equal(failureCode(() => run([sourceRow({ tags: '{"RPG":5}' })])), "catalogue_json_shape_conflict");
+test("a numeric tag map becomes a deterministic lossless weighted-tag array", () => {
+  const tags = '{"\u00c9lite":1.500000000000000001,"RPG":123456789012345678901,"emoji 🎮":2}';
+  const weighted = run([sourceRow({ tags })]).game_metadata[0].weighted_tags;
+  assert.equal(weighted, '[{"tag":"RPG","weight":123456789012345678901},{"tag":"emoji 🎮","weight":2},{"tag":"Élite","weight":1.500000000000000001}]');
+  const reversed = Object.fromEntries((JSON.parse(weighted) as { tag: string; weight: number }[]).map((entry) => [entry.tag, entry.weight]));
+  assert.deepEqual(Object.keys(reversed), ["RPG", "emoji 🎮", "Élite"]);
+  assert.ok(weighted.includes("1.500000000000000001"));
+  assert.ok(weighted.includes("123456789012345678901"));
+  assert.equal(run([sourceRow({ tags: "{}" })]).game_metadata[0].weighted_tags, "[]");
+});
+
+test("tag maps reject non-numeric weights and duplicate decoded keys", () => {
+  assert.equal(failureCode(() => run([sourceRow({ tags: '{"RPG":"5"}' })])), "catalogue_json_shape_conflict");
+  assert.equal(failureCode(() => run([sourceRow({ tags: '{"RPG":5,"\\u0052PG":6}' })])), "catalogue_json_shape_conflict");
+});
+
+test("a tag document that is neither an array nor a numeric map is a conflict", () => {
   assert.equal(failureCode(() => run([sourceRow({ tags: '"RPG"' })])), "catalogue_json_shape_conflict");
   assert.equal(failureCode(() => run([sourceRow({ tags: "null" })])), "catalogue_json_shape_conflict");
   assert.equal(failureCode(() => run([sourceRow({ tags: "[1,2" })])), "catalogue_json_shape_conflict");

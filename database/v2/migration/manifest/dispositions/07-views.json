@@ -10,11 +10,10 @@
       "evidence": [
         "readiness 2 (the two views need an explicit derived line so a coverage assertion can be written mechanically)",
         "readiness 2.1 (the live view still publishes `rating` and `priority`, so the view body was REBUILT REMOTELY and differs from supabase/migrations/20260901193000_share_a_family_library.sql:289)",
-        "readiness 10 probe 4 (live routine and view definitions must be exported before mirroring legacy logic)"
+        "readiness 10 probe 4 (live routine and view definitions must be exported before mirroring legacy logic)",
+        "verified real export sidecar bound to preflight 11 run ID, UTC watermark and manifest digest"
       ],
-      "open_decisions": [
-        "D-VIEW-1 OPEN (source value): the live view body differs from the repository migration - it publishes rating, priority, title, genre, store and steam_appid as TEXT, columns that no longer exist on live user_games. That the repository definition can be stale is settled; what the LIVE definition actually is can only be read from the source, so probe P04 must export it before any v2 read model mirrors it: snapshot check S-VIEW-DEFS."
-      ],
+      "open_decisions": [],
       "columns": {
         "id": {
           "disposition": "derived-retirement",

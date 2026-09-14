@@ -523,3 +523,62 @@ export function inspectJsonDocument(
     utf8Bytes: utf8ByteLength(text),
   });
 }
+
+/**
+ * Convert the legacy JSON object tag map to the target's ordered weighted-tag
+ * array without passing numeric tokens through JavaScript numbers. The source
+ * is jsonb, so object member order is not a fact; sorting decoded tag strings
+ * gives the array a deterministic order while preserving every key and exact
+ * numeric value.
+ */
+export function encodeJsonNumericObjectAsWeightedArray(value: string, options: JsonDocumentOptions = {}): string {
+  const document = inspectJsonDocument(value, options);
+  if (!document || document.topLevelType !== "object") fail("catalogue_value_json_invalid", safeField(options.field));
+  let index = 0;
+  const whitespace = (): void => { while (index < value.length && JSON_WHITESPACE.has(value[index])) index += 1; };
+  const stringToken = (): string => {
+    const start = index;
+    if (value[index] !== '"') fail("catalogue_value_json_invalid", safeField(options.field), index + 1);
+    index += 1;
+    let escaped = false;
+    while (index < value.length) {
+      const char = value[index];
+      index += 1;
+      if (escaped) { escaped = false; continue; }
+      if (char === "\\") { escaped = true; continue; }
+      if (char === '"') return value.slice(start, index);
+    }
+    fail("catalogue_value_json_invalid", safeField(options.field), index + 1);
+  };
+  const numberToken = (): string => {
+    const match = /^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?/.exec(value.slice(index));
+    if (!match) fail("catalogue_value_json_invalid", safeField(options.field), index + 1);
+    index += match[0].length;
+    return match[0];
+  };
+  const entries: { tag: string; weight: string }[] = [];
+  const seen = new Set<string>();
+  whitespace();
+  index += 1; // inspectJsonDocument already proved the opening object token.
+  whitespace();
+  if (value[index] === "}") return "[]";
+  for (;;) {
+    const encodedTag = stringToken();
+    const tag = JSON.parse(encodedTag) as string;
+    if (seen.has(tag)) fail("catalogue_value_json_invalid", safeField(options.field), index + 1);
+    seen.add(tag);
+    whitespace();
+    if (value[index] !== ":") fail("catalogue_value_json_invalid", safeField(options.field), index + 1);
+    index += 1;
+    whitespace();
+    const weight = numberToken();
+    entries.push({ tag, weight });
+    whitespace();
+    if (value[index] === "}") break;
+    if (value[index] !== ",") fail("catalogue_value_json_invalid", safeField(options.field), index + 1);
+    index += 1;
+    whitespace();
+  }
+  entries.sort((left, right) => left.tag < right.tag ? -1 : left.tag > right.tag ? 1 : 0);
+  return `[${entries.map((entry) => `{"tag":${JSON.stringify(entry.tag)},"weight":${entry.weight}}`).join(",")}]`;
+}

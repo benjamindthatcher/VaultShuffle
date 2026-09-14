@@ -1,6 +1,6 @@
 # VaultShuffle v2 execution status
 
-Updated: 12 September 2026 (London). Plan: [architecture and execution plan](VaultShuffle_v2_architecture_plan.md).
+Updated: 14 September 2026 (London). Plan: [architecture and execution plan](VaultShuffle_v2_architecture_plan.md).
 
 ## Authority and isolation
 
@@ -17,8 +17,9 @@ Updated: 12 September 2026 (London). Plan: [architecture and execution plan](Vau
 | M0 | Complete | Source/live audit, independent reviews, portable plan, separate branch and empty target verified. |
 | M1 | Complete | Exact final fresh rebuild, non-owner SQL/clock/concurrency fixtures and target apply/SQL checks passed. See latest checkpoint. |
 | M2 | Complete | Exact immutable migration applied; fresh rebuild, target/local adversarial SQL, concurrency, real 10k orchestrator, replay and changed-only tuple tests passed. |
-| M3 | In progress | M3 schema and target security gate accepted. Three Codex batches now cover preservation/provider integration, remaining transforms and the local loader/reconciliation pipeline. Real consistent export, real rehearsal parity and storage remain pending. |
-| M4–M7 | Pending | Application parity, load/recovery verification and eventual production cutover. |
+| M3 | In progress | Synthetic all-domain loader accepted; real export and full offline transform completed for 1,048,426 rows. Grouped preservation/precision corrections underway before real rehearsal load, parity and storage measurement. |
+| M4 | In progress | Connection/session and initial bootstrap/Library/detail reads accepted locally, including >1,000-game PG17 access/pagination fixture. Versioned page contracts, Dashboard and Collections reads underway. Runtime remains on legacy. |
+| M5–M7 | Pending | Product parity, load/recovery verification and eventual production cutover. |
 | F1–F3 | Planned | Opt-in achievement/purchase features and evidence-gated model experiments. |
 
 ## Prerequisites found
@@ -39,78 +40,206 @@ They remain the user's work and are not evidence that v2 has been implemented. N
 
 Read the plan and this ledger, inspect Git status, verify the target project marker, then continue the first incomplete milestone. Update this file with actual migrations, test commands, results and deviations. Never mark M3 complete for synthetic fixtures or M6 complete for a storage estimate. Keep production authoritative until the final gated cutover.
 
-## Immediate priority — permanent Blacklist, then resume M3
+## Current priority — real source export and rehearsal preflight
 
-**Latest resume:** A completed the database/V2 Blacklist batch. B completed the runtime
-conversion, standing-preference correction, real mocked-clock regression and
-the guest UI test. The browser execution is pending: sandbox listener failed
-with EPERM on port 8799, then automatic approval review rejected the ordinary
-local-only escalation because the account usage limit was reached. Do not
-bypass that rejection; rerun normally when allowance returns. B is now
-preparing only the independent prior-follow-up target rollback fixture
-(`database/v2/tests/m3-followup-target-rollback.sql`); remote execution remains
-root-owned. Maximum two active workers. A froze two UNAPPLIED Blacklist migrations
-(`supabase/migrations/20260912192336_replace_sleep_with_blacklist.sql` and
-`database/v2/supabase/migrations/20260912193000_blacklist_semantics.sql`) plus
-truthful applied/pending index changes. Its focused gate passed 178 unit tests,
-121 Python checks, 27 V2 PG integration tests, clean TypeScript, a fresh five-
-migration PG17 replay, and both V2 and legacy behavioral SQL fixtures. B's initial
-UI/runtime conversion passed 70 tests/build; its completed correction passed
-32 focused tests and TypeScript, preserving negative preference contribution
-from undated current Blacklisted state without new time/history metadata.
-Do not treat initial UI success as end-to-end feature completion. Generic M3
-loader remains paused until Blacklist is validated.
+**14 September resume:** both active workers hit an account usage limit during
+their previous batches and have now been resumed in place after the user's
+`continue`. Keep their existing edits and assignments; neither batch has passed
+its final acceptance gate yet. All five remotely applied migration files were
+rechecked against their recorded SHA256 values and remain unchanged.
 
-The user's 12 September request replaces timed Library Sleep with permanent
-Blacklist using the same existing behavior. Active -> Blacklist -> inactive
-Blacklisted pool until explicit manual Reactivate -> active. No time limit or
-automatic expiry. Remove Sleep-only timestamps/history/restore metadata;
-do not build a new state/history/event subsystem. Existing completion/manual
-reactivation behavior and the separate Vault snooze feature remain. This
-explicit product decision supersedes old Sleep-timestamp preservation rules.
-After this narrow change is implemented and validated, **resume database M3**.
+**13 September completed milestones:** permanent Blacklist implementation and
+its guest/runtime/SQL acceptance are complete. The reviewed V2 migration
+`20260912193000_blacklist_semantics.sql` is applied and immutable at SHA256
+`a20e75cbca19918d4a5d8cb2778a98f50bf98641b7594c4c067abe58a8c9cca6`.
+Target rollback behavior and schema/access checks passed; no real account,
+game or migration-run data was loaded. Evidence:
+`database/v2/blacklist-target-validation-20260913.json`.
 
-Two agents are assigned (maximum two active, no delegation):
+The legacy compatibility migration remains prepared and unapplied. It must
+ship with the matching runtime release because legacy runtime writes `Slept`
+and the new runtime writes `Blacklisted`. No more Blacklist feature work is
+needed, and no production deployment or table/data write occurred.
 
-- `m3_preservation_integration`, Sol/High: database/new migrations, V2
-  transform/manifest/load-contract updates and SQL tests. Owns database/v2/**,
-  necessary NEW legacy compatibility SQL, and narrow lib/v2/** changes.
-  Latest state is `app.game_state.blacklisted boolean NOT NULL DEFAULT false`
-  in the existing sparse state row. No timestamp denotes Blacklist membership.
-- `m3_remaining_domains`, Terra/Medium: non-V2 runtime, types, validation,
-  UI labels/actions/section, optimistic updates, classification/filters and
-  relevant tests. Owns app/**, components/** and lib/** excluding lib/v2/**.
+**Local loader accepted:** all 44 source relations now have nonempty synthetic
+fixtures. Root ran the targeted PG17 suite (13/13) and all-domain PG17 suite
+(1/1), sequentially against the final five-migration schema. The sequence
+repair uses transactional ALTER SEQUENCE RESTART and its late-failure rollback
+regression passes. Actual integration exposed and repaired two adapter defects:
+merged review decisions now preserve the SQL default for omitted source payload;
+completion registry links now reference explicit resolved/unknown history IDs.
+Terra/Medium `loader_closeout` independently ran the final TypeScript, focused
+ESLint and 23 loader units successfully and updated the three loader docs.
+This closes synthetic loader acceptance; it does not close real-data parity.
 
-Both received the full bounded feature scope and must coordinate their SQL/
-status interface directly. Root reviews completed results, not intermediate
-implementation. New checkpoints: `docs/v2-blacklist-database-checkpoint.md`
-and `docs/v2-blacklist-runtime-checkpoint.md`.
+At the accepted five-migration baseline, the physical destination index had
+92 relations / 988 columns, with manifest coverage and 122 Python checks passing.
+Subsequent M4 session and M3 precision migrations are prepared locally and
+remain unapplied remotely. Keep those local schema revisions distinct from the
+applied target. V13 still records final-freeze observations requiring fresh evidence.
 
-The generic M3 loader worker is stopped after hitting allowance; do not resume
-it concurrently with the Blacklist schema/transform work. Its partial pipeline
-and unresolved acceptance gaps remain saved. Once Blacklist completes, resume
-that worker on Sol/High, integrating the new schema before its all-domain
-actual PostgreSQL end-to-end gate.
+**Browser-first preference (latest user instruction):** use the signed-in Brave
+Supabase dashboard for access, settings and metadata. Source Settings tab
+`966861393` in browser `2` is authenticated; the separate in-app browser sign-in
+page is not the user's session. Use another transport only for work the browser
+cannot complete, such as the single-transaction streaming export. Do not start
+new credential searches. The two workers resumed after a temporary usage-limit
+interruption on 13 September; await their completed results.
 
-**New Git baseline:** user commit `0b2c934` (database update) includes previous
-work, on `codex/v2-architecture`. Preserve it and any unrelated subsequent
-changes; no root commit/push.
+**Active workers (maximum two):**
 
-**Critical applied-state update:** root successfully applied
-`20260911234500_m3_legacy_preservation_followup.sql` to the separate target
-`vbjtbwelnhbbdfrqczyf` via the normal CLI migration command after exact file
-inventory/hash verification and a fresh empty-target/drift/security precheck.
-SHA256 remains
-`beecb95c25e87f1b239f11f16e807338ec496df19ac27deffa5fb49b0bda5f59`.
-This fourth migration is now IMMUTABLE. Postcheck at 2026-09-12T14:58:40Z
-verified the four migration records, both new nullable columns, runtime now()
-default, exact widened orphan constraints, zero private browser grants,
-forced RLS and zero rows. Evidence:
-`database/v2/m3-followup-target-validation-20260912.json`.
-The earlier approval-service block cleared after the user's approval/retry.
-A owns fixing the stale local applied-index flag alongside the new schema.
-A target behavioral rollback fixture remains pending; local 27-test behavior
-was already proven. No source writes or real target load occurred.
+- `real_source_export` — Sol/High, completed/accepted; inactive. Its artifacts
+  and validation are in `docs/v2-export-connection-ready.md`.
+- `loader_closeout` — Terra/Medium, completed. Captured live view semantics
+  are reviewed in `docs/v2-m3-live-view-review.md`; D-VIEW-1/S-VIEW-DEFS
+  observation is accepted. Manifest decision update is pending integration.
+- `m4_session_foundation` — Terra/High, completed/accepted locally. Connection
+  and session repository evidence is in `docs/v2-m4-session-checkpoint.md`;
+  one additive migration is prepared and remains unapplied remotely.
+- `real_snapshot_preflight` — Sol/Medium, active. Owns the grouped real-preflight
+  corrections, related transform/manifest files and
+  `docs/v2-m3-real-preflight-checkpoint.md`.
+- `m4_read_validation` — Sol/High, completed/accepted locally. PG17 repository
+  suite passed 13/13, including the 1,205-game read fixture (8/8). Now idle.
+- `m4_page_contracts` — Sol/Medium, active. Owns the remaining bounded page
+  contracts, Dashboard/Collections read repositories and actual-PG validation.
+  No session-file ownership, SQL migration edits or runtime switch.
+
+Root owns coordination, source-policy decisions, integration review and this
+ledger. Do not repeatedly inspect intermediate worker output or duplicate
+implementation. Let each assigned batch finish. Older workers that hit usage
+limits are inactive; their stale status is not a current tool blocker.
+
+**Approved real export:** the user supplied the private Management API token
+and explicitly approved temporary `read_only:true` source logins, read-only
+export of account/session/game data into
+`/private/tmp/vaultshuffle-m3-export-20260913/output`, and refreshing the
+five-minute login when needed. No repeat permission question is required.
+No source table/schema/data writes or production password reset are authorized.
+The authentication-only temporary login exception is separate from those bans.
+
+**Real source export COMPLETE, 13 September 13:04 UTC.** Worker used the
+signed-in browser first, then the approved streaming transport because the
+Table Editor cannot supply one repeatable-read transaction across all tables.
+The exporter activated an already-granted read-only role after checking existing
+membership, full SELECT visibility, no write/create privileges, non-superuser
+status and BYPASSRLS. No new grants or source data/schema changes were required.
+Canonical constraint rendering is fixed; same-transaction view definitions
+are captured in a separate private sidecar. Strict reader verification passed.
+
+- Run: `/private/tmp/vaultshuffle-m3-export-20260913/output/20260913T130404Z-130c2ad9`
+- Manifest SHA256: `b3f9def89106b7e5c4772ee5b3b0449ac16e504da2f8e677e7ee1194837fc3cb`
+- Adjacent sidecar: `20260913T130404Z-130c2ad9.schema-views.json`
+- Sidecar SHA256: `59597f47278c8d7ca4722dd46cd991d80fc80f64ecca83354ba1c37391cfa641`
+- 44 relations / 486 columns; 1,048,426 rows; 668,415,359 COPY bytes.
+  42 nonempty relations, two empty; two live view definitions.
+- Transaction UTC: `2026-09-13T13:04:04.638967Z`; snapshot
+  `202821:202821:` unchanged at close. Repeatable read, read only,
+  `row_security=off` verified. Direct TLS certificate/hostname validation passed.
+- Private directories 0700; all files and sidecar 0600. Failed `.partial` runs
+  remain evidence only. V2 target remains without real imported data.
+
+Export worker closeout passed TypeScript, focused ESLint, 55 export/helper
+units, actual PG17 constraint/view-sidecar integration and diff hygiene. Root
+reviewed final role activation, schema rendering and sidecar publication changes
+and accepted the real export. The worker subsequently hit a usage limit; no
+source-export work remains to retry. Do not repeat the export or refresh source
+credentials merely to inspect these local artifacts.
+
+The real preflight passed strict reader verification but hit the staging size
+ceiling on the 495,374,271-byte `user_games_with_catalog` view. Root approved
+a narrow fix: preserve 256 MiB default, allow an explicit 1 GiB maximum for this
+run, and avoid materializing unused rebuild-only view rows after verifying them.
+The worker is resumed for this fix and actual preflight. Terra/Medium
+`loader_closeout` completed the independent captured live-view review in
+`docs/v2-m3-live-view-review.md`. Root accepted D-VIEW-1 observation: both
+view bodies are known and their derived facts come from preserved base tables.
+The new M4 worker uses applied schema contracts and separate directories, so
+its local session foundation can proceed while M3 real-data preflight runs.
+
+**Completed real preflight 11:**
+`/private/tmp/vaultshuffle-m3-export-20260913/preflight-11/real-preflight-report.json`
+is protected 0600, staging removed, zero target writes. Reader verifies
+44 relations / 486 columns / 1,048,426 rows and every file hash. All-domain
+transform now completes; no target-contract additions. Tags, sighting times,
+dismissal units and duration status adapters passed real data. Focused 210
+checks, TypeScript, lint, manifest check and diff hygiene passed.
+
+Publication is still blocked: recommendation decimal precision (13,232),
+unverified settings (3), family recency exceptions (3), and 22,317 conflict
+occurrences dominated by preserved stale-state codes, old proposal flags,
+historical counters and purge review/event overlap. Import/cooldown holds are
+also recorded. The grouped root rulings and full rationale are in
+`docs/v2-m3-rehearsal-evidence.md`; do not re-decide each row or equate a
+reported historical disagreement with lost data.
+
+**Active correction batch:** `real_snapshot_preflight` now owns the grouped
+resolutions, a narrowly widened recommendation total-hours column in a NEW
+additive migration (local validation only), actual settings provenance and
+unattributed family-recency preservation. It must preserve strict final-load
+checks and propose an explicit isolated-rehearsal distinction for operational
+cutover holds. No real target load is assigned yet. Rerun preflight after the
+coherent correction batch; do not repeat the completed source export.
+
+**14 September M4 read acceptance:** `m4_read_validation` completed the actual
+PG17 fixture and necessary SQL fixes. Root reviewed the final code and fixture:
+family lenders deduplicate, personal ownership wins, totals stay stable past the
+last page, filters run in SQL, details retain private fields, and bootstrap pins
+are bounded to the library scope. The runtime login has only `vault_app`
+membership, with actual no-context and cross-tenant RLS checks. Focused tests
+passed 13/13 (read fixture 8/8), typecheck and lint passed, private fixture
+directories were cleaned. Evidence: `docs/v2-m4-read-checkpoint.md`.
+
+This accepts the implemented read slice, not all M4 contracts. Root found the
+planned version/filter/revision cursor binding and typed input/restart errors
+still absent. `m4_page_contracts` (Sol/Medium) owns those required gaps plus
+Dashboard and paginated custom/smart Collections reads against existing schema.
+It must validate independent expected filter sets, >1,000 collection memberships,
+whole-library aggregates and tenant isolation in real PG17. Earlier M4 workers
+are idle. No legacy route/UI/runtime switch is assigned.
+
+The offline worker must preserve actual blockers and expose only value-free
+aggregate findings. Source-dependent P05, purge/completion overlap, view
+semantics, in-flight imports, and cooldown observations are measured from this
+snapshot. Final-cutover freeze and runtime policy gates remain distinct from a
+read-only rehearsal. No synthetic evidence or invented decision may clear them.
+
+**Resume locations:** export helper/profile and all private output are under
+`/private/tmp/vaultshuffle-m3-export-20260913` (0700, credentials 0600).
+Never print credentials or private source rows. Export worker owns login
+refreshes and records final paths in its checkpoint. Synthetic loader cluster
+`/tmp/vs-m3-loader-c-cK5F5M/data` was stopped successfully by root after its
+accepted tests to free host shared memory for M4 fixtures. Do not assume its
+old socket/port55507 remains live. Its files are retained; no realdata was stored
+there. New M4 fixtures own their separate private directories.
+
+On 14 September root also gracefully stopped the obsolete synthetic
+`vaultshuffle-m3-final2-20260910`, `final3` and `final4` clusters (ports
+55452–55454) after they exhausted host shared-memory capacity and blocked the
+new M4 fixture. All three `pg_ctl -m smart stop` calls succeeded. Their data
+files remain intact; historical instructions referring to those live sockets
+must no longer assume they are running. Current workers/export were untouched.
+
+**M4 foundation accepted locally:** root reviewed completed client/session
+changes and the narrow renewal migration. Focused actual non-owner PG17 suite
+passed 3/3, including HMAC/prefix, absence versus database failure, expiry/
+revocation/kind/active-account checks, manual renewal/hourly no-op, verified
+fixed expiry, raw-session access denial and pooled transaction cleanup. Final
+TypeScript, lint and diff checks passed. Optional injected CA PEM retains
+mandatory certificate/hostname verification. Renewal is awaited and its actual
+expiry is returned for later cookie integration; no raw table grant was added.
+
+New V2 migration `20260913191021_m4_manual_session_touch.sql`, SHA256
+`7b993f3e0f7978ea48975cee7c9787de17097f4dcb422a2d2bd07258cd8677bd`,
+was generated with the Supabase CLI and tested locally. It is UNAPPLIED to the
+remote target, adds only the reviewed function/ACLs, and shares the resolver's
+owner under an explicit guard. Runtime remains legacy; M4 page/API integration
+and production composition remain pending. `m4_session_foundation` is finished.
+
+**Git baseline:** user commit `54c9042` (blacklist update), following `0b2c934`
+(database update), branch `codex/v2-architecture`. Preserve both and unrelated
+changes. No commit/push. The user's latest priority is bounded practical
+completion: fix concrete correctness/security/data-loss defects, then advance.
 
 ## Current execution policy — maximum two workers
 
@@ -128,10 +257,10 @@ assigned batch finish autonomously; do not supervise routine intermediate work.
 This supersedes the preceding one-worker-only rule and older three-worker
 concurrency allowances. No worker may start or resume another worker itself.
 
-Current assignments are the two Blacklist batches described above. The
-general loader is paused. Its resumption packet is
-`docs/v2-m3-loader-resume-after-blacklist.md`; its older checkpoint is stale
-and must not be mistaken for current implementation progress.
+Current assignments are the two real-export/preflight batches above. Blacklist
+and synthetic loader acceptance are complete. Use the current loader checkpoint
+and the active workers' export/preflight checkpoints to resume; older dispatch
+packets describe completed implementation work.
 
 Previously accepted preservation work passed 128 provider/catalogue unit,
 17 actual PostgreSQL and 121 Python checks. Previously completed remaining
@@ -324,7 +453,13 @@ not a new instruction to repeat prior work.
   duplicate semantics, import freeze and source view definition. Dated audits
   are not snapshot parity and must not silently close these gates.
 
-## Source access and local tools
+## Historical source access and local tools (superseded by current priority above)
+
+The credential/approval absence described in this historical section is no
+longer current. The user supplied a token and explicitly approved temporary
+read-only login refresh and protected local export; see the current priority
+section and export worker checkpoint.
+
 
 Source access investigation is closed in `docs/v2-export-access.md` and
 `docs/v2-export-access-followup.md`: legacy API credentials alone cannot prove
@@ -352,7 +487,11 @@ clusters. Retained root final4 cluster: data
 `vaultshuffle_m3_final4`, owner `vault_local_admin`. Export fixture cluster uses
 `/tmp/vs-m3`, port55441. Old broken /tmp clusters are evidence only.
 
-## Next gates and communication
+## Historical next gates and communication
+
+The old Claude/three-worker assignments below are historical. The two active
+Codex worker batches at the top of this ledger supersede them.
+
 
 Finish the current three assigned transform scopes and one completed
 integration review; resolve concrete physical gaps without rewriting applied

@@ -16,9 +16,7 @@
         "readiness 8.4 derived completion_percentage",
         "readiness 8.5 date_added is DD/MM/YYYY text"
       ],
-      "open_decisions": [
-        "D-LIB-3 OPEN (source value): the completed M3 contract preserves the legacy hours value and raw source text in bounded migration.legacy_library_evidence, and promotes unreproducible evidence to durable app.library_legacy_measurements, while app.library_games.playtime_minutes remains the exact-minute runtime value. The active-value precedence between those facts still depends on measured P05 conversion conflicts at the final source snapshot; neither value may be coerced, maxed or silently discarded."
-      ],
+      "open_decisions": [],
       "columns": {
         "id": {
           "disposition": "transformed",
@@ -57,9 +55,8 @@
           ]
         },
         "hours_played": {
-          "disposition": "unresolved-decision",
-          "note": "The readiness 8.1 hazard. On the import path this is derived and rounded: Math.round(((minutes ?? 0)/60)*10)/10 at lib/steam-owned-games.ts:32. But the same field is also accepted and written by client-facing paths - lib/validation.ts:26 and :38, app/api/games/[id]/route.ts:14 and :26, and lib/games.ts:117 - while observed_playtime_minutes has no writer in lib/ or app/ at all. The completed M3 contract preserves the legacy numeric value and its raw source text in migration.legacy_library_evidence. Exact observed minutes remain separate in app.library_games.playtime_minutes. An hours discrepancy alone does not prove which path authored a row or which fact should be active at runtime. The unresolved decision is only that runtime precedence, and P05 must measure it at the final source snapshot; no value is maxed, rounded again or silently discarded.",
-          "blocked_on": "probe P05: count rows whose hours_played cannot be reproduced from observed_playtime_minutes by the import rounding, split by access_source",
+          "disposition": "audit-archive",
+          "note": "P05 on the verified real snapshot found zero owned-row disagreements with the exact legacy JavaScript rounding path; family rows have unknown personal minutes and are never assigned to the borrower. Exact observed minutes remain runtime authority for owned rows. Legacy hours and raw spelling remain independent evidence and are never maxed, coerced or silently discarded. Final freeze repeats this measurement.",
           "archive": "+migration.legacy_library_evidence.legacy_hours_played + migration.legacy_library_evidence.legacy_hours_played_raw + app.library_legacy_measurements.legacy_hours_played + app.library_legacy_measurements.legacy_hours_played_raw",
           "evidence": [
             "readiness 8.1",
@@ -126,8 +123,8 @@
         "completion_suggestion_dismissed_playtime": {
           "disposition": "transformed",
           "target": "app.game_state.completion_dismissed_playtime",
-          "transform": "numeric -> integer. This is one of readiness 8.2's three narrowings and needs a stated rounding rule applied identically in the transform and the validator. Proposal: reject any value that is not integral rather than round, because a fractional dismissal baseline would indicate the unit is not what we think.",
-          "note": "Unit is NOT changed here - legacy and target are both minutes-or-unspecified; only the type narrows. Contrast user_game_pins.hours_at_pin, which is a genuine unit change.",
+          "transform": "Exact decimal hours * 60 -> checked nonnegative integer minutes. No rounding or clamping; a value that is not an integral minute or exceeds int32 is a hard blocker. Original exact decimal hours text is retained separately in migration.legacy_library_evidence.evidence.",
+          "note": "The legacy completion-dismiss writer stores game.hours_played directly. V2 defines the integer destination as minutes, consistent with the exact-minute core model.",
           "conflict": "readiness 8.2"
         },
         "previous_active_status": {
@@ -436,9 +433,9 @@
           "conflict": "readiness 4.7; probe P07d counts library_seen > 10000 and library_seen <> cardinality(candidate_appids)"
         },
         "games_imported": {
-          "disposition": "derived-retirement",
-          "recoverable_from": "Recomputable after the load as the count of app.family_game_access rows for (account_id, member_id). v2 derives shared access from the access relation rather than from a counter on the member.",
-          "note": "Retirement is only safe if D-LIB-4 does not drop orphaned family access rows. If it does, this count and the recomputed count will differ, and the difference belongs in the conflict report."
+          "disposition": "preserved",
+          "target": "app.family_members.legacy_games_imported",
+          "note": "Historical source counter retained independently of the current app.family_game_access count. The real snapshot contains disagreements, so neither count is rewritten or claimed to reconstruct the other."
         },
         "last_synced_at": {
           "disposition": "preserved",
@@ -543,7 +540,7 @@
     },
     "purge_reviews": {
       "role": "Historical purge-review decisions, including action = 'complete'. Ordinals skip 4, so a column was dropped.",
-      "summary": "Migrated to durable app.purge_review_history, with migration.legacy_purge_review_archive retaining the bounded raw source identity and reconciliation copy. Plan 14.2 keeps the historical decision and its review-time facts; no source row is discarded while the completion projection remains open.",
+      "summary": "Migrated to durable app.purge_review_history, with migration.legacy_purge_review_archive retaining the bounded raw source identity and reconciliation copy. Complete actions remain legacy review history and never synthesize or revive completion events.",
       "disposition_class": "migrated",
       "target": "app.purge_review_history + migration.legacy_purge_review_archive",
       "archive_purpose": "Preserve historical purge decisions, including raw source identity and review-time facts that the durable row resolves. Rows with action = 'complete' additionally corroborate app.completion_events and must be reconcilable against it.",
@@ -564,9 +561,7 @@
       "evidence": [
         "readiness 3 (bounded archive or documented retirement)"
       ],
-      "open_decisions": [
-        "D-PRG-1 OPEN (source value): whether purge_reviews rows with action = 'complete' should ALSO project into completion history, or be archived only. Preservation itself is settled - the row is archived either way - but projecting them risks double-counting against completion_events while archiving only risks losing a completion the funnel never recorded. The answer depends on how many such rows have no matching completion_events row, which is snapshot check S-PRG-COMPLETE (probe PX-c)."
-      ],
+      "open_decisions": [],
       "columns": {
         "id": {
           "disposition": "audit-archive",
@@ -587,7 +582,7 @@
         },
         "action": {
           "disposition": "preserved",
-          "note": "The decision the user made. action = 'complete' is completion history, which plan section 3 requires to survive. Whether those rows also become app.completion_events is D-PRG-1. SETTLED (preservation): the decision the user made is archived verbatim, so it cannot be lost while D-PRG-1 is answered. Whether it ALSO becomes a completion event is the separate open source-value question.",
+          "note": "The decision the user made is preserved verbatim in durable review history. D-PRG-1 is settled: complete actions do not create app.completion_events or current state, and an existing undone event remains undone.",
           "target": "app.purge_review_history.action + migration.legacy_purge_review_archive.action",
           "settled_by": [
             "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",

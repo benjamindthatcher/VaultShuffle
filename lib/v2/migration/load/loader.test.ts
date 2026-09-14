@@ -61,6 +61,11 @@ test("every declared target type encodes exactly, and an unrepresentable value i
   assert.equal(targetCell({ name: "u", kind: "uuid", nullable: false }, "11111111-2222-4333-8444-555555555555"),
     "11111111-2222-4333-8444-555555555555");
   assert.equal(targetCell({ name: "j", kind: "jsonb", nullable: false }, '{"a":1}'), '{"a":1}');
+  assert.equal(
+    targetCell({ name: "j", kind: "jsonb", nullable: false }, '{"counter":9223372036854775807}'),
+    '{"counter":9223372036854775807}',
+    "JSON numeric tokens must never round through a JavaScript number",
+  );
   assert.equal(targetCell({ name: "h", kind: "bytea-hex", nullable: true }, SHA), `\\x${SHA}`);
   assert.equal(targetCell({ name: "x", kind: "text", nullable: true }, null), null);
 

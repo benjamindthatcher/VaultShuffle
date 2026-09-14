@@ -134,3 +134,19 @@ local-only escalation was then automatically rejected because the account usage
 limit was reached. No workaround was attempted. The test is ready for the next
 available local Playwright run; this is the only remaining runtime acceptance
 step.
+
+## 13 September 2026 — guest browser acceptance passed
+
+The deferred local Playwright acceptance was run successfully with the approved
+local-only listener permission:
+
+```text
+npx playwright test e2e/blacklist-guest.spec.ts --project=chromium
+# 1 passed (15.6s)
+```
+
+It builds and starts the local Next test server only, then verifies the guest
+Library flow Active -> Blacklist -> Blacklisted shelf -> visible Reactivate
+menu action -> Active. No real account, source, target, or remote service was
+used. The prior listener-only sandbox refusal is resolved; no runtime acceptance
+work remains in this checkpoint.

@@ -1,5 +1,24 @@
 # Blacklist database/V2 checkpoint
 
+## Root acceptance — 13 September 2026
+
+V2 migration `20260912193000` is now APPLIED and immutable at the SHA below.
+The legacy runtime compatibility migration remains UNAPPLIED for a coordinated
+runtime release. The earlier local-state section below is historical evidence.
+
+Root applied only the reviewed V2 file via the CLI after exact five-file hash
+and empty-target checks. Target SQL behavior and cleanup passed; management
+SQL could not assume `vault_app`, so the remote fixture used its existing
+admin role, while the local PG17 fixture supplies actual runtime-role evidence.
+Target columns, forced RLS and browser ACL checks passed, with zero real rows.
+The guest browser flow passed. Index now records 92 relations / 988 columns,
+zero pending schema changes; Python 122 checks and manifest coverage pass.
+Only the existing V13 source decisions block strict final load.
+
+Evidence: `database/v2/blacklist-target-validation-20260913.json`.
+Blacklist development is complete; proceed with the M3 loader. No additional
+feature architecture or speculative review is needed.
+
 Completed 12 September 2026. Database and V2 half of the user-authorized
 replacement of timed Sleep with permanent Blacklist. Local work only: no
 production DDL, deployment, private source rows, secret lookup, commit, or push.

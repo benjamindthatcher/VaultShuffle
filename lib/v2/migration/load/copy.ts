@@ -1,6 +1,7 @@
 import { Buffer } from "node:buffer";
 import { parseCivilDate, parsePgDecimal, parsePgInteger, parsePgTimestamptz } from "../transform/scalars.ts";
 import { loaderFailure } from "./errors.ts";
+import { canonicalJson } from "./canonical.ts";
 
 export type TargetScalarKind =
   | "text"
@@ -25,16 +26,20 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-
 const HEX = /^[0-9a-f]+$/;
 
 function safeJson(value: unknown): string {
-  let text: string;
   try {
-    text = typeof value === "string" ? value : JSON.stringify(value);
-    const parsed = JSON.parse(text) as unknown;
-    text = JSON.stringify(parsed);
+    if (typeof value === "string") {
+      JSON.parse(value);
+      if (value.includes("\u0000")) throw new Error("nul");
+      // Preserve numeric lexemes which JSON.parse would round in JavaScript;
+      // PostgreSQL validates and canonicalises the jsonb value on COPY.
+      return value;
+    }
+    const text = canonicalJson(value);
+    if (text.includes("\u0000")) throw new Error("nul");
+    return text;
   } catch {
     throw loaderFailure("loader_copy_invalid", { field: "jsonb" });
   }
-  if (text.includes("\u0000")) throw loaderFailure("loader_copy_invalid", { field: "jsonb" });
-  return text;
 }
 
 function integer(value: TargetValue): string {

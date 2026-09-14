@@ -8,6 +8,7 @@ import {
   codePointLength,
   ConflictCollector,
   decimalToScaledInteger,
+  decimalTimesIntegerToInteger,
   enumValue,
   ensureArray,
   fitsNumeric,
@@ -474,6 +475,7 @@ type NormalizedRow = {
   completedAt: PgTimestamp | null;
   dismissedAt: PgTimestamp | null;
   dismissedPlaytime: bigint | null;
+  dismissedPlaytimeHoursRaw: string | null;
   previousActiveStatus: LibraryActiveStatus | null;
   lastObservedPlayedAt: PgTimestamp | null;
   recencyKind: LibraryRecencyKind | null;
@@ -588,10 +590,9 @@ function normalizeRow(
   );
   let dismissedPlaytime: bigint | null = null;
   if (dismissedPlaytimeSource !== null) {
-    const integral = decimalToScaledInteger(dismissedPlaytimeSource, 0);
+    const integral = decimalTimesIntegerToInteger(dismissedPlaytimeSource, BigInt(60));
     if (integral === null) {
-      // The reviewed rule is to reject rather than round: a fractional
-      // dismissal baseline would mean the unit is not minutes.
+      // Source hours must convert to an exact integer minute; never round.
       libraryFailure("library_unrepresentable_value", RELATION, "completion_suggestion_dismissed_playtime");
     }
     if (integral < ZERO || integral > TARGET_INTEGER_MAX) {
@@ -648,6 +649,9 @@ function normalizeRow(
       "completion_suggestion_dismissed_at",
     ),
     dismissedPlaytime,
+    dismissedPlaytimeHoursRaw: dismissedPlaytimeSource === null
+      ? null
+      : sourceCell(row, "completion_suggestion_dismissed_playtime", RELATION),
     previousActiveStatus,
     lastObservedPlayedAt: optionalTimestamp(
       nullableSourceCell(row, "last_observed_played_at", RELATION),
@@ -834,8 +838,8 @@ export function transformLibraryBatch(
         source_relation: RELATION,
         source_column: "ownership",
         decision:
-          "UNRESOLVED pending the proposal migration: against the applied M1 schema, access_lost_at is NOT NULL with a now() default and no source instant records when this row left the active library (Wishlist rows carry no removal/tombstone timestamp of their own). database/v2/proposals/m3_legacy_preservation_followup.sql drops NOT NULL under a paired CHECK that allows a null access_lost_at only when loss_reason='unknown' and legacy_ownership='Wishlist' exactly, which is this row's shape and nothing wider; a legacy 'Owned' label or a runtime loss_reason still requires a real instant. legacy_ownership carries the verbatim source literal, not an inferred prior-ownership claim: a Wishlist row here can be never-owned, demoted from Owned by lib/steam-import-jobs.ts:190-221, or a family tombstone from supabase/migrations/20260901193000_share_a_family_library.sql:237-280.",
-        details: { status: "unresolved", destination: "app.retired_library_games" },
+          "RESOLVED by applied migration 20260911234500: access_lost_at stays NULL only for loss_reason='unknown' with legacy_ownership='Wishlist'. No loss instant is invented, and the verbatim ownership literal does not assert whether the row was once owned.",
+        details: { status: "resolved", destination: "app.retired_library_games" },
       });
     }
 
@@ -1144,6 +1148,9 @@ export function transformLibraryBatch(
     }
     if (!hasState && row.previousActiveStatus !== null) {
       evidenceDetails.previous_active_status = row.previousActiveStatus;
+    }
+    if (row.dismissedPlaytimeHoursRaw !== null) {
+      evidenceDetails.completion_dismissed_hours_raw = row.dismissedPlaytimeHoursRaw;
     }
     if (!hasState && row.dismissedPlaytime !== null) {
       evidenceDetails.completion_dismissed_playtime = row.dismissedPlaytime.toString(10);

@@ -196,10 +196,13 @@ Reuses the same scalar/array/JSON primitives `catalogue.ts` already relies on:
 exact-preservation rules already proven for the M3-F catalogue domain: no
 `Date`, no IEEE numeric conversion of bigint/JSON values, no silent repair.
 An UNVALIDATED source enum (`catalog_game_quarantine.steam_type`,
-`catalog_duration_import_runs.status`) is asserted against the target's
-declared value domain at consumption rather than assumed, matching the same
-value-domain discipline `catalogue.ts` applies to
-`catalog_games.first_seen_reason`.
+`catalog_duration_import_runs.status`) is asserted at consumption rather than
+assumed, matching the same value-domain discipline `catalogue.ts` applies to
+`catalog_games.first_seen_reason`. The duration-import source migration writes
+the successful terminal label `completed`; this maps to the destination's
+equivalent `succeeded` label while keeping the completion instant and all run
+evidence. Labels already in the destination vocabulary remain unchanged, and
+every other label is rejected.
 
 ## The cache performance follow-up (11 September 2026)
 

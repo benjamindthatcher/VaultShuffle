@@ -362,6 +362,7 @@ test("a recomputed access count that disagrees with games_imported is reported",
   const result = transformFamilyBatch(input([member({ games_imported: "9" })], [candidate()]));
   assert.equal(conflictCount(result, "family_games_imported_not_recomputable"), 1);
   assert.equal(result.family_members[0].legacy_games_imported, 9);
+  assert.equal(result.conflicts.find((entry) => entry.conflict_class === "family_games_imported_not_recomputable")?.details.status, "resolved");
 });
 
 test("output is identical under permuted input order", () => {
