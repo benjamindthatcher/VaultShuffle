@@ -11,13 +11,14 @@ export async function GET(request: Request) {
     const deadlineAt = Date.now() + 70_000;
     const queued = await queueAllKnownSteamTags();
     const tags = await processSteamTagQueue(60, deadlineAt);
+    // Judges every game whose tags or length changed in the last fortnight, by any
+    // route - this worker, a bulk import script, or the HLTB writeback. Before the
+    // guest pool is materialised, so a game that flips tonight is already endless
+    // when the pool is built from it. Allowed until 95s in, which leaves the pool
+    // the rest of the 120s budget.
+    const endlessSweep = await sweepEndlessVerdicts(getSupabaseAdmin(), { deadlineAt: deadlineAt + 25_000 });
     // Materialise recommendations after the Steam enrichment stages, using
     // already-stored duration estimates. This does not fetch duration data.
-    // Catches the games HowLongToBeat resolved since the last run. The tag write
-    // hook cannot see those: their tags did not change, only their length did.
-    // Before the guest pool is materialised, so a game that flips to endless
-    // tonight is already endless when the pool is built from it.
-    const endlessSweep = await sweepEndlessVerdicts(getSupabaseAdmin());
     const guestPoolSize = await buildGuestCataloguePool();
     return { queued, ...tags, endlessSweep, guestPoolSize };
   });

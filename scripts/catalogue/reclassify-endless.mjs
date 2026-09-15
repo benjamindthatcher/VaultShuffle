@@ -20,12 +20,12 @@
  *   node scripts/catalogue/reclassify-endless.mjs --apply          # write it
  *
  * Only ever promotes finite -> endless. It never demotes, and it never touches a
- * row carrying duration_manual_override, because a person has already ruled there.
+ * length a person ruled on, flag or no flag - see endlessPromotionBlocker.
  */
 
 import { writeFile } from "node:fs/promises";
 import { createClient } from "@supabase/supabase-js";
-import { endlessVerdict, endlessWitnessLabel } from "../../lib/game-classification.ts";
+import { endlessPromotionBlocker, endlessVerdict, endlessWitnessLabel } from "../../lib/game-classification.ts";
 
 const APPLY = process.argv.includes("--apply");
 const WITH_HOURS = process.argv.includes("--with-hours") || APPLY;
@@ -135,14 +135,23 @@ const ownerCounts = await loadOwnerCounts();
 
 const promotions = [];
 const vetoed = [];
-const counts = { seen: 0, alreadyEndless: 0, manual: 0, notAGame: 0, unchanged: 0 };
+const counts = { seen: 0, alreadyEndless: 0, manual: 0, notApplicable: 0, notAGame: 0, unchanged: 0 };
 const byWitness = new Map();
 
 for await (const row of catalogueRows()) {
   counts.seen += 1;
   const appId = Number(row.steam_appid);
 
-  if (row.duration_kind === "endless") { counts.alreadyEndless += 1; continue; }
+  // The same guard the live hooks use. This script used to check only the override
+  // flag, so it would overturn a length a person had ruled on without setting it.
+  const blocker = endlessPromotionBlocker({
+    durationKind: row.duration_kind,
+    durationSource: row.duration_source,
+    durationManualOverride: row.duration_manual_override
+  });
+  if (blocker === "already-endless") { counts.alreadyEndless += 1; continue; }
+  if (blocker === "not-applicable") { counts.notApplicable += 1; continue; }
+  if (blocker) { counts.manual += 1; continue; }
   // Demos, DLC and software are a different problem - see the quarantine notes in
   // docs/vault-recommender.md - and not one a length verdict should be guessing at.
   if (String(row.steam_type ?? "").toLowerCase() !== "game") { counts.notAGame += 1; continue; }
@@ -200,6 +209,7 @@ console.log(`  catalogue rows read      ${counts.seen}`);
 console.log(`  already endless          ${counts.alreadyEndless}`);
 console.log(`  skipped, not a game      ${counts.notAGame}`);
 console.log(`  skipped, manual ruling   ${counts.manual}`);
+console.log(`  skipped, not applicable  ${counts.notApplicable}`);
 console.log(`  left finite              ${counts.unchanged}`);
 console.log(`  vetoed by a story tag    ${vetoed.length}`);
 console.log(`  WOULD PROMOTE            ${promotions.length}`);
@@ -238,7 +248,7 @@ for (const batch of chunks(promotions, 200)) {
       updated_at: new Date().toISOString()
     })
     .in("steam_appid", batch.map((entry) => entry.steamAppId))
-    .neq("duration_manual_override", true);
+    .not("duration_manual_override", "is", true);
   if (error) throw error;
   written += batch.length;
   process.stderr.write(`  ...${written}/${promotions.length}\n`);

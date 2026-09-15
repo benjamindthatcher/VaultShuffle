@@ -545,3 +545,36 @@ function normaliseSignals(value: ReplayabilityMetadata["tags"] | string[] | null
 function clamp(value: number, min: number, max: number) {
   return Math.max(min, Math.min(value, max));
 }
+
+/**
+ * Why an automatic endless promotion must leave a stored length verdict alone, or
+ * null when it may replace it.
+ *
+ * One definition for every caller - the tag write hook, the nightly sweep and the
+ * manual reclassification script - because each carried its own check and all
+ * three looked only at `duration_manual_override`. None asked where a verdict came
+ * from. On 2026-09-15 that let a backfill overturn New World Playtest, which a
+ * person had ruled `not-applicable` under `duration_source = 'manual-classification'`
+ * without ever setting the flag - and 492 rows carry exactly that shape.
+ *
+ * `not-applicable` is protected whatever wrote it. It says the length question
+ * does not apply at all, which is a stronger statement than "finite", and a tag
+ * vote cannot turn a software tool or a test client into a game with no ending.
+ */
+export type EndlessPromotionBlocker =
+  | "already-endless"
+  | "manual-override"
+  | "manual-classification"
+  | "not-applicable";
+
+export function endlessPromotionBlocker(row: {
+  durationKind?: string | null;
+  durationSource?: string | null;
+  durationManualOverride?: boolean | null;
+}): EndlessPromotionBlocker | null {
+  if (row.durationKind === "endless") return "already-endless";
+  if (row.durationManualOverride === true) return "manual-override";
+  if (String(row.durationSource ?? "").trim().toLowerCase().startsWith("manual")) return "manual-classification";
+  if (row.durationKind === "not-applicable") return "not-applicable";
+  return null;
+}

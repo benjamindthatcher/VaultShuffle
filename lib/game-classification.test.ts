@@ -7,7 +7,8 @@ import {
   hasStrongReplayabilitySignals,
   isStoryDriven,
   isEndlessGame,
-  endlessVerdict
+  endlessVerdict,
+  endlessPromotionBlocker
 } from "./game-classification.ts";
 
 test("finite progress is derived from the averaged duration rather than stale stored progress", () => {
@@ -437,4 +438,29 @@ test("a short story is excused when a run is the whole game, or when there is no
     mainStoryMinutes: 192,
     completionistMinutes: 1794
   }).endless, false);
+});
+
+test("an automatic promotion leaves a person's length ruling alone, flag or no flag", () => {
+  // New World Playtest: ruled not-applicable by hand, and the flag never set.
+  assert.equal(endlessPromotionBlocker({
+    durationKind: "not-applicable", durationSource: "manual-classification", durationManualOverride: false
+  }), "manual-classification");
+  // A hand ruling of finite is still a ruling, however the source is capitalised.
+  assert.equal(endlessPromotionBlocker({
+    durationKind: "finite", durationSource: "Manual-Classification", durationManualOverride: false
+  }), "manual-classification");
+  assert.equal(endlessPromotionBlocker({
+    durationKind: "finite", durationSource: "hltb", durationManualOverride: true
+  }), "manual-override");
+  // not-applicable protects itself whatever wrote it.
+  assert.equal(endlessPromotionBlocker({
+    durationKind: "not-applicable", durationSource: "steam-tags", durationManualOverride: false
+  }), "not-applicable");
+  assert.equal(endlessPromotionBlocker({ durationKind: "endless", durationSource: "classification" }), "already-endless");
+});
+
+test("an automatic verdict may replace another automatic one", () => {
+  assert.equal(endlessPromotionBlocker({ durationKind: "finite", durationSource: "hltb", durationManualOverride: false }), null);
+  assert.equal(endlessPromotionBlocker({ durationKind: "unknown", durationSource: null, durationManualOverride: null }), null);
+  assert.equal(endlessPromotionBlocker({ durationKind: "unknown", durationSource: "igdb-title" }), null);
 });
