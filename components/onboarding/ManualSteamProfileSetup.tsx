@@ -40,8 +40,13 @@ type CreateResponse = {
   };
 };
 
-export function ManualSteamProfileSetup() {
+export function ManualSteamProfileSetup({ existingVaultName = null }: { existingVaultName?: string | null }) {
   const router = useRouter();
+  // Set from the server when this browser already holds a session, or from a
+  // create call that comes back session_exists. Either way the only useful next
+  // step is the Vault they already have.
+  const [signedInAs, setSignedInAs] = useState<string | null>(existingVaultName);
+  const [sessionExists, setSessionExists] = useState(existingVaultName !== null);
   const [profileInput, setProfileInput] = useState("");
   const [lookup, setLookup] = useState<LookupResponse | null>(null);
   const [vaultName, setVaultName] = useState("");
@@ -114,6 +119,13 @@ export function ManualSteamProfileSetup() {
       router.push(result.redirect_to);
     } catch (caught) {
       const failure = normaliseFailure(caught);
+      if (failure.code === "session_exists") {
+        setSessionExists(true);
+        setSignedInAs(null);
+        setError("");
+        setBusy(null);
+        return;
+      }
       setError(failure.message);
       if (caught instanceof CooldownError) setCooldownUntil(saveCooldown("manual-setup", caught));
       setBusy(null);
@@ -149,7 +161,23 @@ export function ManualSteamProfileSetup() {
           </p>
 
           <div className={styles.panel}>
-            {lookup ? (
+            {sessionExists ? (
+              <div className={styles.confirmForm}>
+                <p className={styles.sessionNotice} role="status">
+                  <SiteGlyph name="check" size={18} />
+                  <span>
+                    {signedInAs
+                      ? <>You’re already signed in to VaultShuffle as <strong>{signedInAs}</strong> in this browser.</>
+                      : "You already have a VaultShuffle profile in this browser."}
+                  </span>
+                </p>
+                <Link className={styles.primaryAction} href="/vault">
+                  <SiteGlyph name="open-vault" size={22} />
+                  <span>Go to my Vault</span>
+                  <SiteGlyph name="chevron-right" size={18} />
+                </Link>
+              </div>
+            ) : lookup ? (
               <form onSubmit={createProfile} className={styles.confirmForm}>
                 <div className={styles.profileFound}>
                   <span className={styles.avatar}>
