@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import { LandingFaq } from "@/components/site/LandingFaq";
 import { LandingCtas } from "@/components/site/LandingCtas";
-import { LandingQuestions } from "@/components/site/LandingQuestions";
 import { LandingResultDemo } from "@/components/site/LandingResultDemo";
+import { LandingVaultDraw } from "@/components/site/LandingVaultDraw";
 import { SignInNotice } from "@/components/site/SignInNotice";
 import styles from "./landing-experience.module.css";
 
@@ -142,7 +142,10 @@ export function LandingExperience() {
           <h2 id="how-title">Three questions.<span>One game.</span></h2>
           <p>Set the moment. The Vault handles the shortlist.</p>
         </div>
-        <LandingQuestions />
+        {/* The Vault itself, not an illustration of it. Same accordion, same
+            scoring, same weighted draw - on a sample library, because there is
+            no account here to draw from. */}
+        <LandingVaultDraw />
       </section>
 
       <section id="why" className={styles.whySection} aria-labelledby="why-title">
