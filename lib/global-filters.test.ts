@@ -7,7 +7,7 @@ import {
   activeGlobalFilterCount,
   matchesGlobalFilters,
   parseGlobalFilters,
-  playerModesFromCategories,
+  parsePlayerMode,
   type GlobalFilters
 } from "./global-filters.ts";
 
@@ -43,30 +43,31 @@ function filters(overrides: Partial<GlobalFilters> = {}): GlobalFilters {
 
 test("the default filters let the whole library through", () => {
   // The topmost layer must be inert until someone actually asks for something.
-  const anything = game({ releaseDate: null, playerModes: [], deckCompatibility: 0 });
+  const anything = game({ releaseDate: null, playerMode: null, deckCompatibility: 0 });
   assert.equal(matchesGlobalFilters(anything, DEFAULT_GLOBAL_FILTERS, now), true);
   assert.equal(activeGlobalFilterCount(DEFAULT_GLOBAL_FILTERS), 0);
 });
 
-test("player mode reads Steam's categories, not the crowd's tags", () => {
-  // Counter-Strike 2 carries thirty thousand community votes for "Co-op" and is
-  // not a co-op game. Categories are the field that can be trusted here.
-  assert.deepEqual(playerModesFromCategories(["Single-player", "Steam Cloud"]), ["single"]);
-  assert.deepEqual(playerModesFromCategories(["Online Co-op", "Multi-player"]), ["coop", "multi"]);
-  assert.deepEqual(playerModesFromCategories(["Shared/Split Screen"]), ["coop"]);
-  assert.deepEqual(playerModesFromCategories([]), []);
-  assert.deepEqual(playerModesFromCategories(null), []);
+test("player mode only accepts the three verdicts the database writes", () => {
+  assert.equal(parsePlayerMode("single"), "single");
+  assert.equal(parsePlayerMode("coop"), "coop");
+  assert.equal(parsePlayerMode("multi"), "multi");
+  assert.equal(parsePlayerMode("Single-player"), null);
+  assert.equal(parsePlayerMode(null), null);
+  assert.equal(parsePlayerMode(undefined), null);
 });
 
-test("asking for single-player leaves out a game we cannot classify", () => {
-  // 9% of owned games have no categories. Offering one of those to someone who
-  // asked for single-player is how a filter loses trust, so it sits out.
-  const unknown = game({ playerModes: [] });
-  const solo = game({ playerModes: ["single"] });
-  const coopOnly = game({ playerModes: ["coop", "multi"] });
+test("each game sits under exactly one way of playing", () => {
+  // A mostly-multiplayer game with a token campaign is multiplayer, and must not
+  // turn up when someone asks for single-player.
+  const unknown = game({ playerMode: null });
+  const solo = game({ playerMode: "single" });
+  const mostlyMulti = game({ playerMode: "multi" });
 
   assert.equal(matchesGlobalFilters(solo, filters({ players: "single" }), now), true);
-  assert.equal(matchesGlobalFilters(coopOnly, filters({ players: "single" }), now), false);
+  assert.equal(matchesGlobalFilters(mostlyMulti, filters({ players: "single" }), now), false);
+  assert.equal(matchesGlobalFilters(mostlyMulti, filters({ players: "coop" }), now), false);
+  assert.equal(matchesGlobalFilters(mostlyMulti, filters({ players: "multi" }), now), true);
   assert.equal(matchesGlobalFilters(unknown, filters({ players: "single" }), now), false);
   // ...but it is back the moment the question is not being asked.
   assert.equal(matchesGlobalFilters(unknown, filters({ players: "any" }), now), true);
@@ -175,7 +176,7 @@ test("filters combine, so every one of them has to pass", () => {
 
   const fits = game({
     platforms: { windows: true, mac: true, linux: false },
-    playerModes: ["single"],
+    playerMode: "single",
     releaseDate: "2023-01-01",
     duration: { endless: false }
   });
@@ -183,7 +184,7 @@ test("filters combine, so every one of them has to pass", () => {
 
   // One failing answer is enough, even with everything else right.
   assert.equal(matchesGlobalFilters({ ...fits, releaseDate: "2001-01-01" }, chosen, now), false);
-  assert.equal(matchesGlobalFilters({ ...fits, playerModes: ["multi"] }, chosen, now), false);
+  assert.equal(matchesGlobalFilters({ ...fits, playerMode: "multi" }, chosen, now), false);
 });
 
 test("a stored shape from an older release cannot empty the library", () => {

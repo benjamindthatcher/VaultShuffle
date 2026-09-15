@@ -54,9 +54,11 @@ export type Game = {
   steam_tags?: Record<string, number> | null;
   /**
    * Steam's own category strings - "Single-player", "Co-op", "Multi-player".
-   * Distinct from steam_tags, which are crowd votes and cannot be filtered on.
+   * Distinct from steam_tags, which are crowd votes.
    */
   steam_categories?: string[] | null;
+  /** Primary way the game is played, weighted by tag votes. See lib/global-filters.ts. */
+  player_mode?: string | null;
   platform_windows?: boolean | null;
   platform_mac?: boolean | null;
   platform_linux?: boolean | null;

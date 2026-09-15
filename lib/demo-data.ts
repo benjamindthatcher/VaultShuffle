@@ -63,8 +63,8 @@ export type DemoGame = {
   deckCompatibility?: number | null;
   /** Release day, for the release-age global filter. */
   releaseDate?: string | null;
-  /** How this one can be played, from Steam's categories. See lib/global-filters.ts. */
-  playerModes?: import("@/lib/global-filters").PlayerMode[];
+  /** The one way this is mostly played, weighted by tag votes. See lib/global-filters.ts. */
+  playerMode?: import("@/lib/global-filters").PlayerMode | null;
   /** Steam review counts, used for the hype and hidden-gem terms. */
   /** Steam store prices, in cents, at whatever the catalogue last saw. */
   priceInitial?: number | null;

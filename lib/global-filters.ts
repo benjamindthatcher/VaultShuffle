@@ -81,21 +81,20 @@ const CLASSIC_YEARS = 15;
 const YEAR_MS = 365.25 * 24 * 60 * 60 * 1000;
 
 /**
- * Steam's own category strings. Crowd tags were the other candidate and cannot
- * carry this: Counter-Strike 2 has thirty thousand votes for "Co-op" and is not a
- * co-op game, so a tag-driven filter would hide the wrong things silently.
+ * Every game has one primary way it is played, decided in the database by
+ * public.player_mode_from_signals and stored as catalog_games.player_mode.
+ *
+ * Steam's categories list every mode a game supports, so a mostly-multiplayer
+ * game with a token campaign used to land under Single-player too. The primary
+ * mode is weighted by community tag votes instead. Generic "Multiplayer" votes
+ * are split between co-op and PvP in proportion to the specific tags, which is
+ * what keeps Counter-Strike 2's thirty thousand "Co-op" votes from outweighing
+ * its PvP ones. A game with no mode tags falls back to its categories.
  */
-const CO_OP_CATEGORIES = ["Co-op", "Online Co-op", "Shared/Split Screen", "LAN Co-op"];
-const MULTI_CATEGORIES = ["Multi-player", "Online PvP", "PvP", "LAN PvP", "Shared/Split Screen PvP"];
+const PLAYER_MODES: readonly PlayerMode[] = ["single", "coop", "multi"];
 
-export function playerModesFromCategories(categories: string[] | null | undefined): PlayerMode[] {
-  if (!categories?.length) return [];
-  const has = (name: string) => categories.includes(name);
-  const modes: PlayerMode[] = [];
-  if (has("Single-player")) modes.push("single");
-  if (CO_OP_CATEGORIES.some(has)) modes.push("coop");
-  if (MULTI_CATEGORIES.some(has)) modes.push("multi");
-  return modes;
+export function parsePlayerMode(value: string | null | undefined): PlayerMode | null {
+  return PLAYER_MODES.includes(value as PlayerMode) ? (value as PlayerMode) : null;
 }
 
 /**
@@ -116,10 +115,10 @@ function matchesDevice(game: DemoGame, mode: DeviceMode) {
 
 function matchesPlayers(game: DemoGame, want: GlobalFilters["players"]) {
   if (want === "any") return true;
-  // No categories means we do not know how this one is played. A filter that
-  // asks a factual question has to leave out what it cannot answer, rather than
-  // guess and put a co-op-only game in front of someone playing alone.
-  return (game.playerModes ?? []).includes(want);
+  // No verdict means we do not know how this one is played. A filter that asks a
+  // factual question has to leave out what it cannot answer, rather than guess
+  // and put a co-op-only game in front of someone playing alone.
+  return game.playerMode === want;
 }
 
 function matchesReleaseAge(game: DemoGame, want: ReleaseAge, now: number) {
