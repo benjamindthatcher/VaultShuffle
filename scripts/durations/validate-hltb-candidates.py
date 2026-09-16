@@ -100,6 +100,15 @@ def parse_args():
         ),
     )
     parser.add_argument(
+        "--allow-title-over-mismatch",
+        action="store_true",
+        help=(
+            "Also allow the safe-title gates to verify a candidate whose page declares a "
+            "DIFFERENT profile_steam. Re-released SKUs link to the original AppID, so this "
+            "rescues them; it requires --allow-safe-title and both release years."
+        ),
+    )
+    parser.add_argument(
         "--resolve-conflicts",
         action="store_true",
         help=(
@@ -554,7 +563,7 @@ def resolve_conflict_group(
     ), None
 
 
-def safe_title_identity(candidate, detail):
+def safe_title_identity(candidate, detail, allow_profile_steam_mismatch=False):
     """Apply the imported identity gates to authoritative, unmodified source titles."""
     source_titles = candidate.get("source_titles", [])
     if not source_titles:
@@ -584,6 +593,7 @@ def safe_title_identity(candidate, detail):
                 steam_app_id=candidate["steam_appid"],
                 release_year=release_year,
                 trusted_titles=source_titles,
+                allow_profile_steam_mismatch=allow_profile_steam_mismatch,
             )
             if tier:
                 title_tiers.append(tier)
@@ -600,6 +610,7 @@ def safe_title_identity(candidate, detail):
             "incompatible_game_type",
             "not_pc",
             "release_year_conflict",
+            "mismatched_appid_missing_year",
             "short_title_missing_year",
             "not_exact_title",
             "lossy_query_without_appid",
@@ -671,16 +682,19 @@ def verify_candidate(
     checked_at,
     allow_safe_title=False,
     candidate_page_appids=None,
+    allow_title_over_mismatch=False,
 ):
     appid = candidate["steam_appid"]
     page_appids = sorted(set(candidate_page_appids or [appid]))
     profile_steam = HLTB.positive_integer(getattr(detail, "profile_steam", None))
+    mismatched = profile_steam is not None and profile_steam != appid
+    title_over_mismatch = mismatched and allow_safe_title and allow_title_over_mismatch
     if profile_steam == appid:
         verification = {
             "verification_method": "profile_steam_exact",
             "verification_tier": "steam_appid",
         }
-    elif profile_steam is not None:
+    elif mismatched and not title_over_mismatch:
         return None, rejection_row(
             candidate,
             detail,
@@ -704,7 +718,11 @@ def verify_candidate(
             conflicting_steam_appids=page_appids,
         )
     else:
-        verification, title_rejection = safe_title_identity(candidate, detail)
+        verification, title_rejection = safe_title_identity(
+            candidate,
+            detail,
+            allow_profile_steam_mismatch=title_over_mismatch,
+        )
         if not verification:
             return None, rejection_row(
                 candidate,
@@ -782,6 +800,7 @@ def build_report(
     include_matched,
     allow_safe_title,
     resolve_conflicts,
+    allow_title_over_mismatch,
     input_counts,
     processable_pairs,
     conflict_pairs,
@@ -810,6 +829,7 @@ def build_report(
             "include_matched": include_matched,
             "allow_safe_title": allow_safe_title,
             "resolve_conflicts": resolve_conflicts,
+            "allow_title_over_mismatch": allow_title_over_mismatch,
         },
         "counts": {
             **input_counts,
@@ -891,6 +911,7 @@ def main():
             include_matched=args.include_matched,
             allow_safe_title=args.allow_safe_title,
             resolve_conflicts=args.resolve_conflicts,
+            allow_title_over_mismatch=args.allow_title_over_mismatch,
             input_counts=input_counts,
             processable_pairs=len(processable),
             conflict_pairs=conflict_pairs,
@@ -953,6 +974,7 @@ def main():
                                         row["steam_appid"]
                                         for row in candidates_for_page
                                     ],
+                                    allow_title_over_mismatch=args.allow_title_over_mismatch,
                                 )
                             except Exception as error:
                                 errors.append({
@@ -1026,6 +1048,7 @@ def main():
         include_matched=args.include_matched,
         allow_safe_title=args.allow_safe_title,
         resolve_conflicts=args.resolve_conflicts,
+        allow_title_over_mismatch=args.allow_title_over_mismatch,
         input_counts=input_counts,
         processable_pairs=len(processable),
         conflict_pairs=conflict_pairs,

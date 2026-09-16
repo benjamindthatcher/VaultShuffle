@@ -183,6 +183,67 @@ class DurationMatcherTests(TestCase):
         self.assertIsNotNone(review)
         self.assertEqual(review[3]["review_reason"], "different_steam_appid")
 
+    def test_mismatched_profile_steam_may_be_opted_into_on_exact_title_and_year(self):
+        """A re-released SKU links to the original AppID, so identity is the title plus the year."""
+        page = entry(
+            1874,
+            "Company of Heroes",
+            profile_steam=228200,
+            release_world=2006,
+        )
+        title = "Company of Heroes - Legacy Edition"
+
+        tier, reason = MODULE.identity_evidence(
+            page,
+            "Company of Heroes",
+            steam_app_id=4560,
+            release_year=2007,
+            trusted_titles=["Company of Heroes"],
+        )
+        self.assertIsNone(tier)
+        self.assertEqual(reason, "different_steam_appid")
+
+        tier, reason = MODULE.identity_evidence(
+            page,
+            "Company of Heroes",
+            steam_app_id=4560,
+            release_year=2007,
+            trusted_titles=["Company of Heroes"],
+            allow_profile_steam_mismatch=True,
+        )
+        self.assertIsNone(reason)
+        self.assertEqual(tier, "exact_title")
+        self.assertTrue(title)
+
+    def test_mismatched_profile_steam_requires_both_release_years(self):
+        page = entry(1874, "Company of Heroes", profile_steam=228200, release_world=None)
+
+        tier, reason = MODULE.identity_evidence(
+            page,
+            "Company of Heroes",
+            steam_app_id=4560,
+            release_year=2007,
+            trusted_titles=["Company of Heroes"],
+            allow_profile_steam_mismatch=True,
+        )
+        self.assertIsNone(tier)
+        self.assertEqual(reason, "mismatched_appid_missing_year")
+
+    def test_mismatched_profile_steam_still_rejects_a_different_era_namesake(self):
+        """The 2022 Call of Duty hub and the 2003 original are both exact title matches."""
+        original = entry(2620, "Call of Duty", profile_steam=2620, release_world=2003)
+
+        tier, reason = MODULE.identity_evidence(
+            original,
+            "Call of Duty",
+            steam_app_id=1938090,
+            release_year=2022,
+            trusted_titles=["Call of Duty"],
+            allow_profile_steam_mismatch=True,
+        )
+        self.assertIsNone(tier)
+        self.assertEqual(reason, "release_year_conflict")
+
     def test_empty_pure_non_latin_identities_never_exact_match(self):
         candidate = entry(
             9001,

@@ -45,7 +45,15 @@ export function verifyDurationQueuePassword(candidate: string) {
 
 export async function hasDurationQueueAccess() {
   const supplied = (await cookies()).get(DURATION_QUEUE_COOKIE)?.value;
-  return Boolean(supplied && safeEqual(supplied, durationQueueCookieValue()));
+  if (!supplied) return false;
+  // A stale cookie must not become a 500: durationQueueCookieValue throws when
+  // SESSION_SECRET is absent, and the reviewer would just see a broken page.
+  try {
+    return safeEqual(supplied, durationQueueCookieValue());
+  } catch (error) {
+    console.error("Duration queue cookie could not be verified", error);
+    return false;
+  }
 }
 
 export async function grantDurationQueueAccess() {

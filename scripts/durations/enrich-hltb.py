@@ -547,12 +547,27 @@ def trusted_query_tier(search_title, trusted_titles):
     return None
 
 
-def identity_evidence(entry, search_title, steam_app_id=None, release_year=None, trusted_titles=None):
+def identity_evidence(
+    entry,
+    search_title,
+    steam_app_id=None,
+    release_year=None,
+    trusted_titles=None,
+    allow_profile_steam_mismatch=False,
+):
     """Return an acceptance tier or rejection reason for one hydrated HLTB entry."""
     profile_steam = getattr(entry, "profile_steam", None)
     if steam_app_id and profile_steam == int(steam_app_id):
         return "steam_appid", None
-    if profile_steam:
+    # A re-released SKU carries HLTB's Steam link to the *original* AppID, so a
+    # mismatch is the normal case for Metro 2033, the Yakuza Kiwami Legacy pair and
+    # the Civilization IV line rather than evidence of a wrong page. Callers may opt
+    # in to judging those on title identity alone, which still has to clear every
+    # gate below plus the mandatory year agreement enforced further down.
+    mismatched_profile_steam = bool(profile_steam) and not (
+        steam_app_id and profile_steam == int(steam_app_id)
+    )
+    if mismatched_profile_steam and not allow_profile_steam_mismatch:
         return None, "different_steam_appid"
     if any(marker in str(getattr(entry, "game_type", "")).casefold() for marker in UNSAFE_HLTB_TYPES):
         return None, "incompatible_game_type"
@@ -574,6 +589,11 @@ def identity_evidence(entry, search_title, steam_app_id=None, release_year=None,
     candidate_year = parse_release_year(getattr(entry, "release_world", None))
     if source_year and candidate_year and abs(source_year - candidate_year) > 1:
         return None, "release_year_conflict"
+    # Without the page's own AppID agreeing, the year is the only thing separating a
+    # re-release from a different game that shares its name: the 2022 "Call of Duty"
+    # hub and the 2003 original are both exact title matches.
+    if mismatched_profile_steam and not (source_year and candidate_year):
+        return None, "mismatched_appid_missing_year"
     if is_short_or_collision_prone(search_title) and (not source_year or not candidate_year):
         return None, "short_title_missing_year"
     return query_tier, None

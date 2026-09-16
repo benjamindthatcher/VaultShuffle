@@ -67,6 +67,59 @@ def detail(
     )
 
 
+class MismatchedProfileSteamTests(TestCase):
+    """Re-released SKUs whose HLTB page links to the original AppID."""
+
+    def verify(self, *, allow_title_over_mismatch, release_year=2013, release_world=2013):
+        return MODULE.verify_candidate(
+            candidate(34330, 201270, title="Total War: SHOGUN 2", release_year=release_year),
+            detail(201270, title="Total War: SHOGUN 2", profile_steam=999999, release_world=release_world),
+            CHECKED_AT,
+            allow_safe_title=True,
+            allow_title_over_mismatch=allow_title_over_mismatch,
+        )
+
+    def test_mismatch_is_rejected_without_the_opt_in(self):
+        result, rejection = self.verify(allow_title_over_mismatch=False)
+
+        self.assertIsNone(result)
+        self.assertEqual(rejection["reason"], "profile_steam_mismatch")
+        self.assertEqual(rejection["page_profile_steam"], 999999)
+
+    def test_opt_in_accepts_an_exact_title_with_agreeing_years(self):
+        result, rejection = self.verify(allow_title_over_mismatch=True)
+
+        self.assertIsNone(rejection)
+        self.assertEqual(result["verification_method"], "safe_exact_title")
+        self.assertEqual(result["verification_tier"], "exact_title")
+        self.assertEqual(result["match_status"], "matched")
+
+    def test_opt_in_still_requires_a_catalogue_year(self):
+        result, rejection = self.verify(allow_title_over_mismatch=True, release_year=None)
+
+        self.assertIsNone(result)
+        self.assertEqual(rejection["reason"], "mismatched_appid_missing_year")
+
+    def test_opt_in_still_rejects_a_conflicting_year(self):
+        result, rejection = self.verify(allow_title_over_mismatch=True, release_world=2003)
+
+        self.assertIsNone(result)
+        self.assertEqual(rejection["reason"], "release_year_conflict")
+
+    def test_opt_in_never_overrides_a_page_shared_by_several_appids(self):
+        result, rejection = MODULE.verify_candidate(
+            candidate(34330, 201270, title="Total War: SHOGUN 2"),
+            detail(201270, title="Total War: SHOGUN 2", profile_steam=999999),
+            CHECKED_AT,
+            allow_safe_title=True,
+            allow_title_over_mismatch=True,
+            candidate_page_appids=[34330, 34340],
+        )
+
+        self.assertIsNone(result)
+        self.assertEqual(rejection["reason"], "hltb_page_shared_across_steam_appids")
+
+
 class ConflictSelectionTests(TestCase):
     def test_default_mode_still_pre_rejects_conflicts(self):
         rows = [candidate(10, 101), candidate(10, 102), candidate(20, 201)]
