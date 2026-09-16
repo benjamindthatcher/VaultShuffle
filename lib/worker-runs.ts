@@ -74,8 +74,11 @@ function containsPartialResult(value: unknown): boolean {
   const record = value as Record<string, unknown>;
   if (Array.isArray(record.failures) && record.failures.length > 0) return true;
   for (const [key, count] of Object.entries(record)) {
-    const partialCount = ["failed", "failures", "retried", "deferred"].includes(key)
-      || key.toLowerCase().endsWith("deferred");
+    // Deliberately not `deferred`, nor anything ending in it. Every deadline-bounded
+    // worker here defers whatever it could not reach, which is the design rather than
+    // a problem, and treating it as one marked almost every run partial - leaving the
+    // status column unable to distinguish a bad night from an ordinary one.
+    const partialCount = ["failed", "failures", "retried"].includes(key);
     if (partialCount && typeof count === "number" && count > 0) return true;
   }
   return Object.values(record).some(containsPartialResult);

@@ -76,12 +76,11 @@ test("a database error is raised whole, not swallowed into a zero count", async 
 
 test("no count is named so that a healthy run reports itself partial", async () => {
   // withMetadataWorkerRun marks a run `partial` when any key called failed,
-  // failures, retried or deferred is above zero, so a normal night's counts must
-  // not be named any of them.
+  // failures or retried is above zero, so a normal night's counts must not be
+  // named any of them. See lib/worker-runs.test.ts for that rule itself.
   const { recountImportMetrics } = harness({ data: [ROW] });
   const result = await recountImportMetrics();
   for (const key of Object.keys(result)) {
-    assert.ok(!["failed", "failures", "retried", "deferred"].includes(key), `${key} would be read as a failure`);
-    assert.doesNotMatch(key.toLowerCase(), /deferred$/);
+    assert.ok(!["failed", "failures", "retried"].includes(key), `${key} would be read as a failure`);
   }
 });

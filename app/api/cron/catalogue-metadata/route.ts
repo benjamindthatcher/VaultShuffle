@@ -5,7 +5,8 @@ export const maxDuration = 120;
 
 export async function GET(request: Request) {
   return runNightlyWorker(request, "catalogue-metadata", async () => {
-      const deadlineAt = Date.now() + 90_000;
+      // The route allows 120s; 105 leaves room for the run record and the response.
+      const deadlineAt = Date.now() + 105_000;
 
       // Refreshing rows that already have metadata must not compete with games a
       // real user is currently staring at an empty card for. A large library can
@@ -18,9 +19,15 @@ export async function GET(request: Request) {
 
       // A game can require Store metadata plus Deck compatibility. Keep an
       // explicit game cap as well as a deadline; bulk backfills run locally.
-      const STEAM_LOOKUPS_PER_RUN = 40;
+      //
+      // 40 was leaving most of the night unused: the cap was reached in a single
+      // batch after 30s of a 90s budget, while 2,732 games sat pending, which is
+      // 68 nights of draining. Store requests are paced 650ms apart
+      // (STEAM_STORE_MIN_INTERVAL_MS), so 100 is about 65s of calls - bounded by
+      // the deadline long before the cap if a game needs two of them.
+      const STEAM_LOOKUPS_PER_RUN = 100;
 
-      while (Date.now() + 20_000 < deadlineAt && totals.processed < STEAM_LOOKUPS_PER_RUN) {
+      while (Date.now() + 12_000 < deadlineAt && totals.processed < STEAM_LOOKUPS_PER_RUN) {
         const remaining = STEAM_LOOKUPS_PER_RUN - totals.processed;
         const batch = await processCatalogueQueue(Math.min(50, remaining), undefined, deadlineAt);
         batches += 1;

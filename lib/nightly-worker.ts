@@ -41,8 +41,13 @@ export async function runNightlyWorker<T>(request: Request, name: NightlyWorker,
   try {
     const result = await withMetadataWorkerRun(name, task);
     const counts = (result && typeof result === "object" ? result : {}) as Record<string, unknown>;
-    const partial = Number(counts.failed ?? 0) > 0 || Number(counts.deferred ?? 0) > 0
-      || Number(counts.librariesDeferred ?? 0) > 0 || counts.rateLimited === true;
+    // Deferred work is the pacing working, not a fault. nightly-metadata reads 150
+    // candidates and attempts as many as its budget allows, so librariesDeferred is
+    // above zero by design every single night; counting it here meant that worker
+    // could never once report success, and a night that genuinely went wrong looked
+    // exactly like a night that went to plan. Only real failures, and Steam pushing
+    // back, say something needs looking at.
+    const partial = Number(counts.failed ?? 0) > 0 || counts.rateLimited === true;
     diagnostics.event(partial ? "warning" : "succeeded", { ...counts, status: 200 });
     return diagnostics.response(response(result));
   } catch (error) {

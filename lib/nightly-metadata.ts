@@ -17,7 +17,9 @@ export async function refreshNightlyMetadata() {
   const apiKey = process.env.STEAM_WEB_API_KEY;
   if (!apiKey) throw new Error("STEAM_WEB_API_KEY is required for the nightly refresh.");
 
-  const deadlineAt = Date.now() + 90_000;
+  // The route allows 120s. Nothing happens after the loop below but the return, so
+  // 105 leaves room for the run record and the response and no more.
+  const deadlineAt = Date.now() + 105_000;
   const previousCursor = await loadLibraryCursor();
   const users = await loadSteamUsers(previousCursor);
   // A verified account and one or more manual profiles can point at the same
@@ -31,16 +33,40 @@ export async function refreshNightlyMetadata() {
   let rateLimited = false;
   let lastAccountId = previousCursor;
   let failed = 0;
-  const failures: Array<{ userId: string; stage: string; error: string }> = [];
+  let skipped = 0;
+  const failures: Array<{ userId: string; stage: string; error: string; databaseCode?: string }> = [];
+  // A library that is private, empty or otherwise not readable is the account
+  // holder's own setting. There is nothing here to fix and nothing to retry, so
+  // counting it as a failure both overstated how bad a night was and buried the
+  // failures that are ours. lib/request-failure.ts already draws this same line.
+  const THEIR_SETTING = new Set([
+    "library_private", "library_empty", "library_unavailable", "steam_library_private"
+  ]);
   function recordFailure(userId: string, stage: string, error: unknown) {
+    // Keep the one-row run summary small; no library contents or raw upstream/SQL
+    // messages are retained in it. database_code survives because
+    // safeDiagnosticProperties has already reduced it to a bare SQLSTATE, and it is
+    // the difference between "something threw" and "57014, the statement timeout
+    // again" - which is the whole diagnosis, without it.
+    const diagnostic = diagnosticFailure(error);
+    const code = String(diagnostic.error_code ?? "worker_error");
+    if (THEIR_SETTING.has(code)) {
+      skipped += 1;
+      return;
+    }
     failed += 1;
-    // Keep the existing one-row run summary small; no library contents or raw
-    // upstream/SQL messages are retained in it.
-    if (failures.length < 20) failures.push({ userId, stage, error: String(diagnosticFailure(error).error_code ?? "worker_error") });
+    if (failures.length < 20) {
+      const databaseCode = typeof diagnostic.database_code === "string" ? diagnostic.database_code : undefined;
+      failures.push({ userId, stage, error: code, ...(databaseCode ? { databaseCode } : {}) });
+    }
   }
 
   for (let index = 0; index < users.length; index += 3) {
-    if (rateLimited || Date.now() + 30_000 >= deadlineAt) break;
+    // Reserve one batch, not a third of the run. The old 30s reserve against a 90s
+    // budget stopped the sweep at 60s and left 25 of 150 candidates attempted, so a
+    // full pass over every account took the better part of a month. Three libraries
+    // have been costing about 7.5s together.
+    if (rateLimited || Date.now() + 12_000 >= deadlineAt) break;
 
     const batch = users.slice(index, index + 3);
     await Promise.all(batch.map(async (user) => {
@@ -98,6 +124,7 @@ export async function refreshNightlyMetadata() {
     lastAccountId,
     rateLimited,
     failed,
+    skipped,
     failures
   };
 }

@@ -113,8 +113,29 @@ test("coordination failures stop work, and partial results produce a diagnostic 
   assert.deepEqual(h.outcomes, ["started", "warning"]);
 });
 
+test("deferred work is the pacing, not a warning", async () => {
+  // Every deadline-bounded worker here defers what it could not reach, and
+  // nightly-metadata reads 150 candidates it never intends to finish in one night,
+  // so warning on deferral meant no run could report success and the status said
+  // nothing. Each signal is asserted alone: the old test passed on rateLimited
+  // while claiming to be about deferral.
+  const quiet = cronHarness();
+  await quiet.runNightlyWorker(quiet.request(), "nightly-metadata", async () => ({
+    failed: 0, deferred: 18, librariesDeferred: 120, librariesRefreshed: 30
+  }));
+  assert.deepEqual(quiet.outcomes, ["started", "succeeded"]);
+
+  const broken = cronHarness();
+  await broken.runNightlyWorker(broken.request(), "nightly-metadata", async () => ({ failed: 1, deferred: 0 }));
+  assert.deepEqual(broken.outcomes, ["started", "warning"]);
+
+  const pushedBack = cronHarness();
+  await pushedBack.runNightlyWorker(pushedBack.request(), "steam-tags", async () => ({ failed: 0, rateLimited: true }));
+  assert.deepEqual(pushedBack.outcomes, ["started", "warning"]);
+});
+
 const id = (index: number) => `00000000-0000-4000-8000-${String(index).padStart(12, "0")}`;
-function libraryHarness(options: { cursor?: string; size?: number; limited?: boolean } = {}) {
+function libraryHarness(options: { cursor?: string; size?: number; limited?: boolean; libraryError?: unknown } = {}) {
   const accounts = Array.from({ length: options.size ?? 6 }, (_, index) => ({ id: id(index + 1), steam_id: `steam-${Math.floor(index / 2)}` }));
   const calls = { owned: 0, recent: 0, saved: [] as string[], limits: [] as number[] };
   function from(table: string) {
@@ -134,7 +155,7 @@ function libraryHarness(options: { cursor?: string; size?: number; limited?: boo
     "@/lib/supabase": { getSupabaseAdmin: () => ({ from }) },
     "@/lib/diagnostics": diagnostics, "@/lib/steam-api-error": steamErrors,
     "@/lib/steam": {
-      fetchOwnedSteamGames: async () => { calls.owned++; if (options.limited) throw new steamErrors.SteamApiError("owned_games", "steam_rate_limited", 429, 60); return [{ steam_appid: "10" }]; },
+      fetchOwnedSteamGames: async () => { calls.owned++; if (options.libraryError) throw options.libraryError; if (options.limited) throw new steamErrors.SteamApiError("owned_games", "steam_rate_limited", 429, 60); return [{ steam_appid: "10" }]; },
       fetchRecentlyPlayedSteamAppIds: async () => { calls.recent++; return [10]; },
     },
     "@/lib/catalogue": { recordImportedSteamAppIds: async () => undefined },
@@ -165,6 +186,32 @@ test("nightly library population is bounded and a Steam 429 prevents starting th
   assert.equal(cooldown.rateLimited, true); assert.equal(cooldown.librariesAttempted, 3);
   assert.equal(cooldown.librariesDeferred, 37); assert.equal(limited.calls.owned, 2);
   assert.equal(limited.calls.recent, 0); assert.equal(cooldown.lastAccountId, id(3));
+});
+
+test("a private library is somebody's setting, not a failure of ours", async () => {
+  const privateLibrary = Object.assign(new Error("library is private"), { code: "library_private" });
+  const h = libraryHarness({ size: 4, libraryError: privateLibrary });
+  const result = await h.refreshNightlyMetadata();
+
+  assert.equal(result.skipped, 4);
+  assert.equal(result.failed, 0);
+  assert.deepEqual(result.failures, []);
+  assert.equal(result.librariesRefreshed, 0);
+});
+
+test("a failure keeps the SQLSTATE that says which failure it was", async () => {
+  // 57014 is the statement timeout that stalled imports for weeks. Reducing every
+  // failure to its error_code left "unexpected_error" and no way to tell one cause
+  // from another; safeDiagnosticProperties has already stripped database_code back
+  // to a bare SQLSTATE, so it is safe to keep in the run summary.
+  const timedOut = Object.assign(new Error("canceling statement"), { code: "57014" });
+  const h = libraryHarness({ size: 2, libraryError: timedOut });
+  const result = await h.refreshNightlyMetadata();
+
+  assert.equal(result.skipped, 0);
+  assert.equal(result.failed, 2);
+  assert.equal(result.failures[0].error, "unexpected_error");
+  assert.equal(result.failures[0].databaseCode, "57014");
 });
 
 function tagHarness(response: Response, deadlineExpired = false) {
