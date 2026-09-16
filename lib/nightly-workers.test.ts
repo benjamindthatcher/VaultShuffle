@@ -42,8 +42,17 @@ test("Vercel adds a pins-only daily job, retains the existing schedules and excl
   for (const path of ["app/api/cron/durations/route.ts", "app/api/durations/process/route.ts", "app/api/catalogue/process/route.ts"]) {
     assert.equal(existsSync(new URL(path, root)), false);
   }
+  // steam-tags carries two tag sources, the endless sweep and the guest pool in one
+  // request, so it is the one that needs more than the shared 120.
+  const expectedDuration: Record<string, number> = {
+    "/api/cron/pinned-playtime": 120,
+    "/api/cron/nightly-metadata": 120,
+    "/api/cron/catalogue-metadata": 120,
+    "/api/cron/steam-tags": 300,
+  };
   for (const path of steamPaths) {
-    assert.match(readFileSync(new URL(`app${path}/route.ts`, root), "utf8"), /maxDuration = 120/);
+    assert.match(readFileSync(new URL(`app${path}/route.ts`, root), "utf8"),
+      new RegExp(`maxDuration = ${expectedDuration[path]}\\b`));
   }
   // Prevent a future route from silently importing the retired worker again.
   function scan(directory: URL) {

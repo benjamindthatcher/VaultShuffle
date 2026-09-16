@@ -298,7 +298,11 @@ function parseRetryAfterMs(value: string | null) {
   return Number.isFinite(retryAt) ? Math.max(0, retryAt - Date.now()) : undefined;
 }
 
-async function waitForSteamStoreRateLimit() {
+/**
+ * Exported because the store-page tag worker knocks on the same door. The interval
+ * belongs to the host, not to whichever worker got there first.
+ */
+export async function waitForSteamStoreRateLimit() {
   const now = Date.now();
   const requestAt = Math.max(now, nextSteamStoreRequestAt);
   nextSteamStoreRequestAt = requestAt + STEAM_STORE_MIN_INTERVAL_MS;
