@@ -56,7 +56,7 @@ The tag worker writes tag fields, not duration estimates/classifications. Existi
 - The duration loop inside `nightly-metadata`
 - Background enrichment after user imports
 
-Legacy duration-worker source is retained for reference and guarded against Vercel execution. The local duration admin's old `process` command no longer invokes a Supabase function. See [local duration workflow](../supabase/README.md).
+The legacy duration-worker source is gone, deleted on 2026-09-16 along with the `igdb-duration-worker` Supabase Edge Function and the IGDB provider behind both. IGDB never returned usable durations, so there was nothing to revive: HowLongToBeat is the duration source, and it runs locally. The local duration admin's old `process` command no longer invokes a Supabase function. See [local duration workflow](../supabase/README.md).
 
 ## Deployment and verification
 

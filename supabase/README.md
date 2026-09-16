@@ -2,7 +2,9 @@
 
 Duration lookup, matching and review run locally. Vercel serves stored estimates but does not contact IGDB/HLTB or drain duration queues. Existing estimates, evidence, overrides, queues and local scripts are preserved.
 
-The old `/api/cron/durations` and `/api/durations/process` routes are removed. `npm run duration:admin -- process` refuses to invoke the legacy Supabase Edge Function. Its source remains for reference; do not deploy or schedule it. The production Supabase cron audit on 2026-08-31 found no active duration job, only API rate-limit cleanup.
+The old `/api/cron/durations` and `/api/durations/process` routes are removed. `npm run duration:admin -- process` refuses to invoke the legacy Supabase Edge Function, which no longer exists: the deployed `igdb-duration-worker` function was deleted by hand on 2026-09-16 and its source, the shared IGDB provider and the `igdb:lookup` helper were removed from the repository the same day. The production Supabase cron audit on 2026-08-31 found no active duration job, only API rate-limit cleanup.
+
+This repository now contains no Supabase Edge Functions at all. Duration work is the local HowLongToBeat pipeline below; there is no automated duration worker on any schedule.
 
 ## Local workflow
 

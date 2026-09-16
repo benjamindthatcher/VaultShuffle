@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
-    "test": "node --experimental-strip-types --test lib/*.test.ts scripts/catalogue/*.test.mjs scripts/durations/*.test.mjs supabase/functions/_shared/igdb-duration-provider.test.ts",
+    "test": "node --experimental-strip-types --test lib/*.test.ts scripts/catalogue/*.test.mjs scripts/durations/*.test.mjs",
     "catalogue:fetch-top": "node scripts/catalogue/fetch-steamspy-top.mjs",
     "catalogue:fetch-steamspy-owners": "node scripts/catalogue/fetch-steamspy-owners.mjs",
     "catalogue:fetch-igdb-popular": "node scripts/catalogue/fetch-igdb-popular.mjs",
@@ -18,10 +18,8 @@
     "catalogue:build-seed": "node scripts/catalogue/build-seed-sql.mjs",
     "catalogue:import-durations": "node scripts/catalogue/import-duration-estimates.mjs",
     "catalogue:reclassify-endless": "node --experimental-strip-types scripts/catalogue/reclassify-endless.mjs",
-    "igdb:lookup": "node --experimental-strip-types scripts/igdb/lookup.ts",
     "duration:admin": "node --experimental-strip-types scripts/igdb/admin.ts",
     "duration:hltb": "python3 scripts/durations/enrich-hltb.py",
-    "test:duration": "node --experimental-strip-types --test supabase/functions/_shared/igdb-duration-provider.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

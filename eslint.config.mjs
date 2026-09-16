@@ -11,7 +11,6 @@ const config = [
       ".next/**",
       "node_modules/**",
       "data/**",
-      "supabase/functions/**",
       "scripts/**"
     ]
   },
