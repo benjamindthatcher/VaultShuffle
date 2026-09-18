@@ -1,3 +1,135 @@
+<<<<<<< Updated upstream
+=======
+.shell {
+  min-height: 100vh;
+  padding-inline: clamp(20px, 4vw, 48px);
+}
+
+.header {
+  width: var(--vault-list-width);
+  margin: 0 auto;
+  padding: 22px 0 6px;
+}
+
+/* The nav sits beside the brand in the row the header already had, so when the
+   session resolves client-side the links appear in space that was empty and
+   nothing on the page moves. min-height holds the row at the brand's height so
+   it cannot grow either. */
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-height: 38px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.nav ul {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  color: var(--vault-text-muted);
+  font-size: 0.86rem;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 120ms ease, background 120ms ease;
+}
+
+.nav a:hover,
+.nav a:focus-visible {
+  color: var(--vault-text);
+  background: var(--vault-control-hover-bg);
+}
+
+.nav a[aria-current="page"] {
+  color: var(--vault-text);
+  background: var(--vault-accent-soft);
+}
+
+.who {
+  padding-left: 14px;
+  border-left: 1px solid var(--vault-border);
+  color: var(--vault-text-soft);
+  font-size: 0.84rem;
+  font-weight: 650;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14ch;
+}
+
+/* Below this the four links would crowd the wordmark off the row, so they wrap
+   underneath it and scroll sideways rather than shrinking to nothing. */
+@media (max-width: 860px) {
+  .headerRow {
+    flex-wrap: wrap;
+    gap: 8px 14px;
+  }
+
+  .nav {
+    width: 100%;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .who {
+    display: none;
+  }
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.brandIcon {
+  width: 38px;
+  height: 38px;
+  object-fit: contain;
+}
+
+.brandWordmark {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.brandWord { color: rgba(244, 247, 255, 0.94); }
+
+.brandAccent {
+  background: linear-gradient(90deg, #d66eff, #4e8dff);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+>>>>>>> Stashed changes
 .content {
   width: min(820px, 100%);
   margin: 0 auto;

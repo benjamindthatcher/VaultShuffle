@@ -1,0 +1,244 @@
+/* One colour per kind of answer, carried by the badge and the reason line so a
+   row of four reads as four different offers rather than one list. */
+.card[data-lane="because"] { --lane: #f3a8ff; }
+.card[data-lane="finish"] { --lane: #7ce7b2; }
+.card[data-lane="gem"] { --lane: #86dcff; }
+.card[data-lane="quick"] { --lane: #ffd479; }
+.card[data-lane="return"] { --lane: #c9b6ff; }
+.card[data-lane="acclaimed"] { --lane: #f5c451; }
+
+.card {
+  --lane: #d9c6ff;
+  position: relative;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-card-surface);
+}
+
+/* The whole card opens the game, through a transparent button stretched over
+   it - the same pattern as the other dashboard cards, so the positioned rows
+   inside are not collapsed by a wrapping button. Controls sit above it. */
+.open {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.open:focus-visible { outline: none; }
+.card:has(.open:hover) { border-color: rgba(175, 126, 255, 0.44); }
+.card:has(.open:focus-visible) { outline: 2px solid #c08bff; outline-offset: 2px; }
+
+.art {
+  position: relative;
+  display: block;
+  aspect-ratio: 460 / 215;
+  border-radius: 7px;
+  overflow: hidden;
+  background: var(--vault-well-surface);
+}
+.art img { width: 100%; height: 100%; object-fit: cover; }
+
+.badge {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: calc(100% - 12px);
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: rgba(8, 11, 28, 0.8);
+  backdrop-filter: blur(4px);
+  color: var(--lane);
+  font-size: 0.68rem;
+  font-weight: 760;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+/* Hiding belongs on the card itself, in the corner where the pinned shelf puts
+   its unpin, so the two read as the same kind of control. */
+.dismiss {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(8, 11, 28, 0.74);
+  color: rgba(233, 236, 255, 0.84);
+  backdrop-filter: blur(4px);
+  cursor: pointer;
+}
+.dismiss:hover { border-color: rgba(255, 138, 128, 0.6); background: rgba(70, 14, 24, 0.8); color: #ffb4c2; }
+.dismiss:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+
+.body { display: grid; align-content: start; gap: 5px; min-width: 0; }
+
+.title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--vault-text);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.reason {
+  margin: 0;
+  color: var(--lane);
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.detail { margin: 0; color: var(--vault-text-muted); font-size: 0.76rem; line-height: 1.4; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.tags li {
+  padding: 2px 7px;
+  border: 1px solid rgba(177, 119, 255, 0.26);
+  border-radius: 999px;
+  background: rgba(134, 91, 255, 0.1);
+  color: #d9c6ff;
+  font-size: 0.68rem;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.meta { margin: 0; color: var(--vault-text-soft); font-size: 0.72rem; }
+
+.actions {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.play,
+.pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 750;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.play { background: var(--vault-accent); color: #fff; }
+.play:hover { background: var(--vault-accent-strong); }
+.pin { border: 1px solid rgba(177, 119, 255, 0.4); background: rgba(99, 49, 170, 0.18); color: #dcbcff; }
+.pin:hover { border-color: #be82ff; color: #f5eaff; }
+.play:focus-visible,
+.pin:focus-visible { outline: 2px solid #e1bdff; outline-offset: 2px; }
+
+/* Two ways to say no, because they are two different things: "not tonight" is
+   a snooze and says nothing about the game, "not for me" sets it aside and
+   teaches the shelf to offer fewer like it. Asked over the card rather than in
+   a menu so both options have room to say what they will do. */
+.dismissPanel {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: inherit;
+  background: rgba(9, 10, 26, 0.95);
+  backdrop-filter: blur(6px);
+}
+.dismissPanel button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--vault-text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.dismissPanel button:hover { border-color: var(--vault-border-strong); background: rgba(255, 255, 255, 0.06); }
+.dismissPanel button:focus-visible { outline: 2px solid #e1bdff; outline-offset: 2px; }
+.dismissPanel strong { display: block; font-size: 0.84rem; }
+.dismissPanel small { display: block; margin-top: 1px; color: var(--vault-text-muted); font-size: 0.72rem; line-height: 1.35; }
+.dismissPanel .cancel {
+  justify-content: center;
+  padding: 6px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--vault-text-muted);
+  font-size: 0.8rem;
+}
+.dismissPanel .cancel:hover { border-color: transparent; background: transparent; color: var(--vault-text); }
+
+/* On a phone four tall cards are a long scroll before anything else on the
+   dashboard. Artwork to the side keeps each one to a single glance. */
+@media (max-width: 619px) {
+  /* Only the title and the reason sit beside the artwork. The tags, the facts
+     and the buttons take the full width underneath - squeezed into the column
+     beside a 112px image, the tags stacked one to a line and every card was
+     twice as tall as its content. */
+  .card {
+    grid-template-columns: minmax(0, 112px) minmax(0, 1fr);
+    grid-template-areas:
+      "art title"
+      "art reason"
+      "tags tags"
+      "meta meta"
+      "actions actions";
+    grid-template-rows: auto 1fr auto auto auto;
+    column-gap: 10px;
+    row-gap: 6px;
+    align-items: start;
+  }
+  .art { grid-area: art; }
+  .body { display: contents; }
+  .title { grid-area: title; padding-right: 30px; }
+  .reason { grid-area: reason; }
+  .tags,
+  .detail { grid-area: tags; }
+  .meta { grid-area: meta; }
+  .actions { grid-area: actions; margin-top: 2px; }
+  .dismiss { top: 7px; right: 7px; }
+  .badge { font-size: 0.62rem; padding: 2px 6px 2px 5px; }
+
+  /* A sideways card is too short to stack both choices, so they sit side by
+     side with the way out underneath. */
+  .dismissPanel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: center;
+    gap: 6px;
+    padding: 8px;
+    overflow: auto;
+  }
+  .dismissPanel button { align-items: flex-start; gap: 8px; padding: 8px 10px; }
+  .dismissPanel .cancel { grid-column: 1 / -1; align-items: center; padding: 4px; }
+}

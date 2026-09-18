@@ -1,0 +1,68 @@
+.page { width: var(--vault-list-width); margin-inline: auto; display: grid; gap: 22px; }
+
+.section { display: grid; gap: 8px; }
+.blurb { margin: -4px 0 2px; color: var(--vault-text-muted); font-size: 0.8rem; line-height: 1.45; }
+
+/* The model, shown. Steam's own shelf never says why, and a suggestion that
+   cannot be argued with cannot be corrected either - so this says what the
+   picks were made of and where each way of saying no ends up. */
+.taste {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border: 1px solid var(--vault-feature-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-feature-surface);
+}
+.taste h2 { margin: 0; color: var(--vault-text); font-size: 0.98rem; font-weight: 800; }
+.basis { margin: 0; color: var(--vault-text); font-size: 0.86rem; line-height: 1.5; }
+
+.tasteRow { display: grid; gap: 6px; }
+.tasteLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vault-text-muted);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.chips li {
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 680;
+}
+.chips[data-tone="like"] li { border: 1px solid rgba(243, 168, 255, 0.34); background: rgba(243, 168, 255, 0.1); color: #f6d4ff; }
+.chips[data-tone="avoid"] li { border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(255, 255, 255, 0.04); color: var(--vault-text-muted); }
+
+.hint { margin: 2px 0 0; color: var(--vault-text-soft); font-size: 0.76rem; line-height: 1.5; }
+.hint a { color: #d9b8ff; text-decoration: underline; text-underline-offset: 2px; }
+.hint a:hover { color: #f3e6ff; }
+
+.empty {
+  margin: 0;
+  padding: 18px;
+  border: 1px dashed var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  color: var(--vault-text-muted);
+  text-align: center;
+}
+
+.vaultLink {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  padding: 10px 18px;
+  border: 1px solid rgba(177, 119, 255, 0.4);
+  border-radius: 999px;
+  color: #dcbcff;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+.vaultLink:hover { border-color: #be82ff; color: #f5eaff; }

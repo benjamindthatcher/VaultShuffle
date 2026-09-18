@@ -1,0 +1,93 @@
+.shelf { display: grid; gap: 8px; }
+
+.basis {
+  margin: -2px 0 2px;
+  color: var(--vault-text-muted);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.seeAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #d9b8ff;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.seeAll:hover { color: #f3e6ff; }
+.seeAll:focus-visible { outline: 2px solid #e1bdff; outline-offset: 3px; border-radius: 4px; }
+
+/* One column on a phone - the cards lay out sideways there - two on a tablet,
+   and the dashboard's usual four across once there is room. */
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 620px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 900px) { .grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+.notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 10px;
+  background: rgba(134, 91, 255, 0.08);
+  color: var(--vault-text);
+  font-size: 0.82rem;
+}
+/* Kept in the tree, and visible to assistive tech, while empty: a live region
+   that is display:none or inserted along with its text is often not announced
+   at all. Collapsed instead, with the grid gap it would leave taken back. */
+.notice[data-empty="true"] { margin-top: -8px; padding: 0; border: 0; background: none; }
+.notice span { flex: 1 1 auto; min-width: 0; }
+
+/* On a phone the card that was just dismissed can be three screens away from
+   anything inline, so the way back floats at the bottom of the screen instead. */
+@media (max-width: 619px) {
+  .notice:not([data-empty="true"]) {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: max(12px, env(safe-area-inset-bottom));
+    z-index: 40;
+    margin: 0;
+    border-color: rgba(177, 119, 255, 0.45);
+    background: rgba(24, 16, 48, 0.97);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  }
+}
+.notice button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid rgba(177, 119, 255, 0.4);
+  border-radius: 999px;
+  background: transparent;
+  color: #dcbcff;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.notice button:hover { border-color: #be82ff; color: #f5eaff; }
+.notice .noticeClose { padding: 5px; border-color: transparent; color: var(--vault-text-muted); }
+
+.allDone {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  color: var(--vault-text-muted);
+  font-size: 0.86rem;
+  text-align: center;
+}

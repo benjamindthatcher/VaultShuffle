@@ -1,1 +1,572 @@
+<<<<<<< Updated upstream
 .page { display: grid; gap: 12px; }.eyebrow { margin: 0; color: #d58cff; font-size: .74rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }.page h1, .intro { margin: 0; }.intro { max-width: 680px; color: var(--vault-text-muted); font-size: 1.04rem; line-height: 1.7; }.sections { display: grid; gap: 12px; margin-top: 22px; }.sections section { padding: 20px; border: 1px solid rgba(145,105,255,.22); border-radius: 15px; background: rgba(10,14,35,.74); }.sections h2, .sections p { margin: 0; }.sections h2 { font-size: 1.06rem; }.sections p { margin-top: 8px; color: var(--vault-text-muted); line-height: 1.65; }
+=======
+/* The same heading the app pages use: eyebrow, title, one sentence, then the
+   content in cards. The cards are sized to the text rather than to the shell,
+   so a paragraph no longer stops two thirds of the way across its own card. */
+.page {
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  gap: 6px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #d392ff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.page h1,
+.intro {
+  margin: 0;
+}
+
+.page h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
+.intro {
+  color: var(--vault-text);
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+/* The accepted release-page language: a lead pane gets the richer blended
+   surface, while the sections beneath it stay in quieter navy wells. */
+.overview {
+  position: relative;
+  overflow: hidden;
+  margin-top: 18px;
+  padding: 25px 22px 23px;
+  border: 1px solid rgba(168, 85, 247, 0.52);
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 8% -25%, rgba(168, 85, 247, 0.3), transparent 46%),
+    radial-gradient(circle at 96% 0%, rgba(78, 141, 255, 0.14), transparent 38%),
+    linear-gradient(135deg, #21143f, #121735 62%, #0e122b);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 12px 30px rgba(4, 5, 20, 0.16);
+}
+
+.overview::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
+}
+
+.overviewInner {
+  width: min(calc(80% + 37px), 100%);
+  margin: 0 auto;
+}
+
+.overviewHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  color: #c27aff;
+}
+
+.overviewHead h2 {
+  margin: 0;
+  color: var(--vault-text);
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.overviewBody {
+  color: rgba(245, 241, 255, 0.9);
+  font-size: 0.9rem;
+  line-height: 1.65;
+}
+
+.overviewBody p { margin: 0; }
+.overviewBody p + p { margin-top: 8px; }
+
+.sections {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.overview + .sections { margin-top: 14px; }
+
+/* Built the way the app's question rows are: the purple sits on the header
+   strip and the content below it sits on the near-black ground. The app never
+   uses #221543 as a large surface, and the reason is visible here - the same
+   colour that reads as calm across an 88px row reads as a slab across a
+   full-width panel. overflow keeps the square-cornered children inside the
+   rounded border. */
+.section {
+  overflow: hidden;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-sheet-radius);
+}
+
+.sectionRelease { background: rgba(7, 11, 29, 0.68); }
+
+.releasePage { gap: 9px; }
+.releasePage .sections { gap: 24px; margin-top: 26px; }
+.releasePage .sectionRelease { border-color: rgba(163, 112, 228, 0.3); border-radius: 20px; }
+.releasePage .sectionRelease[open] { box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12); }
+.releasePage .sectionRelease .summary {
+  padding: 23px 26px;
+  background: linear-gradient(110deg, #23173e, #17152f 80%);
+}
+.releasePage .sectionRelease .summary h2 { font-size: 1.2rem; letter-spacing: -0.025em; }
+.releasePage .sectionRelease .summary:hover { background: linear-gradient(110deg, #2a1b48, #1b1836 80%); }
+.releasePage .sectionRelease .body { padding: 24px; border-top-color: rgba(163, 112, 228, 0.2); }
+
+/* Documents share the release palette, with quieter surfaces and a single
+   consistent reading column from the overview through every answer. */
+.documentPage { gap: 9px; }
+.documentPage .overview {
+  padding: 28px 30px;
+  border-color: rgba(157, 116, 214, 0.3);
+  background: linear-gradient(120deg, #211739, #12172e 75%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+.documentPage .overviewInner,
+.documentPage .summaryInner,
+.documentPage .bodyInner { width: 88%; }
+.documentPage .overviewBody { color: var(--vault-text); font-size: 0.95rem; line-height: 1.75; }
+.documentPage .overviewHead { margin-bottom: 14px; }
+.documentPage .overview a { color: #d392ff; text-decoration: underline; text-underline-offset: 3px; }
+.documentPage .sections { gap: 12px; margin-top: 22px; }
+.documentPage .sectionDocument {
+  --section-rgb: 168, 125, 224;
+  border-color: rgba(148, 119, 199, 0.24);
+  border-radius: 14px;
+  background: linear-gradient(125deg, #10132a, #0d1023);
+}
+.documentPage .sectionDocument::before { opacity: 0; }
+.documentPage .sectionDocument[open] { border-color: rgba(168, 125, 224, 0.46); }
+.documentPage .sectionDocument[open]::before { opacity: 0.75; }
+.documentPage .sectionDocument .summary { padding-inline: 30px; }
+.documentPage .summaryInner { min-height: 68px; gap: 14px; }
+.documentPage .sectionDocument .summary h2 { font-size: 1rem; line-height: 1.45; }
+.documentPage .body { border-top: 0; padding-inline: 30px; }
+.documentPage .bodyInner { padding: 0 0 24px; font-size: 0.95rem; line-height: 1.8; }
+.documentPage .bodyInner > p,
+.documentPage .bodyInner > ul,
+.documentPage .bodyInner > ol { max-width: none; }
+.documentPage .bodyInner > :first-child { padding-top: 18px; border-top: 1px solid rgba(168, 125, 224, 0.16); }
+
+.sectionDocument {
+  --section-rgb: 168, 85, 247;
+  position: relative;
+  background:
+    linear-gradient(90deg, rgba(var(--section-rgb), 0.045), transparent 32%),
+    linear-gradient(180deg, #10132f, #0d1028);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.sectionDocument:nth-child(4n + 2) { --section-rgb: 78, 141, 255; }
+.sectionDocument:nth-child(4n + 3) { --section-rgb: 110, 231, 183; }
+.sectionDocument:nth-child(4n) { --section-rgb: 194, 122, 255; }
+
+.sectionDocument::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  inset: 0 auto 0 0;
+  width: 2px;
+  background: linear-gradient(180deg, rgba(var(--section-rgb), 0.9), rgba(var(--section-rgb), 0.08));
+  pointer-events: none;
+}
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 20px;
+  cursor: pointer;
+  list-style: none;
+  transition: background 160ms ease;
+}
+
+.sectionRelease .summary { background: var(--vault-card-surface); }
+.sectionRelease .summary:hover { background: #281a4f; }
+.sectionDocument .summary { padding: 0 22px; }
+.sectionDocument .summary:hover { background: rgba(var(--section-rgb), 0.055); }
+
+.summaryInner {
+  width: min(calc(80% + 37px), 100%);
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto;
+  padding: 14px 0;
+}
+
+.sectionIcon { color: rgb(var(--section-rgb)); }
+
+/* Safari still paints its own triangle without this. */
+.summary::-webkit-details-marker { display: none; }
+
+.summary:hover h2 { color: #fff; }
+
+.summary:focus-visible {
+  border-radius: var(--vault-sheet-radius);
+  outline: 2px solid #b06bff;
+  outline-offset: 2px;
+}
+
+.summary h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  transition: color 140ms ease;
+}
+
+.sectionDocument .summary h2 { font-size: 0.98rem; }
+
+.chevron {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-right: 2px solid rgba(226, 214, 255, 0.6);
+  border-bottom: 2px solid rgba(226, 214, 255, 0.6);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.section[open] .chevron { transform: translateY(1px) rotate(225deg); }
+
+/* Body copy sits at the same colour as the headings. Muted grey on a dark
+   purple ground is legible in a two-line legal clause and tiring across a page
+   of release notes, so the hierarchy is carried by weight and form below
+   instead of by dimming the thing people came to read. */
+.body {
+  border-top: 1px solid var(--vault-card-border);
+  color: var(--vault-text);
+  font-size: 0.95rem;
+  line-height: 1.65;
+}
+
+.sectionRelease .body { padding: 17px 20px 18px; }
+
+.sectionDocument .body {
+  border-top-color: rgba(var(--section-rgb), 0.18);
+}
+
+.bodyInner {
+  width: min(calc(80% + 37px), 100%);
+  margin: 0 auto;
+  padding: 15px 0 18px;
+}
+
+/* Release notes group their entries under subheadings. The legal pages have no
+   use for these, so the rule exists only for the sections that need scanning. */
+.body h3 {
+  margin: 22px 0 9px;
+  color: var(--vault-text);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.body h3:first-child { margin-top: 0; }
+
+/* The panel takes the app's full column width; the text inside it does not.
+   A 1040px paragraph runs to about 130 characters, which is tiring however
+   good the contrast is, so the measure is capped and the panel is not.
+   Only running text is capped - a layout child such as the releases grid is
+   meant to use the whole width, and caps its own columns instead. */
+.intro,
+.bodyInner > p,
+.bodyInner > ul,
+.bodyInner > ol,
+.bodyInner > h3 { max-width: 72ch; }
+
+.body p {
+  margin: 0 0 11px;
+}
+
+.body p:last-child,
+.body ul:last-child {
+  margin-bottom: 0;
+}
+
+.body ul {
+  margin: 0 0 11px;
+  padding-left: 20px;
+}
+
+.body li {
+  margin-bottom: 6px;
+}
+
+.body li:last-child {
+  margin-bottom: 0;
+}
+
+.body a {
+  color: #d392ff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.body a:hover {
+  color: #eab6ff;
+}
+
+/* A control that reads as part of the sentence it sits in - the analytics dialog
+   has no address, so the policy opens it directly rather than describing where
+   the button lives. */
+.inlineAction {
+  padding: 0;
+  border: 0;
+  color: #d392ff;
+  background: none;
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.inlineAction:hover { color: #eab6ff; }
+
+.inlineAction:focus-visible {
+  border-radius: 3px;
+  outline: 2px solid #b06bff;
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron { transition: none; }
+}
+
+@media (max-width: 720px) {
+  .releasePage .sectionRelease .summary { padding: 19px 16px; }
+  .releasePage .sectionRelease .summary h2 { font-size: 1.04rem; }
+  .releasePage .sectionRelease .body { padding: 14px 10px; }
+  .documentPage .overview { padding: 22px 20px; }
+  .documentPage .overviewInner,
+  .documentPage .summaryInner { width: 100%; }
+  .documentPage .sectionDocument .summary { padding-inline: 20px; }
+  .documentPage .bodyInner { width: 100%; padding: 0 20px 22px; }
+  .documentPage .body { padding-inline: 0; }
+  .documentPage .summaryInner { min-height: 66px; }
+  .overview { margin-top: 14px; padding: 18px 16px; }
+  .overviewInner { width: 100%; }
+  .overviewBody { font-size: 0.87rem; }
+  .sections { margin-top: 14px; }
+  .summary { padding: 14px 16px; gap: 10px; }
+  .sectionDocument .summary { padding: 0 16px; }
+  .summaryInner { width: 100%; min-height: 54px; padding: 12px 0; }
+  .sectionRelease .body { padding: 14px 16px 15px; }
+  .bodyInner { box-sizing: border-box; width: 100%; padding: 13px 16px 15px; }
+}
+
+/* The article variant: blog posts.
+   One pane, not a stack of cards. The surface is the document card's - border,
+   gradient ground, rounded, inset text - so a post is visibly the same site as
+   privacy and releases. What it drops is the <details> behaviour, the chevron,
+   and the parcelling of each section into its own card: a post is one read, so
+   the lede and the sections share one surface and are divided by rules. */
+.articlePage { gap: 9px; }
+
+/* The releases page's version container, which is the shape this wanted all
+   along. What was wrong before was not that the article had a wrapper, it was
+   that the wrapper and everything inside it were the same tinted purple, so
+   it read as a box in a box in a box. The releases page does not do that: its
+   container interior is rgba(7 11 29 / .68), darker than the ground it sits
+   on, and the cards inside are lighter than the interior. So the nesting is
+   legible instead of muddy, and there is exactly one purple moment, the bar. */
+.articlePane {
+  position: relative;
+  overflow: hidden;
+  margin-top: 20px;
+  border: 1px solid rgba(163, 112, 228, 0.3);
+  border-radius: 20px;
+  background: rgba(7, 11, 29, 0.68);
+}
+
+/* The bar. The releases summary's gradient, padding and type, holding the
+   standfirst: it is the one line that says what the whole thing below it is,
+   which is the same job the version number does over there. */
+.articleBar {
+  margin: 0;
+  padding: 22px 26px;
+  text-align: center;
+  border-bottom: 1px solid rgba(163, 112, 228, 0.2);
+  background: linear-gradient(110deg, #23173e, #17152f 80%);
+  color: var(--vault-text);
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.45;
+}
+
+.articleBody {
+  display: grid;
+  gap: 22px;
+  padding: 22px;
+}
+
+/* The release overview's card, minus its background. The border, the radius,
+   the inset highlight, the top strip and the drop shadow are what gave that
+   card its depth, and they all carry over. What does not is its fill: two
+   radials, purple from the top left at 30% and blue from the top right, over
+   a #21143f sweep. On a release overview that is two short paragraphs; on a
+   post the brightest part of the purple sat directly behind the first three
+   lines someone reads, and it hazed the text.
+
+   So the fill is the game cards' instead, the same navy #10132f into #0d1028
+   under the same 4.5% purple wash. The introduction and the ten entries under
+   it are then one family of surfaces, and what marks this one out is its
+   edge: the overview's purple border at 52% against the cards' lilac at 28%.
+   White type on it runs at about 15:1. */
+
+/* Also not borrowed: .overviewInner's centred 80% column. Over there the
+   overview leads a grid of full width cards; here it leads ten of them whose
+   text starts 24px in, and centring this block would put the opening
+   paragraph on a different axis from every game below it. So the padding
+   matches the cards' instead and the article keeps one reading edge. */
+/* .articleProse is the same pane without the strip, for a post's closing
+   block. The two are the article's bookends and they were not matching: the
+   opening had a surface and the ending was bare text on the container, which
+   is what made the opening look like a stray box rather than one of a pair. */
+.articleLede,
+.articleProse {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 30px 24px 32px;
+  border: 1px solid rgba(168, 85, 247, 0.52);
+  border-radius: 16px;
+  background:
+    linear-gradient(90deg, rgba(168, 85, 247, 0.045), transparent 32%),
+    linear-gradient(180deg, #10132f, #0d1028);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 12px 30px rgba(4, 5, 20, 0.16);
+}
+
+.articleLede::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
+  pointer-events: none;
+}
+
+/* Larger than the body it introduces. At 1rem it was within a third of a pixel
+   of a game card's note, so the opening read as another entry rather than as
+   the way in. The ladder is now the bar at 1.2rem and bold, the opening at
+   1.14rem, an entry's note at 0.98rem. */
+.articlePage .overviewBody {
+  color: var(--vault-text);
+  font-size: 1.14rem;
+  line-height: 1.72;
+}
+
+.articlePage .overviewBody p { margin: 0 0 15px; }
+.articlePage .overviewBody p:last-child { margin-bottom: 0; }
+
+/* A grid child of .articleBody. It needs the min-width so a wide child, a
+   table or the picks list, cannot push the column past the container. It also
+   needs to exist: with every rule for it removed, styles.articleSection came
+   back undefined and React wrote class="undefined" into the markup. */
+.articleSection {
+  min-width: 0;
+}
+
+.articleHeading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #c27aff;
+}
+
+.articleLede .articleHeading h2 {
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.articleHeading h2 {
+  margin: 0;
+  color: var(--vault-text);
+  font-size: 1.24rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+.articleLede .articleHeading { margin-bottom: 12px; }
+
+.articlePage .body {
+  border-top: 0;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+/* The pane's padding used to be the inset, so the inner had to clear it.
+   Nothing wraps these now, so the blocks sit straight on the grid and the
+   gap between sections is the only spacing. */
+.articlePage .bodyInner {
+  width: 100%;
+  padding: 0;
+}
+
+.articlePage .articleHeading + .body {
+  margin-top: 12px;
+}
+
+.articlePage .body p { margin: 0 0 15px; }
+.articlePage .body p:last-child { margin-bottom: 0; }
+
+/* No measure cap: the pane's padding is the measure, the same way the document
+   cards' inset is theirs. */
+.articlePage .bodyInner > p,
+.articlePage .bodyInner > ul,
+.articlePage .bodyInner > ol { max-width: none; }
+
+/* A footnote under the content it qualifies. One line, quieter than the prose,
+   which is the whole space a caveat needs: a section about method reads as the
+   page explaining itself rather than telling you anything. */
+.articlePage .body small {
+  display: block;
+  color: var(--vault-text-soft);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.articlePage .body h3 {
+  margin: 26px 0 10px;
+  font-size: 1.02rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (max-width: 720px) {
+  .articlePane { border-radius: 16px; }
+  .articleBar { padding: 17px 18px; font-size: 1.06rem; }
+  .articleBody { gap: 18px; padding: 18px; }
+  .articleLede,
+  .articleProse { padding: 22px 18px 24px; border-radius: 14px; }
+  .articlePage .overviewBody { font-size: 1.06rem; }
+  .articleHeading h2 { font-size: 1.1rem; }
+}
+>>>>>>> Stashed changes

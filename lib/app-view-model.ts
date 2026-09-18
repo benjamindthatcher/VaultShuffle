@@ -4,6 +4,12 @@ import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import type { Collection, CollectionGame, Game, SessionPayload } from "@/lib/types";
 import type { DemoCollection, DemoGame, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
+<<<<<<< Updated upstream
+=======
+import { deriveMoodScores, deriveSessionFits, moodTagsFromScores } from "@/lib/vault-matching";
+import { matchesSmartPreset } from "@/lib/smart-collections";
+import { playNextTagProfile } from "@/lib/play-next";
+>>>>>>> Stashed changes
 
 export type CollectionDetailPayload = {
   collection: Collection;
@@ -89,8 +95,40 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         : undefined,
       saleDiscount: Number(game.discount_percent || 0) > 0 ? `-${game.discount_percent}%` : undefined,
       collectionIds: collectionIdsByGameId.get(game.id) ?? [],
+<<<<<<< Updated upstream
       sessionFit: deriveSessionFit(game),
       moodTags: deriveMoodTags(game, genres),
+=======
+      sessionability: sessionabilityValue,
+      sessionFit: deriveSessionFits({
+        duration: {
+          mainStoryMinutes: game.main_story_minutes,
+          mainExtrasMinutes: game.main_extras_minutes,
+          completionistMinutes: game.completionist_minutes,
+          endless: isEndlessGame(game)
+        },
+        completionPercent: gameProgress(game),
+        endless: isEndlessGame(game),
+        sessionability: sessionabilityValue
+      }),
+      priceInitial: game.price_initial ?? null,
+      priceFinal: game.price_final ?? null,
+      isFree: game.is_free ?? null,
+      reviewPositive: game.review_positive ?? null,
+      reviewNegative: game.review_negative ?? null,
+      reviewTotal: game.review_total ?? null,
+      durationStatus: game.duration_status ?? null,
+      tagsStatus: game.tags_status ?? null,
+      accessSource: game.access_source ?? "owned",
+      familyOwnerSteamId: game.family_owner_steam_id ?? null,
+      // Filled in by withFamilyOwnerNames once the family roster has loaded; the
+      // library and the roster are two different requests and either can land
+      // first.
+      familyOwnerName: null,
+      moodTags: moodTagsFromScores(moodScores),
+      moodScores,
+      tagProfile: playNextTagProfile(game.steam_tags),
+>>>>>>> Stashed changes
       completedAt: game.completed_at,
       previousActiveStatus: game.previous_active_status === "In Progress" ? "In Progress" : game.previous_active_status ? "Not Started" : null,
       sleptAt: game.slept_at,

@@ -1,0 +1,196 @@
+/* Game tables sit inside post prose, so they borrow the information pages'
+   surface ramp rather than introducing a second one: navy wells hold the rows,
+   the purple accent marks the heading edge, and nothing here invents a colour
+   the rest of the site does not already use. */
+
+.wrap {
+  margin: 26px 0;
+}
+
+.scroll {
+  overflow-x: auto;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-well-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.table thead th {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--vault-border);
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), transparent);
+  color: var(--vault-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody tr + tr th,
+.table tbody tr + tr td {
+  border-top: 1px solid rgba(58, 40, 102, 0.55);
+}
+
+.table tbody th,
+.table tbody td {
+  padding: 10px 14px;
+  color: var(--vault-text);
+  font-weight: 500;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.table tbody tr:hover th,
+.table tbody tr:hover td {
+  background: rgba(168, 85, 247, 0.07);
+}
+
+.gameCell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 240px;
+}
+
+.art {
+  flex: none;
+  width: 92px;
+  height: 43px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: 6px;
+  object-fit: cover;
+}
+
+.gameLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--vault-text);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.gameLink:hover span,
+.gameLink:focus-visible span {
+  color: var(--vault-control-focus);
+  text-decoration: underline;
+}
+
+.linkIcon {
+  flex: none;
+  opacity: 0.5;
+}
+
+.deck {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.deckVerified {
+  border: 1px solid rgba(110, 231, 183, 0.4);
+  background: rgba(110, 231, 183, 0.13);
+  color: var(--vault-success);
+}
+
+.deckPlayable {
+  border: 1px solid rgba(201, 166, 255, 0.34);
+  background: rgba(168, 85, 247, 0.14);
+  color: var(--vault-control-focus);
+}
+
+.reviewCount {
+  margin-left: 6px;
+  color: var(--vault-text-soft);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.caption {
+  margin: 10px 2px 0;
+  color: var(--vault-text-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.empty {
+  margin: 26px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-well-surface);
+  color: var(--vault-text-muted);
+}
+
+/* Below this the table stops being a table: each row becomes a small stacked
+   card with its column names carried by data-label, because four columns of
+   game data cannot survive a 375px viewport as a grid. */
+@media (max-width: 640px) {
+  .scroll {
+    border: 0;
+    background: none;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tbody tr,
+  .table tbody th,
+  .table tbody td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tbody tr {
+    margin: 0 0 10px;
+    border: 1px solid var(--vault-card-border);
+    border-radius: var(--vault-card-radius);
+    background: var(--vault-well-surface);
+    overflow: hidden;
+  }
+
+  .table tbody tr + tr th,
+  .table tbody tr + tr td {
+    border-top: 0;
+  }
+
+  .gameCell {
+    min-width: 0;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(58, 40, 102, 0.55);
+  }
+
+  .table tbody td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 14px;
+  }
+
+  .table tbody td:last-child {
+    padding-bottom: 12px;
+  }
+
+  .table tbody td::before {
+    content: attr(data-label);
+    color: var(--vault-text-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}

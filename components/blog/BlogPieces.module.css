@@ -1,0 +1,351 @@
+/* Post furniture. Everything borrows the information pages' ramp: purple
+   feature pieces lead, navy wells hold detail. */
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 26px 0;
+}
+
+.stat {
+  padding: 18px 16px;
+  border: 1px solid rgba(168, 85, 247, 0.42);
+  border-radius: var(--vault-sheet-radius);
+  background: linear-gradient(135deg, #21143f, #121735 70%);
+}
+
+.statValue {
+  display: block;
+  color: var(--vault-text);
+  font-size: 1.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.statLabel {
+  display: block;
+  margin-top: 6px;
+  color: var(--vault-text-muted);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.statNote {
+  display: block;
+  margin-top: 6px;
+  color: var(--vault-text-soft);
+  font-size: 0.76rem;
+  line-height: 1.45;
+}
+
+.tableWrap {
+  margin: 26px 0;
+}
+
+.tableScroll {
+  overflow-x: auto;
+  border: 1px solid var(--vault-card-border);
+  border-radius: var(--vault-sheet-radius);
+  background: var(--vault-well-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.table thead th {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--vault-border);
+  background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), transparent);
+  color: var(--vault-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.table tbody tr + tr th,
+.table tbody tr + tr td {
+  border-top: 1px solid rgba(58, 40, 102, 0.55);
+}
+
+.table tbody th,
+.table tbody td {
+  padding: 10px 14px;
+  color: var(--vault-text);
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table tbody th {
+  font-weight: 650;
+}
+
+.caption {
+  margin: 10px 2px 0;
+  color: var(--vault-text-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.barRow {
+  display: grid;
+  grid-template-columns: 116px 1fr 56px;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 9px;
+}
+
+.barLabel {
+  color: var(--vault-text-muted);
+  font-size: 0.84rem;
+}
+
+.barTrack {
+  height: 11px;
+  border-radius: 999px;
+  background: rgba(58, 40, 102, 0.6);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--vault-accent-strong), var(--vault-accent));
+}
+
+.barValue {
+  color: var(--vault-text);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.note {
+  margin: 26px 0;
+  padding: 16px 18px;
+  border: 1px solid var(--vault-card-border);
+  border-left: 3px solid var(--vault-accent);
+  border-radius: var(--vault-card-radius);
+  background: var(--vault-well-surface);
+}
+
+.noteHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+  color: var(--vault-control-focus);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.noteBody {
+  color: var(--vault-text-muted);
+  font-size: 0.92rem;
+  line-height: 1.65;
+}
+
+.noteBody p {
+  margin: 0 0 9px;
+}
+
+.noteBody p:last-child {
+  margin-bottom: 0;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  /* The article's one block gap. */
+  margin: 22px 0 0;
+  padding: 24px;
+  border: 1px solid rgba(168, 85, 247, 0.52);
+  border-radius: var(--vault-sheet-radius);
+  background:
+    radial-gradient(circle at 8% -25%, rgba(168, 85, 247, 0.3), transparent 46%),
+    linear-gradient(135deg, #21143f, #121735 62%, #0e122b);
+}
+
+.ctaCopy {
+  flex: 1 1 260px;
+}
+
+.ctaCopy h2 {
+  margin: 0 0 6px;
+  color: var(--vault-text);
+  font-size: 1.16rem;
+  font-weight: 800;
+}
+
+.ctaCopy p {
+  margin: 0;
+  color: var(--vault-text-muted);
+  font-size: 0.93rem;
+  line-height: 1.6;
+}
+
+.ctaActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ctaPrimary,
+.ctaSecondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.ctaPrimary {
+  border: 1px solid var(--vault-accent);
+  background: var(--vault-accent-strong);
+  color: #fff;
+}
+
+.ctaPrimary:hover,
+.ctaPrimary:focus-visible {
+  border-color: var(--vault-control-hover-border);
+  background: var(--vault-accent);
+}
+
+.ctaSecondary {
+  border: 1px solid var(--vault-border-strong);
+  background: transparent;
+  color: var(--vault-text);
+}
+
+.ctaSecondary:hover,
+.ctaSecondary:focus-visible {
+  border-color: var(--vault-control-hover-border);
+  background: var(--vault-control-hover-bg);
+}
+
+/* The same secondary pill, for the way back to the index. The row exists only
+   to put a second class in front of the link. */
+.allPostsRow .allPosts {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 18px;
+  border: 1px solid var(--vault-border-strong);
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.92rem;
+  font-weight: 700;
+  transition: border-color 120ms ease, background 120ms ease;
+}
+
+.allPostsRow .allPosts:hover,
+.allPostsRow .allPosts:focus-visible {
+  border-color: var(--vault-control-hover-border);
+  background: var(--vault-control-hover-bg);
+}
+
+/* The article body paints every link inside it purple and underlined, which is
+   right for a link in a sentence and wrong for a button, and it does it from a
+   selector carrying both a class and an element. So each button restates its
+   own colour with enough of the tree in front of it to win. The primary also
+   restates its hover, because white text turning lilac on a filled purple
+   button is the one case the body's hover colour gets wrong. */
+.cta .ctaActions .ctaPrimary,
+.cta .ctaActions .ctaPrimary:hover,
+.cta .ctaActions .ctaPrimary:focus-visible {
+  color: #fff;
+  text-decoration: none;
+}
+
+.cta .ctaActions .ctaSecondary,
+.allPostsRow .allPosts {
+  color: var(--vault-text);
+  text-decoration: none;
+}
+
+@media (max-width: 640px) {
+  .barRow {
+    grid-template-columns: 92px 1fr 48px;
+    gap: 9px;
+  }
+
+  .barLabel,
+  .barValue {
+    font-size: 0.78rem;
+  }
+
+  .tableScroll {
+    border: 0;
+    background: none;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table,
+  .table tbody,
+  .table tbody tr,
+  .table tbody th,
+  .table tbody td {
+    display: block;
+    width: 100%;
+  }
+
+  .table tbody tr {
+    margin: 0 0 10px;
+    border: 1px solid var(--vault-card-border);
+    border-radius: var(--vault-card-radius);
+    background: var(--vault-well-surface);
+    overflow: hidden;
+  }
+
+  .table tbody tr + tr th,
+  .table tbody tr + tr td {
+    border-top: 0;
+  }
+
+  .table tbody th {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(58, 40, 102, 0.55);
+  }
+
+  .table tbody td {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 14px;
+  }
+
+  .table tbody td:last-child {
+    padding-bottom: 12px;
+  }
+
+  .table tbody td::before {
+    content: attr(data-label);
+    color: var(--vault-text-soft);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+}

@@ -1,0 +1,329 @@
+"use client";
+
+import { featureAvailable } from "@/lib/steam-capabilities";
+import { useMemo, useState } from "react";
+import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
+import Link from "next/link";
+import { useAppData } from "@/components/app-shell/AppDataProvider";
+import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
+import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
+import { NoticeStack } from "@/components/shared/NoticeStack";
+import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
+import { ManualProfileAccessNotice } from "@/components/shared/ManualProfileAccessNotice";
+import { Artwork } from "@/components/shared/Artwork";
+import { VaultIcon } from "@/components/shared/VaultIcon";
+import { ValueDial } from "@/components/dashboard/ValueDial";
+import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
+import { PageHeading } from "@/components/shared/PageHeading";
+import { StatCard, StatPanel } from "@/components/shared/StatCard";
+import { GlobalFiltersPanel } from "@/components/dashboard/GlobalFiltersPanel";
+import { FamilySharingCard } from "@/components/family/FamilySharingCard";
+import { SectionHeading } from "@/components/shared/SectionHeading";
+import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
+import { formatGameDuration } from "@/lib/game-duration";
+import styles from "./dashboard.module.css";
+import { FamilyGameMark } from "@/components/shared/FamilyMark";
+import { PlayNextShelf } from "@/components/play-next/PlayNextShelf";
+
+type DashboardDetailsSurface = "dashboard_guest" | "dashboard_pinned" | "dashboard_value" | "dashboard_finished" | "dashboard_next";
+
+export default function DashboardPage() {
+  const { games, allGames, collections, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction, updateGame, restoreGame, setGameCollection } = useAppData();
+
+  // Every game on this page names a game, so every game on this page opens it.
+  // These were flat tiles: the dashboard could tell you Palworld was your best
+  // value for money and then offer no way to look at it.
+  const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
+  const [detailsSurface, setDetailsSurface] = useState<DashboardDetailsSurface | null>(null);
+  const [savingNotes, setSavingNotes] = useState(false);
+  const detailsGame = detailsGameId
+    ? games.find((game) => game.id === detailsGameId) ?? allGames.find((game) => game.id === detailsGameId) ?? null
+    : null;
+
+  function openDetails(gameId: string, surface: DashboardDetailsSurface) {
+    setDetailsGameId(gameId);
+    setDetailsSurface(surface);
+  }
+
+  function closeDetails() {
+    setDetailsGameId(null);
+    setDetailsSurface(null);
+  }
+  const completionNotice = useCompletionClaimNotice();
+  const welcomeNotice = useWelcomeBackNotice();
+
+  const stats = useMemo(() => buildBacklogStats(games), [games]);
+
+  const recentCompletions = useMemo(
+    () => games
+      .filter((game) => game.status === "Completed" && game.completedAt)
+      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))
+      .slice(0, 8),
+    [games]
+  );
+
+  const bestValueGames = useMemo(
+    () => games
+      .filter((game) => game.ownership === "Owned" && game.hoursPlayed >= 1 && Number(game.priceInitial ?? 0) > 0)
+      .map((game) => ({ game, centsPerHour: Number(game.priceInitial) / game.hoursPlayed }))
+      .sort((left, right) => left.centsPerHour - right.centsPerHour)
+      .slice(0, 5),
+    [games]
+  );
+
+  const guestSummary = useMemo(() => ({
+    genres: new Set(games.flatMap((game) => game.genres)).size,
+    timed: games.filter((game) => formatGameDuration(game.duration)).length,
+    reviewed: games.filter((game) => Number(game.reviewTotal ?? 0) > 0).length,
+    // Three across, four down.
+    featured: games.slice(0, 12)
+  }), [games]);
+
+  // Declared once and rendered by both branches: the guest view returns
+  // early, so a panel written only into the signed-in tree never mounts for a
+  // guest and their cards would open nothing.
+  // It is the same panel the Library opens, so a game looks and behaves the
+  // same wherever it is met.
+  const detailsPanel = (
+    <LibraryDetailsDrawer
+      game={detailsGame}
+      previewMode={!isLive}
+      variant={detailsSurface === "dashboard_pinned" ? "pinned" : "library"}
+      pin={(vaultState.pins ?? []).find((entry) => entry.gameId === detailsGame?.id)}
+      collections={collections}
+      saving={savingNotes}
+      onSave={async (patch) => {
+        if (!detailsGame) return;
+        setSavingNotes(true);
+        try {
+          await updateGame(detailsGame.id, patch);
+        } finally {
+          setSavingNotes(false);
+        }
+      }}
+      onToggleCollection={async (collectionId, assigned) => {
+        if (!detailsGame) return;
+        await setGameCollection(detailsGame.id, collectionId, assigned);
+      }}
+      onClose={closeDetails}
+      pinSlot={detailsGame ? vaultState.pinnedIds.indexOf(detailsGame.id) + 1 || null : null}
+      pinCount={vaultState.pinnedIds.length}
+      onTogglePin={() => {
+        if (!detailsGame) return;
+        const removingSpotlight = detailsSurface === "dashboard_pinned" && vaultState.pinnedIds.includes(detailsGame.id);
+        void recordVaultAction(vaultState.pinnedIds.includes(detailsGame.id) ? "unpinned" : "pinned", detailsGame.id)
+          .then(() => { if (removingSpotlight) closeDetails(); });
+      }}
+      onComplete={async () => {
+        if (!detailsGame) return;
+        await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      }}
+      onRestore={async () => {
+        if (!detailsGame) return;
+        await restoreGame(detailsGame.id);
+      }}
+      onSleep={async () => {
+        if (!detailsGame) return;
+        await updateGame(detailsGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null });
+      }}
+    />
+  );
+
+  if (!isLive) {
+    return (
+      <div className={styles.page}>
+        <PageHeading title="Dashboard preview" />
+
+        <GuestPreviewNotice feature="Dashboard" icon="details">
+          These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
+        </GuestPreviewNotice>
+
+        <section className={styles.hero}>
+          <p className={styles.heroLabel}>Guest catalogue ready</p>
+          <p className={styles.heroValue}>{games.length}<span> popular Steam games</span></p>
+          <p className={styles.heroHint}>Browse the catalogue, build a preview collection or ask the Vault to choose one.</p>
+        </section>
+
+        <PlayNextShelf onOpenGame={(gameId) => openDetails(gameId, "dashboard_next")} />
+
+        <StatPanel label="Guest catalogue summary" columns={4}>
+          <StatCard label="Catalogue games" value={games.length} note="Popular games available to explore." />
+          <StatCard label="Genres represented" value={guestSummary.genres} note="Useful for trying Vault filters." />
+          <StatCard label="Time estimates" value={guestSummary.timed} note="Games with a known playthrough length." />
+          <StatCard label="Review signals" value={guestSummary.reviewed} note="Games with public Steam review data." />
+        </StatPanel>
+
+        <section className={styles.section}>
+          <SectionHeading title="A look inside the guest catalogue" />
+          <ol className={`${styles.cardGrid} ${styles.guestGrid}`}>
+            {guestSummary.featured.map((game) => (
+              <li key={game.id} className={styles.gameCard}>
+                <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_guest")} aria-label={`Open ${game.title}`} />
+                <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /><FamilyGameMark game={game} overlay /></span>
+                <strong className={styles.cardTitle}>{game.title}</strong>
+                <small className={styles.cardMeta}>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
+                <span className={styles.cardValue}>{formatGameDuration(game.duration) ?? "Length unknown"}</span>
+              </li>
+            ))}
+          </ol>
+          <Link
+            className={styles.centredAction}
+            href="/vault"
+          >
+            Try a Vault draw<VaultIcon name="chevron-right" size={16} />
+          </Link>
+        </section>
+
+        {detailsPanel}
+      </div>
+    );
+  }
+
+  const awaitingFirstLibrary = games.length === 0 && (
+    isLoading
+    || !steamImportChecked
+    || steamImport.status === "idle"
+    || steamImport.status === "fetching"
+    || steamImport.status === "importing"
+    || steamImport.status === "failed"
+  );
+
+  return (
+    <div className={styles.page}>
+      <h1 className="visually-hidden">Dashboard</h1>
+
+      {awaitingFirstLibrary ? null : (
+        <>
+          {/* The only place in the app that carries these. Everywhere else is
+              for doing one thing, and a strip asking you to go and do something
+              else at the top of it was in the way. Still capped and ordered:
+              something to action, then ambient news. */}
+          <NoticeStack
+            notices={[
+              { id: "completion", node: completionNotice },
+              { id: "welcome", node: welcomeNotice }
+            ]}
+          />
+
+          {/* Above everything but the notices. What you said you would play next
+              is the one thing here you might act on tonight; the library's value
+              and its stats are a standing report that keeps. */}
+          <PinnedCommitments
+            games={games}
+            pins={vaultState.pins ?? []}
+            pinnedIds={vaultState.pinnedIds}
+            onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")}
+            onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
+            compact
+            emptySlotLabel="Pin a suggestion from below"
+          />
+
+          {/* Straight after the pins because it feeds them: pinning is how a
+              suggestion becomes a commitment. Above the filters even though
+              they govern it, for the same reason the pins are - this is the
+              part of the page someone acts on tonight. */}
+          <PlayNextShelf onOpenGame={(gameId) => openDetails(gameId, "dashboard_next")} />
+
+          {/* Above the standing report, because it governs it: every number
+              below this panel is counted from the games it leaves in play. */}
+          <GlobalFiltersPanel />
+
+          {/* Sits with the filters rather than in an account screen: both answer
+              "what is even on the table", and adding a family member changes the
+              pool the same way a filter does. Renders nothing at all unless
+              NEXT_PUBLIC_FAMILY_SHARING is set - see lib/family-flag.ts. */}
+          <FamilySharingCard />
+
+          <ValueDial
+            percent={stats.valueCompletedPercent}
+            completedValue={formatMoney(stats.completedValueCents, stats.currency)}
+            libraryValue={formatMoney(stats.libraryValueCents, stats.currency)}
+            completedGames={stats.completedGames}
+            totalGames={stats.totalGames}
+          />
+
+          <StatPanel label="Backlog summary" columns={5}>
+            <StatCard label="Hours played" value={formatHours(stats.totalHours)} note="across the whole library" />
+            <StatCard
+              label="Play streak"
+              value={!featureAvailable("playStreak", capabilities) ? "—" : `${playtime.streakDays}d`}
+              note={!featureAvailable("playStreak", capabilities)
+                ? "Starts once we have a couple of nights of history"
+                : playtime.streakDays
+                  ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`
+                  : "No play recorded yesterday"}
+            />
+            {/* Names the gap rather than leaving it. Every figure in this panel
+                is about the shelf you paid for, so a library that also holds
+                family games will not add up to the Library's count unless the
+                difference is stated. */}
+            <StatCard
+              label="Games completed"
+              value={`${stats.completedPercent}%`}
+              note={stats.familyGames
+                ? `${stats.completedGames} of ${stats.totalGames} owned · ${stats.familyGames} family not counted`
+                : `${stats.completedGames} of ${stats.totalGames}`}
+            />
+            <StatCard label="Never opened" value={stats.unplayedGames} note={`worth ${formatMoney(stats.unplayedValueCents, stats.currency)}`} />
+            <StatCard
+              label="Best value"
+              value={stats.bestValue ? formatValueRate(stats.bestValue, stats.currency) : "—"}
+              note={stats.bestValue ? stats.bestValue.title : "Play something to find out"}
+            />
+          </StatPanel>
+
+          {bestValueGames.length ? (
+            <section className={styles.section}>
+              <SectionHeading title="Most value for money" />
+              <ol className={styles.podium}>
+                {bestValueGames.slice(0, 3).map(({ game, centsPerHour }, index) => (
+                  <li key={game.id} className={styles.podiumCard} data-place={index + 1}>
+                    <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_value")} aria-label={`Open ${game.title}`} />
+                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 300px" /><FamilyGameMark game={game} overlay /></span>
+                    <span className={styles.place}>
+                      <VaultIcon name="trophy" size={18} />
+                      {index === 0 ? "1st" : index === 1 ? "2nd" : "3rd"}
+                    </span>
+                    <strong className={styles.cardTitle}>{game.title}</strong>
+                    <small className={styles.cardMeta}>{Math.round(game.hoursPlayed)}h from {formatMoney(Number(game.priceInitial), stats.currency)}</small>
+                    <span className={styles.cardValue}>{formatMoney(Math.round(centsPerHour), stats.currency)}<small>/hour</small></span>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          ) : null}
+
+          <section className={styles.section}>
+            <SectionHeading title="Recently finished" />
+            {recentCompletions.length ? (
+              <ol className={styles.cardGrid}>
+                {recentCompletions.map((game) => (
+                  <li key={game.id} className={styles.gameCard}>
+                    <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_finished")} aria-label={`Open ${game.title}`} />
+                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /><FamilyGameMark game={game} overlay /></span>
+                    <strong className={styles.cardTitle}>{game.title}</strong>
+                    <small className={styles.cardMeta}>{new Date(String(game.completedAt)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small>
+                    <span className={styles.cardValue}>{formatMoney(Number(game.priceInitial ?? 0), stats.currency)}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <div className={styles.empty}>
+                <p><strong>Nothing finished yet.</strong> The bar above fills every time you complete something.</p>
+                <Link className={styles.emptyAction} href="/vault">Draw something to play</Link>
+              </div>
+            )}
+          </section>
+
+          {/* Last on the page. It is a standing fact about the account rather
+              than something to act on tonight, so the dashboard's own work comes
+              first - and it renders nothing at all for a Steam-connected
+              account. */}
+          <ManualProfileAccessNotice />
+        </>
+      )}
+
+      {detailsPanel}
+    </div>
+  );
+}

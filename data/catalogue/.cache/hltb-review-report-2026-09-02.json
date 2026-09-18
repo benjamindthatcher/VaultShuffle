@@ -1,0 +1,29 @@
+[
+  {
+    "steam_appid": 43110,
+    "title": "Metro 2033",
+    "status": "needs_review",
+    "errors": [],
+    "searched_as": "Metro 2033",
+    "candidate_game_id": 5946,
+    "candidate_title": "Metro 2033",
+    "candidate_similarity": 1.0,
+    "candidate_main_story_minutes": 571,
+    "candidate_main_extra_minutes": 728,
+    "candidate_completionist_minutes": 1272,
+    "candidate_metadata": {
+      "identity_tier": "exact_title",
+      "identity_confidence": "high",
+      "duration_basis": "completion_times",
+      "submission_count": 6358,
+      "match_confidence": "high",
+      "duration_issues": [],
+      "hltb_modes": {
+        "single_player": true,
+        "co_op": false,
+        "multiplayer": false
+      },
+      "review_reason": "different_steam_appid"
+    }
+  }
+]

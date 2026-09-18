@@ -39,6 +39,15 @@ export type DemoGame = {
   collectionIds: string[];
   sessionFit: VaultSessionId[];
   moodTags: VaultMoodId[];
+<<<<<<< Updated upstream
+=======
+  moodScores?: import("@/lib/vault-matching").VaultMoodScores;
+  /**
+   * Gameplay tags as shares of the strongest, for "games like this one". Absent
+   * where the catalogue has no tags yet. See lib/play-next.ts.
+   */
+  tagProfile?: Record<string, number>;
+>>>>>>> Stashed changes
   completedAt?: string | null;
   previousActiveStatus?: "Not Started" | "In Progress" | null;
   sleptAt?: string | null;
