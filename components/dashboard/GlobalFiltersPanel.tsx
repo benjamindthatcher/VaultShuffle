@@ -160,7 +160,7 @@ export function GlobalFiltersPanel() {
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="global-filters-heading">
+    <section id="global-filters" className={styles.panel} aria-labelledby="global-filters-heading">
       <div className={styles.header}>
         <div className={styles.headingGroup}>
           <h2 id="global-filters-heading" className={styles.heading}>

@@ -2,6 +2,7 @@
    radius, the same 0.78-0.88rem type as the stat cards below it. The panel is a
    control strip, not a feature block, so it takes as little height as it can. */
 .panel {
+  scroll-margin-top: 100px;
   display: grid;
   gap: 12px;
   padding: 16px;

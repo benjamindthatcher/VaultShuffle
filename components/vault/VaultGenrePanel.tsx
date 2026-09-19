@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { VaultGenreIcon } from "@/components/vault/VaultGenreIcon";
 import { VAULT_GENRES } from "@/lib/vault-genres";
@@ -9,9 +10,10 @@ type VaultGenrePanelProps = {
   onClear: () => void;
   embedded?: boolean;
   disabled?: boolean;
+  isGuest?: boolean;
 };
 
-export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, embedded = false, disabled = false }: VaultGenrePanelProps) {
+export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, embedded = false, disabled = false, isGuest = false }: VaultGenrePanelProps) {
   return (
     <section className={embedded ? `${styles.panel} ${styles.panelEmbedded}` : styles.panel} data-disabled={disabled || undefined} aria-disabled={disabled || undefined}>
       <div className={embedded ? `${styles.heading} ${styles.headingEmbedded}` : styles.heading}>
@@ -40,6 +42,14 @@ export function VaultGenrePanel({ selectedGenres, onToggleGenre, onClear, embedd
           );
         })}
       </div>
+      <Link href="/dashboard#global-filters" className={styles.moreFilters}>
+        <VaultIcon name="filter" size={18} />
+        <span className={styles.moreFiltersCopy}>
+          <strong>Want more filters?</strong>
+          <span>{isGuest ? "Sign in to use global filters on your Dashboard." : "Fine-tune your pool with global filters on the Dashboard."}</span>
+        </span>
+        <VaultIcon name="chevron-right" size={18} />
+      </Link>
     </section>
   );
 }

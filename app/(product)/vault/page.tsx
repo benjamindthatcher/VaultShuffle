@@ -866,7 +866,7 @@ export default function VaultPage() {
             {openSetupStep === "genres" ? (
               <div className={styles.optionalContent} id="vault-genre-filters">
                 <div className={styles.genreSetup}>
-                  <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded disabled={collectionMode} />
+                  <VaultGenrePanel selectedGenres={selectedGenres} onToggleGenre={toggleGenre} onClear={clearGenres} embedded disabled={collectionMode} isGuest={!isLive} />
                 </div>
               </div>
             ) : null}
