@@ -336,7 +336,7 @@ export async function createManualProfileSession(input: {
   const expiresAt = new Date(now.getTime() + MANUAL_SESSION_DAYS * 24 * 60 * 60 * 1000);
   const token = `${MANUAL_TOKEN_PREFIX}${crypto.randomBytes(32).toString("base64url")}`;
   const { data, error } = await supabase
-    .rpc("create_manual_profile_session", {
+    .rpc("create_or_resume_manual_profile_session", {
       p_steam_id: input.steamId,
       p_profile_url: input.profileUrl,
       p_display_name: input.displayName,
@@ -355,17 +355,44 @@ export async function createManualProfileSession(input: {
     id: unknown;
     steam_id: unknown;
     display_name?: unknown;
+    steam_display_name?: unknown;
     avatar_url?: unknown;
+    resumed?: unknown;
   };
   const user = {
     id: String(row.id),
     steam_id: String(row.steam_id),
     display_name: row.display_name ? String(row.display_name) : null,
-    steam_display_name: input.steamDisplayName,
+    steam_display_name: row.steam_display_name ? String(row.steam_display_name) : input.steamDisplayName,
     avatar_url: row.avatar_url ? String(row.avatar_url) : null,
     account_type: "manual" as const,
   } satisfies AppUser;
-  return { token, user };
+  return { token, user, resumed: row.resumed === true };
+}
+
+/**
+ * Public-profile URLs are reusable sign-in credentials. This lookup only
+ * controls how the setup screen is worded; the session RPC repeats the check
+ * under an advisory lock so two devices cannot create the same identity.
+ */
+export async function findManualProfileForSteamId(steamId: string) {
+  const { data, error } = await getSupabaseAdmin()
+    .from("manual_steam_profiles")
+    .select("display_name, steam_display_name, avatar_url, created_at")
+    .eq("steam_id", steamId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(describeSupabaseError(error, "Could not check for an existing VaultShuffle profile."));
+  }
+  if (!data) return null;
+  return {
+    displayName: String(data.display_name),
+    steamDisplayName: String(data.steam_display_name),
+    avatarUrl: data.avatar_url ? String(data.avatar_url) : null,
+  };
 }
 
 export async function updateSteamUserProfile(

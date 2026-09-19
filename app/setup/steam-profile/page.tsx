@@ -10,9 +10,13 @@ export const metadata: Metadata = {
 };
 
 export default async function ManualSteamProfileSetupPage() {
-  // Someone still signed in can land back here (usually a manual profile that
-  // wandered to the landing page). Creating another profile would only fail
-  // with session_exists, so offer the way back into their Vault up front.
+  // Offer the active Vault first, while still allowing a deliberate account
+  // switch. A public-profile URL now works like sign-in on any device.
   const session = await getCurrentSession();
-  return <ManualSteamProfileSetup existingVaultName={session?.user.display_name ?? null} />;
+  return (
+    <ManualSteamProfileSetup
+      hasExistingSession={session !== null}
+      existingVaultName={session?.user.display_name ?? null}
+    />
+  );
 }

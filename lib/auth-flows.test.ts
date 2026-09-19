@@ -20,7 +20,7 @@ const accountId = "11111111-2222-4333-8444-555555555555";
 const steamId = "76561198000000000";
 type Handler = (request: Request) => Promise<Response>;
 
-function harness(options: { libraryError?: Error; profileMissing?: boolean; visibility?: number; cacheFailure?: boolean; stagingFailure?: boolean; databaseFailure?: boolean; identityValid?: boolean; existingSession?: boolean } = {}) {
+function harness(options: { libraryError?: Error; profileMissing?: boolean; visibility?: number; cacheFailure?: boolean; stagingFailure?: boolean; databaseFailure?: boolean; identityValid?: boolean; existingSession?: boolean; existingManualProfile?: boolean } = {}) {
   let gamesFetched = 0; let loggedIn = options.existingSession ?? false; let accountsCreated = 0;
   let progress = { status: "idle", total: 0, imported: 0, completedAt: null as string | null };
   const rows = new Map<string, unknown>();
@@ -57,7 +57,18 @@ function harness(options: { libraryError?: Error; profileMissing?: boolean; visi
       getCurrentSession: async () => loggedIn ? { user, sessionId: accountId } : null,
       requireSession: async () => { if (!loggedIn) throw new SessionRequiredError("unauthorized"); return { user }; },
       attachSessionCookie: (response: InstanceType<typeof next.NextResponse>, token: string) => { response.cookies.set("vault_session", token, { httpOnly: true }); return response; },
-      createManualProfileSession: async () => { accountsCreated++; loggedIn = true; return { user, token: "manual.test-only-session" }; },
+      findManualProfileForSteamId: async () => options.existingManualProfile
+        ? { displayName: "Saved Vault", steamDisplayName: "Test player", avatarUrl: null }
+        : null,
+      createManualProfileSession: async () => {
+        if (!options.existingManualProfile) accountsCreated++;
+        loggedIn = true;
+        return {
+          user: options.existingManualProfile ? { ...user, display_name: "Saved Vault" } : user,
+          token: "manual.test-only-session",
+          resumed: options.existingManualProfile === true,
+        };
+      },
       createSessionForSteamId: async () => {
         if (options.databaseFailure) throw new Error("Could not create user", { cause: { code: "42702", message: "private database content" } });
         accountsCreated++; return { user: { ...user, account_type: "steam" }, token: "test-only-session" };
@@ -118,6 +129,48 @@ test("manual lookup -> create -> dashboard import reuses the setup library witho
   assert.equal((await imported.json()).progress.status, "complete");
   assert.equal(h.gamesFetched, 1);
   assert.ok(h.entries.some((entry) => entry.cache_result === "hit"));
+});
+
+test("a known public profile signs into its saved Vault without Steam or a duplicate", async () => {
+  const h = harness({ existingManualProfile: true, libraryError: new Error("Steam unavailable") });
+  const lookupResponse = await h.route("manual-profile/lookup")(h.post("manual-profile/lookup", { profile: steamId }));
+  assert.equal(lookupResponse.status, 200);
+  const lookup = await lookupResponse.json();
+  assert.equal(lookup.existing_account.display_name, "Saved Vault");
+
+  const signedIn = await h.route("manual-profile/create")(h.post("manual-profile/create", {
+    lookup_token: lookup.lookup_token,
+    display_name: lookup.existing_account.display_name,
+  }));
+  assert.equal(signedIn.status, 200);
+  assert.match(signedIn.headers.get("set-cookie") ?? "", /vault_session=/);
+  assert.equal((await signedIn.json()).sign_in_mode, "resumed");
+  assert.equal(h.accountsCreated, 0);
+  assert.equal(h.gamesFetched, 0);
+});
+
+test("public-profile sign-in can replace an existing browser session", async () => {
+  const h = harness({ existingSession: true });
+  const lookup = await (await h.route("manual-profile/lookup")(h.post("manual-profile/lookup", { profile: steamId }))).json();
+  const response = await h.route("manual-profile/create")(h.post("manual-profile/create", {
+    lookup_token: lookup.lookup_token,
+    display_name: "Another Vault",
+  }));
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).sign_in_mode, "created");
+  assert.equal(h.accountsCreated, 1);
+});
+
+test("manual profile deduplication keeps the newest account and prevents recurrence", () => {
+  const migration = readFileSync(
+    new URL("supabase/migrations/20260919170000_resume_manual_profile_by_url.sql", root),
+    "utf8",
+  );
+  assert.match(migration, /lock table public\.manual_steam_profiles in share row exclusive mode/i);
+  assert.match(migration, /order by profiles\.created_at desc, profiles\.id desc/i);
+  assert.match(migration, /delete from public\.app_accounts/i);
+  assert.match(migration, /duplicates\.newest_rank > 1/i);
+  assert.match(migration, /unique \(steam_id\)/i);
 });
 
 test("cache/staging failures preserve the created session and allow dashboard recovery", async () => {

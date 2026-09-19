@@ -30,9 +30,11 @@ export const ANALYTICS_EVENTS = {
   signInStarted: "sign_in_started",
   steamLibrarySynced: "steam_library_synced",
   steamImportFailed: "steam_import_failed",
-  // The alternate activation path, and the one failure on it worth watching:
-  // roughly a third of profile lookups do not find a usable library.
+  // The alternate activation/sign-in path. A URL can now either create a Vault
+  // or reopen the saved one, so those outcomes must remain distinct.
+  manualProfileLookupSucceeded: "manual_profile_lookup_succeeded",
   manualProfileCreated: "manual_profile_created",
+  manualProfileSignedIn: "manual_profile_signed_in",
   manualProfileLookupFailed: "manual_profile_lookup_failed",
 
   // The Vault loop. vault_pick_launched is the north-star metric: it is the point

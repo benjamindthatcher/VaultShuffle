@@ -4,11 +4,13 @@ import { assertSameOrigin, jsonError, readJsonBody } from "@/lib/http";
 import {
   lookupManualSteamProfile,
   ManualSteamProfileError,
+  resolveManualSteamProfile,
   signManualSteamProfileLookup,
 } from "@/lib/manual-steam-profile";
 import { enforceRateLimit, requestFingerprint } from "@/lib/rate-limit";
 import { SteamProfileInputError } from "@/lib/steam-profile-input";
 import { requestDiagnostics } from "@/lib/diagnostics-server";
+import { findManualProfileForSteamId } from "@/lib/auth";
 
 const requestSchema = z.object({
   profile: z.string().trim().min(1, "Enter a Steam profile URL or ID.").max(300),
@@ -27,8 +29,18 @@ export async function POST(request: Request) {
       message: "Too many Steam profiles were checked from this connection. Please wait before trying again.",
     });
     const input = requestSchema.parse(await readJsonBody(request, 1024));
-    diagnostics.stage("steam_lookup");
-    const profile = await lookupManualSteamProfile(input.profile, diagnostics);
+    diagnostics.stage("resolve_profile_reference");
+    const resolvedProfile = await resolveManualSteamProfile(input.profile);
+    diagnostics.stage("existing_profile_check");
+    const existingProfile = await findManualProfileForSteamId(resolvedProfile.steamId);
+    const profile = existingProfile
+      ? {
+          ...resolvedProfile,
+          displayName: existingProfile.steamDisplayName,
+          avatarUrl: existingProfile.avatarUrl,
+          gameCount: 0,
+        }
+      : await lookupManualSteamProfile(input.profile, diagnostics, resolvedProfile);
     return diagnostics.response(NextResponse.json(
       {
         profile: {
@@ -37,6 +49,11 @@ export async function POST(request: Request) {
           game_count: profile.gameCount,
           input_type: profile.inputType,
         },
+        existing_account: existingProfile ? {
+          display_name: existingProfile.displayName,
+          steam_display_name: existingProfile.steamDisplayName,
+          avatar_url: existingProfile.avatarUrl,
+        } : null,
         lookup_token: signManualSteamProfileLookup(profile),
       },
       { headers: { "Cache-Control": "private, no-store, max-age=0" } },

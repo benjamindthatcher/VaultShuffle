@@ -22,11 +22,17 @@ type LookupProfile = {
 
 type LookupResponse = {
   profile: LookupProfile;
+  existing_account: {
+    display_name: string;
+    steam_display_name: string;
+    avatar_url: string | null;
+  } | null;
   lookup_token: string;
 };
 
 type CreateResponse = {
   redirect_to: string;
+  sign_in_mode: "created" | "resumed";
   account: {
     id: string;
     steam_id: string;
@@ -40,13 +46,15 @@ type CreateResponse = {
   };
 };
 
-export function ManualSteamProfileSetup({ existingVaultName = null }: { existingVaultName?: string | null }) {
+export function ManualSteamProfileSetup({
+  hasExistingSession = false,
+  existingVaultName = null,
+}: {
+  hasExistingSession?: boolean;
+  existingVaultName?: string | null;
+}) {
   const router = useRouter();
-  // Set from the server when this browser already holds a session, or from a
-  // create call that comes back session_exists. Either way the only useful next
-  // step is the Vault they already have.
-  const [signedInAs, setSignedInAs] = useState<string | null>(existingVaultName);
-  const [sessionExists, setSessionExists] = useState(existingVaultName !== null);
+  const [showCurrentSession, setShowCurrentSession] = useState(hasExistingSession);
   const [profileInput, setProfileInput] = useState("");
   const [lookup, setLookup] = useState<LookupResponse | null>(null);
   const [vaultName, setVaultName] = useState("");
@@ -80,7 +88,14 @@ export function ManualSteamProfileSetup({ existingVaultName = null }: { existing
     try {
       const result = await postJson<LookupResponse>("/api/manual-profile/lookup", { profile: profileInput });
       setLookup(result);
-      setVaultName(result.profile.display_name);
+      setVaultName(result.existing_account?.display_name ?? result.profile.display_name);
+      trackEvent(ANALYTICS_EVENTS.manualProfileLookupSucceeded, {
+        input_type: result.profile.input_type,
+        ...(result.existing_account ? {} : { game_count: result.profile.game_count }),
+        profile_state: result.existing_account ? "existing" : "new",
+        replacing_active_session: hasExistingSession,
+        operation_id: operationId.current,
+      });
     } catch (caught) {
       const failure = normaliseFailure(caught);
       setError(failure.message);
@@ -110,22 +125,24 @@ export function ManualSteamProfileSetup({ existingVaultName = null }: { existing
         steamDisplayName: result.account.steam_display_name,
         avatarUrl: result.account.avatar_url,
       });
-      trackNavigationEvent(ANALYTICS_EVENTS.manualProfileCreated, {
-        account_type: "manual",
-        identity_verified: false,
-        input_type: result.account.input_type,
-        game_count: result.account.game_count,
-      });
+      if (result.sign_in_mode === "created") {
+        trackNavigationEvent(ANALYTICS_EVENTS.manualProfileCreated, {
+          account_type: "manual",
+          identity_verified: false,
+          input_type: result.account.input_type,
+          game_count: result.account.game_count,
+        });
+      } else {
+        trackNavigationEvent(ANALYTICS_EVENTS.manualProfileSignedIn, {
+          account_type: "manual",
+          identity_verified: false,
+          input_type: result.account.input_type,
+          replacing_active_session: hasExistingSession,
+        });
+      }
       router.push(result.redirect_to);
     } catch (caught) {
       const failure = normaliseFailure(caught);
-      if (failure.code === "session_exists") {
-        setSessionExists(true);
-        setSignedInAs(null);
-        setError("");
-        setBusy(null);
-        return;
-      }
       setError(failure.message);
       if (caught instanceof CooldownError) setCooldownUntil(saveCooldown("manual-setup", caught));
       setBusy(null);
@@ -152,23 +169,27 @@ export function ManualSteamProfileSetup({ existingVaultName = null }: { existing
         <section className={styles.copy} aria-labelledby="manual-profile-title">
           <p className={styles.kicker}>Your library. Your way in.</p>
           <h1 id="manual-profile-title">
-            {lookup ? <>Library found.<span>Make it yours.</span></> : <>Bring your library.<span>Skip the sign‑in.</span></>}
+            {lookup?.existing_account
+              ? <>Vault found.<span>Welcome back.</span></>
+              : lookup
+                ? <>Library found.<span>Make it yours.</span></>
+                : <>Bring your library.<span>Skip the Steam sign‑in.</span></>}
           </h1>
           <p className={styles.lede}>
-            {lookup
-              ? "Check the profile, choose how VaultShuffle should know you, then enter the Vault."
-              : "Paste a public Steam profile link or ID. You’ll get the full VaultShuffle experience without signing in through Steam."}
+            {lookup?.existing_account
+              ? "This public profile already has a Vault. Sign in with the saved profile and continue where it left off."
+              : lookup
+                ? "Check the profile, choose how VaultShuffle should know you, then enter the Vault."
+                : "Paste a public Steam profile link or ID. You’ll get the full VaultShuffle experience without signing in through Steam."}
           </p>
 
           <div className={styles.panel}>
-            {sessionExists ? (
+            {showCurrentSession ? (
               <div className={styles.confirmForm}>
                 <p className={styles.sessionNotice} role="status">
                   <SiteGlyph name="check" size={18} />
                   <span>
-                    {signedInAs
-                      ? <>You’re already signed in to VaultShuffle as <strong>{signedInAs}</strong> in this browser.</>
-                      : "You already have a VaultShuffle profile in this browser."}
+                    You’re already signed in to VaultShuffle{existingVaultName ? <> as <strong>{existingVaultName}</strong></> : null} on this device.
                   </span>
                 </p>
                 <Link className={styles.primaryAction} href="/vault">
@@ -176,6 +197,19 @@ export function ManualSteamProfileSetup({ existingVaultName = null }: { existing
                   <span>Go to my Vault</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </Link>
+                <button
+                  className={styles.textAction}
+                  type="button"
+                  onClick={() => {
+                    trackEvent(ANALYTICS_EVENTS.signInStarted, {
+                      location: "manual_profile_existing_session",
+                      method: "public_profile_url",
+                    });
+                    setShowCurrentSession(false);
+                  }}
+                >
+                  Sign in with a different profile URL
+                </button>
               </div>
             ) : lookup ? (
               <form onSubmit={createProfile} className={styles.confirmForm}>
@@ -189,27 +223,42 @@ export function ManualSteamProfileSetup({ existingVaultName = null }: { existing
                     <strong>{lookup.profile.display_name}</strong>
                     <small><SiteGlyph name="check" size={15} />Public library</small>
                   </span>
-                  <span className={styles.gameCount}>
-                    <strong>{lookup.profile.game_count.toLocaleString()}</strong>
-                    <small>{lookup.profile.game_count === 1 ? "game" : "games"} ready to import</small>
-                  </span>
+                  {lookup.existing_account ? null : (
+                    <span className={styles.gameCount}>
+                      <strong>{lookup.profile.game_count.toLocaleString()}</strong>
+                      <small>{lookup.profile.game_count === 1 ? "game" : "games"} ready to import</small>
+                    </span>
+                  )}
                 </div>
 
-                <label className={styles.field}>
-                  <span>Your VaultShuffle name</span>
-                  <input
-                    value={vaultName}
-                    onChange={(event) => setVaultName(event.target.value)}
-                    minLength={1}
-                    maxLength={80}
-                    autoComplete="nickname"
-                    required
-                    disabled={busy !== null}
-                  />
-                </label>
+                {lookup.existing_account ? (
+                  <p className={styles.sessionNotice} role="status">
+                    <SiteGlyph name="check" size={18} />
+                    <span>
+                      Continue with the saved VaultShuffle profile <strong>{lookup.existing_account.display_name}</strong>. Its games and activity will be available on this device.
+                    </span>
+                  </p>
+                ) : (
+                  <label className={styles.field}>
+                    <span>Your VaultShuffle name</span>
+                    <input
+                      value={vaultName}
+                      onChange={(event) => setVaultName(event.target.value)}
+                      minLength={1}
+                      maxLength={80}
+                      autoComplete="nickname"
+                      required
+                      disabled={busy !== null}
+                    />
+                  </label>
+                )}
                 <button className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !vaultName.trim()}>
                   <SiteGlyph name="open-vault" size={22} />
-                  <span>{cooldownSeconds ? `Try again in ${cooldownSeconds}s` : busy === "create" ? "Creating your Vault…" : "Create my Vault"}</span>
+                  <span>{cooldownSeconds
+                    ? `Try again in ${cooldownSeconds}s`
+                    : busy === "create"
+                      ? lookup.existing_account ? "Signing in…" : "Creating your Vault…"
+                      : lookup.existing_account ? `Sign in as ${lookup.existing_account.display_name}` : "Create my Vault"}</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </button>
                 <button className={styles.textAction} type="button" onClick={resetLookup} disabled={busy !== null}>
@@ -248,9 +297,11 @@ export function ManualSteamProfileSetup({ existingVaultName = null }: { existing
             {error ? <p className={styles.error} role="alert"><SiteGlyph name="action" size={18} />{error}</p> : null}
             <p className={styles.reassurance}>
               <SiteGlyph name="shield" size={20} />
-              <span>{lookup
-                ? "This browser keeps you signed in to a separate VaultShuffle profile. It does not verify ownership or change your Steam account."
-                : "VaultShuffle only reads information Steam makes public. It never changes your Steam account or asks for your password."}</span>
+              <span>{lookup?.existing_account
+                ? "Anyone with this public profile link can sign in to this VaultShuffle profile. This does not verify Steam ownership."
+                : lookup
+                  ? "This public profile link can be used to sign in to the same VaultShuffle profile on any device. It does not verify Steam ownership."
+                  : "VaultShuffle only reads information Steam makes public. It never changes your Steam account or asks for your password."}</span>
             </p>
           </div>
         </section>

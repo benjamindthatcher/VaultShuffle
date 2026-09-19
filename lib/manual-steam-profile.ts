@@ -25,6 +25,11 @@ export type ManualSteamProfileLookup = {
   snapshotId?: string;
 };
 
+export type ResolvedManualSteamProfile = Pick<
+  ManualSteamProfileLookup,
+  "steamId" | "profileUrl" | "inputType"
+>;
+
 export type ManualSteamProfileLookupToken = ManualSteamProfileLookup & {
   version: 1;
   expiresAt: number;
@@ -93,17 +98,32 @@ async function steamIdForReference(reference: SteamProfileReference, apiKey: str
   return steamId;
 }
 
-export async function lookupManualSteamProfile(input: string, diagnostics?: RequestDiagnostics): Promise<ManualSteamProfileLookup> {
+export async function resolveManualSteamProfile(input: string): Promise<ResolvedManualSteamProfile> {
   const reference = parseSteamProfileInput(input);
-  const apiKey = steamApiKey();
+  const steamId = reference.kind === "steam_id"
+    ? reference.steamId
+    : await steamIdForReference(reference, steamApiKey());
+  return {
+    steamId,
+    profileUrl: canonicalSteamProfileUrl(steamId),
+    inputType: reference.inputType,
+  };
+}
+
+export async function lookupManualSteamProfile(
+  input: string,
+  diagnostics?: RequestDiagnostics,
+  resolvedProfile?: ResolvedManualSteamProfile,
+): Promise<ManualSteamProfileLookup> {
   diagnostics?.stage("resolve_profile_reference");
-  const steamId = await steamIdForReference(reference, apiKey);
+  const resolved = resolvedProfile ?? await resolveManualSteamProfile(input);
+  const apiKey = steamApiKey();
 
   try {
     diagnostics?.stage("steam_profile_and_library");
     const [profileResult, gamesResult] = await Promise.allSettled([
-      fetchSteamPlayerSummary(steamId, apiKey, true),
-      fetchOwnedSteamGames(steamId, apiKey),
+      fetchSteamPlayerSummary(resolved.steamId, apiKey, true),
+      fetchOwnedSteamGames(resolved.steamId, apiKey),
     ]);
     if (profileResult.status === "rejected") throw profileResult.reason;
     const profile = profileResult.value;
@@ -122,19 +142,17 @@ export async function lookupManualSteamProfile(input: string, diagnostics?: Requ
     }
     const games = gamesResult.value;
     diagnostics?.stage("setup_library_cache");
-    const snapshotId = await saveLibrarySnapshot(steamSetupCache(), steamId, games).catch(() => {
+    const snapshotId = await saveLibrarySnapshot(steamSetupCache(), resolved.steamId, games).catch(() => {
       diagnostics?.event("warning", { error_code: "cache_unavailable", cache_result: "write_failed" });
       return undefined;
     });
 
     return {
       ...(snapshotId ? { snapshotId } : {}),
-      steamId,
-      profileUrl: canonicalSteamProfileUrl(steamId),
+      ...resolved,
       displayName: profile.display_name || "Steam player",
       avatarUrl: profile.avatar_url,
       gameCount: games.length,
-      inputType: reference.inputType,
     };
   } catch (error) {
     if (error instanceof ManualSteamProfileError || error instanceof SteamApiError) throw error;
@@ -209,6 +227,6 @@ function isLookupToken(value: unknown): value is ManualSteamProfileLookupToken {
     && token.displayName.length <= 80
     && (token.avatarUrl === null || (typeof token.avatarUrl === "string" && token.avatarUrl.length <= 2048))
     && Number.isInteger(token.gameCount)
-    && Number(token.gameCount) > 0
+    && Number(token.gameCount) >= 0
     && ["steam_id", "profile_url", "vanity", "vanity_url"].includes(String(token.inputType));
 }
