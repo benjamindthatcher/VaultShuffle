@@ -26,7 +26,7 @@ export function BlogIndex({ posts }: { posts: BlogPost[] }) {
                     <span aria-hidden="true">·</span>
                     <span>{post.readingMinutes} min read</span>
                     {isPublished(post) ? null : (
-                      <span className={styles.scheduled}>Scheduled · not public</span>
+                      <span className={styles.scheduled}>{post.draft ? "Draft" : "Scheduled"} · not public</span>
                     )}
                   </span>
                   <h2 className={styles.postTitle}>{post.heading}</h2>

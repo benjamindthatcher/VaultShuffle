@@ -6,7 +6,7 @@ import { canPreviewScheduled, isPublished, listPosts } from "@/lib/blog/posts";
 import { pageOpenGraph, pageTwitter, siteConfig } from "@/lib/site";
 
 const description =
-  "Data and writing about Steam backlogs from VaultShuffle: how much of a library goes unplayed, which games actually get finished, and lists of games worth your evening.";
+  "Steam game recommendations and backlog advice from VaultShuffle. Find something worth playing with practical guides, short game picks and player library data.";
 
 /**
  * The title tag carries the keywords the h1 no longer does.
@@ -25,9 +25,9 @@ export const metadata: Metadata = {
 };
 
 /**
- * An hour, because this page is how a scheduled post lets itself out. A post
- * whose date passes is not in this list until the page regenerates, so the
- * window is the worst-case delay between a post's date and it being linked.
+ * Scheduled posts appear when this cached page next regenerates. The first
+ * request after the hourly window can receive the stale page while Next.js
+ * rebuilds it in the background; the publication date is an eligibility time.
  */
 export const revalidate = 3600;
 

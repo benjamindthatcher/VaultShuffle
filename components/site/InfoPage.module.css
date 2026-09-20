@@ -390,9 +390,12 @@
 
 .articleBar {
   margin: 0;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   padding: 24px 32px;
   text-align: center;
-  text-wrap: balance;
+  text-wrap: wrap;
   border-bottom: 1px solid rgba(163, 112, 228, 0.2);
   background:
     radial-gradient(ellipse at 0% 0%, rgba(168, 85, 247, 0.14), transparent 70%),
@@ -431,6 +434,11 @@
   height: 2px;
   background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
   pointer-events: none;
+}
+
+.articleProseGroup {
+  display: grid;
+  gap: 32px;
 }
 
 /* Larger than the body it introduces. At 1rem it was within a third of a pixel

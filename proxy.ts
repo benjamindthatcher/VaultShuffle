@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { diagnosticRoute } from "@/lib/diagnostics";
+import { isUnpublishedArticle } from "@/lib/blog/schedule";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
@@ -31,6 +32,18 @@ function allowedOrigins(request: NextRequest) {
 }
 
 export function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith("/blog/")) {
+    // Gate future articles before the route cache. Caching an early notFound()
+    // can carry its noindex tag into the first successful ISR regeneration.
+    if (process.env.NODE_ENV === "production" && isUnpublishedArticle(request.nextUrl.pathname)) {
+      return new NextResponse(
+        '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Page not found | VaultShuffle</title></head><body><main><h1>Page not found</h1><p><a href="/blog">View all posts</a></p></main></body></html>',
+        { status: 404, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "private, no-store, max-age=0", "X-Robots-Tag": "noindex" } }
+      );
+    }
+    return NextResponse.next();
+  }
+
   if (
     request.method === "GET" &&
     request.nextUrl.searchParams.get("steam_connected") === "1"
@@ -106,6 +119,7 @@ export function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/blog/:path*",
     "/api/:path*",
     "/dashboard",
     "/stats",

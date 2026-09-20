@@ -13,6 +13,8 @@ export type InfoSection = {
   body: ReactNode;
   /** Expanded on arrival. Reserved for the sections someone came here to read. */
   open?: boolean;
+  /** Consecutive article sections with the same pane value share one surface. */
+  pane?: boolean | string;
   /**
    * Omit to inherit the page's icon. `null` renders no icon at all, which a
    * heading that reads as a label rather than as a section wants: "More posts"
@@ -67,6 +69,15 @@ export function InfoPage({ eyebrow, title, intro, cover, sections, icon = "detai
   overview?: InfoOverview;
   variant?: "document" | "release" | "article";
 }) {
+  const articleGroups: InfoSection[][] = [];
+  if (variant === "article") {
+    for (const section of sections) {
+      const previous = articleGroups.at(-1);
+      if (section.pane && previous?.[0].pane === section.pane) previous.push(section);
+      else articleGroups.push([section]);
+    }
+  }
+
   return (
     <article className={`${styles.page} ${PAGE_VARIANT_CLASS[variant]}`}>
       <p className={styles.eyebrow}>{eyebrow}</p>
@@ -103,7 +114,8 @@ export function InfoPage({ eyebrow, title, intro, cover, sections, icon = "detai
           ) : null}
           {/* No <details>: an article is read in order, so `open` does not
               apply and every section is simply present. */}
-          {sections.map((section, index) => (
+          {articleGroups.map((group, groupIndex) => {
+            const content = group.map((section, index) => (
             <section key={section.title || index} className={styles.articleSection}>
               {section.title ? (
                 <div className={styles.articleHeading}>
@@ -117,7 +129,13 @@ export function InfoPage({ eyebrow, title, intro, cover, sections, icon = "detai
                 <div className={styles.bodyInner}>{section.body}</div>
               </div>
             </section>
-          ))}
+            ));
+            return group[0].pane ? (
+              <div key={groupIndex} className={`${styles.articleProse} ${styles.articleProseGroup}`}>
+                {content}
+              </div>
+            ) : content;
+          })}
           </div>
         </div>
       ) : (

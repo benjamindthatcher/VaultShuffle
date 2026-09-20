@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { BlogAnalytics } from "@/components/blog/BlogAnalytics";
 import { PostCover } from "@/components/blog/PostCover";
@@ -14,7 +15,7 @@ import {
 } from "@/lib/blog/posts";
 import { pageOpenGraph, pageTwitter, siteConfig } from "@/lib/site";
 
-/** Matches the index, so a scheduled post and its link go live together. */
+/** Matches the index's cache window; each route revalidates on its own requests. */
 export const revalidate = 3600;
 
 /**
@@ -44,6 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   const url = `/blog/${post.slug}`;
+  const image = { url: post.socialImage ?? siteConfig.ogImage, width: 1200, height: 630, alt: post.heading };
 
   return {
     /* Google shows roughly 60 characters of a title. Appending the brand to a
@@ -55,10 +57,20 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     },
     description: post.description,
     alternates: { canonical: url },
-    openGraph: pageOpenGraph({ url, title: post.heading, description: post.description }),
-    twitter: pageTwitter({ title: post.heading, description: post.description }),
+    authors: [{ name: siteConfig.name, url: siteConfig.url }],
+    openGraph: {
+      ...pageOpenGraph({ url, title: post.heading, description: post.description }),
+      type: "article",
+      ...(isPublished(post) ? { publishedTime: `${post.published}T00:00:00Z`, modifiedTime: `${post.updated ?? post.published}T00:00:00Z` } : {}),
+      authors: [siteConfig.url],
+      section: post.topic,
+      images: [image]
+    },
+    twitter: { ...pageTwitter({ title: post.heading, description: post.description }), images: [image] },
     // A post being proofed locally must never be indexable if it somehow ships.
-    ...(isPublished(post) ? {} : { robots: { index: false, follow: false } })
+    robots: isPublished(post)
+      ? { index: true, follow: true, googleBot: { "max-image-preview": "large" } }
+      : { index: false, follow: false }
   };
 }
 
@@ -70,16 +82,23 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const { overview, sections } = await post.content();
   const scheduled = !isPublished(post);
+  const relatedPosts = listPosts({ includeScheduled: canPreviewScheduled() })
+    .filter((candidate) => candidate.slug !== post.slug)
+    .slice(0, 2);
+  const articleImages = post.banner.kind === "image"
+    ? [new URL(post.banner.src, siteConfig.url).href]
+    : post.banner.appids.map((appid) => `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/header.jpg`);
 
   /* The information pages' eyebrow already carries this kind of context - the
      Steam Data page uses "Data · Updated 4 September 2026". The scheduled
      warning goes here too rather than in furniture of its own. */
   const eyebrow = [
     post.topic,
+    "By VaultShuffle",
     formatPostDate(post.published),
     `${post.readingMinutes} min read`,
     post.updated ? `Updated ${formatPostDate(post.updated)}` : null,
-    scheduled ? "Scheduled, not public" : null
+    post.draft ? "Draft preview" : scheduled ? "Scheduled, not public" : null
   ]
     .filter(Boolean)
     .join(" · ");
@@ -92,13 +111,15 @@ export default async function BlogPostPage({ params }: PageProps) {
         "@id": `${siteConfig.url}/blog/${post.slug}#post`,
         headline: post.heading,
         description: post.description,
-        datePublished: post.published,
-        dateModified: post.updated ?? post.published,
+        ...(!scheduled ? { datePublished: `${post.published}T00:00:00Z`, dateModified: `${post.updated ?? post.published}T00:00:00Z` } : {}),
+        image: articleImages,
+        articleSection: post.topic,
+        isAccessibleForFree: true,
         inLanguage: "en-GB",
         url: `${siteConfig.url}/blog/${post.slug}`,
         mainEntityOfPage: `${siteConfig.url}/blog/${post.slug}`,
         isPartOf: { "@id": `${siteConfig.url}/blog#blog` },
-        author: { "@id": `${siteConfig.url}/#organization` },
+        author: { "@type": "Organization", "@id": `${siteConfig.url}/#organization`, name: siteConfig.name, url: siteConfig.url },
         publisher: { "@id": `${siteConfig.url}/#organization` }
       },
       {
@@ -107,7 +128,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         itemListElement: [
           { "@type": "ListItem", position: 1, name: "Home", item: siteConfig.url },
           { "@type": "ListItem", position: 2, name: "Blog", item: `${siteConfig.url}/blog` },
-          { "@type": "ListItem", position: 3, name: post.heading }
+          { "@type": "ListItem", position: 3, name: post.heading, item: `${siteConfig.url}/blog/${post.slug}` }
         ]
       }
     ]
@@ -135,10 +156,21 @@ export default async function BlogPostPage({ params }: PageProps) {
         sections={[
           ...sections,
           {
-            title: listPosts({ includeScheduled: canPreviewScheduled() }).length > 1 ? "More posts" : "",
+            title: relatedPosts.length ? "More posts" : "",
             // No arrow: the button under it already says where it goes.
             icon: null,
-            body: <AllPostsLink />
+            body: (
+              <>
+                {relatedPosts.map((related) => (
+                  <p key={related.slug}>
+                    <Link href={`/blog/${related.slug}`} data-blog-action="open_post" data-post-slug={related.slug}>
+                      {related.heading}
+                    </Link>
+                  </p>
+                ))}
+                <AllPostsLink />
+              </>
+            )
           }
         ]}
       />

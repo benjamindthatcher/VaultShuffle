@@ -32,12 +32,17 @@ const routes = [
 export const revalidate = 3600;
 
 export default function sitemap(): MetadataRoute.Sitemap {
+  const posts = listPosts();
+  const latestPostDate = posts.reduce((latest, post) => {
+    const date = post.updated ?? post.published;
+    return date > latest ? date : latest;
+  }, "2026-09-17");
   const staticRoutes = routes.map((route) => ({
     url: `${siteConfig.url}${route.path}`,
-    lastModified: new Date(route.lastModified)
+    lastModified: new Date(route.path === "/blog" ? latestPostDate : route.lastModified)
   }));
 
-  const postRoutes = listPosts().map((post) => ({
+  const postRoutes = posts.map((post) => ({
     url: `${siteConfig.url}/blog/${post.slug}`,
     lastModified: new Date(`${post.updated ?? post.published}T00:00:00Z`)
   }));

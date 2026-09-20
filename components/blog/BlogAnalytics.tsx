@@ -40,6 +40,7 @@ export function BlogAnalytics({ children, slug, topic }: {
         action,
         blog_page_type: slug ? "article" : "index",
         post_slug: slug ?? link.dataset.postSlug,
+        ...(slug && link.dataset.postSlug ? { destination_post_slug: link.dataset.postSlug } : {}),
         topic: topic ?? link.dataset.postTopic,
         ...(link.dataset.gameAppid ? { game_appid: Number(link.dataset.gameAppid) } : {}),
       },

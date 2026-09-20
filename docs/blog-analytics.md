@@ -5,7 +5,7 @@ The blog uses the existing PostHog client and analytics setting. No second SDK o
 | Event | Meaning | Properties |
 | --- | --- | --- |
 | `$pageview` | Existing route view, enriched for blog routes | `app_area: blog`, `blog_page_type`, article `post_slug` |
-| `blog_link_clicked` | Article opened from index, Steam link, FAQ or return to index | `action`, `post_slug`, `topic`, `blog_page_type`, optional `game_appid` |
+| `blog_link_clicked` | Article opened from index, related article, Steam link, FAQ, homepage, profile import or return to index | `action`, `post_slug`, `topic`, `blog_page_type`, optional `game_appid`, related link `destination_post_slug` |
 | `blog_cta_clicked` | Reader chooses Try it as a guest | `action: try_guest`, `post_slug`, `topic`, `blog_page_type` |
 | `blog_article_engaged` | At least 30 seconds with the article visible and at least halfway reached | `post_slug`, `topic`, `visible_seconds`, `article_progress` |
 

@@ -2,6 +2,8 @@ import type { ReactNode } from "react";
 import type { InfoSection } from "@/components/site/InfoPage";
 import type { VaultIconName } from "@/components/shared/VaultIcon";
 import { deckUnderTenHours } from "@/components/blog/posts/deck-under-ten-hours";
+import { chooseNextSteamGame } from "@/components/blog/posts/choose-next-steam-game";
+import { BLOG_SCHEDULE } from "@/lib/blog/schedule";
 
 /**
  * The post registry, and the publishing schedule.
@@ -17,7 +19,7 @@ import { deckUnderTenHours } from "@/components/blog/posts/deck-under-ten-hours"
  * the index and sitemap pick it up within the window. Write several, stagger
  * the dates, and they let themselves out.
  *
- * Scheduled posts are visible in `next dev` so they can be proofed, with a
+ * Scheduled posts and explicit drafts are visible in `next dev` so they can be proofed, with a
  * badge saying so. That branch is on NODE_ENV, so production cannot leak one.
  */
 
@@ -49,12 +51,16 @@ export type BlogPostMeta = {
   dek: string;
   /** YYYY-MM-DD, treated as 00:00 UTC. A future date schedules the post. */
   published: string;
+  /** A draft is previewable locally but never publishes on a date alone. */
+  draft?: boolean;
   /** Set when the substance changes, not when a typo is fixed. */
   updated?: string;
   readingMinutes: number;
   topic: string;
   icon: VaultIconName;
   banner: PostBanner;
+  /** Regenerate with node scripts/blog/render-social-images.mjs after headline edits. */
+  socialImage?: string;
 };
 
 /**
@@ -73,8 +79,23 @@ export type BlogPost = BlogPostMeta & {
   content: () => PostContent | Promise<PostContent>;
 };
 
-// Draft modules stay off the registry until their content is approved.
+// Explicit drafts can be reviewed locally without entering the publishing schedule.
 export const BLOG_POSTS: readonly BlogPost[] = [
+  {
+    slug: "how-to-choose-your-next-steam-game",
+    title: "Can't decide what to play? Pick your next Steam game",
+    heading: "Can't decide what to play? How to pick your next Steam game",
+    description:
+      "Stuck choosing what to play on Steam? Find a game in your own library that fits tonight, with practical advice and a guide to VaultShuffle's free game picker.",
+    dek: "A library full of games and nothing you fancy? Here is how to find something worth starting without buying anything new.",
+    ...BLOG_SCHEDULE["how-to-choose-your-next-steam-game"],
+    readingMinutes: 5,
+    topic: "Steam backlog",
+    icon: "shuffle",
+    banner: { kind: "image", src: "/assets/vault/vault-header.webp", alt: "VaultShuffle's purple illuminated vault" },
+    socialImage: "/assets/blog/how-to-choose-your-next-steam-game.png",
+    content: chooseNextSteamGame
+  },
   {
     slug: "steam-deck-games-you-can-beat-in-under-10-hours",
     title: "10 Best Short Steam Deck Games You Can Beat in Under 10 Hours",
@@ -82,12 +103,13 @@ export const BLOG_POSTS: readonly BlogPost[] = [
     description:
       "Ten of the best short Steam Deck Verified games, all under ten hours to beat and all strongly reviewed, with VaultShuffle data on how many players actually finish them.",
     dek: "From a 90 minute hike to Portal 2, every game here is Verified and short enough to finish this week.",
-    published: "2026-09-17",
+    ...BLOG_SCHEDULE["steam-deck-games-you-can-beat-in-under-10-hours"],
     readingMinutes: 5,
     topic: "Steam Deck",
     icon: "clock",
     // A Short Hike, Firewatch and Portal 2, all included in the article.
     banner: { kind: "steam", appids: [1055540, 383870, 620] },
+    socialImage: "/assets/blog/steam-deck-games-you-can-beat-in-under-10-hours.png",
     content: deckUnderTenHours
   }
 ];
@@ -97,17 +119,17 @@ function publishedAt(post: BlogPostMeta): number {
 }
 
 export function isPublished(post: BlogPostMeta, now: Date = new Date()): boolean {
-  return publishedAt(post) <= now.getTime();
+  return !post.draft && publishedAt(post) <= now.getTime();
 }
 
-/** True only outside production, where a scheduled post may be proofed. */
+/** True only outside production, where scheduled posts and drafts may be proofed. */
 export function canPreviewScheduled(): boolean {
   return process.env.NODE_ENV !== "production";
 }
 
-/** Newest first. Scheduled posts are included only when previewing is allowed. */
+/** Newest first. Unpublished posts are included only in development previews. */
 export function listPosts(options: { includeScheduled?: boolean } = {}): BlogPost[] {
-  const includeScheduled = options.includeScheduled ?? false;
+  const includeScheduled = Boolean(options.includeScheduled) && canPreviewScheduled();
   const now = new Date();
   return BLOG_POSTS
     .filter((post) => includeScheduled || isPublished(post, now))
