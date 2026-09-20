@@ -49,6 +49,14 @@ function productAnalyticsMode(): ProductAnalyticsMode {
   }
 }
 
+export function isProductAnalyticsEnabled(): boolean {
+  return typeof window !== "undefined"
+    && productAnalyticsMode() === "enabled"
+    && configuredMode !== "disabled"
+    && navigator.doNotTrack !== "1"
+    && !(navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl;
+}
+
 function applyProductUserIdentity(posthog: PostHogClient, identity: ProductUserIdentity) {
   const properties: Record<string, string | boolean> = {
     vaultshuffle_user_id: identity.userId,
@@ -239,7 +247,7 @@ export function clearProductUserIdentity() {
   syncDiagnosticConsent();
 }
 
-export type CaptureOptions = { transport?: "XHR" | "sendBeacon" };
+export type CaptureOptions = { transport?: "XHR" | "sendBeacon"; send_instantly?: boolean };
 
 export function captureProductEvent(
   event: string,
@@ -252,7 +260,12 @@ export function captureProductEvent(
   const ready = configuredMode === mode && client
     ? Promise.resolve(client)
     : setProductAnalyticsMode(mode);
-  void ready.then((posthog) => { syncDiagnosticConsent(); posthog?.capture(event, properties, options); });
+  void ready.then((posthog) => {
+    // Consent can change while the SDK is loading or the capture is queued.
+    if (!isProductAnalyticsEnabled()) return;
+    syncDiagnosticConsent();
+    posthog?.capture(event, properties, options);
+  });
 }
 
 // Registered once per session so that every subsequent event can be segmented by

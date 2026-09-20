@@ -439,7 +439,6 @@ export default function ReleasesPage() {
       <InfoPage
         eyebrow="Product · Updated 4 September 2026"
         title="Releases"
-        intro="What's new"
         variant="release"
         sections={[
           { title: "1.1 — 4 September 2026", open: true, body: <ReleaseBody /> },

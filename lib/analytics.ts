@@ -60,6 +60,11 @@ export const ANALYTICS_EVENTS = {
   // Site conversions. Rare enough to cost nothing, direct enough to act on.
   feedbackSubmitted: "feedback_submitted",
   contactSubmitted: "contact_submitted",
+
+  // Editorial acquisition: useful reading, link intent and entry into the app.
+  blogLinkClicked: "blog_link_clicked",
+  blogCtaClicked: "blog_cta_clicked",
+  blogArticleEngaged: "blog_article_engaged",
 } as const;
 
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[keyof typeof ANALYTICS_EVENTS];
@@ -94,7 +99,7 @@ export function trackEvent(
  * event is lost.
  */
 export function trackNavigationEvent(event: AnalyticsEvent, properties?: Record<string, unknown>) {
-  trackEvent(event, properties, { transport: "sendBeacon" });
+  trackEvent(event, properties, { transport: "sendBeacon", send_instantly: true });
 }
 
 /** Registers session-wide context so every later event can be segmented by it. */

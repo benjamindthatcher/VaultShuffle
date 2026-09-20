@@ -137,7 +137,7 @@ owned by listicles — including one a competitor wrote about itself.
 ## What to do after posting
 
 1. In Search Console, use **URL Inspection → Request indexing** for `/`,
-   `/how-it-works` and `/releases` once these ship.
+   `/blog` and the newest post once they ship.
 2. Watch **Performance → Queries** weekly. The first sign this is working is not
    ranking for "steam backlog manager" — it is picking up dozens of long-tail
    queries you never targeted.

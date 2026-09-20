@@ -16,6 +16,7 @@ import {
   enableProductAnalytics,
   identifyProductUser,
 } from "@/lib/posthog-client";
+import { blogPageProperties } from "@/lib/blog-analytics";
 import { awaitSession, hasSessionProvider } from "@/lib/analytics-session";
 import styles from "./SiteExperience.module.css";
 
@@ -42,6 +43,31 @@ const NOTICE_STORAGE_KEY = "vault-analytics-notice-seen";
  * sentence describing it. Same shape as useFeedback, for the same reason.
  */
 const AnalyticsSettingsContext = createContext<{ openAnalyticsSettings: () => void } | null>(null);
+
+/**
+ * The session, for anything under the shell that needs to know who is here.
+ *
+ * SiteFrame already resolves one per page to identify the PostHog user, so the
+ * public information pages read it from here rather than asking again. That is
+ * the whole reason this is a context and not another fetch: these pages are
+ * static, served from the CDN, and almost all of their traffic is anonymous -
+ * reading a cookie on the server would make every one of those visits a
+ * function invocation to render a nav that only a signed-in visitor sees.
+ *
+ * `null` means not resolved yet, which is not the same as signed out. Anything
+ * reading this must render the signed-out state until it knows better, and must
+ * not move the page around when the answer arrives.
+ */
+const SiteSessionContext = createContext<AnalyticsSession | null>(null);
+
+export function useSiteSession() {
+  return useContext(SiteSessionContext);
+}
+
+/** Steam sign-in or a public-profile import. Guest mode is neither. */
+export function isSignedInAccount(session: AnalyticsSession | null): boolean {
+  return Boolean(session?.logged_in) && session?.account_type !== "guest";
+}
 
 export function useAnalyticsSettings() {
   const value = useContext(AnalyticsSettingsContext);
@@ -111,6 +137,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [noticeSeen, setNoticeSeen] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  const [session, setSession] = useState<AnalyticsSession | null>(null);
   const consentBannerRef = useRef<HTMLDivElement>(null);
   const hideFooter = pathname.startsWith("/auth") || pathname.startsWith("/setup/");
   const isAppPage = ["/dashboard", "/vault", "/library", "/collections"].some(
@@ -136,11 +163,35 @@ function SiteFrame({ children }: { children: ReactNode }) {
     }
   }, [analyticsChoice, loaded]);
 
+  /**
+   * One session per page, whatever the analytics setting. It was already being
+   * fetched for identity on the default path, so for most visitors this is the
+   * same single request it always was; turning analytics off now costs that one
+   * request rather than leaving the nav unable to appear.
+   */
+  useEffect(() => {
+    if (!loaded) return;
+    let cancelled = false;
+    void loadAnalyticsSession()
+      .then((resolved) => {
+        if (!cancelled) setSession(resolved);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [loaded]);
+
   useEffect(() => {
     if (!loaded || analyticsChoice !== "enabled") return;
+    let cancelled = false;
+    const url = window.location.href;
     void enableProductAnalytics().then(() => {
-      captureProductEvent("$pageview", { $current_url: window.location.href });
+      if (!cancelled) {
+        captureProductEvent("$pageview", { $current_url: url, ...blogPageProperties(pathname) });
+      }
     });
+    return () => { cancelled = true; };
   }, [analyticsChoice, loaded, pathname]);
 
   useEffect(() => {
@@ -178,7 +229,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
 
   return <>
     <AnalyticsSettingsContext.Provider value={{ openAnalyticsSettings: () => setSettingsOpen(true) }}>
-      {children}
+      <SiteSessionContext.Provider value={session}>{children}</SiteSessionContext.Provider>
     </AnalyticsSettingsContext.Provider>
     {!hideFooter ? <SiteFooter variant={isAppPage ? "app" : "site"} onFeedback={() => openFeedback({ source: "footer" })} onCookieSettings={() => setSettingsOpen(true)} /> : null}
     {loaded && !noticeSeen && !settingsOpen ? <div ref={consentBannerRef} className={styles.consentBanner} role="region" aria-label="Analytics notice"><div className={styles.consentBannerCopy}><strong>About analytics</strong><p>Product analytics and session replay are enabled by default. They can link to your profile when you connect a library. Replay masks input values but may record visible page content. <Link href="/privacy">Privacy Policy</Link></p></div><div className={styles.consentBannerActions}><button type="button" onClick={() => chooseAnalytics("disabled")}>Turn analytics off</button><button className={styles.primaryConsent} type="button" onClick={dismissNotice}>Got it</button></div></div> : null}

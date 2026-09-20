@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { listPosts } from "@/lib/blog/posts";
 import { siteConfig } from "@/lib/site";
 
 /**
@@ -14,17 +15,32 @@ import { siteConfig } from "@/lib/site";
  */
 const routes = [
   { path: "", lastModified: "2026-09-04" },
+  { path: "/blog", lastModified: "2026-09-17" },
   { path: "/releases", lastModified: "2026-09-04" },
   { path: "/faq", lastModified: "2026-09-04" },
   { path: "/steam-data", lastModified: "2026-09-04" },
-  { path: "/privacy", lastModified: "2026-09-04" },
+  { path: "/privacy", lastModified: "2026-09-17" },
   { path: "/terms", lastModified: "2026-09-04" },
   { path: "/contact", lastModified: "2026-09-04" }
 ] as const;
 
+/**
+ * Posts carry their own dates, so they are generated rather than listed. A
+ * scheduled post is absent until its date passes; this window is how it gets
+ * in without a deploy, and it matches the blog index's.
+ */
+export const revalidate = 3600;
+
 export default function sitemap(): MetadataRoute.Sitemap {
-  return routes.map((route) => ({
+  const staticRoutes = routes.map((route) => ({
     url: `${siteConfig.url}${route.path}`,
     lastModified: new Date(route.lastModified)
   }));
+
+  const postRoutes = listPosts().map((post) => ({
+    url: `${siteConfig.url}/blog/${post.slug}`,
+    lastModified: new Date(`${post.updated ?? post.published}T00:00:00Z`)
+  }));
+
+  return [...staticRoutes, ...postRoutes];
 }

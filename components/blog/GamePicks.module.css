@@ -1,0 +1,362 @@
+/* The written picks, shaped like entries in a magazine rather than rows in a
+   result set.
+
+   One surface per game and nothing boxed inside it, bar the chip on the length
+   and a hairline over our own figures. Artwork sits in its own column, pinned
+   to the top so it belongs to the name beside it, and at the capsule's native
+   ratio so nothing is cropped. The hierarchy is rank, name, length, opinion,
+   our numbers, in that order and in that order of weight.
+
+   A word on the selectors. These entries live inside the article variant of
+   InfoPage, which sets a blanket margin on every paragraph and its own size on
+   every h3, and those rules carry a class and an element between them. Anything
+   here that has to outrank one is written with the list and the item in front
+   of it; everything else is left as a single class. */
+
+.picks {
+  display: grid;
+  gap: 16px;
+  /* No top margin. The list used to sit in a padded pane with prose above it
+     and had to open its own space; now the container's 22px grid gap does it,
+     and the two together left a 50px hole under the introduction against the
+     22px above it. The bottom matches that gap, so every block in the article
+     is 22px from the next and only the ten cards are closer, at 16px. */
+  margin: 0 0 22px;
+  padding: 0;
+  list-style: none;
+  counter-reset: pick;
+}
+
+/* Areas rather than line numbers: the mobile order is the same five pieces in
+   a different stack, so it is one template swap instead of five reassignments.
+   Row gaps are zero and the spacing lives on the pieces, because a pick with
+   no library figures would otherwise leave the gap around an empty row behind. */
+.picks .pick {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  /* Proportional rather than a fixed column: the split is meant to be roughly
+     70/30 whatever the pane is, and a fixed 276px would be wider than the text
+     beside it on a tablet. Both tracks floor at 0 because the capsule's own
+     460px would otherwise become the column's minimum. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 0.44fr);
+  grid-template-areas:
+    "head art"
+    "note art"
+    "ours ours";
+  column-gap: 28px;
+  row-gap: 0;
+  margin: 0;
+  padding: 22px 24px 18px;
+  /* The releases page's .group recipe: its repeated card, not its feature
+     card. Its own comment explains why, about a block that had this exact
+     problem: "a purple-black block was the one thing on the page pulling
+     against it". These were --vault-well-surface, #120a24, which is a purple
+     black recess - correct inside a panel, wrong now there is no panel. So a
+     navy gradient at the lightness the pane itself had, a purple wash at 4.5%
+     over the left third, and a border at rgba(148 119 199 / .28) instead of
+     the solid #3a2866. Ten cards in a column is where a strong purple edge
+     turns into the pattern you notice instead of the games. */
+  border: 1px solid rgba(148, 119, 199, 0.28);
+  border-radius: 16px;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(168, 85, 247, 0.07), transparent 60%),
+    linear-gradient(125deg, #13152f, #0c1429);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  counter-increment: pick;
+}
+
+/* A quiet edge ties each entry to the cover without another inner box. */
+.picks .pick::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.65), rgba(78, 141, 255, 0.24), transparent 80%);
+  pointer-events: none;
+}
+
+/* No artwork, no column for it. */
+.picks .pickNoArt {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "head"
+    "note"
+    "ours";
+}
+
+.head {
+  grid-area: head;
+}
+
+.titleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 13px;
+}
+
+/* Quieter than the name it numbers, and tabular so the column of ranks lines
+   up down the page. Same blue as the name, held back, so the top line of an
+   entry reads as one thing. */
+.rank {
+  flex: none;
+  color: #bda2ea;
+  font-size: 1.25rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+.rank::before {
+  content: counter(pick, decimal-leading-zero);
+}
+
+/* White. It was blue, and blue made every title look like a hyperlink before
+   anyone noticed the external link icon beside it, which flattened the
+   hierarchy instead of building one. The number keeps the blue, so the top
+   line still has an accent in it, and the title is the brightest thing on the
+   card. The link affordance moves to hover, where it belongs. */
+.picks .pick .name {
+  min-width: 0;
+  margin: 0;
+  color: var(--vault-text);
+  font-size: clamp(1.22rem, 1.9vw, 1.44rem);
+  font-weight: 800;
+  letter-spacing: -0.022em;
+  line-height: 1.24;
+  text-transform: none;
+}
+
+/* The article body underlines its links in purple. A name at this size is the
+   entry's headline first and a link second, so it takes the heading's colour
+   and earns both the blue and the underline on hover. */
+.picks .pick .name a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.picks .pick .name a:hover,
+.picks .pick .name a:focus-visible {
+  color: #8fb8ff;
+  text-decoration: underline;
+  text-underline-offset: 5px;
+}
+
+/* Inline rather than a flex child, so it trails the last line of a name that
+   wraps instead of centring itself against the whole block. */
+.linkIcon {
+  margin-left: 8px;
+  opacity: 0.4;
+  vertical-align: 0.04em;
+}
+
+.picks .pick .name a:hover .linkIcon,
+.picks .pick .name a:focus-visible .linkIcon {
+  opacity: 0.85;
+}
+
+/* ---------- The line the page is scanned by ---------- */
+
+/* Lilac, set once on the row so the chip, the Deck verdict and the review
+   score all carry it. The card runs on the three hues the app actually owns
+   and two are already promised: blue is the game, turquoise is our own data.
+   So the public facts take the fourth accent of the index's own cycle,
+   194 122 255, lightened for type. It replaces --vault-text-soft, which at
+   this size read as something switched off rather than as information. */
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 9px 13px;
+  margin-top: 12px;
+  color: #e3caff;
+  font-size: 0.83rem;
+}
+
+/* The one number the whole post is about, so it is the one thing here wearing
+   a chip. Everything else on the line is why the game qualified. */
+.time {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 11px 5px;
+  border: 1px solid rgba(194, 122, 255, 0.46);
+  border-radius: 999px;
+  background: rgba(194, 122, 255, 0.13);
+  font-size: 0.79rem;
+  white-space: nowrap;
+}
+
+/* The hour stays the brightest thing on the line. It is what the page is
+   scanned for, so it wins on weight and value while the chip around it
+   carries the hue. */
+.time strong {
+  color: var(--vault-text);
+  font-size: 0.98rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+
+.metaRest {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* The Deck verdict is the second thing this list promises after the length, so
+   it carries weight rather than sitting at the value of the separator next to
+   it. */
+.metaRest > span:first-child {
+  color: #f0e2ff;
+  font-weight: 650;
+}
+
+/* ---------- The opinion ---------- */
+
+.picks .pick .note {
+  grid-area: note;
+  margin: 16px 0 0;
+  color: var(--vault-text);
+  font-size: 0.98rem;
+  line-height: 1.72;
+}
+
+/* ---------- Our own figures ---------- */
+
+/* Spanning both columns, because a rule that stopped two thirds of the way
+   across would read as a truncation rather than as the foot of the entry.
+   A hairline and the turquoise are enough: this is the claim nobody else on
+   these results pages can make, and it still does not need to shout over the
+   name at the top of the card. */
+.ours {
+  grid-area: ours;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-top: 18px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(110, 231, 183, 0.22);
+  color: var(--vault-text-muted);
+  font-size: 0.83rem;
+}
+
+.oursLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--vault-success);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.oursFigures {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ours strong {
+  color: var(--vault-success);
+  font-weight: 800;
+}
+
+/* ---------- Artwork ---------- */
+
+/* The capsule's own 460x215, so it fills its column and crops nothing. Pinned
+   to the top of the two rows the name and the note occupy. */
+.art {
+  grid-area: art;
+  align-self: start;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 460 / 215;
+  border: 1px solid rgba(148, 119, 199, 0.22);
+  border-radius: 10px;
+  object-fit: cover;
+}
+
+/* Two breakpoints, because two different things stop working at two different
+   widths. The columns go first: 860 is where the art column would drop under
+   the 200px it occupied before this layout, and under that it is better off
+   across the width instead. The separated lines last: they hold together until
+   a line is too narrow for the whole run, which is a phone. */
+@media (max-width: 860px) {
+  .picks .pick {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      "head"
+      "art"
+      "note"
+      "ours";
+  }
+
+  /* Capped rather than full width: a capsule stretched across a 700px card is
+     over 300px tall, which is a screenful of artwork before a word of the
+     entry. On a phone the cap never applies and it fills the card. */
+  .art {
+    max-width: 440px;
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 560px) {
+  .picks .pick {
+    padding: 18px 18px 16px;
+  }
+
+  .picks .pick .name {
+    font-size: 1.16rem;
+  }
+
+  .titleRow {
+    gap: 10px;
+  }
+
+  .rank {
+    font-size: 0.92rem;
+  }
+
+  .picks .pick .note {
+    margin-top: 15px;
+    font-size: 0.95rem;
+  }
+
+  /* One fact per line. Side by side they wrap mid run and leave a separator
+     dangling at the end of a line, so the separators go with the single line
+     they were there to divide. */
+  .metaRest span[aria-hidden="true"],
+  .oursFigures span[aria-hidden="true"] {
+    display: none;
+  }
+
+  .meta {
+    align-items: flex-start;
+    gap: 11px;
+  }
+
+  .metaRest,
+  .oursFigures {
+    flex: 1 0 100%;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  /* The label sits over its figures rather than at the far end of a line too
+     narrow to hold both. */
+  .ours {
+    justify-content: flex-start;
+    gap: 9px;
+  }
+
+  .oursLabel {
+    flex: 1 0 100%;
+  }
+}

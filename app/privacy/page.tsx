@@ -21,7 +21,7 @@ export default function PrivacyPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Legal · Updated 4 September 2026"
+        eyebrow="Legal · Updated 17 September 2026"
         title="Privacy Policy"
         intro="What VaultShuffle collects, how it is used and how to manage your data."
         icon="privacy"
@@ -87,10 +87,18 @@ export default function PrivacyPage() {
                   <li>save game statuses, notes, pins and collections</li>
                   <li>prevent abuse and diagnose faults</li>
                   <li>respond to support requests and understand usage when product analytics are enabled</li>
+                  <li>produce anonymous statistics about how libraries are played, some of which we publish</li>
                 </ul>
                 <p>
                   We process account and library data to provide the service you request. Security and reliability
                   work also supports our legitimate interests in keeping the service safe and functional.
+                </p>
+                <p>
+                  The statistics we publish, on the <Link href="/blog">blog</Link> and elsewhere, are counts and
+                  averages taken across all libraries at once. One example is the share of owned games that have
+                  never been launched, or how often a particular game gets finished. They never name an account and
+                  we never publish anyone&rsquo;s library, playtime or progress individually. Per-game figures are
+                  only published where enough separate libraries own the game for no one of them to be identifiable.
                 </p>
               </>
             )

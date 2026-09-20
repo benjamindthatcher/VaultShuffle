@@ -370,3 +370,167 @@
   .sectionRelease .body { padding: 14px 16px 15px; }
   .bodyInner { box-sizing: border-box; width: 100%; padding: 13px 16px 15px; }
 }
+
+/* Article styles are isolated from the document and release variants. */
+.articlePage { gap: 12px; }
+
+.articlePage > h1 {
+  text-wrap: balance;
+  letter-spacing: -0.035em;
+}
+
+.articlePane {
+  position: relative;
+  overflow: hidden;
+  margin-top: 18px;
+  border: 1px solid rgba(163, 112, 228, 0.2);
+  border-radius: 20px;
+  background: rgba(7, 11, 29, 0.5);
+}
+
+.articleBar {
+  margin: 0;
+  padding: 24px 32px;
+  text-align: center;
+  text-wrap: balance;
+  border-bottom: 1px solid rgba(163, 112, 228, 0.2);
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(168, 85, 247, 0.14), transparent 70%),
+    linear-gradient(110deg, #211735, #13172e);
+  color: var(--vault-text);
+  font-size: 1.2rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.6;
+}
+
+.articleBody {
+  display: grid;
+  gap: 22px;
+  padding: 22px;
+}
+
+.articleLede,
+.articleProse {
+  position: relative;
+  overflow: hidden;
+  margin: 0;
+  padding: 30px 24px 32px;
+  border: 1px solid rgba(168, 125, 224, 0.28);
+  border-radius: 16px;
+  background:
+    radial-gradient(ellipse at 0% 0%, rgba(168, 85, 247, 0.09), transparent 65%),
+    linear-gradient(125deg, #13152f, #0e142b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.articleLede::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
+  pointer-events: none;
+}
+
+/* Larger than the body it introduces. At 1rem it was within a third of a pixel
+   of a game card's note, so the opening read as another entry rather than as
+   the way in. The ladder is now the bar at 1.2rem and bold, the opening at
+   1.14rem, an entry's note at 0.98rem. */
+.articlePage .overviewBody {
+  color: var(--vault-text);
+  font-size: 1.14rem;
+  line-height: 1.72;
+}
+
+.articlePage .overviewBody p { margin: 0 0 15px; }
+.articlePage .overviewBody p:last-child { margin-bottom: 0; }
+
+/* A grid child of .articleBody. It needs the min-width so a wide child, a
+   table or the picks list, cannot push the column past the container. It also
+   needs to exist: with every rule for it removed, styles.articleSection came
+   back undefined and React wrote class="undefined" into the markup. */
+.articleSection {
+  min-width: 0;
+}
+
+.articleHeading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #c27aff;
+}
+
+.articleLede .articleHeading h2 {
+  font-size: 0.73rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.articleHeading h2 {
+  margin: 0;
+  color: var(--vault-text);
+  font-size: 1.24rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  text-transform: none;
+}
+
+.articleLede .articleHeading { margin-bottom: 12px; }
+
+.articlePage .body {
+  border-top: 0;
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+/* The pane's padding used to be the inset, so the inner had to clear it.
+   Nothing wraps these now, so the blocks sit straight on the grid and the
+   gap between sections is the only spacing. */
+.articlePage .bodyInner {
+  width: 100%;
+  padding: 0;
+}
+
+.articlePage .articleHeading + .body {
+  margin-top: 12px;
+}
+
+.articlePage .body p { margin: 0 0 15px; }
+.articlePage .body p:last-child { margin-bottom: 0; }
+
+/* No measure cap: the pane's padding is the measure, the same way the document
+   cards' inset is theirs. */
+.articlePage .bodyInner > p,
+.articlePage .bodyInner > ul,
+.articlePage .bodyInner > ol { max-width: none; }
+
+/* A footnote under the content it qualifies. One line, quieter than the prose,
+   which is the whole space a caveat needs: a section about method reads as the
+   page explaining itself rather than telling you anything. */
+.articlePage .body small {
+  display: block;
+  color: var(--vault-text-soft);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.articlePage .body h3 {
+  margin: 26px 0 10px;
+  font-size: 1.02rem;
+  font-weight: 750;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (max-width: 720px) {
+  .articlePane { border-radius: 16px; }
+  .articleBar { padding: 17px 18px; font-size: 1.06rem; }
+  .articleBody { gap: 18px; padding: 12px; }
+  .articleLede,
+  .articleProse { padding: 22px 18px 24px; border-radius: 14px; }
+  .articlePage .overviewBody { font-size: 1.06rem; }
+  .articleHeading h2 { font-size: 1.1rem; }
+}

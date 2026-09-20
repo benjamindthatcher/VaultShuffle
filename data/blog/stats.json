@@ -1,0 +1,341 @@
+{
+  "generatedAt": "2026-09-17",
+  "note": "Aggregates over user_games and catalog_games. PostgREST cannot aggregate, so these are precomputed rather than queried at build time. pickStats is keyed by Steam AppID and holds the per game figures the list posts quote. Refresh with docs/blog-stats-refresh.md and update generatedAt.",
+  "library": {
+    "libraries": 667,
+    "ownedRows": 383663,
+    "neverLaunched": 201034,
+    "pctNeverLaunched": 52.4,
+    "pctUnderOneHour": 64.9,
+    "completions": 13099
+  },
+  "catalogue": {
+    "games": 28279,
+    "withDurations": 16279,
+    "withDeckRating": 27481,
+    "deckVerified": 5189
+  },
+  "completionByLength": [
+    {
+      "band": "Under 2 hours",
+      "started": 9760,
+      "completed": 725,
+      "pctFinished": 7.4
+    },
+    {
+      "band": "2-5 hours",
+      "started": 21215,
+      "completed": 2128,
+      "pctFinished": 10.0
+    },
+    {
+      "band": "5-10 hours",
+      "started": 32363,
+      "completed": 2708,
+      "pctFinished": 8.4
+    },
+    {
+      "band": "10-20 hours",
+      "started": 34175,
+      "completed": 3009,
+      "pctFinished": 8.8
+    },
+    {
+      "band": "20-40 hours",
+      "started": 21675,
+      "completed": 1795,
+      "pctFinished": 8.3
+    },
+    {
+      "band": "40+ hours",
+      "started": 9615,
+      "completed": 703,
+      "pctFinished": 7.3
+    }
+  ],
+  "mostPlayed": [
+    {
+      "name": "ELDEN RING",
+      "appid": 1245620,
+      "mainHours": 60.1,
+      "owners": 296,
+      "pctLaunched": 93,
+      "medianHours": 69.3,
+      "pctFinished": 19
+    },
+    {
+      "name": "Baldur's Gate 3",
+      "appid": 1086940,
+      "mainHours": 73.1,
+      "owners": 347,
+      "pctLaunched": 93,
+      "medianHours": 70.8,
+      "pctFinished": 16
+    },
+    {
+      "name": "Grand Theft Auto V Legacy",
+      "appid": 271590,
+      "mainHours": 119.3,
+      "owners": 264,
+      "pctLaunched": 88,
+      "medianHours": 57.7,
+      "pctFinished": 13
+    },
+    {
+      "name": "God of War Ragnarok",
+      "appid": 2322010,
+      "mainHours": 26.6,
+      "owners": 53,
+      "pctLaunched": 75,
+      "medianHours": 51.5,
+      "pctFinished": 23
+    },
+    {
+      "name": "Cyberpunk 2077",
+      "appid": 1091500,
+      "mainHours": 26.1,
+      "owners": 355,
+      "pctLaunched": 86,
+      "medianHours": 42.4,
+      "pctFinished": 19
+    },
+    {
+      "name": "The Elder Scrolls V: Skyrim",
+      "appid": 72850,
+      "mainHours": 35.3,
+      "owners": 279,
+      "pctLaunched": 93,
+      "medianHours": 36.0,
+      "pctFinished": 16
+    },
+    {
+      "name": "Dragon Age: The Veilguard",
+      "appid": 1845910,
+      "mainHours": 28.7,
+      "owners": 47,
+      "pctLaunched": 79,
+      "medianHours": 37.2,
+      "pctFinished": 22
+    },
+    {
+      "name": "Borderlands 4",
+      "appid": 1285190,
+      "mainHours": 30.4,
+      "owners": 90,
+      "pctLaunched": 90,
+      "medianHours": 33.8,
+      "pctFinished": 16
+    },
+    {
+      "name": "Starfield",
+      "appid": 1716740,
+      "mainHours": 24.1,
+      "owners": 99,
+      "pctLaunched": 93,
+      "medianHours": 32.2,
+      "pctFinished": 12
+    },
+    {
+      "name": "Marvel's Spider-Man 2",
+      "appid": 2651280,
+      "mainHours": 17.2,
+      "owners": 40,
+      "pctLaunched": 85,
+      "medianHours": 23.2,
+      "pctFinished": 32
+    },
+    {
+      "name": "The Sims 3",
+      "appid": 47890,
+      "mainHours": 54.9,
+      "owners": 43,
+      "pctLaunched": 93,
+      "medianHours": 25.9,
+      "pctFinished": 15
+    },
+    {
+      "name": "Mount & Blade II: Bannerlord",
+      "appid": 261550,
+      "mainHours": 52.7,
+      "owners": 81,
+      "pctLaunched": 88,
+      "medianHours": 30.9,
+      "pctFinished": 7
+    },
+    {
+      "name": "Clair Obscur: Expedition 33",
+      "appid": 1903340,
+      "mainHours": 29.3,
+      "owners": 208,
+      "pctLaunched": 82,
+      "medianHours": 25.5,
+      "pctFinished": 23
+    },
+    {
+      "name": "Fallout 4",
+      "appid": 377160,
+      "mainHours": 27.8,
+      "owners": 351,
+      "pctLaunched": 80,
+      "medianHours": 28.9,
+      "pctFinished": 14
+    },
+    {
+      "name": "Metaphor: ReFantazio",
+      "appid": 2679460,
+      "mainHours": 65.4,
+      "owners": 81,
+      "pctLaunched": 78,
+      "medianHours": 29.3,
+      "pctFinished": 14
+    }
+  ],
+  "mostFinished": [
+    {
+      "name": "INSIDE",
+      "appid": 304430,
+      "mainHours": 3.6,
+      "started": 63,
+      "pctFinished": 48
+    },
+    {
+      "name": "The Walking Dead: Season Two",
+      "appid": 261030,
+      "mainHours": 8.5,
+      "started": 42,
+      "pctFinished": 48
+    },
+    {
+      "name": "Firewatch",
+      "appid": 383870,
+      "mainHours": 4.1,
+      "started": 92,
+      "pctFinished": 39
+    },
+    {
+      "name": "The Wolf Among Us",
+      "appid": 250320,
+      "mainHours": 8.6,
+      "started": 71,
+      "pctFinished": 38
+    },
+    {
+      "name": "The Room",
+      "appid": 288160,
+      "mainHours": 2.6,
+      "started": 45,
+      "pctFinished": 38
+    },
+    {
+      "name": "Brothers - A Tale of Two Sons",
+      "appid": 225080,
+      "mainHours": 3.1,
+      "started": 74,
+      "pctFinished": 34
+    },
+    {
+      "name": "Marvel's Spider-Man: Miles Morales",
+      "appid": 1817190,
+      "mainHours": 7.8,
+      "started": 54,
+      "pctFinished": 30
+    },
+    {
+      "name": "South Park: The Stick of Truth",
+      "appid": 213670,
+      "mainHours": 11.4,
+      "started": 131,
+      "pctFinished": 29
+    },
+    {
+      "name": "Unpacking",
+      "appid": 1135690,
+      "mainHours": 3.6,
+      "started": 45,
+      "pctFinished": 29
+    },
+    {
+      "name": "Resident Evil Village",
+      "appid": 1196590,
+      "mainHours": 9.9,
+      "started": 84,
+      "pctFinished": 27
+    },
+    {
+      "name": "Gone Home",
+      "appid": 232430,
+      "mainHours": 2.0,
+      "started": 44,
+      "pctFinished": 27
+    },
+    {
+      "name": "Stray",
+      "appid": 1332010,
+      "mainHours": 5.2,
+      "started": 88,
+      "pctFinished": 27
+    }
+  ],
+  "pickStats": {
+    "1055540": {
+      "owners": 84,
+      "started": 51,
+      "pctFinished": 25,
+      "medianHours": 1.9
+    },
+    "501300": {
+      "owners": 75,
+      "started": 43,
+      "pctFinished": 16,
+      "medianHours": 2.1
+    },
+    "304430": {
+      "owners": 122,
+      "started": 63,
+      "pctFinished": 48,
+      "medianHours": 3.9
+    },
+    "1135690": {
+      "owners": 82,
+      "started": 45,
+      "pctFinished": 29,
+      "medianHours": 3.0
+    },
+    "383870": {
+      "owners": 149,
+      "started": 92,
+      "pctFinished": 39,
+      "medianHours": 4.2
+    },
+    "460950": {
+      "owners": 91,
+      "started": 51,
+      "pctFinished": 10,
+      "medianHours": 2.1
+    },
+    "239030": {
+      "owners": 186,
+      "started": 148,
+      "pctFinished": 11,
+      "medianHours": 2.8
+    },
+    "1332010": {
+      "owners": 111,
+      "started": 88,
+      "pctFinished": 27,
+      "medianHours": 5.1
+    },
+    "504230": {
+      "owners": 165,
+      "started": 104,
+      "pctFinished": 8,
+      "medianHours": 3.4
+    },
+    "620": {
+      "owners": 473,
+      "started": 362,
+      "pctFinished": 22,
+      "medianHours": 8.5
+    }
+  }
+}
