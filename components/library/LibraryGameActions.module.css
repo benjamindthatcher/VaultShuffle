@@ -1,0 +1,37 @@
+.actions {
+  display: flex;
+  gap: 6px;
+  container-type: inline-size;
+}
+.actions button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 6px;
+  border: 1px solid rgba(var(--action-rgb), .32);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(var(--action-rgb), .14), rgba(var(--action-rgb), .04)), #10172a;
+  color: var(--action-text);
+  font-size: .76rem;
+  font-weight: 700;
+  line-height: 1.25;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  transition: background 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+.actions svg { flex: none; }
+.blacklist { --action-rgb: 245, 158, 85; --action-text: #ffc394; }
+.complete { --action-rgb: 77, 211, 153; --action-text: #a7f0ce; }
+.next { --action-rgb: 170, 127, 250; --action-text: #decbff; }
+.restore { --action-rgb: 99, 168, 244; --action-text: #bbdcff; }
+.actions button:hover { background: rgba(var(--action-rgb), .21); border-color: rgba(var(--action-rgb), .65); }
+.actions button:active { transform: translateY(1px); }
+.actions button:focus-visible { outline: 2px solid var(--action-text); outline-offset: 3px; }
+@container (max-width: 330px) {
+  .actions button { flex-direction: column; gap: 5px; font-size: .72rem; min-height: 64px; }
+}
+@media (prefers-reduced-motion: reduce) { .actions button { transition: none; } }

@@ -36,14 +36,14 @@ export function PinnedPlaytimeRefresh() {
       setNotice({
         error: result.skipped > 0,
         message: result.skipped > 0
-          ? `Refreshed ${updated} of ${updated + result.skipped} pinned games. The rest were left unchanged.`
+          ? `Refreshed ${updated} of ${updated + result.skipped} Playing Next games. The rest were left unchanged.`
           : updated > 0
-            ? `Playtime updated for ${updated} pinned game${updated === 1 ? "" : "s"}. Steam can take a little while to catch up after playing.`
-            : "No pinned games to refresh.",
+            ? `Playtime updated for ${updated} Playing Next game${updated === 1 ? "" : "s"}. Steam can take a little while to catch up after playing.`
+            : "No Playing Next games to refresh.",
       });
     } catch (error) {
       setNotice({ error: true, message: error instanceof Error
-        ? error.message === "unauthorized" ? "Please sign in again to refresh your pinned games." : error.message
+        ? error.message === "unauthorized" ? "Please sign in again to refresh your Playing Next games." : error.message
         : "Playtime could not be refreshed. Your saved progress is unchanged; please try again." });
     }
   }
@@ -54,8 +54,8 @@ export function PinnedPlaytimeRefresh() {
       className={styles.refreshButton}
       disabled={isRefreshingPinnedPlaytime || isSyncing || remaining > 0}
       onClick={() => void handleRefresh()}
-      title={isSyncing ? "Your Steam library is already syncing" : "Refresh playtime from Steam for your pinned games only"}
-      aria-label={isRefreshingPinnedPlaytime ? "Refreshing pinned game playtime" : remaining > 0 ? `Refresh pinned game playtime in ${remaining} seconds` : "Refresh pinned game playtime"}
+      title={isSyncing ? "Your Steam library is already syncing" : "Refresh playtime from Steam for your Playing Next games only"}
+      aria-label={isRefreshingPinnedPlaytime ? "Refreshing Playing Next game playtime" : remaining > 0 ? `Refresh Playing Next game playtime in ${remaining} seconds` : "Refresh Playing Next game playtime"}
       aria-describedby={notice ? noticeId : undefined}
       aria-busy={isRefreshingPinnedPlaytime}
     >

@@ -1,9 +1,12 @@
+import { LibrarySortMenu } from "./LibrarySortMenu";
 import styles from "./LibraryToolbar.module.css";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { LibraryFilterMenu } from "./LibraryFilterMenu";
 import type { LibraryFilters } from "@/lib/library-filters";
 
 type LibraryToolbarProps = {
+  selectionMode: boolean;
+  onToggleSelection: () => void;
   query: string;
   onQueryChange: (value: string) => void;
   sort: string;
@@ -19,6 +22,8 @@ type LibraryToolbarProps = {
 };
 
 export function LibraryToolbar({
+  selectionMode,
+  onToggleSelection,
   query,
   onQueryChange,
   sort,
@@ -61,15 +66,7 @@ export function LibraryToolbar({
             </button>
             <label htmlFor="library-sort">Sort</label>
           </span>
-          <select id="library-sort" value={sort} onChange={(event) => onSortChange(event.target.value)}>
-            <option value="recent">Recently played</option>
-            <option value="title">Title</option>
-            <option value="hours">Playtime</option>
-            <option value="progress">Progress</option>
-            <option value="added">Date added</option>
-            {showDurationSort ? <option value="duration">Estimated length</option> : null}
-            <option value="status">Status</option>
-          </select>
+          <LibrarySortMenu value={sort} onChange={onSortChange} showDuration={showDurationSort} />
         </div>
 
         <div className={styles.viewToggle} role="group" aria-label="View mode">
@@ -90,6 +87,7 @@ export function LibraryToolbar({
             <VaultIcon name="list" size={16} /> <span>List</span>
           </button>
         </div>
+        <button type="button" className={styles.selectionToggle} aria-pressed={selectionMode} onClick={onToggleSelection}><VaultIcon name="check" size={16} /><span>{selectionMode ? "Done" : "Select"}</span></button>
       </div>
     </section>
   );

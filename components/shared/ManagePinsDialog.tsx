@@ -19,9 +19,8 @@ type Props = {
   onClose: () => void;
 };
 
-export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "Library", shelfDescription = "Pinned Active games stay at the front of your Library.", onRemove, onReplace, onClose }: Props) {
+export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "Library", shelfDescription = "Three games you’ve chosen to play. Removing one returns it to your active Library.", onRemove, onReplace, onClose }: Props) {
   const mounted = useIsMounted();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const panelRef = useRef<HTMLDivElement>(null);
@@ -72,21 +71,20 @@ export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "L
     try {
       await onRemove(gameId);
     } catch {
-      setError("Could not update your pins. Try again.");
+      setError("Could not update Playing Next. Try again.");
     } finally {
       setSaving(false);
     }
   };
 
-  const replacePin = async () => {
-    if (!selectedId) return;
+  const replacePin = async (selectedId: string) => {
     setSaving(true);
     setError("");
     try {
       await onReplace(selectedId);
       onClose();
     } catch {
-      setError("Could not update your pins. Try again.");
+      setError("Could not update Playing Next. Try again.");
     } finally {
       setSaving(false);
     }
@@ -95,22 +93,21 @@ export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "L
   if (!mounted) return null;
 
   return createPortal(<div className={styles.layer}>
-    <button type="button" className={styles.backdrop} onClick={onClose} aria-label="Close pinned games" />
+    <button type="button" className={styles.backdrop} onClick={onClose} aria-label="Close Playing Next" />
     <div ref={panelRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="pins-title" tabIndex={-1}>
-      <header><div><p>{candidate ? "Pins are full" : `${shelfName} shelf`}</p><h2 id="pins-title">Manage pinned games <span>{pinnedGames.length}/3</span></h2></div><button type="button" onClick={onClose} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
-      {candidate ? <p className={styles.copy}>Choose a game to replace with <strong>{candidate.title}</strong>.</p> : <p className={styles.copy}>{shelfDescription}</p>}
+      <header><div><p>{candidate ? "Playing Next is full" : `${shelfName} shelf`}</p><h2 id="pins-title">Manage Playing Next <span>{pinnedGames.length}/3</span></h2></div><button type="button" onClick={onClose} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
+      {candidate ? <p className={styles.copy}>Select a game to replace it with <strong>{candidate.title}</strong>.</p> : <p className={styles.copy}>{shelfDescription}</p>}
       <div className={styles.slots}>
         {[0, 1, 2].map((index) => {
           const game = pinnedGames[index];
           if (!game) return <div key={index} className={styles.emptySlot}><span>{index + 1}</span>Empty slot</div>;
-          const selected = selectedId === game.id;
-          return <button key={game.id} type="button" disabled={saving} className={selected ? `${styles.slot} ${styles.slotSelected}` : styles.slot} onClick={() => candidate ? setSelectedId(game.id) : void removePin(game.id)} aria-label={candidate ? `Replace ${game.title}` : `Remove pin from ${game.title}`}>
-            <span className={styles.art}><Artwork src={game.bannerUrl} sizes="74px" /><FamilyGameMark game={game} overlay /></span><span><small>Slot {index + 1}</small><strong>{game.title}</strong></span>{candidate ? <span className={styles.selectMark}>{selected ? <VaultIcon name="check" size={18} /> : null}</span> : <span className={styles.remove}>Remove</span>}
+          return <button key={game.id} type="button" disabled={saving} className={styles.slot} onClick={() => candidate ? void replacePin(game.id) : void removePin(game.id)} aria-label={candidate ? `Replace ${game.title}` : `Remove ${game.title} from Playing Next`}>
+            <span className={styles.art}><Artwork src={game.bannerUrl} sizes="74px" /><FamilyGameMark game={game} overlay /></span><span><small>Slot {index + 1}</small><strong>{game.title}</strong></span><span className={styles.remove}>{candidate ? "Replace" : "Remove"}</span>
           </button>;
         })}
       </div>
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-      <footer><button type="button" disabled={saving} onClick={onClose}>Cancel</button>{candidate ? <button type="button" disabled={!selectedId || saving} onClick={() => void replacePin()}>{saving ? "Updating pins…" : selectedId ? `Replace ${pinnedGames.find((game) => game.id === selectedId)?.title}` : "Select a pin"}</button> : null}</footer>
+      <footer><button type="button" disabled={saving} onClick={onClose}>{saving ? "Updating…" : "Not this time"}</button></footer>
     </div>
   </div>, document.body);
 }

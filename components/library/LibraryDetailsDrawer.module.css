@@ -795,3 +795,22 @@
   gap: 10px;
   flex-wrap: wrap;
 }
+
+/* The ordinary details view is a compact column; commitment remains its own view. */
+.drawer[data-variant="library"] { width: min(560px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); border-color: #a361de99; background: linear-gradient(150deg, #100d22, #090c1c); box-shadow: 0 24px 75px #0009, 0 0 28px #9649d91c; }
+.drawer[data-variant="library"] .hero { height: clamp(140px, 24dvh, 195px); aspect-ratio: auto; border-bottom: 1px solid #9e5cce66; }
+.drawer[data-variant="library"] .body { display: grid; gap: 14px; padding: 20px 24px; }
+.drawer[data-variant="library"] .header { margin: 0; }
+.drawer[data-variant="library"] .eyebrow { margin: 0 0 8px; font-size: .68rem; color: #cf98f3; }
+.drawer[data-variant="library"] .title { font-size: clamp(1.35rem, 3vw, 1.85rem); line-height: 1.15; margin: 0; }
+.drawer[data-variant="library"] .copy { font-size: .88rem; line-height: 1.5; margin: 0; color: #baafd0; }
+.drawer[data-variant="library"] .steamButton { min-height: 46px; padding: 11px 15px; border-radius: 10px; font-size: .94rem; }
+.gameInfo { display: grid; grid-template-columns: 1fr 1fr; margin: 2px 0 0; border-top: 1px solid #9d6fcc40; }
+.gameInfo > div { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 15px 2px; border-bottom: 1px solid #9d6fcc30; }
+.gameInfo > div:nth-child(even) { padding-left: 15px; }
+.gameInfo svg { flex: none; color: #cc97f5; }
+.gameInfo dt { font-size: .61rem; letter-spacing: .09em; text-transform: uppercase; color: #c59ae4; margin-bottom: 5px; }
+.gameInfo dd { margin: 0; color: #f0e9fa; font-size: .88rem; }
+.drawer[data-variant="library"] .metadataRow { gap: 7px; }
+.drawer[data-variant="library"] .metadataRow span { padding: 5px 10px; border: 1px solid #9157c66b; background: transparent; color: #c6a5e5; font-size: .75rem; }
+@media (max-width: 520px) { .drawer[data-variant="library"] .body { padding: 18px 16px; } .gameInfo > div { gap: 8px; } .gameInfo > div:nth-child(even) { padding-left: 8px; } .gameInfo dd { font-size: .82rem; } }

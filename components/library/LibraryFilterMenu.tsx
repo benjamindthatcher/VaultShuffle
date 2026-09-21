@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import {
   EMPTY_LIBRARY_FILTERS,
@@ -29,23 +29,42 @@ export function LibraryFilterMenu({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [panelLeft, setPanelLeft] = useState(0);
+  const [panelHeight, setPanelHeight] = useState(600);
   const panelId = useId();
   const count = activeFilterCount(filters);
 
   useEffect(() => {
     if (!open) return;
-    function onPointerDown(event: MouseEvent) {
+    function onPointerDown(event: PointerEvent) {
       if (!containerRef.current?.contains(event.target as Node)) setOpen(false);
     }
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpen(false);
+      if (event.key === "Escape") { setOpen(false); triggerRef.current?.focus({ preventScroll: true }); }
     }
-    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("keydown", onKeyDown);
     return () => {
-      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("keydown", onKeyDown);
     };
+  }, [open]);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    function position() {
+      const trigger = triggerRef.current?.getBoundingClientRect();
+      if (!trigger) return;
+      const width = Math.min(520, window.innerWidth - 32);
+      setPanelLeft(Math.max(16, Math.min(trigger.left - 180, window.innerWidth - width - 16)) - trigger.left);
+      setPanelHeight(Math.max(180, window.innerHeight - trigger.bottom - 26));
+    }
+    position();
+    window.addEventListener("resize", position);
+    window.addEventListener("scroll", position, true);
+    return () => { window.removeEventListener("resize", position); window.removeEventListener("scroll", position, true); };
   }, [open]);
 
   function toggleGenre(genre: string) {
@@ -59,8 +78,14 @@ export function LibraryFilterMenu({
   }
 
   return (
-    <div className={styles.container} ref={containerRef}>
+    <div className={styles.container} ref={containerRef} onBlur={(event) => {
+      // A label click blurs the current control before focusing its checkbox.
+      // Only dismiss for a known focus destination outside; pointerdown handles
+      // outside clicks, including non-focusable surfaces and touch input.
+      if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+    }}>
       <button
+        ref={triggerRef}
         type="button"
         className={count ? styles.triggerActive : styles.trigger}
         aria-expanded={open}
@@ -75,7 +100,9 @@ export function LibraryFilterMenu({
       </button>
 
       {open ? (
-        <div className={styles.panel} id={panelId} role="group" aria-label="Library filters">
+        <div ref={panelRef} className={styles.panel} style={{ left: panelLeft, "--notch-left": `${Math.min(480, Math.max(24, -panelLeft + 42))}px` } as React.CSSProperties} id={panelId} role="group" aria-label="Library filters">
+          <div className={styles.panelScroll} style={{ maxHeight: panelHeight }}>
+          <header className={styles.header}><div><h2>Filters</h2><p>{count} active {count === 1 ? "filter" : "filters"}</p></div><button type="button" className={styles.clear} disabled={!count} onClick={() => onChange(EMPTY_LIBRARY_FILTERS)}>Clear all</button></header>
           <fieldset className={styles.group}>
             <legend className={styles.legend}>Progress</legend>
             <div className={styles.options}>
@@ -108,31 +135,22 @@ export function LibraryFilterMenu({
 
           {genres.length ? (
             <fieldset className={styles.group}>
-              <legend className={styles.legend}>Genres</legend>
-              <div className={styles.options}>
+              <legend className={styles.legend}>Genres <span>{filters.genres.length} selected</span></legend>
+              <div className={styles.genres}>
                 {genres.map((genre) => {
                   const on = filters.genres.some((item) => item.toLowerCase() === genre.toLowerCase());
                   return (
-                    <button
-                      key={genre}
-                      type="button"
-                      className={on ? styles.optionOn : styles.option}
-                      aria-pressed={on}
-                      onClick={() => toggleGenre(genre)}
-                    >{genre}</button>
+                    <label key={genre} className={styles.genre} data-selected={on || undefined}>
+                      <input type="checkbox" checked={on} onChange={() => toggleGenre(genre)} />
+                      <span className={styles.indicator} aria-hidden="true">{on ? <VaultIcon name="check" size={13} /> : null}</span>
+                      <span>{genre}</span>
+                    </label>
                   );
                 })}
               </div>
             </fieldset>
           ) : null}
 
-          <div className={styles.footer}>
-            <button
-              type="button"
-              className={styles.clear}
-              disabled={!count}
-              onClick={() => onChange(EMPTY_LIBRARY_FILTERS)}
-            >Clear all</button>
           </div>
         </div>
       ) : null}

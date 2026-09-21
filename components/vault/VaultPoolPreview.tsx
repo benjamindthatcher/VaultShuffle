@@ -243,8 +243,8 @@ const PoolCard = memo(function PoolCard({
           onClick={() => onToggleMenu(game.id)}
         ><VaultIcon name="menu-dots" size={20} /></button>
         {menuOpen ? <div className={styles.menu} role="menu">
-          <button type="button" role="menuitem" onClick={() => { onCloseMenu(); onPin(game.id); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Unpin game" : "Pin game"}</button>
-          <button type="button" role="menuitem" disabled={sleeping} onClick={() => { onCloseMenu(); onSleep(game.id); }}><VaultIcon name="sleep" size={18} />Sleep game</button>
+          <button type="button" role="menuitem" onClick={() => { onCloseMenu(); onPin(game.id); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Remove from Playing Next" : "Add to Playing Next"}</button>
+          <button type="button" role="menuitem" disabled={sleeping} onClick={() => { onCloseMenu(); onSleep(game.id); }}><VaultIcon name="sleep" size={18} />Blacklist game</button>
           <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { onCloseMenu(); onComplete(game.id); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button>
         </div> : null}
       </div> : null}

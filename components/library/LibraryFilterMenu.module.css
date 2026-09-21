@@ -1,123 +1,31 @@
-.container {
-  position: relative;
-}
-
-.trigger,
-.triggerActive {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: 10px;
-  background: var(--vault-well-surface);
-  color: var(--vault-text);
-  font-size: 0.86rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.triggerActive {
-  border-color: var(--vault-tile-selected-border);
-  background: var(--vault-tile-selected-surface);
-  box-shadow: var(--vault-tile-selected-shadow);
-}
-
-.badge {
-  display: grid;
-  place-items: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--accent-bright, #a855f7);
-  color: #0b0f24;
-  font-size: 0.72rem;
-  font-weight: 700;
-}
-
-.panel {
-  position: absolute;
-  z-index: 40;
-  top: calc(100% + 8px);
-  right: 0;
-  width: min(340px, calc(100vw - 32px));
-  display: grid;
-  gap: 16px;
-  padding: 16px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: 14px;
-  background: var(--vault-sheet-surface, #131a35);
-  box-shadow: 0 24px 60px rgb(4 6 20 / 55%);
-}
-
-.group {
-  margin: 0;
-  padding: 0;
-  border: 0;
-}
-
-.legend {
-  padding: 0 0 8px;
-  color: #d392ff;
-  font-size: 0.7rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.option,
-.optionOn {
-  padding: 6px 11px;
-  border: 1px solid var(--vault-card-border);
-  border-radius: 999px;
-  background: transparent;
-  color: var(--vault-text-soft, rgba(226, 232, 255, 0.78));
-  font-size: 0.82rem;
-}
-
-.optionOn {
-  border-color: var(--vault-tile-selected-border);
-  background: var(--vault-tile-selected-surface);
-  color: #fff;
-  font-weight: 600;
-}
-
-.footer {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
-  border-top: 1px solid var(--vault-card-border);
-}
-
-.clear {
-  padding: 6px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: #d392ff;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.clear:disabled {
-  color: var(--vault-text-muted, rgba(226, 232, 255, 0.4));
-}
-
-@media (max-width: 620px) {
-  .trigger span,
-  .triggerActive span:first-of-type {
-    display: none;
-  }
-  .panel {
-    right: auto;
-    left: 0;
-  }
-}
+.container { position: relative; }
+.trigger, .triggerActive { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 13px; border: 1px solid #65429388; border-radius: 11px; background: linear-gradient(135deg,#1b1130,#100b21); color: #e1cff6; font-size: .83rem; font-weight: 600; white-space: nowrap; }
+.triggerActive { border-color: #ad68ed; background: #54247a55; box-shadow: inset 0 1px 0 #dbacff12; }
+.trigger:focus-visible, .triggerActive:focus-visible, .clear:focus-visible, .option:focus-visible, .optionOn:focus-visible { outline: 2px solid #d39aff; outline-offset: 3px; }
+.badge { display: grid; place-items: center; min-width: 21px; height: 21px; padding: 0 5px; border-radius: 50%; background: #b36bf0; color: #13091f; font-size: .72rem; font-weight: 800; }
+.panel { position: absolute; z-index: 44; top: calc(100% + 13px); width: min(520px, calc(100vw - 32px)); border: 1px solid #9456c56b; border-radius: 13px; background: linear-gradient(140deg,#1b102f,#110c23); box-shadow: 0 22px 60px #03010ca6,0 0 20px #7f3ead12; }
+.panel::before { content: ""; position: absolute; top: -8px; left: var(--notch-left); width: 14px; height: 14px; transform: rotate(45deg); background: #1b102f; border-top: 1px solid #9456c56b; border-left: 1px solid #9456c56b; }
+.panelScroll { position: relative; overflow-y: auto; overscroll-behavior: contain; padding: 20px; display: grid; gap: 21px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-bottom: 15px; border-bottom: 1px solid #9c65cf33; }
+.header h2 { margin: 0; color: #f2e9ff; font-size: 1.15rem; }
+.header p { margin: 4px 0 0; color: #b894d7; font-size: .78rem; }
+.clear { min-height: 44px; margin-top: -6px; padding: 0 3px; border: 0; border-radius: 5px; background: transparent; color: #c985fb; font-size: .8rem; font-weight: 650; }
+.clear:disabled { opacity: .45; cursor: default; }
+.group { margin: 0; padding: 0; min-width: 0; border: 0; }
+.legend { width: 100%; padding: 0 0 10px; color: #cf9aef; font-size: .68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.legend span { float: right; font-weight: 400; letter-spacing: normal; text-transform: none; }
+.options { display: flex; border: 1px solid #8650b54d; border-radius: 9px; background: #100b2288; }
+.option, .optionOn { flex: 1; min-width: 0; min-height: 44px; padding: 7px 5px; border: 0; border-right: 1px solid #8650b54d; background: transparent; color: #bfa8db; font-size: .76rem; line-height: 1.2; }
+.options > :last-child { border-right: 0; border-radius: 0 8px 8px 0; }
+.options > :first-child { border-radius: 8px 0 0 8px; }
+.option:hover { background: #a36fd215; }
+.optionOn { position: relative; border-radius: 8px !important; outline: 1px solid #ba71ff; background: linear-gradient(135deg,#8641cb88,#542293b3); box-shadow: inset 0 0 12px #a755e32b; color: #fff4ff; }
+.genres { columns: 2; column-gap: 22px; }
+.group:has(.genres) { padding-top: 16px; border-top: 1px solid #9c65cf33; }
+.genre { position: relative; break-inside: avoid; display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 7px 4px; border-bottom: 1px solid #9866c51c; color: #cbb8e1; font-size: .82rem; cursor: pointer; }
+.genre:hover, .genre[data-selected] { background: #a06aca0c; }
+.genre input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.indicator { width: 19px; height: 19px; flex: none; display: grid; place-items: center; border: 1px solid #a274c7; border-radius: 50%; color: #140721; }
+.genre input:checked + .indicator { background: #b866f4; border-color: #c988ff; }
+.genre:focus-within { outline: 2px solid #c58ef5; outline-offset: 1px; border-radius: 4px; }
+@media (max-width: 540px) { .panelScroll { padding: 15px; gap: 17px; } .genres { column-gap: 12px; } .genre { gap: 8px; font-size: .76rem; } .option, .optionOn { font-size: .7rem; padding-inline: 3px; } }

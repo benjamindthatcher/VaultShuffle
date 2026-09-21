@@ -901,3 +901,8 @@
 }
 .resultDuration svg { color: var(--accent-bright, #a855f7); }
 .resultDuration span { font-weight: 500; opacity: 0.8; }
+
+.pickAnother { display: inline-flex; align-items: center; gap: 8px; justify-self: center; margin-top: 12px; border: 0; padding: 10px 16px; background: transparent; color: var(--vault-muted, #beb0d3); font: inherit; cursor: pointer; }
+.pickAnother:hover { color: #fff; }
+.pickAnother:focus-visible { outline: 2px solid #caa4ff; outline-offset: 3px; border-radius: 8px; }
+.pickAnother:disabled { opacity: .5; cursor: default; }

@@ -29,14 +29,14 @@ function game(patch: Partial<DemoGame> = {}): DemoGame {
   };
 }
 
-test("does not mistake existing completion for progress since pinning", () => {
+test("does not mistake existing completion for progress since choosing", () => {
   const summary = buildPinnedRunSummary(game(), {
     gameId: "game-1",
     pinnedAt: "2026-08-28T12:00:00.000Z",
     hoursAtPin: 5,
   });
 
-  assert.equal(summary.headline, "No play since pinning");
+  assert.equal(summary.headline, "Not started yet");
   assert.equal(summary.percent, 25);
   assert.equal(summary.beforePercent, 25);
   assert.equal(summary.earnedPercent, 0);
@@ -49,10 +49,10 @@ test("celebrates only the progress earned after the pin baseline", () => {
     hoursAtPin: 5,
   });
 
-  assert.equal(summary.headline, "3h played since pinning");
+  assert.equal(summary.headline, "3h played since choosing");
   assert.equal(summary.beforePercent, 25);
   assert.equal(summary.earnedPercent, 15);
-  assert.equal(summary.trackedHoursLabel, "3h since pinning");
+  assert.equal(summary.trackedHoursLabel, "3h since choosing");
 });
 
 test("never attributes progress when the pin baseline is missing", () => {
@@ -62,7 +62,7 @@ test("never attributes progress when the pin baseline is missing", () => {
     hoursAtPin: null,
   });
 
-  assert.equal(summary.headline, "Pinned and ready");
+  assert.equal(summary.headline, "Ready when you are");
   assert.match(summary.message, /next playtime check/i);
   assert.equal(summary.earnedPercent, null);
   assert.equal(summary.trackedHours, null);
@@ -82,7 +82,7 @@ test("omits percentage and remaining-time claims for endless games", () => {
 test("a pinned family game measures nothing and says why", () => {
   // The bug this pins down: hoursPlayed and completionPercent are both 0 on a
   // family row because Steam reports the owner's hours, not yours. Read
-  // literally that produced a 0% dial beside "No play since pinning" - an
+  // literally that produced a 0% dial beside "Not started yet" - an
   // accusation assembled entirely from numbers we never had.
   const summary = buildPinnedRunSummary(
     game({ accessSource: "family", familyOwnerName: "Draygo", hoursPlayed: 0, completionPercent: 0 }),
@@ -100,7 +100,7 @@ test("a pinned family game measures nothing and says why", () => {
   assert.doesNotMatch(summary.headline, /no play/i);
 });
 
-test("an owned pinned game is unaffected by the family branch", () => {
+test("an owned Playing Next game is unaffected by the family branch", () => {
   const summary = buildPinnedRunSummary(
     game({ hoursPlayed: 9, completionPercent: 45 }),
     { gameId: "game-1", pinnedAt: "2026-09-01T00:00:00.000Z", hoursAtPin: 5 }

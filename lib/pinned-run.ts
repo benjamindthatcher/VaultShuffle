@@ -16,7 +16,7 @@ export type PinnedRunSummary = {
   pinnedLabel: string;
   /** Null when there is no playtime to total, rather than a confident "0h". */
   totalPlaytimeLabel: string | null;
-  /** Whose library it came from, when the pinned game is not the player's own. */
+  /** Whose library it came from, when the Playing Next game is not the player's own. */
   sharedFrom: string | null;
 };
 
@@ -51,18 +51,18 @@ export function buildPinnedRunSummary(game: DemoGame, pin: VaultPin | undefined)
     // The pin still means what it always meant - this is what I am playing next.
     // What it cannot do is measure the run, because Steam reports the owner's
     // hours and not yours. Saying so is better than a dial reading 0% and a
-    // headline reading "No play since pinning", which is what this showed
+    // headline reading "Not started yet", which is what this showed
     // before: a made-up accusation sitting next to the words "Not available".
-    headline = "Pinned from the family shelf";
+    headline = "Chosen from the family shelf";
     message = "Steam only reports the owner's hours, so this run is not tracked.";
   } else if (trackedHours === null) {
-    headline = "Pinned and ready";
-    message = "Pin tracking starts from your next playtime check.";
+    headline = "Ready when you are";
+    message = "Progress tracking starts from your next playtime check.";
   } else if (trackedHours > 0.1) {
-    headline = `${formatTrackedHours(trackedHours)} played since pinning`;
+    headline = `${formatTrackedHours(trackedHours)} played since choosing`;
     message = "That promise is paying off. Keep the run moving.";
   } else {
-    headline = "No play since pinning";
+    headline = "Not started yet";
     message = "A good choice. Ready when you are.";
   }
 
@@ -70,7 +70,7 @@ export function buildPinnedRunSummary(game: DemoGame, pin: VaultPin | undefined)
     headline,
     message,
     trackedHours,
-    trackedHoursLabel: trackedHours === null ? null : `${formatTrackedHours(trackedHours)} since pinning`,
+    trackedHoursLabel: trackedHours === null ? null : `${formatTrackedHours(trackedHours)} since choosing`,
     percent: progress?.percent ?? null,
     beforePercent: progress?.atPin ?? null,
     earnedPercent,
@@ -78,7 +78,7 @@ export function buildPinnedRunSummary(game: DemoGame, pin: VaultPin | undefined)
     // length is still worth showing, but as the game's length, not as what is
     // left of it - so the caller falls back to the plain estimate.
     remainingLabel: shared ? null : formatRemainingDuration(game.duration, progress?.percent ?? game.completionPercent),
-    pinnedLabel: pin?.pinnedAt ? `Pinned ${formatPinnedDate(pin.pinnedAt)}` : "Pinned to Playing next",
+    pinnedLabel: pin?.pinnedAt ? `Chosen ${formatPinnedDate(pin.pinnedAt)}` : "Added to Playing Next",
     totalPlaytimeLabel: shared ? null : `${formatTrackedHours(Math.max(0, Number(game.hoursPlayed) || 0))} total playtime`,
     sharedFrom: shared ? (game.familyOwnerName?.trim() || "a family member") : null
   };

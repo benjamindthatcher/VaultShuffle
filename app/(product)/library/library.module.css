@@ -1,5 +1,6 @@
 .libraryPage {
   position: relative;
+  overflow-anchor: none;
   width: var(--vault-list-width);
   margin-inline: auto;
   display: grid;
@@ -35,16 +36,11 @@
 .emptyState { width: min(440px, 100%); margin-inline: auto; display: grid; justify-items: center; gap: 8px; padding: 40px 20px; color: var(--vault-text-muted); text-align: center; }
 .emptyState h3, .emptyState p { margin: 0; }
 .emptyState button { min-height: 40px; margin-top: 8px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
-.undoToast { position: fixed; z-index: 30; right: 24px; bottom: 24px; display: flex; align-items: center; gap: 18px; padding: 13px 17px; border: 1px solid var(--vault-feature-border); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); animation: undoToastExit 300ms ease 5s forwards; }
-.undoToast button { border: 0; background: transparent; color: #d98cff; font-weight: 800; }
+.undoToast { position: fixed; z-index: 30; right: 24px; bottom: max(24px, var(--vault-bottom-notice-offset, 0px)); display: flex; align-items: center; gap: 12px; max-width: min(580px, calc(100vw - 32px)); padding: 10px 14px; border: 1px solid var(--vault-feature-border); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
+.undoToast button { min-width: 44px; min-height: 44px; flex-shrink: 0; border: 0; background: transparent; color: #d98cff; font-weight: 800; }
 
-@keyframes undoToastExit {
-  to { opacity: 0; transform: translateY(6px); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .undoToast { animation-duration: 1ms; }
-}
+.undoToast button:focus-visible { outline: 2px solid #ceb0ff; outline-offset: 2px; border-radius: 5px; }
+@media (max-width: 520px) { .undoToast { right: 16px; bottom: max(16px, var(--vault-bottom-notice-offset, 0px)); font-size: .82rem; gap: 5px; } }
 .pinnedShelf { display: grid; gap: 10px; }
 .pinnedHeader { display: flex; align-items: center; gap: 12px; }
 .pinnedHeader h2 { margin: 0; font-size: 1.02rem; font-weight: 700; }
@@ -154,11 +150,7 @@
   }
 }
 
-/* ---------------------------------------------- bulk selection (slept/done) */
-
-/* The tidy-up controls for the shelves where every game has already been
-   decided. This is the work Purge used to do on its own page, on the page that
-   already holds the games. */
+/* Bulk selection actions stay directly above the selected games. */
 .bulkRow {
   display: flex;
   flex-wrap: wrap;
@@ -203,12 +195,14 @@
 }
 
 .bulkClear,
+.bulkBlacklist,
+.bulkComplete,
 .bulkRestore {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 14px;
   border-radius: 10px;
   border: 1px solid var(--vault-card-border);
@@ -227,6 +221,20 @@
   border-color: var(--vault-border-strong);
   color: var(--vault-text);
 }
+
+.bulkBlacklist,
+.bulkComplete {
+  border-color: rgba(var(--bulk-rgb), .32);
+  background: linear-gradient(135deg, rgba(var(--bulk-rgb), .14), rgba(var(--bulk-rgb), .04)), #10172a;
+  color: var(--bulk-text);
+  box-shadow: inset 0 1px 0 #ffffff0a;
+}
+.bulkBlacklist { --bulk-rgb: 245, 158, 85; --bulk-text: #ffc394; }
+.bulkComplete { --bulk-rgb: 77, 211, 153; --bulk-text: #a7f0ce; }
+.bulkBlacklist:hover,
+.bulkComplete:hover { background: rgba(var(--bulk-rgb), .21); border-color: rgba(var(--bulk-rgb), .65); }
+.bulkBlacklist svg,
+.bulkComplete svg { flex: none; }
 
 /* Green, as waking a game or moving it back is putting it into play - the same
    thing the Vault's own confirmations mean. */
@@ -247,6 +255,8 @@
 
 .bulkCheck:focus-within,
 .bulkClear:focus-visible,
+.bulkBlacklist:focus-visible,
+.bulkComplete:focus-visible,
 .bulkRestore:focus-visible {
   outline: 2px solid #c08bff;
   outline-offset: 2px;
@@ -260,14 +270,19 @@
   .bulkActions {
     width: 100%;
     margin-left: 0;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .bulkClear { justify-self: end; }
   .bulkRestore {
-    flex: 1 1 auto;
+    grid-column: 1 / -1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .bulkClear,
+  .bulkBlacklist,
+  .bulkComplete,
   .bulkRestore { transition: none; }
 }

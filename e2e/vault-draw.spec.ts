@@ -37,7 +37,7 @@ test("a guest can set a session, mood and goal and get a pick", async ({ page })
   await page.getByRole("button", { name: /Chill/i }).first().click();
   await page.getByRole("button", { name: /Surprise Me/i }).first().click();
 
-  await page.getByRole("button", { name: /^Open the Vault|^Draw/i }).first().click();
+  await page.getByRole("button", { name: "Draw from the Vault", exact: true }).click();
 
   await expect(pickTitle(page)).toBeVisible({ timeout: 30_000 });
   await expect(pickTitle(page)).not.toBeEmpty();

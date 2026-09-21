@@ -1,5 +1,10 @@
 "use client";
 
+import { playingNextProgress } from "@/lib/playing-next-progress";
+import { isProductAnalyticsEnabled } from "@/lib/posthog-client";
+import { MutationQueue } from "@/lib/mutation-queue";
+import { useImmediateState } from "@/components/shared/useImmediateState";
+import { pinProgressHours } from "@/lib/completion-celebration";
 import { steamCapabilities, type SteamCapabilities } from "@/lib/steam-capabilities";
 import type { ReactNode } from "react";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
@@ -129,8 +134,8 @@ type AppDataContextValue = {
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
-  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }) => Promise<void>;
-  restoreGame: (gameId: string, options?: { silent?: boolean }) => Promise<void>;
+  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }, context?: Record<string, unknown>) => Promise<void>;
+  restoreGame: (gameId: string, options?: { silent?: boolean; context?: Record<string, unknown> }) => Promise<void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
   addGamesToCollection: (collectionId: string, gameIds: string[]) => Promise<void>;
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
@@ -168,12 +173,12 @@ const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 export function AppDataProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionPayload>(guestSession);
-  const [guestGames, setGuestGames] = useState<DemoGame[]>(guestFallbackGames);
+  const [guestGames, setGuestGames, guestGamesRef] = useImmediateState<DemoGame[]>(guestFallbackGames);
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(() => guestPreviewCollection(guestFallbackGames.length));
-  const [liveGames, setLiveGames] = useState<DemoGame[]>([]);
+  const [liveGames, setLiveGames, liveGamesRef] = useImmediateState<DemoGame[]>([]);
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>(() => mapLiveCollections([]));
-  const [guestVaultState, setGuestVaultState] = useState<VaultState>(emptyVaultState);
-  const [liveVaultState, setLiveVaultState] = useState<VaultState>(emptyVaultState);
+  const [guestVaultState, setGuestVaultState, guestVaultStateRef] = useImmediateState<VaultState>(emptyVaultState);
+  const [liveVaultState, setLiveVaultState, liveVaultStateRef] = useImmediateState<VaultState>(emptyVaultState);
   const [guestVaultHistory, setGuestVaultHistory] = useState<VaultDraw[]>([]);
   const [liveVaultHistory, setLiveVaultHistory] = useState<VaultDraw[]>([]);
   const [liveGenrePreferences, setLiveGenrePreferences] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
@@ -203,6 +208,31 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [familyBusy, setFamilyBusy] = useState(false);
   const [pinnedRefreshAvailableAt, setPinnedRefreshAvailableAt] = useState<number | null>(null);
 
+  const reportedProgressRef = useRef(new Set<string>());
+  const mutationQueueRef = useRef<MutationQueue | null>(null);
+  function mutations() {
+    mutationQueueRef.current ??= new MutationQueue(async () => {
+      await load({ quiet: true });
+      setLoadError("That change could not be saved. Your library has been refreshed. Please try again.");
+    });
+    return mutationQueueRef.current;
+  }
+
+  function mutationContext(context: Record<string, unknown> = {}) {
+    const source = typeof window === "undefined" ? "unknown" : window.location.pathname.split("/")[1] || "unknown";
+    return { source, ...context };
+  }
+
+  function persistMutation<T>(action: string, gameId: string, context: Record<string, unknown>, write: (revision: number) => Promise<T>) {
+    return mutations().enqueue(async (revision) => {
+      try { return await write(revision); }
+      catch (error) {
+        trackEvent(ANALYTICS_EVENTS.gameMutationFailed, { ...context, action, game_id: gameId });
+        throw error;
+      }
+    });
+  }
+
   /**
    * Send a write that the screen has already acted on.
    *
@@ -228,10 +258,12 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * blanked the whole page for the length of a round trip and then rebuilt it.
    */
   async function load({ quiet = false }: { quiet?: boolean } = {}) {
+    const loadRevision = mutationQueueRef.current?.version ?? 0;
     if (!quiet) setIsLoading(true);
     setLoadError(null);
     try {
       const bootstrap = await api<AppBootstrapPayload>("/api/app-data");
+      if (loadRevision !== (mutationQueueRef.current?.version ?? 0)) return false;
       const nextSession = bootstrap.session;
       setSession(nextSession);
       // Hands the session to the analytics identity sync, which would otherwise
@@ -349,6 +381,28 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setAnalyticsAudience(session.account_type);
   }, [session.account_type]);
+
+  useEffect(() => {
+    if (!isLive || isLoading || !isProductAnalyticsEnabled()) return;
+    const key = `vault-playing-next-progress:${session.user_id}`;
+    let reported: string[] = [];
+    try {
+      const stored: unknown = JSON.parse(localStorage.getItem(key) ?? "[]");
+      if (Array.isArray(stored)) reported = stored.filter((value): value is string => typeof value === "string").slice(-100);
+    } catch { /* Session deduplication still works when storage is unavailable. */ }
+    for (const pin of liveVaultState.pins ?? []) {
+      if (!liveVaultState.pinnedIds.includes(pin.gameId)) continue;
+      const game = liveGames.find((entry) => entry.id === pin.gameId);
+      const progress = game ? playingNextProgress(game, pin) : null;
+      if (!progress) continue;
+      const run = `${pin.gameId}:${pin.pinnedAt}`;
+      if (reported.includes(run) || reportedProgressRef.current.has(`${key}:${run}`)) continue;
+      trackEvent(ANALYTICS_EVENTS.playingNextProgressed, { ...progress, source: "playtime_observation" });
+      reportedProgressRef.current.add(`${key}:${run}`);
+      reported.push(run);
+      try { localStorage.setItem(key, JSON.stringify(reported.slice(-100))); } catch { /* No persistence available. */ }
+    }
+  }, [isLive, isLoading, liveGames, liveVaultState, session.user_id]);
 
   useEffect(() => {
     if (isLoading || session.account_type !== "manual" || !session.user_id) return;
@@ -743,54 +797,48 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function updateGame(
     gameId: string,
-    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }
+    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
+    context: Record<string, unknown> = {}
   ) {
-    if (isLive) {
-      // The change lands before the request goes out. Sleeping a game used to
-      // wait on a round trip to Supabase, which is a quarter of a second of a
-      // menu sitting there doing nothing after you pressed it - and the local
-      // transform is the same one that was going to be applied afterwards
-      // anyway, so applying it first costs nothing and changes nothing.
-      setLiveGames((current) => current.map((game) => game.id === gameId
-        ? applyGamePatch(game, patch, liveGameSummary(game))
-        : game));
-      if (patch.status === "Completed" || patch.status === "Slept") {
-        setLiveVaultState((current) => ({
-          ...current,
-          pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
-          currentPickId: current.currentPickId === gameId ? null : current.currentPickId
-        }));
+    const properties = mutationContext(context);
+    const before = isLive ? liveVaultStateRef.current : guestVaultStateRef.current;
+    const game = (isLive ? liveGamesRef.current : guestGamesRef.current).find((entry) => entry.id === gameId);
+    const pin = before.pins.find((entry) => entry.gameId === gameId);
+    const trackSuccess = () => {
+      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { ...properties, game_id: gameId, status: patch.status === "Slept" ? "Blacklisted" : patch.status, count: 1 });
+      if (before.pinnedIds.includes(gameId) && (patch.status === "Completed" || patch.status === "Slept")) {
+        trackEvent(patch.status === "Completed" ? ANALYTICS_EVENTS.playingNextCompleted : ANALYTICS_EVENTS.playingNextRemoved, {
+          ...properties, game_id: gameId, steam_app_id: game?.steamAppId,
+          reason: patch.status === "Completed" ? "completed" : "blacklisted",
+          hours_since_choosing: game ? pinProgressHours(game, pin) : null,
+          chosen_at: pin?.pinnedAt ?? null
+        });
       }
-      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status, count: 1 });
-
-      queueWrite(api(`/api/games/${gameId}`, {
+    };
+    const setGames = isLive ? setLiveGames : setGuestGames;
+    const setVault = isLive ? setLiveVaultState : setGuestVaultState;
+    setGames((current) => current.map((entry) => entry.id === gameId
+      ? applyGamePatch(entry, patch, isLive ? liveGameSummary(entry) : undefined) : entry));
+    if (patch.status === "Completed" || patch.status === "Slept") setVault((current) => ({
+      ...current,
+      pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
+      pins: current.pins.filter((entry) => entry.gameId !== gameId),
+      currentPickId: current.currentPickId === gameId ? null : current.currentPickId
+    }));
+    if (!isLive) { trackSuccess(); return; }
+    await persistMutation("update_game", gameId, properties, async () => {
+      await api(`/api/games/${gameId}`, {
         method: "PATCH",
         body: JSON.stringify({
-          status: patch.status,
-          completion_percentage: patch.completionPercent,
-          hours_played: patch.hoursPlayed,
-          notes: patch.notes,
-          priority: patch.priority,
-          completed_at: patch.completedAt,
-          slept_at: patch.sleptAt,
+          status: patch.status, completion_percentage: patch.completionPercent,
+          hours_played: patch.hoursPlayed, notes: patch.notes, priority: patch.priority,
+          completed_at: patch.completedAt, slept_at: patch.sleptAt,
           completion_suggestion_dismissed_at: patch.completionSuggestionDismissedAt,
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
-      }));
-      return;
-    }
-
-    setGuestGames((current) => current.map((game) => game.id === gameId ? applyGamePatch(game, patch) : game));
-    if (patch.status) {
-      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: patch.status, count: 1 });
-    }
-    if (patch.status === "Completed" || patch.status === "Slept") {
-      setGuestVaultState((current) => ({
-        ...current,
-        pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
-        currentPickId: current.currentPickId === gameId ? null : current.currentPickId
-      }));
-    }
+      });
+      trackSuccess();
+    });
   }
 
   /**
@@ -798,21 +846,18 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
    * one intent, and reporting it thirty times made per-user event rates
    * meaningless. The bulk caller sends a single event carrying the count.
    */
-  async function restoreGame(gameId: string, options?: { silent?: boolean }) {
-    if (isLive) {
-      await api(`/api/games/${gameId}`, {
-        method: "PATCH",
-        body: JSON.stringify({ restore_active: true })
-      });
-      setLiveGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-      if (!options?.silent) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true, count: 1 });
-      return;
-    }
-
-    setGuestGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
-    if (!options?.silent) {
-      trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { status: "Active", restored: true, count: 1 });
-    }
+  async function restoreGame(gameId: string, options?: { silent?: boolean; context?: Record<string, unknown> }) {
+    const properties = mutationContext(options?.context);
+    const setGames = isLive ? setLiveGames : setGuestGames;
+    setGames((current) => current.map((game) => game.id === gameId ? restoreActiveGame(game) : game));
+    const trackSuccess = () => {
+      if (!options?.silent) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { ...properties, game_id: gameId, status: "Active", restored: true, count: 1 });
+    };
+    if (!isLive) { trackSuccess(); return; }
+    await persistMutation("restore_game", gameId, properties, async () => {
+      await api(`/api/games/${gameId}`, { method: "PATCH", body: JSON.stringify({ restore_active: true }) });
+      trackSuccess();
+    });
   }
 
   /**
@@ -874,27 +919,28 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   }
 
   async function recordVaultAction(action: VaultAction, gameId: string, context: Record<string, unknown> = {}) {
-    if (isLive) {
-      // Predicted locally so the pin appears under the cursor, then replaced by
-      // the server's own answer when it arrives. The two agree in every ordinary
-      // case; where they do not, the server wins.
-      const pinnedGame = liveGames.find((game) => game.id === gameId);
-      setLiveVaultState((current) => predictVaultState(current, action, gameId, context, pinnedGame?.hoursPlayed ?? null));
-      queueWrite(
-        api<VaultState>("/api/vault/state", {
-          method: "POST",
-          body: JSON.stringify({ action, game_id: gameId, context })
-        }).then(setLiveVaultState)
-      );
-      return;
-    }
-
-    // Through the same predictor as a live pin. The bare reducer rebuilt every
-    // pin from the id list, which stamped null over the playtime the older pins
-    // were made at - so a guest's second pin erased the first one's progress,
-    // and no guest pin ever had a figure to measure "since you pinned it" from.
-    const guestGame = guestGames.find((game) => game.id === gameId);
-    setGuestVaultState((current) => predictVaultState(current, action, gameId, context, guestGame?.hoursPlayed ?? 0));
+    const before = isLive ? liveVaultStateRef.current : guestVaultStateRef.current;
+    const game = (isLive ? liveGamesRef.current : guestGamesRef.current).find((entry) => entry.id === gameId);
+    const properties = { ...mutationContext(context), game_id: gameId, steam_app_id: game?.steamAppId };
+    const next = predictVaultState(before, action, gameId, context, game?.hoursPlayed ?? null);
+    const setVault = isLive ? setLiveVaultState : setGuestVaultState;
+    setVault(next);
+    const trackSuccess = (saved: VaultState) => {
+      const added = action === "pinned" && !before.pinnedIds.includes(gameId) && saved.pinnedIds.includes(gameId);
+      const removed = action === "unpinned" && before.pinnedIds.includes(gameId) && !saved.pinnedIds.includes(gameId);
+      if (added) {
+        const replaced = before.pinnedIds.find((id) => !saved.pinnedIds.includes(id));
+        trackEvent(ANALYTICS_EVENTS.playingNextAdded, { ...properties, slot_count: saved.pinnedIds.length });
+        if (replaced) trackEvent(ANALYTICS_EVENTS.playingNextReplaced, { ...properties, replaced_game_id: replaced, slot_count: saved.pinnedIds.length });
+      }
+      if (removed) trackEvent(ANALYTICS_EVENTS.playingNextRemoved, { ...properties, reason: "removed", slot_count: saved.pinnedIds.length });
+    };
+    if (!isLive) { trackSuccess(next); return; }
+    await persistMutation(action, gameId, properties, async (revision) => {
+      const saved = await api<VaultState>("/api/vault/state", { method: "POST", body: JSON.stringify({ action, game_id: gameId, context }) });
+      if (mutations().isLatest(revision)) setVault(saved);
+      trackSuccess(saved);
+    });
   }
 
   async function loadVaultHistory() {
@@ -905,13 +951,13 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
 
   async function recordVaultDraw(gameId: string, input: VaultDrawInput) {
     if (isLive) {
-      const { state, draw } = await api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex, finalist_appids: input.finalistAppIds?.slice(0, RECORDED_FINALIST_LIMIT) }) });
-      setLiveVaultState(state);
+      const { state, draw } = await mutations().enqueue(() => api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex, finalist_appids: input.finalistAppIds?.slice(0, RECORDED_FINALIST_LIMIT) }) }));
+      setLiveVaultState((current) => ({ ...current, currentPickId: state.currentPickId }));
       setLiveVaultHistory((current) => [draw, ...current].slice(0, 50));
       return draw;
     }
     const draw: VaultDraw = { ...input, id: crypto.randomUUID(), drawnAt: new Date().toISOString(), events: [] };
-    setGuestVaultState((current) => reduceGuestVaultState(current, "drawn", gameId, {}));
+    setGuestVaultState((current) => predictVaultState(current, "drawn", gameId, {}, null));
     setGuestVaultHistory((current) => [draw, ...current].slice(0, 50));
     return draw;
   }
@@ -926,7 +972,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
     // steam:// URL, so anything queued behind an await is cancelled with the
     // page and never reaches PostHog. The experiment arm rides along because it
     // is per draw rather than per user, so it cannot be a super-property.
-    if (eventType === "opened_on_steam") {
+    if (eventType === "opened_on_steam" && analytics.launch_target === "steam_client") {
       trackNavigationEvent(ANALYTICS_EVENTS.vaultPickLaunched, {
         draw_id: drawId,
         draw_action: eventType,

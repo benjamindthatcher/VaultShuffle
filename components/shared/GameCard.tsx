@@ -149,8 +149,8 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
     {onUnpin ? <button
       type="button"
       className={styles.unpinButton}
-      aria-label={`Unpin ${game.title}`}
-      title="Unpin"
+      aria-label={`Remove ${game.title} from Playing Next`}
+      title="Remove from Playing Next"
       onClick={(event) => { event.stopPropagation(); onUnpin(); }}
     ><VaultIcon name="close" size={15} /></button> : null}
     {/* The two things you can say about a game you are not going to open
@@ -169,7 +169,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
             className={styles.quickSleep}
             onClick={(event) => { event.stopPropagation(); onSleep(); }}
           >
-            <VaultIcon name="sleep" size={16} />Sleep
+            <VaultIcon name="sleep" size={16} />Blacklist
           </button>
         ) : null}
         {onComplete ? (
@@ -189,11 +189,11 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
         <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onClick?.(); }}><VaultIcon name="details" size={18} />View Details</button>
         {game.status === "Completed" || game.status === "Slept" ? <>
           {onRestore ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onRestore(); }}><VaultIcon name="restore-active" size={18} />Restore to Active</button> : null}
-          {game.status === "Completed" && onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Move to Slept</button> : null}
+          {game.status === "Completed" && onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Blacklist</button> : null}
           {game.status === "Slept" && onComplete ? <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setMenuOpen(false); onComplete(); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button> : null}
         </> : <>
-          {onTogglePin ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onTogglePin(); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Unpin game" : "Pin game"}</button> : null}
-          {onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Sleep game</button> : null}
+          {onTogglePin ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onTogglePin(); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Remove from Playing Next" : "Add to Playing Next"}</button> : null}
+          {onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Blacklist game</button> : null}
           {onComplete ? <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setMenuOpen(false); onComplete(); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button> : null}
           <a role="menuitem" href={steamLink.href} target={steamLink.target} rel={steamLink.rel} onClick={() => setMenuOpen(false)}><VaultIcon name="open-steam" size={18} />Open on Steam</a>
         </>}

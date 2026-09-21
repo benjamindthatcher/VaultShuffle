@@ -19,6 +19,8 @@ import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { GlobalFiltersPanel } from "@/components/dashboard/GlobalFiltersPanel";
 import { FamilySharingCard } from "@/components/family/FamilySharingCard";
 import { SectionHeading } from "@/components/shared/SectionHeading";
+import type { DemoGame } from "@/lib/demo-data";
+import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { PinnedCommitments } from "@/components/shared/PinnedCommitments";
 import { formatGameDuration } from "@/lib/game-duration";
 import styles from "./dashboard.module.css";
@@ -35,6 +37,7 @@ export default function DashboardPage() {
   const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
   const [detailsSurface, setDetailsSurface] = useState<DashboardDetailsSurface | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
+  const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
   const detailsGame = detailsGameId
     ? games.find((game) => game.id === detailsGameId) ?? allGames.find((game) => game.id === detailsGameId) ?? null
     : null;
@@ -84,6 +87,7 @@ export default function DashboardPage() {
   // It is the same panel the Library opens, so a game looks and behaves the
   // same wherever it is met.
   const detailsPanel = (
+    <>
     <LibraryDetailsDrawer
       game={detailsGame}
       previewMode={!isLive}
@@ -109,10 +113,12 @@ export default function DashboardPage() {
       pinCount={vaultState.pinnedIds.length}
       onTogglePin={() => {
         if (!detailsGame) return;
+        if (!vaultState.pinnedIds.includes(detailsGame.id) && vaultState.pinnedIds.length >= 3) { setPinCandidate(detailsGame); return; }
         const removingSpotlight = detailsSurface === "dashboard_pinned" && vaultState.pinnedIds.includes(detailsGame.id);
         void recordVaultAction(vaultState.pinnedIds.includes(detailsGame.id) ? "unpinned" : "pinned", detailsGame.id)
-          .then(() => { if (removingSpotlight) closeDetails(); });
+          .then(() => { if (removingSpotlight) closeDetails(); }).catch(() => {});
       }}
+      onManagePins={() => { if (detailsGame) setPinCandidate(detailsGame); }}
       onComplete={async () => {
         if (!detailsGame) return;
         await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
@@ -126,6 +132,14 @@ export default function DashboardPage() {
         await updateGame(detailsGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null });
       }}
     />
+    {pinCandidate ? <ManagePinsDialog
+      pinnedGames={vaultState.pinnedIds.map(id => allGames.find(game => game.id === id)).filter((game): game is DemoGame => Boolean(game))}
+      candidate={pinCandidate}
+      onRemove={async id => { await recordVaultAction("unpinned", id); }}
+      onReplace={async id => { await recordVaultAction("pinned", pinCandidate.id, { source: "dashboard", replace_game_id: id }); }}
+      onClose={() => setPinCandidate(null)}
+    /> : null}
+    </>
   );
 
   if (!isLive) {
@@ -137,11 +151,14 @@ export default function DashboardPage() {
           These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
         </GuestPreviewNotice>
 
+        <PinnedCommitments games={games} pins={vaultState.pins ?? []} pinnedIds={vaultState.pinnedIds} onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")} onUnpin={(gameId) => { void recordVaultAction("unpinned", gameId).catch(() => {}); }} showEmpty />
+
         <section className={styles.hero}>
           <p className={styles.heroLabel}>Guest catalogue ready</p>
           <p className={styles.heroValue}>{games.length}<span> popular Steam games</span></p>
           <p className={styles.heroHint}>Browse the catalogue, build a preview collection or ask the Vault to choose one.</p>
         </section>
+
 
         <StatPanel label="Guest catalogue summary" columns={4}>
           <StatCard label="Catalogue games" value={games.length} note="Popular games available to explore." />
@@ -210,9 +227,14 @@ export default function DashboardPage() {
             pins={vaultState.pins ?? []}
             pinnedIds={vaultState.pinnedIds}
             onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")}
-            onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
+            onUnpin={(gameId) => { void recordVaultAction("unpinned", gameId).catch(() => {}); }}
             compact
+            showEmpty
+            emptySlotLabel="Let Vault find something worth playing."
           />
+
+          <Link className={styles.centredAction} href="/vault">Find something else to play<VaultIcon name="chevron-right" size={16} /></Link>
+
 
           {/* Above the standing report, because it governs it: every number
               below this panel is counted from the games it leaves in play. */}

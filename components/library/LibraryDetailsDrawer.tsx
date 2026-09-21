@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "@/components/shared/Artwork";
 import { useIsMounted } from "@/components/shared/useIsMounted";
@@ -10,18 +10,19 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
 import { formatGameDuration } from "@/lib/game-duration";
 import { buildPinnedRunSummary } from "@/lib/pinned-run";
-import { progressLabel } from "@/lib/progress-display";
 import type { VaultPin } from "@/lib/vault-state";
 import { familyProvenance, isFamilyAccess } from "@/lib/family-sharing";
 import { FamilyMark } from "@/components/shared/FamilyMark";
+import { LibraryGameActions } from "./LibraryGameActions";
+import { ANALYTICS_EVENTS, trackNavigationEvent } from "@/lib/analytics";
 import styles from "./LibraryDetailsDrawer.module.css";
 
 type LibraryDetailsDrawerProps = {
   game: DemoGame | null;
   collections: DemoCollection[];
-  onSave: (patch: { notes: string }) => Promise<void>;
-  onToggleCollection: (collectionId: string, assigned: boolean) => Promise<void>;
-  saving: boolean;
+  onSave?: (patch: { notes: string }) => Promise<void>;
+  onToggleCollection?: (collectionId: string, assigned: boolean) => Promise<void>;
+  saving?: boolean;
   onClose: () => void;
   pinSlot?: number | null;
   pinCount?: number;
@@ -38,9 +39,6 @@ type LibraryDetailsDrawerProps = {
 export function LibraryDetailsDrawer({
   game,
   collections,
-  onSave,
-  onToggleCollection,
-  saving,
   onClose,
   pinSlot = null,
   pinCount = 0,
@@ -55,8 +53,6 @@ export function LibraryDetailsDrawer({
 }: LibraryDetailsDrawerProps) {
   const steamLink = useSteamPlayLink(game?.steamAppId, { forceStore: previewMode });
   const mounted = useIsMounted();
-  const [notes, setNotes] = useState("");
-  const [updatingCollectionId, setUpdatingCollectionId] = useState<string | null>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const onCloseRef = useRef(onClose);
@@ -67,21 +63,13 @@ export function LibraryDetailsDrawer({
     onCloseRef.current = onClose;
   }, [onClose]);
 
-  // Adjusted during render rather than in an effect, so opening a second game
-  // never paints the previous game's notes for a frame first.
-  const [notesFor, setNotesFor] = useState(game?.id ?? null);
-  if (game && game.id !== notesFor) {
-    setNotesFor(game.id);
-    setNotes(game.notes || "");
-  }
-
   const openGameId = game?.id ?? null;
   useEffect(() => {
     if (!mounted || !openGameId) return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const focusFrame = window.requestAnimationFrame(() => closeButtonRef.current?.focus());
+    const focusFrame = window.requestAnimationFrame(() => closeButtonRef.current?.focus({ preventScroll: true }));
 
     function handleDialogKeydown(event: KeyboardEvent) {
       if (event.key === "Escape") {
@@ -116,7 +104,7 @@ export function LibraryDetailsDrawer({
       window.cancelAnimationFrame(focusFrame);
       document.removeEventListener("keydown", handleDialogKeydown);
       document.body.style.overflow = previousOverflow;
-      previousFocus?.focus();
+      previousFocus?.focus({ preventScroll: true });
     };
   }, [mounted, openGameId]);
 
@@ -128,7 +116,6 @@ export function LibraryDetailsDrawer({
   // The card carries an icon; this is the one place with room to say what it
   // means. One line, not a panel. See lib/family-sharing.ts.
   const familyLine = familyProvenance(game);
-  const pinLabel = pinSlot ? "Unpin game" : pinCount >= 3 ? "Manage pins" : "Pin game";
   const pinHandler = pinSlot || pinCount < 3 ? onTogglePin : onManagePins;
   const pinnedRun = isPinnedSpotlight ? buildPinnedRunSummary(game, pin) : null;
   const progressStyle = pinnedRun?.percent === null || pinnedRun?.percent === undefined ? undefined : {
@@ -142,6 +129,11 @@ export function LibraryDetailsDrawer({
       href={steamLink.href}
       target={steamLink.target}
       rel={steamLink.rel}
+      onClick={() => {
+        if (steamLink.launching && pinSlot) trackNavigationEvent(ANALYTICS_EVENTS.playingNextGameLaunched, {
+          game_id: game.id, steam_app_id: game.steamAppId, source: `${window.location.pathname.split("/")[1] || "library"}_details`,
+        });
+      }}
     >
       <VaultIcon name={steamLink.launching ? "play-now" : "open-steam"} size={20} />
       <span>{steamLink.launching ? (isPinnedSpotlight ? "Play now on Steam" : "Play on Steam") : "View on Steam"}</span>
@@ -185,7 +177,10 @@ export function LibraryDetailsDrawer({
               </button>
             </>
           ) : (
-            <Artwork src={game.bannerUrl} sizes="(max-width: 520px) 100vw, 980px" priority />
+            <>
+              <Artwork src={game.bannerUrl} sizes="(max-width: 600px) 100vw, 560px" priority />
+              <button ref={closeButtonRef} type="button" className={styles.heroClose} onClick={onClose} aria-label="Close game details"><VaultIcon name="close" size={20} /></button>
+            </>
           )}
         </div>
 
@@ -195,7 +190,7 @@ export function LibraryDetailsDrawer({
               <section className={styles.pinnedOverview} aria-labelledby={titleId}>
                 <div className={styles.header}>
                   <div>
-                    <p className={styles.eyebrow}>{`Playing next · ${pinSlot ?? 1} of 3`}</p>
+                    <p className={styles.eyebrow}>{`Playing Next · ${pinSlot ?? 1} of 3`}</p>
                     <h2 className={styles.title} id={titleId}>
                       {game.title}
                       {familyLine ? <FamilyMark title={familyLine} /> : null}
@@ -208,7 +203,7 @@ export function LibraryDetailsDrawer({
                 <dl className={styles.spotlightStats}>
                   <div>
                     <VaultIcon name="play-now" size={18} />
-                    <span><dt>Status</dt><dd>{game.status}</dd></span>
+                    <span><dt>Status</dt><dd>{game.status === "Slept" ? "Blacklisted" : game.status}</dd></span>
                   </div>
                   <div>
                     <VaultIcon name="playtime" size={18} />
@@ -222,31 +217,13 @@ export function LibraryDetailsDrawer({
                     <VaultIcon name="collections" size={18} />
                     <span>
                       <dt>Collections</dt>
-                      <dd>{relatedCollections.length ? relatedCollections.map((collection) => collection.name).join(", ") : "None yet"}</dd>
+                      <dd>{`${relatedCollections.length} ${relatedCollections.length === 1 ? "collection" : "collections"}`}</dd>
                     </span>
                   </div>
                 </dl>
 
-                <label className={styles.spotlightNotes}>
-                  <span><VaultIcon name="details" size={17} />Notes</span>
-                  <textarea aria-label="Edit notes" value={notes} onChange={(event) => setNotes(event.target.value)} rows={2} placeholder="Add a note about this game..." />
-                </label>
-
-                <div className={styles.spotlightFooter}>
-                  <div className={styles.metadataRow}>
-                    {game.genres.slice(0, 3).map((genre) => <span key={genre}>{genre}</span>)}
-                  </div>
-                  <button
-                    type="button"
-                    className={styles.saveButton}
-                    onClick={async () => {
-                      await onSave({ notes });
-                      onClose();
-                    }}
-                    disabled={saving}
-                  >
-                    {saving ? "Saving..." : "Save note"}
-                  </button>
+                <div className={styles.metadataRow}>
+                  {game.genres.slice(0, 3).map((genre) => <span key={genre}>{genre}</span>)}
                 </div>
               </section>
 
@@ -273,8 +250,8 @@ export function LibraryDetailsDrawer({
                       className={styles.pinnedTrack}
                       role="progressbar"
                       aria-label={pinnedRun.earnedPercent === null
-                        ? `${pinnedRun.percent}% complete. Progress since pinning is not available yet.`
-                        : `${pinnedRun.percent}% complete, including ${pinnedRun.earnedPercent}% since pinning.`}
+                        ? `${pinnedRun.percent}% complete. Progress since adding to Playing Next is not available yet.`
+                        : `${pinnedRun.percent}% complete, including ${pinnedRun.earnedPercent}% since adding to Playing Next.`}
                       aria-valuemin={0}
                       aria-valuemax={100}
                       aria-valuenow={pinnedRun.percent}
@@ -291,14 +268,14 @@ export function LibraryDetailsDrawer({
                       {pinnedRun.beforePercent === null ? (
                         <span>Current story progress</span>
                       ) : (
-                        <><span><i data-tone="before" />Before pin</span><span><i data-tone="since" />Since pin</span></>
+                        <><span><i data-tone="before" />Before adding</span><span><i data-tone="since" />Since adding</span></>
                       )}
                     </div>
                   </div>
                 ) : (
                   <p className={styles.openEndedNote}>
                     {pinnedRun.sharedFrom
-                      ? `Shared from ${pinnedRun.sharedFrom}'s library, so Steam reports their hours rather than yours. The pin still holds; the progress bar cannot.`
+                      ? `Shared from ${pinnedRun.sharedFrom}'s library, so Steam reports their hours rather than yours. Your choice still holds; the progress bar cannot.`
                       : "This one has no honest finish-line percentage, so your run is measured in playtime."}
                   </p>
                 )}
@@ -317,23 +294,7 @@ export function LibraryDetailsDrawer({
 
                 <div className={styles.pinnedActions}>
                   {steamAction}
-                  <div className={styles.pinnedUtilities} role="group" aria-label="Pinned game actions">
-                    {game.status === "Completed" || game.status === "Slept" ? (
-                      <button type="button" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={18} /><span>Restore</span></button>
-                    ) : (
-                      <button type="button" disabled={!onTogglePin} onClick={onTogglePin}><VaultIcon name="unpin" size={18} /><span>Unpin</span></button>
-                    )}
-                    {game.status === "Completed" ? (
-                      <button type="button" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={18} /><span>Sleep</span></button>
-                    ) : game.status === "Slept" ? (
-                      <button type="button" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={18} /><span>Mark complete</span></button>
-                    ) : (
-                      <>
-                        <button type="button" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={18} /><span>Sleep</span></button>
-                        <button type="button" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={18} /><span>Mark complete</span></button>
-                      </>
-                    )}
-                  </div>
+                  <LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onSleep ? () => void onSleep().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} />
                 </div>
               </section>
             </div>
@@ -342,99 +303,22 @@ export function LibraryDetailsDrawer({
               <div className={styles.header}>
                 <div>
                   <p className={styles.eyebrow}>Game details</p>
-                  <h2 className={styles.title} id={titleId}>
-                    {game.title}
-                    {familyLine ? <FamilyMark title={familyLine} /> : null}
-                  </h2>
+                  <h2 className={styles.title} id={titleId}>{game.title}{familyLine ? <FamilyMark title={familyLine} /> : null}</h2>
                 </div>
-                <button ref={closeButtonRef} type="button" className={styles.closeButton} onClick={onClose}>
-                  Close
-                </button>
               </div>
-
               <p className={styles.copy} id={descriptionId}>{game.description}</p>
-              {familyLine ? (
-                <p className={styles.familyNotice}>
-                  <VaultIcon name="family" size={16} />
-                  <span>{familyLine}</span>
-                </p>
-              ) : null}
-              {game.status === "Completed" || game.status === "Slept" ? (
-                <div className={styles.quickActions} role="group" aria-label={`${game.status} game actions`}>
-                  <button type="button" title="Restore to Active" aria-label="Restore to Active" disabled={saving || !onRestore} onClick={() => void onRestore?.()}><VaultIcon name="restore-active" size={30} /></button>
-                  {game.status === "Completed"
-                    ? <button type="button" title="Move to Slept" aria-label="Move to Slept" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={30} /></button>
-                    : <button type="button" title="Mark as Completed" aria-label="Mark as Completed" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={30} /></button>}
-                </div>
-              ) : (
-                <div className={styles.quickActions} role="group" aria-label="Game actions">
-                  <button type="button" title={pinLabel} aria-label={pinLabel} disabled={!pinHandler} onClick={pinHandler}><VaultIcon name={pinSlot ? "unpin" : pinCount >= 3 ? "manage-pins" : "pin"} size={30} /></button>
-                  <button type="button" title="Sleep game" aria-label="Sleep game" disabled={saving || !onSleep} onClick={() => void onSleep?.()}><VaultIcon name="sleep" size={30} /></button>
-                  <button type="button" title="Mark as Completed" aria-label="Mark as Completed" disabled={saving || !onComplete} onClick={() => void onComplete?.()}><VaultIcon name="mark-completed" size={30} /></button>
-                </div>
-              )}
-
-              <div className={styles.metadataRow}>
-                {game.genres.map((genre) => <span key={genre}>{genre}</span>)}
-                <span>{game.addedLabel}</span>
-              </div>
-
-              <dl className={styles.statGrid}>
-                <div><dt>Status</dt><dd>{game.status}</dd></div>
-                <div><dt>Progress</dt><dd>{progressLabel(game)}</dd></div>
-                <div><dt>Playtime</dt><dd>{isFamilyAccess(game.accessSource) ? "Not available" : `${game.hoursPlayed}h`}</dd></div>
-                <div><dt>How long to beat</dt><dd>{durationLabel ?? "Not available"}</dd></div>
+              {familyLine ? <p className={styles.familyNotice}>{familyLine}</p> : null}
+              <a className={styles.steamButton} href={`https://store.steampowered.com/app/${game.steamAppId}/`} target="_blank" rel="noopener noreferrer">
+                <VaultIcon name="open-steam" size={20} /><span>View on Steam</span><VaultIcon name="chevron-right" size={18} className={styles.steamArrow} />
+              </a>
+              <LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onSleep ? () => void onSleep().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} />
+              <dl className={styles.gameInfo}>
+                <div><VaultIcon name="play-now" size={21} /><span><dt>Status</dt><dd>{game.status === "Slept" ? "Blacklisted" : game.status}</dd></span></div>
+                <div><VaultIcon name="playtime" size={21} /><span><dt>Playtime (all time)</dt><dd>{isFamilyAccess(game.accessSource) ? "Not available" : `${game.hoursPlayed}h`}</dd></span></div>
+                <div><VaultIcon name="clock" size={21} /><span><dt>Estimated length</dt><dd>{durationLabel ?? "Not available"}</dd></span></div>
+                <div><VaultIcon name="collections" size={21} /><span><dt>Collections</dt><dd>{`${relatedCollections.length} ${relatedCollections.length === 1 ? "collection" : "collections"}`}</dd></span></div>
               </dl>
-
-              <fieldset className={styles.collectionSection}>
-                <p className={styles.sectionLabel}>Collections</p>
-                <div className={styles.collectionRow}>
-                  {collections.filter((collection) => collection.kind === "custom").map((collection) => {
-                    const assigned = game.collectionIds.includes(collection.id);
-                    return (
-                      <label key={collection.id} className={assigned ? `${styles.collectionPill} ${styles.collectionPillActive}` : styles.collectionPill}>
-                        <input
-                          type="checkbox"
-                          checked={assigned}
-                          disabled={updatingCollectionId === collection.id}
-                          onChange={async (event) => {
-                            setUpdatingCollectionId(collection.id);
-                            try {
-                              await onToggleCollection(collection.id, event.target.checked);
-                            } finally {
-                              setUpdatingCollectionId(null);
-                            }
-                          }}
-                        />
-                        {collection.name}
-                      </label>
-                    );
-                  })}
-                  {!relatedCollections.length ? <span className={styles.collectionHint}>Not assigned yet</span> : null}
-                </div>
-              </fieldset>
-
-              <div className={styles.editorGrid}>
-                <label className={`${styles.field} ${styles.fieldWide}`}>
-                  <span>Notes</span>
-                  <textarea aria-label="Edit notes" value={notes} onChange={(event) => setNotes(event.target.value)} rows={4} />
-                </label>
-              </div>
-
-              <div className={styles.actionRow}>
-                {steamAction}
-                <button
-                  type="button"
-                  className={styles.saveButton}
-                  onClick={async () => {
-                    await onSave({ notes });
-                    onClose();
-                  }}
-                  disabled={saving}
-                >
-                  {saving ? "Saving..." : "Save changes"}
-                </button>
-              </div>
+              <div className={styles.metadataRow}>{game.genres.map((genre) => <span key={genre}>{genre}</span>)}</div>
             </>
           )}
         </div>

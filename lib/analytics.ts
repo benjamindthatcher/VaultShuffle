@@ -42,12 +42,23 @@ export const ANALYTICS_EVENTS = {
   vaultDrawRequested: "vault_draw_requested",
   vaultDrawFailed: "vault_draw_failed",
   vaultPickLaunched: "vault_pick_launched",
+  vaultPlayNow: "vault_play_now",
+  vaultSaveLater: "vault_save_later",
+  vaultPickAnother: "vault_pick_another",
+  playingNextAdded: "playing_next_added",
+  playingNextRemoved: "playing_next_removed",
+  playingNextReplaced: "playing_next_replaced",
+  playingNextGameLaunched: "playing_next_game_launched",
+  playingNextEmptySlotClicked: "playing_next_empty_slot_clicked",
+  playingNextProgressed: "playing_next_progressed",
+  playingNextCompleted: "playing_next_completed",
 
   // Completion. The loop the whole product exists to close.
   completionClaimed: "completion_claimed",
   completionDismissed: "completion_dismissed",
 
   // Library and collections.
+  gameMutationFailed: "game_mutation_failed",
   gameStatusChanged: "game_status_changed",
   collectionCreated: "collection_created",
   collectionMembershipChanged: "collection_membership_changed",

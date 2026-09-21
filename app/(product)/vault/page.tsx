@@ -40,7 +40,7 @@ import { steamLaunchUrl, steamStoreUrl } from "@/lib/steam-images";
 import { useCanLaunchSteam } from "@/components/shared/useSteamLaunch";
 import { formatGameDuration } from "@/lib/game-duration";
 import { matchesSmartPreset } from "@/lib/smart-collections";
-import { ANALYTICS_EVENTS, trackEvent } from "@/lib/analytics";
+import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tracking";
 import styles from "./vault.module.css";
 import { FamilyGameMark } from "@/components/shared/FamilyMark";
@@ -105,6 +105,8 @@ export default function VaultPage() {
   const [sleepingGameId, setSleepingGameId] = useState<string | null>(null);
   const [sleepUndo, setSleepUndo] = useState<{ gameId: string; title: string; status: "Not Started" | "In Progress"; wasPinned: boolean } | null>(null);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
+  const [pinContext, setPinContext] = useState<Record<string, unknown>>({ source: "vault" });
+  const [savingPick, setSavingPick] = useState(false);
   const [pinMessage, setPinMessage] = useState("");
 
   // Confirmations are news for a moment and clutter after that. It had a
@@ -155,7 +157,6 @@ export default function VaultPage() {
   const [rerollCount, setRerollCount] = useState(0);
   const [drawArm, setDrawArm] = useState<GenreLearningArm>("control");
   const drawRerollIndexRef = useRef(0);
-  const [feedbackGiven, setFeedbackGiven] = useState<"liked" | "disliked" | null>(null);
   const [rerollReasonGiven, setRerollReasonGiven] = useState(false);
   const drawingRef = useRef(false);
   const drawStageRef = useRef<HTMLElement>(null);
@@ -463,7 +464,9 @@ export default function VaultPage() {
     // has not filled anything in and wants a game anyway.
     if (drawingRef.current || (!quick && !canDraw)) return;
     if (quick && !quickPool.length) return;
-    setFeedbackGiven(null);
+    if (currentPick) trackEvent(ANALYTICS_EVENTS.vaultPickAnother, {
+      ...drawEventAnalytics(), draw_id: currentDrawId, game_id: currentPick.id, steam_app_id: currentPick.steamAppId
+    });
     if (deferCurrentPick) setRerollCount((count) => count + 1);
     else { setRerollCount(0); setRerollReasonGiven(false); }
     const activeDraw = activeDrawRef.current + 1;
@@ -748,19 +751,49 @@ export default function VaultPage() {
     if (!game) return;
     if (vaultState.pinnedIds.includes(id)) {
       await recordVaultAction("unpinned", id);
-      setPinMessage(`${game.title} unpinned.`);
+      setPinMessage(`${game.title} removed from Playing Next.`);
       return;
     }
     if (vaultState.pinnedIds.length >= 3) {
+      setPinContext({ source: "vault" });
       setPinCandidate(game);
       return;
     }
     await recordVaultAction("pinned", id);
-    setPinMessage(`${game.title} pinned in slot ${vaultState.pinnedIds.length + 1} of 3.`);
+    setPinMessage(`${game.title} added to Playing Next.`);
+  }
+
+  async function acceptPick(source: "vault_play_now" | "vault_save_later") {
+    if (!currentPick || savingPick) return;
+    const context = { source, draw_id: currentDrawId, steam_app_id: currentPick.steamAppId, launch_target: steamPlayIsLaunch ? "steam_client" : "steam_store" };
+    const properties = { ...drawEventAnalytics(), ...context, game_id: currentPick.id, launch_target: steamPlayIsLaunch ? "steam_client" : "steam_store" };
+    if (source === "vault_play_now") {
+      trackNavigationEvent(ANALYTICS_EVENTS.vaultPlayNow, properties);
+      if (steamPlayIsLaunch) {
+        if (currentDrawId) void recordDrawEvent(currentDrawId, "opened_on_steam", properties).catch(() => {});
+        if (vaultState.pinnedIds.includes(currentPick.id)) trackNavigationEvent(ANALYTICS_EVENTS.playingNextGameLaunched, properties);
+      }
+    } else trackEvent(ANALYTICS_EVENTS.vaultSaveLater, properties);
+    if (vaultState.pinnedIds.includes(currentPick.id)) return;
+    if (vaultState.pinnedIds.length >= 3) {
+      setPinContext(context);
+      setPinCandidate(currentPick);
+      return;
+    }
+    setSavingPick(true);
+    try {
+      await recordVaultAction("pinned", currentPick.id, context);
+      if (source === "vault_play_now" && steamPlayIsLaunch) trackNavigationEvent(ANALYTICS_EVENTS.playingNextGameLaunched, properties);
+      if (currentDrawId) void recordDrawEvent(currentDrawId, "pinned", drawEventAnalytics()).catch(() => {});
+      setPinMessage(`${currentPick.title} added to Playing Next. ${source === "vault_save_later" ? "Ready whenever you are." : "Your choice is saved."}`);
+    } catch {
+      setPinMessage("Could not save to Playing Next. Please try again.");
+    } finally {
+      setSavingPick(false);
+    }
   }
 
   const isCurrentPickPinned = currentPick ? vaultState.pinnedIds.includes(currentPick.id) : false;
-  const pinsFull = vaultState.pinnedIds.length >= 3;
 
   async function sleepPoolGame(gameId: string) {
     const game = ownedGames.find((item) => item.id === gameId);
@@ -821,7 +854,7 @@ export default function VaultPage() {
           pins={vaultState.pins ?? []}
           pinnedIds={vaultState.pinnedIds}
           onSelect={(gameId) => openGameDetails(gameId, "pinned")}
-          onUnpin={(gameId) => void recordVaultAction("unpinned", gameId)}
+          onUnpin={(gameId) => { void recordVaultAction("unpinned", gameId).catch(() => {}); }}
           compact
         />
       ) : null}
@@ -946,7 +979,7 @@ export default function VaultPage() {
 
       {/* Directly under the bar, so a panel opens next to the button that
           toggles it rather than somewhere further down the page. */}
-      {deckPanel === "lens" ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes()} /> : null}
+      {deckPanel === "lens" ? <VaultLens stages={eligibility.stages} selectedCollection={collectionDraw} selectedGenres={Boolean(activeGenres.length)} snoozedCount={snoozedIds.size} onClearGenres={clearGenres} onUseEntireVault={() => setDrawMode("vault")} onClearSnoozes={() => void clearSnoozes().catch(() => {})} /> : null}
       {deckPanel === "history" ? (
         <VaultHistoryPanel
           draws={vaultHistory}
@@ -1020,25 +1053,6 @@ export default function VaultPage() {
                 </>
               );
             })()}
-            {currentDrawId ? <div className={styles.feedbackRow}>
-              <span className={styles.feedbackLabel}>Good pick?</span>
-              <button
-                type="button"
-                className={feedbackGiven === "liked" ? styles.feedbackOn : styles.feedbackButton}
-                aria-pressed={feedbackGiven === "liked"}
-                disabled={Boolean(feedbackGiven)}
-                onClick={() => { setFeedbackGiven("liked"); void recordDrawEvent(currentDrawId, "liked", drawEventAnalytics()); }}
-              >Yes</button>
-              <button
-                type="button"
-                className={feedbackGiven === "disliked" ? styles.feedbackOn : styles.feedbackButton}
-                aria-pressed={feedbackGiven === "disliked"}
-                disabled={Boolean(feedbackGiven)}
-                onClick={() => { setFeedbackGiven("disliked"); void recordDrawEvent(currentDrawId, "disliked", drawEventAnalytics()); }}
-              >Not really</button>
-              {feedbackGiven ? <span className={styles.feedbackThanks}>Noted.</span> : null}
-            </div> : null}
-
             {currentDrawId && rerollCount >= 3 && !rerollReasonGiven ? <div className={styles.rerollAsk}>
               <span className={styles.feedbackLabel}>Nothing landing. What&apos;s off?</span>
               <div className={styles.rerollReasons}>
@@ -1053,34 +1067,23 @@ export default function VaultPage() {
               </div>
             </div> : null}
 
-            {/* Two, and both of them a yes.
-                Snooze is gone: it said "not this one" on the screen whose whole
-                job is to hand you one, and the reroll in the bar above already
-                does that without spending a decision. Setting a game aside for
-                good is the Library's job now.
-                Both carry a second line, because neither button is obvious on
-                its own - "Pin" in particular was a word with no reason attached,
-                and pinning is how anything you start gets followed afterwards. */}
             <div className={styles.resultActions}>
-              <a href={steamPlayIsLaunch ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={steamPlayIsLaunch ? undefined : "_blank"} rel={steamPlayIsLaunch ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => currentDrawId ? void recordDrawEvent(currentDrawId, "opened_on_steam", drawEventAnalytics()) : undefined}>
+              <a href={steamPlayIsLaunch ? steamLaunchUrl(currentPick.steamAppId) : steamStoreUrl(currentPick.steamAppId)} target={steamPlayIsLaunch ? undefined : "_blank"} rel={steamPlayIsLaunch ? undefined : "noreferrer"} className={`${styles.resultAction} ${styles.resultActionPrimary}`} data-action="steam" onClick={() => { void acceptPick("vault_play_now"); }}>
                 <VaultResultActionIcon name="open-steam" />
                 <span className={styles.resultActionCopy}>
-                  <strong>{steamPlayIsLaunch ? "Open on Steam" : "View on Steam"}</strong>
-                  <small>{steamPlayIsLaunch ? "Play it tonight" : "Take a closer look"}</small>
+                  <strong>{steamPlayIsLaunch ? "Play now" : "View on Steam"}</strong>
+                  <small>{isCurrentPickPinned ? "Saved in Playing Next" : "Adds to Playing Next"}</small>
                 </span>
               </a>
-              <button type="button" className={styles.resultAction} data-action="pin" data-pinned={isCurrentPickPinned || undefined} onClick={() => { void togglePin(currentPick.id); if (currentDrawId) void recordDrawEvent(currentDrawId, isCurrentPickPinned ? "unpinned" : "pinned", drawEventAnalytics()); }}>
-                <VaultResultActionIcon name="pin" />
-                <span className={styles.resultActionCopy}>
-                  <strong>{isCurrentPickPinned ? "Pinned" : pinsFull ? "Pins full" : "Pin this pick"}</strong>
-                  <small>{isCurrentPickPinned
-                    ? "Your progress is being tracked"
-                    : pinsFull
-                      ? "Swap one out to pin this"
-                      : "Track your progress on it"}</small>
-                </span>
-              </button>
+              {isCurrentPickPinned ? <div className={styles.resultAction} data-pinned="true" role="status">
+                <VaultIcon name="check" size={24} />
+                <span className={styles.resultActionCopy}><strong>Playing Next</strong><small>Your choice is saved</small></span>
+              </div> : <button type="button" className={styles.resultAction} data-action="pin" disabled={savingPick} onClick={() => { void acceptPick("vault_save_later"); }}>
+                <VaultIcon name="check" size={24} />
+                <span className={styles.resultActionCopy}><strong>{savingPick ? "Saving…" : "Save for later"}</strong><small>Play whenever you’re ready</small></span>
+              </button>}
             </div>
+            <button type="button" className={styles.pickAnother} disabled={isDrawing || (!canDraw && !quickPool.length)} onClick={() => void handleOpenVault({ deferCurrentPick: true, quick: !canDraw })}>Pick another<VaultIcon name="draw-again" size={17} /></button>
           </div>
           <aside className={styles.resultContext} aria-label="Selected setup">
             {pickDraw?.collectionDraw ? <>
@@ -1121,12 +1124,12 @@ export default function VaultPage() {
             highlightedId={highlightedGameId}
             onSelect={(gameId) => openGameDetails(gameId, "pool")}
             sleepingId={sleepingGameId}
-            onSleep={(id) => void sleepPoolGame(id)}
+            onSleep={(id) => void sleepPoolGame(id).catch(() => {})}
             pinnedIds={vaultState.pinnedIds}
-            onPin={(id) => void togglePin(id)}
+            onPin={(id) => void togglePin(id).catch(() => {})}
             onComplete={(id) => {
               const game = ownedGames.find((item) => item.id === id);
-              if (game) void completeGame(game);
+              if (game) void completeGame(game).catch(() => {});
             }}
             onUserScroll={() => setHighlightedGameId(null)}
             allowActions
@@ -1155,9 +1158,9 @@ export default function VaultPage() {
         onTogglePin={() => {
           if (!detailsGame) return;
           const removingSpotlight = detailsSurface === "pinned" && vaultState.pinnedIds.includes(detailsGame.id);
-          void togglePin(detailsGame.id).then(() => { if (removingSpotlight) closeGameDetails(); });
+          void togglePin(detailsGame.id).then(() => { if (removingSpotlight) closeGameDetails(); }).catch(() => {});
         }}
-        onManagePins={() => { if (detailsGame) setPinCandidate(detailsGame); }}
+        onManagePins={() => { if (detailsGame) { setPinContext({ source: "vault" }); setPinCandidate(detailsGame); } }}
         onSave={async (patch) => {
           if (!detailsGame) return;
           setSavingGameId(detailsGame.id);
@@ -1177,10 +1180,10 @@ export default function VaultPage() {
         onRestore={() => detailsGame ? restoreGame(detailsGame.id) : Promise.resolve()}
       />
       <GuestSignInPrompt open={guestSignInOpen} onClose={closeGuestSignInPrompt} catalogueSize={ownedGames.length} reason="finish_goal" />
-      {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is sleeping{sleepUndo.wasPinned ? " and was removed from your pins" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep()}>Undo</button></div> : null}
+      {sleepUndo ? <div className={styles.sleepToast} role="status"><span>{sleepUndo.title} is blacklisted{sleepUndo.wasPinned ? " and was removed from Playing Next" : " and will stay out of Vault draws"}.</span><button type="button" onClick={() => void undoSleep().catch(() => {})}>Undo</button></div> : null}
       {pinMessage ? <div className={styles.pinToast} role="status">{pinMessage}<button type="button" onClick={() => setPinMessage("")}>Dismiss</button></div> : null}
-      {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion()}>Undo</button></div> : null}
-      {pinCandidate ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { await recordVaultAction("pinned", pinCandidate.id, { replace_game_id: replaceId }); setPinMessage(`${pinCandidate.title} replaced ${pinnedGames.find((game) => game.id === replaceId)?.title ?? "a pinned game"}.`); }} onClose={() => setPinCandidate(null)} /> : null}
+      {completionUndo ? <div className={styles.pinToast} role="status">{completionUndo.title} marked as completed.<button type="button" onClick={() => void undoCompletion().catch(() => {})}>Undo</button></div> : null}
+      {pinCandidate ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate} onRemove={async (id) => { await recordVaultAction("unpinned", id); }} onReplace={async (replaceId) => { await recordVaultAction("pinned", pinCandidate.id, { ...pinContext, replace_game_id: replaceId }); if (pinContext.source === "vault_play_now" && pinContext.launch_target === "steam_client") trackEvent(ANALYTICS_EVENTS.playingNextGameLaunched, { ...pinContext, game_id: pinCandidate.id }); if (typeof pinContext.draw_id === "string") void recordDrawEvent(pinContext.draw_id, "pinned").catch(() => {}); setPinMessage(`${pinCandidate.title} replaced ${pinnedGames.find((game) => game.id === replaceId)?.title ?? "a Playing Next game"}.`); }} onClose={() => setPinCandidate(null)} /> : null}
     </section>
   );
 }

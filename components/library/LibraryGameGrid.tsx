@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { DemoGame } from "@/lib/demo-data";
-import { GameCard } from "@/components/shared/GameCard";
+import { LibraryGameCard } from "./LibraryGameCard";
 import styles from "./LibraryGameGrid.module.css";
 
 type LibraryGameGridProps = {
@@ -11,11 +11,12 @@ type LibraryGameGridProps = {
   onSelect: (gameId: string) => void;
   onComplete: (gameId: string) => void;
   onRestore: (gameId: string) => void;
-  onSleep: (gameId: string) => void;
+  onBlacklist: (gameId: string) => void;
   onTogglePin: (game: DemoGame) => void;
   pinnedIds: string[];
-  /** Set on the decided shelves - slept and completed - where the card picks
-   *  rather than opens. Absent on active, which stays a way into the details. */
+  /** Only browsing controls reset pagination; mutations preserve scroll depth. */
+  resetKey: string;
+  /** Selection is a separate checkbox; the card always opens details. */
   selectable?: boolean;
   selectedIds?: Set<string>;
   onToggleSelect?: (gameId: string) => void;
@@ -35,20 +36,13 @@ type LibraryGameGridProps = {
 const INITIAL_RENDER_COUNT = 60;
 const RENDER_BATCH = 60;
 
-export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onSleep, onTogglePin, pinnedIds = [], selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
+export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onBlacklist, onTogglePin, pinnedIds = [], resetKey, selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
   const [renderCount, setRenderCount] = useState(INITIAL_RENDER_COUNT);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
-  // A new filter or sort is a new list, so start from the top again rather than
-  // keeping however far the previous one had been scrolled through.
-  //
-  // Adjusted during render rather than in an effect: React re-runs this pass
-  // immediately with the new value, so the grid never paints the old count and
-  // there is no flash of the previous list's length.
-  const signature = useMemo(() => `${games.length}:${games[0]?.id ?? ""}:${viewMode}`, [games, viewMode]);
-  const [lastSignature, setLastSignature] = useState(signature);
-  if (signature !== lastSignature) {
-    setLastSignature(signature);
+  const [lastResetKey, setLastResetKey] = useState(resetKey);
+  if (resetKey !== lastResetKey) {
+    setLastResetKey(resetKey);
     setRenderCount(INITIAL_RENDER_COUNT);
   }
 
@@ -78,17 +72,16 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
     <>
       <div className={viewMode === "list" ? `${styles.grid} ${styles.gridList}` : styles.grid}>
         {visible.map((game) => (
-          <GameCard
+          <LibraryGameCard
             key={game.id}
             game={game}
             layout={viewMode}
-            onClick={() => onSelect(game.id)}
-            onComplete={game.status !== "Completed" ? () => onComplete(game.id) : undefined}
-            onRestore={game.status === "Completed" || game.status === "Slept" ? () => onRestore(game.id) : undefined}
-            onSleep={game.status !== "Slept" ? () => onSleep(game.id) : undefined}
-            onTogglePin={game.status !== "Completed" && game.status !== "Slept" ? () => onTogglePin(game) : undefined}
+            onSelect={() => onSelect(game.id)}
+            onComplete={() => onComplete(game.id)}
+            onRestore={() => onRestore(game.id)}
+            onBlacklist={() => onBlacklist(game.id)}
+            onPlayingNext={() => onTogglePin(game)}
             pinned={pinnedIds.includes(game.id)}
-            showProgress
             selectable={selectable}
             selected={selectedIds?.has(game.id) ?? false}
             onToggleSelect={() => onToggleSelect?.(game.id)}
