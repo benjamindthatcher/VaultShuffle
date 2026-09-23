@@ -18,19 +18,11 @@ import {
 } from "@/lib/posthog-client";
 import { blogPageProperties } from "@/lib/blog-analytics";
 import { awaitSession, hasSessionProvider } from "@/lib/analytics-session";
+import type { SessionPayload } from "@/lib/types";
 import styles from "./SiteExperience.module.css";
 
 type AnalyticsChoice = "enabled" | "disabled" | null;
-type AnalyticsSession = {
-  logged_in: boolean;
-  account_type: "guest" | "steam" | "manual";
-  identity_verified: boolean;
-  user_id: string;
-  steam_id: string;
-  display_name: string;
-  steam_display_name: string;
-  avatar_url: string;
-};
+type AnalyticsSession = SessionPayload;
 const CONSENT_STORAGE_KEY = "vault-cookie-consent";
 const NOTICE_STORAGE_KEY = "vault-analytics-notice-seen";
 
@@ -89,8 +81,8 @@ export function SiteExperience({ children }: { children: ReactNode }) {
  * fetched again. On a marketing page nothing announces a shell and this falls
  * back to its own request, exactly as before.
  */
-async function loadAnalyticsSession(): Promise<AnalyticsSession | null> {
-  if (hasSessionProvider()) {
+async function loadAnalyticsSession(useAppProvider = true): Promise<AnalyticsSession | null> {
+  if (useAppProvider && hasSessionProvider()) {
     const shared = await awaitSession();
     if (shared) return shared;
     // The bootstrap failed or never resolved. Identity is worth one request of
@@ -170,9 +162,11 @@ function SiteFrame({ children }: { children: ReactNode }) {
    * request rather than leaving the nav unable to appear.
    */
   useEffect(() => {
-    if (!loaded) return;
+    // A product bootstrap can fail before it publishes its session. Retry on
+    // the next route instead of leaving every information page in guest mode.
+    if (!loaded || session) return;
     let cancelled = false;
-    void loadAnalyticsSession()
+    void loadAnalyticsSession(isAppPage)
       .then((resolved) => {
         if (!cancelled) setSession(resolved);
       })
@@ -180,7 +174,7 @@ function SiteFrame({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [loaded]);
+  }, [isAppPage, loaded, pathname, session]);
 
   useEffect(() => {
     if (!loaded || analyticsChoice !== "enabled") return;

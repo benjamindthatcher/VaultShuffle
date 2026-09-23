@@ -31,11 +31,12 @@ function PublicHeader() {
 
 /** The same signed in navigation on every public information and blog page. */
 export function SharedInformationShell({ children }: { children: ReactNode }) {
-  const signedIn = isSignedInAccount(useSiteSession());
+  const session = useSiteSession();
+  const signedIn = isSignedInAccount(session);
 
   return (
     <div className={styles.shell}>
-      {signedIn ? <SignedInInformationHeader fallback={<PublicHeader />} /> : <PublicHeader />}
+      {signedIn && session ? <SignedInInformationHeader session={session} /> : <PublicHeader />}
       <div className={styles.content}>{children}</div>
     </div>
   );

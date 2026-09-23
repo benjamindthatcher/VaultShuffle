@@ -171,8 +171,8 @@ export type FamilyMemberAddOutcome = {
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
-export function AppDataProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<SessionPayload>(guestSession);
+export function AppDataProvider({ children, initialSession = guestSession }: { children: ReactNode; initialSession?: SessionPayload }) {
+  const [session, setSession] = useState<SessionPayload>(initialSession);
   const [guestGames, setGuestGames, guestGamesRef] = useImmediateState<DemoGame[]>(guestFallbackGames);
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(() => guestPreviewCollection(guestFallbackGames.length));
   const [liveGames, setLiveGames, liveGamesRef] = useImmediateState<DemoGame[]>([]);
@@ -185,7 +185,7 @@ export function AppDataProvider({ children }: { children: ReactNode }) {
   const [liveGenrePreferenceGlobals, setLiveGenrePreferenceGlobals] = useState<GenrePreference[]>(EMPTY_GENRE_PREFERENCES);
   const [liveGamePreferences, setLiveGamePreferences] = useState<Record<string, [number, number, number]>>(EMPTY_GAME_PREFERENCES);
   const [livePlaytime, setLivePlaytime] = useState<PlaytimeSummary>(EMPTY_PLAYTIME);
-  const [isLive, setIsLive] = useState(false);
+  const [isLive, setIsLive] = useState(initialSession.logged_in && initialSession.account_type !== "guest");
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [steamImport, setSteamImport] = useState<SteamImportProgress>(IDLE_STEAM_IMPORT);
