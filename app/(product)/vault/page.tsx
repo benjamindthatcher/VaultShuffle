@@ -1075,6 +1075,10 @@ export default function VaultPage() {
                   <small>{isCurrentPickPinned ? "Saved in Playing Next" : "Adds to Playing Next"}</small>
                 </span>
               </a>
+              <button type="button" className={`${styles.resultAction} ${styles.pickAnother}`} data-action="draw" disabled={isDrawing || (!canDraw && !quickPool.length)} onClick={() => void handleOpenVault({ deferCurrentPick: true, quick: !canDraw })}>
+                <VaultIcon name="draw-from-vault" size={28} />
+                <span className={styles.resultActionCopy}><strong>Pick another</strong><small>Draw again from your deck</small></span>
+              </button>
               {isCurrentPickPinned ? <div className={styles.resultAction} data-pinned="true" role="status">
                 <VaultIcon name="check" size={24} />
                 <span className={styles.resultActionCopy}><strong>Playing Next</strong><small>Your choice is saved</small></span>
@@ -1083,7 +1087,6 @@ export default function VaultPage() {
                 <span className={styles.resultActionCopy}><strong>{savingPick ? "Saving…" : "Save for later"}</strong><small>Play whenever you’re ready</small></span>
               </button>}
             </div>
-            <button type="button" className={styles.pickAnother} disabled={isDrawing || (!canDraw && !quickPool.length)} onClick={() => void handleOpenVault({ deferCurrentPick: true, quick: !canDraw })}>Pick another<VaultIcon name="draw-again" size={17} /></button>
           </div>
           <aside className={styles.resultContext} aria-label="Selected setup">
             {pickDraw?.collectionDraw ? <>

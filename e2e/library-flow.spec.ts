@@ -5,7 +5,7 @@ const games = Array.from({ length: 130 }, (_, i) => ({
   id: `library-${i}`, user_id: session.user_id, title: `Library Game ${String(i).padStart(3, "0")}`,
   genre: "Adventure", store: "Steam", ownership: "Owned", status: "Not Started", rating: 0,
   hours_played: 0, completion_percentage: 0, priority: "Medium", date_added: null,
-  last_played_at: null, notes: "", steam_appid: null, header_url: "/assets/vault/vault-stage-open.png",
+  last_played_at: null, notes: "", steam_appid: 620 + i, header_url: "/assets/vault/vault-stage-open.png",
 }));
 const emptyVault = { pinnedIds: [] as string[], pins: [], snoozedIds: [], currentPickId: null };
 
@@ -212,9 +212,22 @@ test("toolbar selection is explicit; Sort and Filters apply keyboard choices imm
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText("Game details", { exact: true })).toBeVisible();
   await expect(dialog.getByText("0 collections", { exact: true })).toBeVisible();
-  await expect(dialog.getByRole("link", { name: /View on Steam/ })).toBeVisible();
+  const steam = dialog.getByRole("link", { name: "Play on Steam", exact: true });
+  await expect(steam).toHaveAttribute("href", "steam://run/620");
+  await expect(steam).not.toHaveAttribute("target", "_blank");
   await expect(dialog.locator("textarea")).toHaveCount(0);
   await page.screenshot({ path: "/tmp/library-details.png", animations: "disabled" });
+});
+
+test.describe("mobile details Steam action", () => {
+  test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
+  test("normal details keeps the Steam store fallback on touch devices", async ({ page }) => {
+    await fixture(page);
+    await card(page).getByRole("button", { name: "Details for Library Game 000", exact: true }).click();
+    const steam = page.getByRole("dialog").getByRole("link", { name: "View on Steam", exact: true });
+    await expect(steam).toHaveAttribute("href", "https://store.steampowered.com/app/620/");
+    await expect(steam).toHaveAttribute("target", "_blank");
+  });
 });
 
 test.describe("genre row pointer interaction", () => {

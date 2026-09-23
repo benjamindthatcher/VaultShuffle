@@ -71,10 +71,16 @@ async function chooseUnsaved(page: Page) {
   const result = page.locator('[class*="resultCard"]');
   for (let attempt = 0; attempt < 6 && await result.getByRole("status").count(); attempt += 1) {
     const previous = await result.getByRole("heading", { level: 2 }).innerText();
-    await result.getByRole("button", { name: "Pick another" }).click();
+    await drawAnother(page);
     await expect(result.getByRole("heading", { level: 2 })).not.toHaveText(previous);
   }
   await expect(result.getByRole("button", { name: /Save for later/ })).toBeVisible();
+}
+
+async function drawAnother(page: Page) {
+  const mobileAction = page.getByRole("button", { name: /^Pick another/ });
+  if (await mobileAction.isVisible()) await mobileAction.click();
+  else await page.getByRole("button", { name: /just pick something/i }).click();
 }
 
 test("saving, repeat launch, replacement and removal preserve the three-game commitment flow", async ({ page }) => {
@@ -89,7 +95,7 @@ test("saving, repeat launch, replacement and removal preserve the three-game com
   await result.getByRole("link", { name: /Play now/ }).click();
   expect(fixture.pins()).toEqual(baseline);
   expect(fixture.actions.filter(action => action.action === "pinned")).toHaveLength(1);
-  await result.getByRole("button", { name: "Pick another" }).click();
+  await drawAnother(page);
   await expect(result.getByRole("heading", { level: 2 })).not.toHaveText(title);
   await chooseUnsaved(page);
   await result.getByRole("button", { name: /Save for later/ }).click();

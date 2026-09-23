@@ -902,7 +902,18 @@
 .resultDuration svg { color: var(--accent-bright, #a855f7); }
 .resultDuration span { font-weight: 500; opacity: 0.8; }
 
-.pickAnother { display: inline-flex; align-items: center; gap: 8px; justify-self: center; margin-top: 12px; border: 0; padding: 10px 16px; background: transparent; color: var(--vault-muted, #beb0d3); font: inherit; cursor: pointer; }
-.pickAnother:hover { color: #fff; }
-.pickAnother:focus-visible { outline: 2px solid #caa4ff; outline-offset: 3px; border-radius: 8px; }
+.pickAnother {
+  display: none;
+  margin: 0;
+  border-color: #cb8fff99;
+  background: linear-gradient(110deg, #7230d8, #a444e8);
+  color: #fff;
+  cursor: pointer;
+  box-shadow: inset 0 1px 0 #efd5ff33, 0 12px 30px #8434d640;
+}
+.pickAnother:hover:not(:disabled) { border-color: #d9acff; box-shadow: inset 0 1px 0 #efd5ff40, 0 16px 36px #8434d659; }
+.pickAnother:focus-visible { outline: 2px solid #caa4ff; outline-offset: 3px; }
 .pickAnother:disabled { opacity: .5; cursor: default; }
+.pickAnother svg { flex: none; color: #fff; }
+@media (max-width: 720px) { .pickAnother { display: inline-flex; width: 100%; min-width: 0; } }
+@media (prefers-reduced-motion: reduce) { .pickAnother { transition: none; } }

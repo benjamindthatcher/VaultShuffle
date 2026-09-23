@@ -308,9 +308,7 @@ export function LibraryDetailsDrawer({
               </div>
               <p className={styles.copy} id={descriptionId}>{game.description}</p>
               {familyLine ? <p className={styles.familyNotice}>{familyLine}</p> : null}
-              <a className={styles.steamButton} href={`https://store.steampowered.com/app/${game.steamAppId}/`} target="_blank" rel="noopener noreferrer">
-                <VaultIcon name="open-steam" size={20} /><span>View on Steam</span><VaultIcon name="chevron-right" size={18} className={styles.steamArrow} />
-              </a>
+              {steamAction}
               <LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onSleep ? () => void onSleep().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} />
               <dl className={styles.gameInfo}>
                 <div><VaultIcon name="play-now" size={21} /><span><dt>Status</dt><dd>{game.status === "Slept" ? "Blacklisted" : game.status}</dd></span></div>

@@ -233,8 +233,6 @@ export default function DashboardPage() {
             emptySlotLabel="Let Vault find something worth playing."
           />
 
-          <Link className={styles.centredAction} href="/vault">Find something else to play<VaultIcon name="chevron-right" size={16} /></Link>
-
 
           {/* Above the standing report, because it governs it: every number
               below this panel is counted from the games it leaves in play. */}

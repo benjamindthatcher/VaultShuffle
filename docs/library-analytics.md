@@ -14,6 +14,6 @@ Library uses the existing consent-aware PostHog client. SiteExperience owns rout
 | `playing_next_added`, `playing_next_removed`, `playing_next_replaced`, `playing_next_completed` | Confirmed commitment outcomes from the shared provider. See [Playing Next analytics](playing-next-analytics.md). |
 | `game_mutation_failed` | Persistence failed. The shared queue reconciles the optimistic UI; a failed write does not emit a successful outcome. |
 
-Existing completion claim/undo tracking remains after successful persistence. Normal details opens the Steam store; it does not count as a Steam client launch. Pinned details only emits `playing_next_game_launched` when requesting an actual client launch.
+Existing completion claim/undo tracking remains after successful persistence. Normal and pinned details use the same device-aware Steam action: desktop launches Steam, while touch devices and guest previews open the store. `playing_next_game_launched` is emitted only for an actual client launch request for a game in Playing Next; store views and unpinned game launches are excluded.
 
 Library interaction events do not contain search text or notes. Immediate UI updates and Undo remain independent of analytics availability or consent. Status and commitment outcome events are centralized in AppDataProvider to prevent duplicate capture across cards, details, and the replacement dialog.
