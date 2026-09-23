@@ -80,7 +80,7 @@ test("failed persistence never reports an added game", async () => {
 
 test("Steam store views do not inflate the launch funnel", async () => {
   const h = harness();
-  await h.recordDrawEvent("draw", "opened_on_steam", { launch_target: "steam_store" });
+  await h.recordDrawEvent("draw", "play_now_intent", { launch_target: "steam_store" });
   assert.equal(h.captures.length, 0);
   await h.recordDrawEvent("draw", "opened_on_steam", { launch_target: "steam_client" });
   assert.equal(h.captures[0].event, "vaultPickLaunched");

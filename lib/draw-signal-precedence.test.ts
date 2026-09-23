@@ -1,6 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { statesAnOpinion } from "./draw-signal-precedence.ts";
+import { isSeparatePlayingNextCommitment, shouldLearnDrawEvent, statesAnOpinion } from "./draw-signal-precedence.ts";
+
+test("Play now and Playing Next are one immediate commitment", () => {
+  assert.equal(shouldLearnDrawEvent("pinned", ["pinned", "opened_on_steam"]), false);
+  assert.equal(shouldLearnDrawEvent("opened_on_steam", ["pinned", "opened_on_steam"]), true);
+  assert.equal(shouldLearnDrawEvent("pinned", ["pinned", "play_now_intent"]), false);
+  assert.equal(shouldLearnDrawEvent("play_now_intent", ["pinned", "play_now_intent"]), true);
+  assert.equal(shouldLearnDrawEvent("pinned", ["pinned"]), true);
+});
+
+test("a separate Playing Next choice is learned, but a Vault click is not doubled", () => {
+  assert.equal(isSeparatePlayingNextCommitment("2026-09-23T12:01:00Z", ["2026-09-23T12:00:00Z"]), false);
+  assert.equal(isSeparatePlayingNextCommitment("2026-09-23T14:00:00Z", ["2026-09-23T12:00:00Z"]), true);
+  assert.equal(isSeparatePlayingNextCommitment("2026-09-23T14:00:00Z", []), true);
+});
 
 test("a bare reroll on its own is the only thing that happened", () => {
   assert.equal(statesAnOpinion(["drew_again"]), false);

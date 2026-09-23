@@ -31,9 +31,9 @@ const VAULT_SELECTION_TEMPERATURE = 15;
    like the pick's summary bar, where "SESSION  Weekend Session" says it twice
    and spends the room on the repeat. */
 export const vaultSessionOptions = [
-  { id: "short", label: "Short Session", shortLabel: "Short", caption: "Shorter pick · up to 10h left" },
-  { id: "evening", label: "Evening Session", shortLabel: "Evening", caption: "Medium pick · 10-30h left" },
-  { id: "weekend", label: "Weekend Session", shortLabel: "Weekend", caption: "Long pick · 30h+ left" }
+  { id: "short", label: "Short Session", shortLabel: "Short", caption: "A quick sitting" },
+  { id: "evening", label: "Evening Session", shortLabel: "Evening", caption: "Room for a longer sitting" },
+  { id: "weekend", label: "Weekend Session", shortLabel: "Weekend", caption: "Time to settle in" }
 ] satisfies ReadonlyArray<{ id: VaultSessionId; label: string; shortLabel: string; caption: string }>;
 
 export const vaultMoodOptions = [
@@ -43,8 +43,8 @@ export const vaultMoodOptions = [
 ] satisfies ReadonlyArray<{ id: VaultMoodId; label: string; caption: string }>;
 
 export const vaultGoalOptions = [
-  { id: "new", label: "Something New", caption: "Prioritise untouched games." },
-  { id: "finish", label: "Finish Something", caption: "Push progress where you already started." },
+  { id: "new", label: "Something New", caption: "Start something you have barely sampled." },
+  { id: "finish", label: "Finish Something", caption: "Find one of your nearest finishes." },
   { id: "surprise", label: "Surprise Me", caption: "Loosen the rules and mix the order." }
 ] satisfies ReadonlyArray<{ id: VaultGoalId; label: string; caption: string }>;
 
@@ -65,13 +65,14 @@ export type VaultPoolEntry = {
    * is a property of the game and has nothing to do with learned taste.
    */
   appealPoints: number;
+  /** Present for Finish Something; keeps distant finishes out of tiny finalist pools. */
+  finishQuality?: number;
   reasons: string[];
 };
 
 const VAULT_SCORE_WEIGHTS = {
   session: 30,
   mood: 30,
-  goal: 30,
   genres: 10
 } as const;
 
@@ -130,7 +131,7 @@ export function getVaultEligibility({
 
   // Goal is the only part of the setup that removes games, because it is the only
   // one that states a category rather than a preference: "Something New" means
-  // unplayed, and a game with forty hours on it is not that whatever else it has
+  // barely sampled, and a game with forty hours on it is not that whatever else it has
   // going for it.
   //
   // Session and mood are preferences. They decide the order, not the guest list —
@@ -147,7 +148,7 @@ export function getVaultEligibility({
   if (completedCount || sleptCount) {
     const removed = [
       completedCount ? `${completedCount} completed` : null,
-      sleptCount ? `${sleptCount} asleep` : null
+      sleptCount ? `${sleptCount} blacklisted` : null
     ].filter(Boolean).join(" · ");
     stages.push({ id: "active", label: "Still To Play", count: active.length, detail: removed });
   }
@@ -159,7 +160,7 @@ export function getVaultEligibility({
     stages.push({ id: "genres", label: "Genre Matches", count: genreMatches.length });
   }
   if (!collectionDraw && goal && goal !== "surprise") {
-    stages.push({ id: "goal", label: goal === "new" ? "Unplayed Matches" : "In-progress Matches", count: goalMatches.length });
+    stages.push({ id: "goal", label: goal === "new" ? "New or Sampled" : "Finite Games Started", count: goalMatches.length });
   }
   if (goalMatches.some((game) => snoozedIds.has(game.id))) {
     stages.push({ id: "snoozes", label: "After Snoozes", count: available.length });
@@ -317,9 +318,15 @@ export const MAX_VAULT_FINALISTS = 10;
 
 export function vaultFinalists(pool: VaultPoolEntry[], previousWinnerId?: string | null) {
   if (!pool.length) return [];
-  const eligible = pool.length > 1 && previousWinnerId
+  let eligible = pool.length > 1 && previousWinnerId
     ? pool.filter((entry) => entry.game.id !== previousWinnerId)
     : pool;
+  const bestFinish = Math.max(...eligible.map((entry) => entry.finishQuality ?? -1));
+  if (bestFinish >= 0) {
+    // The generic draw lets every pool of five or fewer through. That would
+    // let a distant, popular game win even beside a near finish.
+    eligible = eligible.filter((entry) => (entry.finishQuality ?? -1) >= bestFinish - 20);
+  }
   if (eligible.length <= 5) return eligible;
 
   // Everything genuinely competitive with the best fit, rather than an arbitrary
@@ -431,23 +438,15 @@ export function scoreVaultGame(
   }
 
   if (goal === "new") {
-    // Eligibility only, deliberately scoring nothing. goalEligible already keeps
-    // this to Not Started with at most half an hour on it, and in practice all
-    // but a couple of those have exactly zero hours — so every survivor scored
-    // the full 30 and the term could not tell them apart. All it did was widen
-    // the denominator from 60 to 90, shrinking the same session and mood gap
-    // from 50 points to 33 and, through the softmax, roughly 28:1 odds to 9:1.
-    // Choosing Something New made session and mood matter less, which is the
-    // opposite of what picking a goal should do.
+    // Eligibility defines the goal; contextual fit chooses within its pool.
     reasons.push(playtimeIsUnknown(game)
       ? "From the family shelf"
       : canClaimNeverPlayed(game) ? "Unplayed" : "Barely sampled");
   }
 
   if (goal === "finish") {
-    availablePoints += VAULT_SCORE_WEIGHTS.goal;
-    earnedPoints += finishPoints(game);
-    reasons.push(finishReason(game));
+    const finish = finishability(game, session);
+    if (finish) reasons.push(`About ${Math.max(1, Math.round(finish.remainingHours))}h estimated remaining`);
   }
 
   if (goal === "surprise") {
@@ -462,9 +461,15 @@ export function scoreVaultGame(
 
   // Clamped as a backstop: no term should ever earn more than it offers, and a
   // score over 100 is a bug report the player should not have to file.
-  const score = availablePoints > 0
+  const contextScore = availablePoints > 0
     ? clamp(Math.round((earnedPoints / availablePoints) * 100), 0, 100)
     : 0;
+  // A close finish must outrank a distant celebrity. Session, mood and genres
+  // still decide between similarly finishable games.
+  const finishQuality = goal === "finish" ? finishability(game, session)?.quality : undefined;
+  const score = goal === "finish"
+    ? Math.round(0.7 * (finishQuality ?? 0) + 0.3 * contextScore)
+    : contextScore;
 
   // Reported alongside the score rather than inside it. The explanation still
   // reaches the UI, so the user sees why a game was favoured even though the match
@@ -488,7 +493,7 @@ export function scoreVaultGame(
   const verdict = verdictPoints(verdictFor(verdicts, game.steamAppId), verdictReference)
     + popularityPoints(hoursFor(verdicts, game.steamAppId));
 
-  return { game, score, preferencePoints: preference.points, appealPoints: appeal.points + verdict, reasons: reasons.slice(0, 4) };
+  return { game, score, preferencePoints: preference.points, appealPoints: appeal.points + verdict, finishQuality, reasons: reasons.slice(0, 4) };
 }
 
 export function vaultMatchLabel(score: number) {
@@ -526,20 +531,16 @@ function moodPoints(strength: number) {
 
 function goalEligible(game: DemoGame, goal: VaultGoalId | null) {
   if (!goal || goal === "surprise") return true;
-  // Family games belong here more than anywhere else. Their playtime is unknown
-  // rather than zero, so strictly we cannot prove one is unplayed - but a game
-  // off somebody else's shelf is usually the most genuinely new thing in the
-  // library, and excluding the unknown would cut the best content out of the one
-  // mode built for it.
-  //
-  // The rule the players and release-age filters follow does not transfer: those
-  // ask a question about the game, this one asks about the player, and the prior
-  // on "have I played my partner's copy of this" is no. What is still not
-  // allowed is calling it never played while offering it - see the reason and
-  // insight this goal produces.
-  if (goal === "new") return game.status === "Not Started" && (playtimeIsUnknown(game) || game.hoursPlayed <= 0.5);
-  if (game.duration?.endless) return false;
-  return game.status === "In Progress" || (game.completionPercent > 0 && game.completionPercent < 100);
+  if (goal === "new") {
+    if (playtimeIsUnknown(game)) return game.status === "Not Started";
+    const hours = Math.max(0, game.hoursPlayed);
+    if (hours > 2 || game.completionPercent > 10) return false;
+    // An inferred percentage based on a weak or absent estimate cannot prove
+    // that a game with appreciable playtime is still new.
+    const credibleDuration = game.duration?.confidence !== "low" && estimatedTimeToBeatMinutes(game.duration);
+    return credibleDuration ? true : hours <= 0.5;
+  }
+  return finishability(game, null) !== null;
 }
 
 function matchesAnyGenre(game: DemoGame, selectedGenres: string[]) {
@@ -616,26 +617,28 @@ function sessionShapePoints(game: DemoGame, session: VaultSessionId) {
   return 0;
 }
 
-function finishPoints(game: DemoGame) {
+function finishability(game: DemoGame, session: VaultSessionId | null) {
+  if (game.duration?.endless || game.duration?.confidence === "low" || playtimeIsUnknown(game)) return null;
   const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
-  const remainingHours = totalMinutes
-    ? totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60
-    : null;
-  const progressPoints = 8 + Math.min(12, Math.max(0, game.completionPercent) * 0.12);
-  const remainingPoints = remainingHours === null ? 4
-    : remainingHours <= 2 ? 10
-    : remainingHours <= 5 ? 9
-    : remainingHours <= 10 ? 8
-    : remainingHours <= 20 ? 6
-    : 4;
-  return Math.min(VAULT_SCORE_WEIGHTS.goal, Math.round(progressPoints + remainingPoints));
-}
-
-function finishReason(game: DemoGame) {
-  const totalMinutes = estimatedTimeToBeatMinutes(game.duration);
-  if (!totalMinutes) return `${game.completionPercent}% complete`;
-  const remainingHours = Math.max(1, Math.round(totalMinutes * Math.max(0.05, 1 - Math.min(99, game.completionPercent) / 100) / 60));
-  return `${remainingHours}h left`;
+  if (!totalMinutes || totalMinutes < 120) return null;
+  const totalHours = totalMinutes / 60;
+  const played = Math.max(0, game.hoursPlayed);
+  const ratio = played / totalHours;
+  // A status label alone is insufficient. An estimate already exceeded is not
+  // evidence of being minutes from the credits either.
+  if (played < 1 || ratio < 0.12 || ratio >= 1 || game.completionPercent >= 100) return null;
+  const remainingHours = totalHours - played;
+  if (remainingHours > 25) return null;
+  const base = remainingHours <= 1 ? 100
+    : remainingHours <= 3 ? 100 - (remainingHours - 1) * 7
+    : remainingHours <= 6 ? 86 - (remainingHours - 3) * 6
+    : remainingHours <= 12 ? 68 - (remainingHours - 6) * 5
+    : 38 - (remainingHours - 12) * 2;
+  const sessionReach = session === "short" ? 3 : session === "evening" ? 6 : 12;
+  const sessionPenalty = session && remainingHours > sessionReach
+    ? Math.min(22, (remainingHours - sessionReach) * 3) : 0;
+  const confidencePenalty = game.duration?.confidence === "medium" ? 4 : 0;
+  return { remainingHours, quality: clamp(Math.round(base - sessionPenalty - confidencePenalty), 0, 100) };
 }
 
 function canonicalGenre(value: string) {
@@ -788,7 +791,8 @@ export function buildVaultMatchExplanation({
   const { game } = entry;
   const insights: VaultMatchInsight[] = [];
   const rank = Math.max(1, pool.findIndex((candidate) => candidate.game.id === game.id) + 1);
-  const remaining = remainingHours(game);
+  const finish = goal === "finish" ? finishability(game, session) : null;
+  const remaining = finish ? finish.remainingHours : remainingHours(game);
   const totalHours = totalPlaythroughHours(game);
 
   // Where the game came from, before anything about why it suits tonight.
@@ -851,15 +855,15 @@ export function buildVaultMatchExplanation({
     }
   }
 
-  if (goal === "finish" && game.completionPercent > 0) {
-    const left = remaining === null ? null : Math.max(1, Math.round(remaining));
+  if (goal === "finish" && finish) {
+    const left = Math.max(1, Math.round(finish.remainingHours));
     insights.push({
       kind: "goal",
-      strength: game.completionPercent >= 80 ? "perfect" : game.completionPercent >= 40 ? "strong" : "good",
-      headline: left === null ? `${game.completionPercent}% through` : `About ${left}h from the credits`,
-      detail: totalHours && left !== null
-        ? `You're ${game.completionPercent}% through a game of roughly ${Math.round(totalHours)}h — the ending is genuinely in reach.`
-        : `You're ${game.completionPercent}% through, so finishing it is realistic.`
+      strength: finish.quality >= 85 ? "perfect" : finish.quality >= 65 ? "strong" : "good",
+      headline: `About ${left}h estimated remaining`,
+      detail: totalHours
+        ? `Based on ${game.hoursPlayed}h played and a roughly ${Math.round(totalHours)}h playthrough. Your actual story progress may differ.`
+        : "One of your nearer estimated finishes. Your actual story progress may differ."
     });
   }
 
@@ -988,7 +992,7 @@ function sessionDetail(session: VaultSessionId, remaining: number) {
   }
   return remaining > 30
     ? `${left} — enough to properly sink into over a weekend.`
-    : `${left}, so a weekend would see it finished.`;
+    : `${left}, so a weekend could bring you close to the end.`;
 }
 
 function dormancyDetail(game: DemoGame, now: number) {
@@ -1017,4 +1021,3 @@ function dormancyDetail(game: DemoGame, now: number) {
   }
   return { headline: `Not played in ${days} days`, detail: `Last played ${when}.` };
 }
-

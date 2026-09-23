@@ -90,6 +90,49 @@ test("Finish Something excludes endless games", () => {
   assert.equal(pool.length, 0);
 });
 
+test("Something New admits samples only below both playtime and progress limits", () => {
+  const cases = [
+    ["untouched", 0, 0, true], ["brief", 0.25, 2, true],
+    ["sampled", 1.5, 10, true], ["too-many-hours", 5, 8, false],
+    ["too-much-progress", 1, 17, false]
+  ] as const;
+  const games = cases.map(([id, hoursPlayed, completionPercent]) => makeGame({
+    id, title: id, hoursPlayed, completionPercent,
+    status: hoursPlayed ? "In Progress" : "Not Started",
+    duration: { mainStoryMinutes: 3600, confidence: "high" }
+  }));
+  games.push(makeGame({ id: "unknown-brief", title: "unknown-brief", hoursPlayed: 0.4, duration: undefined }));
+  games.push(makeGame({ id: "unknown-long", title: "unknown-long", hoursPlayed: 1, duration: undefined }));
+  games.push(makeGame({ id: "completed", status: "Completed" }));
+  games.push(makeGame({ id: "blacklisted", status: "Slept" }));
+  const pool = buildVaultPool({ games, session: null, mood: null, goal: "new", selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set() });
+  const selected = new Set(pool.map((entry) => entry.game.id));
+  for (const [id, , , eligible] of cases) assert.equal(selected.has(id), eligible, id);
+  assert.ok(selected.has("unknown-brief"));
+  for (const id of ["unknown-long", "completed", "blacklisted"]) assert.ok(!selected.has(id), id);
+});
+
+test("Finish Something makes a near finish beat a famous distant game", () => {
+  const close = makeGame({ id: "close", title: "Close", steamAppId: 11, hoursPlayed: 9, completionPercent: 90, status: "In Progress", duration: { mainStoryMinutes: 600, confidence: "high" } });
+  const distant = makeGame({ id: "distant", title: "Distant", steamAppId: 12, hoursPlayed: 5, completionPercent: 20, status: "In Progress", duration: { mainStoryMinutes: 1200, confidence: "high" } });
+  const pool = buildVaultPool({ games: [close, distant], session: "short", mood: "intense", goal: "finish", selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set(), gameVerdicts: { "11": [0, 30, 0], "12": [30, 30, 50000] } });
+  assert.equal(pool[0].game.id, "close");
+  assert.deepEqual(vaultFinalists(pool).map((entry) => entry.game.id), ["close"]);
+});
+
+test("Finish Something uses Session and excludes unknown or exceeded estimates", () => {
+  const near = makeGame({ id: "near", title: "Near", hoursPlayed: 9, completionPercent: 90, status: "In Progress", duration: { mainStoryMinutes: 600, confidence: "high" } });
+  const longer = makeGame({ id: "longer", title: "Longer", hoursPlayed: 5, completionPercent: 50, status: "In Progress", duration: { mainStoryMinutes: 600, confidence: "high" } });
+  const invalid = [makeGame({ id: "unknown", hoursPlayed: 5, status: "In Progress", duration: undefined }), makeGame({ id: "weak", hoursPlayed: 5, status: "In Progress", duration: { mainStoryMinutes: 600, confidence: "low" } }), makeGame({ id: "exceeded", hoursPlayed: 12, status: "In Progress", duration: { mainStoryMinutes: 600 } })];
+  const options = { games: [near, longer, ...invalid], mood: null, goal: "finish" as const, selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set<string>() };
+  const short = buildVaultPool({ ...options, session: "short" });
+  const weekend = buildVaultPool({ ...options, session: "weekend" });
+  assert.deepEqual(new Set(short.map((entry) => entry.game.id)), new Set(["near", "longer"]));
+  const shortGap = short[0].score - short[1].score;
+  const weekendGap = weekend.find((entry) => entry.game.id === "near")!.score - weekend.find((entry) => entry.game.id === "longer")!.score;
+  assert.ok(shortGap > weekendGap, "a short session should push more strongly toward the nearest finish");
+});
+
 test("collection draws ignore session, mood, goal and genre filters", () => {
   const collectionGames = [
     makeGame({
@@ -349,7 +392,7 @@ test("the finish goal explains progress instead of contradicting the estimate", 
   const goal = explanation.insights.find((insight) => insight.kind === "goal");
 
   assert.ok(goal, "a finish draw should explain how close the ending is");
-  assert.match(goal.detail, /94%/);
+  assert.match(goal.detail, /16h played/);
   assert.match(goal.detail, /17h/);
 });
 
@@ -437,7 +480,7 @@ test("an explanation claims nothing the draw did not use", () => {
 
 test("every explanation line carries the evidence behind it", () => {
   const pool = buildVaultPool({
-    games: [{ ...makeGame(), completionPercent: 40, hoursPlayed: 5 }],
+    games: [{ ...makeGame({ duration: { mainStoryMinutes: 600 } }), completionPercent: 40, hoursPlayed: 5 }],
     session: "short", mood: "intense", goal: "finish",
     selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
   });
@@ -458,7 +501,7 @@ test("every explanation line carries the evidence behind it", () => {
 
 test("rank is not spent on a tile, since the header already carries it", () => {
   const pool = buildVaultPool({
-    games: [{ ...makeGame(), completionPercent: 40, hoursPlayed: 5 }, makeGame({ id: "other" })],
+    games: [{ ...makeGame({ duration: { mainStoryMinutes: 600 } }), completionPercent: 40, hoursPlayed: 5 }, makeGame({ id: "other" })],
     session: "short", mood: "intense", goal: "finish",
     selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set()
   });
@@ -490,7 +533,7 @@ test("the lens starts at the whole library and names what was actioned away", ()
   assert.equal(stages[0].count, 234, "the funnel should open on the real library size");
   assert.equal(stages[1].id, "active");
   assert.equal(stages[1].count, 228);
-  assert.equal(stages[1].detail, "2 completed · 4 asleep");
+  assert.equal(stages[1].detail, "2 completed · 4 blacklisted");
 });
 
 test("a library with nothing actioned does not show an empty removal step", () => {
@@ -633,7 +676,7 @@ test("shaping reorders within a session but cannot outrank the term", () => {
 
 test("no draw shows more than the two rows the card reserves", () => {
   const pool = buildVaultPool({
-    games: [{ ...makeGame(), completionPercent: 40, hoursPlayed: 5 }],
+    games: [{ ...makeGame({ duration: { mainStoryMinutes: 600 } }), completionPercent: 40, hoursPlayed: 5 }],
     session: "short", mood: "intense", goal: "finish",
     selectedCollectionId: null, selectedGenres: ["action"], snoozedIds: new Set()
   });

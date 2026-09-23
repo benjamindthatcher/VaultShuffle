@@ -467,6 +467,9 @@ export default function VaultPage() {
     if (currentPick) trackEvent(ANALYTICS_EVENTS.vaultPickAnother, {
       ...drawEventAnalytics(), draw_id: currentDrawId, game_id: currentPick.id, steam_app_id: currentPick.steamAppId
     });
+    if (deferCurrentPick && currentDrawId) {
+      void recordDrawEvent(currentDrawId, "drew_again", drawEventAnalytics()).catch(() => {});
+    }
     if (deferCurrentPick) setRerollCount((count) => count + 1);
     else { setRerollCount(0); setRerollReasonGiven(false); }
     const activeDraw = activeDrawRef.current + 1;
@@ -772,6 +775,9 @@ export default function VaultPage() {
       if (steamPlayIsLaunch) {
         if (currentDrawId) void recordDrawEvent(currentDrawId, "opened_on_steam", properties).catch(() => {});
         if (vaultState.pinnedIds.includes(currentPick.id)) trackNavigationEvent(ANALYTICS_EVENTS.playingNextGameLaunched, properties);
+      } else if (currentDrawId) {
+        // A store-page action expresses intent without proving the game launched.
+        void recordDrawEvent(currentDrawId, "play_now_intent", properties).catch(() => {});
       }
     } else trackEvent(ANALYTICS_EVENTS.vaultSaveLater, properties);
     if (vaultState.pinnedIds.includes(currentPick.id)) return;

@@ -15,13 +15,15 @@ async function setup(page: Page, count = 0) {
   let currentPickId: string | null = null;
   let fail = false;
   const actions: Array<Record<string, unknown>> = [];
+  const events: Array<{ draw_id: string; event_type: string }> = [];
+  const draws: Array<{ id: string; gameId: string }> = [];
   const state = () => ({ pinnedIds: pins.map(pin => pin.gameId), pins, snoozedIds: [], currentPickId });
   const session = { logged_in: true, account_type: "steam", identity_verified: true, user_id: "test-user", steam_id: "test-steam", display_name: "Test player", has_steam_key: false };
   await page.addInitScript(() => {
     localStorage.setItem("vault-cookie-consent", "disabled");
     // Exercise the actual click handlers, without handing test clicks to Steam.
     document.addEventListener("click", event => {
-      const link = (event.target as Element)?.closest('a[href^="steam://"]');
+      const link = (event.target as Element)?.closest('a[href^="steam://"], a[href^="https://store.steampowered.com/"]');
       if (link) event.preventDefault();
     });
   });
@@ -47,15 +49,18 @@ async function setup(page: Page, count = 0) {
     }
     if (path === "/api/vault/history" && route.request().method() === "POST") {
       const body = route.request().postDataJSON(); currentPickId = body.game_id;
-      return json({ state: state(), draw: { id: crypto.randomUUID(), drawnAt: new Date().toISOString(), steamAppId: body.steam_app_id, session: body.session, mood: body.mood, goal: body.goal, selectedGenres: [], events: [] } });
+      const id = crypto.randomUUID();
+      draws.push({ id, gameId: body.game_id });
+      return json({ state: state(), draw: { id, drawnAt: new Date().toISOString(), steamAppId: body.steam_app_id, session: body.session, mood: body.mood, goal: body.goal, selectedGenres: [], events: [] } });
     }
     if (path === "/api/vault/history/events") {
       const body = route.request().postDataJSON();
+      events.push(body);
       return json({ event: { id: crypto.randomUUID(), drawId: body.draw_id, eventType: body.event_type, createdAt: new Date().toISOString() } });
     }
     return json({ members: [], draws: [] });
   });
-  return { errors, actions, pins: () => structuredClone(pins), fail: () => { fail = true; } };
+  return { errors, actions, events, draws, pins: () => structuredClone(pins), fail: () => { fail = true; } };
 }
 
 async function draw(page: Page) {
@@ -74,7 +79,7 @@ async function chooseUnsaved(page: Page) {
     await drawAnother(page);
     await expect(result.getByRole("heading", { level: 2 })).not.toHaveText(previous);
   }
-  await expect(result.getByRole("button", { name: /Save for later/ })).toBeVisible();
+  await expect(result.getByRole("button", { name: /Play later|Save for later/ })).toBeVisible();
 }
 
 async function drawAnother(page: Page) {
@@ -88,17 +93,20 @@ test("saving, repeat launch, replacement and removal preserve the three-game com
   const result = await draw(page);
   const title = await result.getByRole("heading", { level: 2 }).innerText();
   await expect(result.getByText("Good pick?")).toHaveCount(0);
-  await result.getByRole("button", { name: /Save for later/ }).click();
+  await result.getByRole("button", { name: /Play later|Save for later/ }).click();
   await expect(result.getByRole("status")).toContainText("Playing Next");
   await expect.poll(() => fixture.pins().length).toBe(3);
+  const acceptedDraw = fixture.draws.at(-1)!;
+  await expect.poll(() => fixture.events.filter(event => event.draw_id === acceptedDraw.id).map(event => event.event_type)).toEqual(["pinned"]);
   const baseline = fixture.pins();
   await result.getByRole("link", { name: /Play now/ }).click();
+  await expect.poll(() => fixture.events.filter(event => event.draw_id === acceptedDraw.id).map(event => event.event_type)).toEqual(["pinned", "opened_on_steam"]);
   expect(fixture.pins()).toEqual(baseline);
   expect(fixture.actions.filter(action => action.action === "pinned")).toHaveLength(1);
   await drawAnother(page);
   await expect(result.getByRole("heading", { level: 2 })).not.toHaveText(title);
   await chooseUnsaved(page);
-  await result.getByRole("button", { name: /Save for later/ }).click();
+  await result.getByRole("button", { name: /Play later|Save for later/ }).click();
   const dialog = page.getByRole("dialog", { name: /Manage Playing Next/ });
   await expect(dialog).toContainText("Playing Next is full");
   await dialog.getByRole("button", { name: "Replace Hades", exact: true }).click();
@@ -137,10 +145,11 @@ test("a failed save restores state and never leaves a false saved confirmation",
   const fixture = await setup(page);
   const result = await draw(page);
   fixture.fail();
-  await result.getByRole("button", { name: /Save for later/ }).click();
+  await result.getByRole("button", { name: /Play later|Save for later/ }).click();
   await expect(page.getByText("Could not save to Playing Next. Please try again.")).toBeVisible();
-  await expect(result.getByRole("button", { name: /Save for later/ })).toBeVisible();
+  await expect(result.getByRole("button", { name: /Play later|Save for later/ })).toBeVisible();
   expect(fixture.pins()).toHaveLength(0);
+  expect(fixture.events).toEqual([]);
   expect(fixture.errors).toEqual([]);
 });
 
@@ -161,8 +170,16 @@ test("mobile empty dashboard leads to Vault and uses the Steam store fallback", 
   const result = page.locator('[class*="resultCard"]');
   await expect(result.getByRole("link", { name: /View on Steam/ })).toHaveAttribute("href", /^https:\/\/store.steampowered.com/);
   await expect(result.getByRole("link", { name: /View on Steam/ })).toHaveAttribute("target", "_blank");
-  await result.getByRole("button", { name: /Save for later/ }).click();
+  await result.getByRole("button", { name: /Play later|Save for later/ }).click();
   await expect(result.getByRole("status")).toContainText("Playing Next");
+  const acceptedDraw = fixture.draws.at(-1)!;
+  await result.getByRole("link", { name: /View on Steam/ }).click();
+  await expect.poll(() => fixture.events.filter(event => event.draw_id === acceptedDraw.id).map(event => event.event_type)).toEqual(["pinned", "play_now_intent"]);
+  await page.getByRole("button", { name: /^Pick another/ }).click();
+  await expect.poll(() => fixture.events.filter(event => event.draw_id === acceptedDraw.id).map(event => event.event_type)).toEqual(["pinned", "play_now_intent", "drew_again"]);
+  await expect.poll(() => fixture.draws.length).toBe(2);
+  expect(fixture.draws[1].id).not.toBe(acceptedDraw.id);
+  expect(fixture.draws[1].gameId).not.toBe(acceptedDraw.gameId);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await result.screenshot({ path: "/tmp/playing-next-mobile.png" });
   expect(fixture.errors).toEqual([]);
