@@ -6,6 +6,7 @@ import type { VaultDrawEventType } from "./vault-history.ts";
  */
 export const EXPLICIT_OPINIONS = new Set<string>([
   "opened_on_steam",
+  "play_now_intent",
   "liked",
   "disliked",
   "pinned",
@@ -34,6 +35,25 @@ export function isRerollReason(eventType: string) {
  */
 export function statesAnOpinion(eventTypes: readonly string[]): boolean {
   return eventTypes.some((eventType) => isRerollReason(eventType) || EXPLICIT_OPINIONS.has(eventType));
+}
+
+/** One immediate commitment per draw; a later outcome is still independent. */
+export function shouldLearnDrawEvent(eventType: string, eventTypes: readonly string[]) {
+  if (eventType === "drew_again" && statesAnOpinion(eventTypes)) return false;
+  const commitments = ["opened_on_steam", "play_now_intent", "pinned", "liked"];
+  const chosen = commitments.find((candidate) => eventTypes.includes(candidate));
+  if (commitments.includes(eventType) && eventType !== chosen) return false;
+  return true;
+}
+
+/** A Playing Next row created by the same Vault click is not another vote. */
+export function isSeparatePlayingNextCommitment(pinnedAt: string, drawCommitmentTimes: readonly string[]) {
+  const pinnedMs = new Date(pinnedAt).getTime();
+  if (!Number.isFinite(pinnedMs)) return false;
+  return !drawCommitmentTimes.some((time) => {
+    const eventMs = new Date(time).getTime();
+    return Number.isFinite(eventMs) && Math.abs(pinnedMs - eventMs) <= 5 * 60_000;
+  });
 }
 
 export type { VaultDrawEventType };

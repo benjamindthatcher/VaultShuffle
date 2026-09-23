@@ -1,7 +1,7 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { statesAnOpinion } from "@/lib/draw-signal-precedence";
+import { isSeparatePlayingNextCommitment, shouldLearnDrawEvent } from "@/lib/draw-signal-precedence";
 import { ANY_MOOD_CONTEXT, BASELINE_GENRE, canonicalPreferenceGenre, capDecisionsPerUser, parseAlgorithmWeight, playtimeTally, preferenceGenresFor, type GenrePreference } from "@/lib/genre-preferences";
 import { steamTagGenreLabels } from "@/lib/genres";
 import { isFamilyAccess, type AccessSource } from "@/lib/family-sharing";
@@ -85,6 +85,7 @@ const EVENT_SIGNALS: Partial<Record<VaultDrawEventType, Signal>> = {
   // Launching it is the strongest thing anyone can say about a pick: they took
   // the recommendation. It used to be worth the same as a thumbs-up.
   opened_on_steam: { positive: 3, total: 3 },
+  play_now_intent: { positive: 2.5, total: 2.5 },
   liked: { positive: 2, total: 2 },
   // Committing to play something next, which was worth half of a launch.
   pinned: { positive: 2, total: 2 },
@@ -191,20 +192,19 @@ type DrawRow = {
 };
 
 type EventRow = { draw_id: string; event_type: string; created_at: string };
-type PurgeDecision = { userId: string; steamAppId: number; action: string; reviewedAt: string };
+type LibraryDecision = { userId: string; steamAppId: number; action: string; reviewedAt: string };
+type PlayingNextCommitment = { userId: string; steamAppId: number; pinnedAt: string };
 
 
 /**
- * How each Purge verdict reads as taste. Sleeping matches the weight a Vault
- * "slept" carries, because it is the same decision. "Keep" is a deliberate
- * retention rather than an endorsement, so it counts for half.
+ * Current Library outcomes. Playing Next is learned from the draw's pin event;
+ * removing or replacing a slot is not a second vote against its old occupant.
  */
-const PURGE_SIGNALS: Record<string, { positive: number; total: number }> = {
+const LIBRARY_SIGNALS: Record<string, { positive: number; total: number }> = {
   // Matched to the draw-side weight: sleeping is the clearest rejection there is,
   // reached deliberately through a review rather than in passing. This is the
   // signal the learner was missing entirely, so it keeps its full weight.
   sleep: { positive: 0, total: 4 },
-  keep: { positive: 1, total: 2 },
   pin: { positive: 2, total: 2 },
   // Finishing something is real evidence and weaker than choosing it tonight.
   // At 2/2 it was the strongest positive the model had, and once completions
@@ -232,7 +232,8 @@ export type GenrePreferenceRebuildSummary = {
   draws: number;
   events: number;
   scoredEvents: number;
-  purgeDecisions: number;
+  libraryDecisions: number;
+  playingNextCommitments: number;
   users: number;
   rows: number;
   globalRows: number;
@@ -252,7 +253,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   const supabase = getSupabaseAdmin();
   const weightOverrides = await loadWeightOverrides(supabase);
   const eventSignals = withOverrides(EVENT_SIGNALS as Record<string, Signal>, "event", weightOverrides);
-  const decisionSignals = withOverrides(PURGE_SIGNALS, "decision", weightOverrides);
+  const decisionSignals = withOverrides(LIBRARY_SIGNALS, "decision", weightOverrides);
   const playtimeWeight = weightOverrides.get("playtime:per_owner")?.total ?? PLAYTIME_WEIGHT;
   const unplayedWeight = weightOverrides.get("playtime:per_unplayed_owner")?.total ?? PLAYTIME_UNPLAYED_WEIGHT;
   const since = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString();
@@ -279,7 +280,8 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     draws: draws.length,
     events: 0,
     scoredEvents: 0,
-    purgeDecisions: 0,
+    libraryDecisions: 0,
+    playingNextCommitments: 0,
     users: 0,
     rows: 0,
     globalRows: 0,
@@ -291,13 +293,16 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
   const events = draws.length ? await fetchEvents(supabase, [...drawsById.keys()]) : [];
   summary.events = events.length;
 
-  const purgeDecisions = await fetchPurgeDecisions(supabase, since);
-  summary.purgeDecisions = purgeDecisions.length;
-  if (!events.length && !purgeDecisions.length) return summary;
+  const libraryDecisions = await fetchLibraryDecisions(supabase, since);
+  summary.libraryDecisions = libraryDecisions.length;
+  const playingNextCommitments = await fetchPlayingNextCommitments(supabase, since);
+  summary.playingNextCommitments = playingNextCommitments.length;
+  if (!events.length && !libraryDecisions.length && !playingNextCommitments.length) return summary;
 
   const genresByAppId = await fetchGenres(supabase, [
     ...draws.map((draw) => Number(draw.steam_appid)),
-    ...purgeDecisions.map((decision) => decision.steamAppId)
+    ...libraryDecisions.map((decision) => decision.steamAppId),
+    ...playingNextCommitments.map((commitment) => commitment.steamAppId)
   ]);
 
   // user -> "context::genre" -> tally
@@ -311,6 +316,16 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     const bucket = eventsByDraw.get(event.draw_id);
     if (bucket) bucket.push(event); else eventsByDraw.set(event.draw_id, [event]);
   }
+  const drawCommitmentTimes = new Map<string, string[]>();
+  for (const event of events) {
+    if (!["pinned", "opened_on_steam", "play_now_intent"].includes(event.event_type)) continue;
+    const draw = drawsById.get(event.draw_id);
+    if (!draw) continue;
+    const key = `${draw.user_id}::${draw.steam_appid}`;
+    const times = drawCommitmentTimes.get(key) ?? [];
+    times.push(event.created_at);
+    drawCommitmentTimes.set(key, times);
+  }
 
   for (const [drawId, drawEvents] of eventsByDraw) {
     const draw = drawsById.get(drawId);
@@ -321,13 +336,15 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     // A stated opinion supersedes the bare reroll on the same draw. Both are
     // written for one action, and counting them together let a single rejection
     // be recorded twice while a rejection with no reason counted once.
-    const hasStatedOpinion = statesAnOpinion(drawEvents.map((event) => event.event_type));
+    const eventTypes = drawEvents.map((event) => event.event_type);
+    const learnedTypes = new Set<string>();
 
     for (const event of drawEvents) {
       const eventType = event.event_type as VaultDrawEventType;
-      if (eventType === "drew_again" && hasStatedOpinion) continue;
+      if (!shouldLearnDrawEvent(eventType, eventTypes) || learnedTypes.has(eventType)) continue;
       const signal = eventSignals[eventType];
       if (!signal) continue;
+      learnedTypes.add(eventType);
 
       const decay = recencyWeight(event.created_at);
       if (decay <= 0) continue;
@@ -352,12 +369,9 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     }
   }
 
-  // A Purge decision is the most considered signal the app collects: the player
-  // was looking at one game and deliberately chose its fate. Until now none of it
-  // reached the recommender - every sleep in the system happened in Purge, so the
-  // learner's "slept" weight had never once fired, and the same action taught the
-  // model or not depending on which page it happened on.
-  for (const decision of purgeDecisions) {
+  // Library Blacklist and Complete are durable outcomes, separate from the
+  // immediate choice on a Vault draw.
+  for (const decision of libraryDecisions) {
     const signal = decisionSignals[decision.action];
     if (!signal) continue;
     const genres = genresByAppId.get(decision.steamAppId);
@@ -369,7 +383,7 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     const userTallies = tallies.get(decision.userId) ?? new Map<string, Tally>();
     tallies.set(decision.userId, userTallies);
 
-    // No mood context: a Purge decision is about the game, not about the evening
+    // No mood context: a Library outcome is about the game, not about the evening
     // the player happened to be having.
     // A decision is the strongest thing said about a game: someone was looking
     // at exactly this one and chose its fate. It is the bulk of the per-game
@@ -377,6 +391,26 @@ export async function rebuildGenrePreferences(): Promise<GenrePreferenceRebuildS
     // at all.
     addGameTally(gameTallies, decision.steamAppId, signal.positive * decay, signal.total * decay);
 
+    for (const genre of [...genres, BASELINE_GENRE]) {
+      addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, signal.positive * decay, signal.total * decay);
+    }
+  }
+
+  // Playing Next can be chosen from Library and Play Next without a Vault draw.
+  // Its current state is one positive commitment, except when a draw event
+  // already recorded the same click. Removing or replacing a slot removes this
+  // state signal on the next rebuild; it does not cast a negative vote.
+  for (const commitment of playingNextCommitments) {
+    const key = `${commitment.userId}::${commitment.steamAppId}`;
+    if (!isSeparatePlayingNextCommitment(commitment.pinnedAt, drawCommitmentTimes.get(key) ?? [])) continue;
+    const genres = genresByAppId.get(commitment.steamAppId);
+    if (!genres?.length) continue;
+    const decay = recencyWeight(commitment.pinnedAt);
+    if (decay <= 0) continue;
+    const signal = decisionSignals.pin;
+    const userTallies = tallies.get(commitment.userId) ?? new Map<string, Tally>();
+    tallies.set(commitment.userId, userTallies);
+    addGameTally(gameTallies, commitment.steamAppId, signal.positive * decay, signal.total * decay);
     for (const genre of [...genres, BASELINE_GENRE]) {
       addTally(userTallies, `${ANY_MOOD_CONTEXT}::${genre}`, signal.positive * decay, signal.total * decay);
     }
@@ -708,7 +742,7 @@ async function replaceGlobals(
 /**
  * The population's verdict on specific games, for the games one player owns.
  *
- * Scoped to their library rather than sent whole: the table covers 12,781 games
+ * Scoped to their library rather than sent whole: the table covers about 25,000 games
  * and a payload of all of them would dwarf the library it is describing. Read
  * for the games that could actually be drawn, and nothing else.
  *
@@ -765,14 +799,35 @@ export async function listGenrePreferenceGlobals(): Promise<GenrePreference[]> {
   }
 }
 
+async function fetchPlayingNextCommitments(supabase: AdminClient, since: string): Promise<PlayingNextCommitment[]> {
+  const commitments: PlayingNextCommitment[] = [];
+  for (let offset = 0; ; offset += DECISION_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("user_game_pins")
+      .select("user_id, pinned_at, user_games!inner(catalog_steam_appid)")
+      .eq("scope", "library")
+      .gte("pinned_at", since)
+      .order("pinned_at", { ascending: false })
+      .range(offset, offset + DECISION_PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = (data ?? []) as Array<Record<string, unknown>>;
+    for (const row of rows) {
+      const game = row.user_games as Record<string, unknown> | null;
+      const steamAppId = Number(game?.catalog_steam_appid);
+      if (!Number.isFinite(steamAppId) || steamAppId <= 0 || typeof row.pinned_at !== "string") continue;
+      commitments.push({ userId: String(row.user_id), steamAppId, pinnedAt: row.pinned_at });
+    }
+    if (rows.length < DECISION_PAGE_SIZE) break;
+  }
+  return commitments;
+}
+
 /**
- * The standing Purge verdict for each game, resolved to a Steam AppID.
+ * The standing Library outcome for each game, resolved to a Steam AppID.
  *
- * Only the most recent decision per game counts. A game kept and later slept has
- * changed its mind, not voted twice, and counting both would let a flip-flop
- * cancel itself out instead of recording where the player actually landed.
+ * Only the most recent Blacklist or Complete outcome per game counts.
  */
-async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promise<PurgeDecision[]> {
+async function fetchLibraryDecisions(supabase: AdminClient, since: string): Promise<LibraryDecision[]> {
   // Read from the ownership row, not from purge_reviews.
   //
   // purge_reviews was written by one page, and that page is gone: sleeping and
@@ -783,7 +838,7 @@ async function fetchPurgeDecisions(supabase: AdminClient, since: string): Promis
   //
   // The catalogue AppID is on this row too, so the second lookup that
   // purge_reviews needed to turn a game id into genres is gone with it.
-  const latest = new Map<string, PurgeDecision>();
+  const latest = new Map<string, LibraryDecision>();
 
   for (const [column, action] of [["slept_at", "sleep"], ["completed_at", "complete"]] as const) {
     // Paged explicitly: PostgREST caps a response at 1,000 rows, and a night's

@@ -981,7 +981,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     }
 
     if (isLive) {
-      const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
+      const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", keepalive: true, body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
       setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [event, ...draw.events] } : draw));
       return;
     }
