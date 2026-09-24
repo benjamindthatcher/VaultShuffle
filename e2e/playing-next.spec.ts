@@ -175,11 +175,20 @@ test("mobile empty dashboard leads to Vault and uses the Steam store fallback", 
   const acceptedDraw = fixture.draws.at(-1)!;
   await result.getByRole("link", { name: /View on Steam/ }).click();
   await expect.poll(() => fixture.events.filter(event => event.draw_id === acceptedDraw.id).map(event => event.event_type)).toEqual(["pinned", "play_now_intent"]);
-  await page.getByRole("button", { name: /^Pick another/ }).click();
+  const reroll = page.getByRole("button", { name: /^Pick another/ });
+  await reroll.evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
+  const beforeReroll = await page.evaluate(() => window.scrollY);
+  const previousTitle = await result.getByRole("heading", { level: 2 }).innerText();
+  await reroll.click();
   await expect.poll(() => fixture.events.filter(event => event.draw_id === acceptedDraw.id).map(event => event.event_type)).toEqual(["pinned", "play_now_intent", "drew_again"]);
   await expect.poll(() => fixture.draws.length).toBe(2);
   expect(fixture.draws[1].id).not.toBe(acceptedDraw.id);
   expect(fixture.draws[1].gameId).not.toBe(acceptedDraw.gameId);
+  await expect(result.getByRole("heading", { level: 2 })).not.toHaveText(previousTitle);
+  // Allow any reveal scroll animation to finish before checking the position.
+  await page.waitForTimeout(1000);
+  // Small card-layout rounding is fine; jumping back to the draw bar is not.
+  expect(Math.abs(await page.evaluate(() => window.scrollY) - beforeReroll)).toBeLessThanOrEqual(4);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await result.screenshot({ path: "/tmp/playing-next-mobile.png" });
   expect(fixture.errors).toEqual([]);

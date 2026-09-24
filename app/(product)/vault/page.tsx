@@ -163,6 +163,7 @@ export default function VaultPage() {
   const resultRef = useRef<HTMLElement>(null);
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const activeDrawRef = useRef(0);
+  const scrollToDrawRef = useRef(true);
   const deferredQueueRef = useRef<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
   const [deferredQueue, setDeferredQueue] = useState<DeferredDeckQueue>({ setupKey: "", gameIds: [] });
 
@@ -393,7 +394,7 @@ export default function VaultPage() {
   // the reveal which can interrupt a smooth one that is still animating. Aiming
   // at the same element again afterwards corrects both without fighting itself.
   useEffect(() => {
-    if (drawState !== "revealed" || !revealedPickId) return;
+    if (drawState !== "revealed" || !revealedPickId || !scrollToDrawRef.current) return;
     const target = drawStageRef.current;
     if (!target) return;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -447,7 +448,7 @@ export default function VaultPage() {
     if (deckEmptyUnexpectedly) setDeckPanel((current) => current ?? "lens");
   }, [deckEmptyUnexpectedly]);
 
-  async function handleOpenVault({ deferCurrentPick = false, quick = false }: { deferCurrentPick?: boolean; quick?: boolean } = {}) {
+  async function handleOpenVault({ deferCurrentPick = false, quick = false, scrollToDraw = true }: { deferCurrentPick?: boolean; quick?: boolean; scrollToDraw?: boolean } = {}) {
     // Whatever was open under the bar closes as the draw starts.
     //
     // Vault Lens and Draw History sit directly below the draw button and cover
@@ -549,6 +550,7 @@ export default function VaultPage() {
     };
 
     drawingRef.current = true;
+    scrollToDrawRef.current = scrollToDraw;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     setDrawWinnerId(nextPick.id);
     setHighlightedGameId(null);
@@ -559,7 +561,8 @@ export default function VaultPage() {
     // simply there by the time you scrolled down to it. The draw bar is the
     // anchor rather than the card itself, so the button that rerolls stays in
     // view alongside whatever it just produced.
-    await scrollToDrawStage(drawStageRef.current, reducedMotion);
+    // The result-card reroll is already where the player wants to stay.
+    if (scrollToDraw) await scrollToDrawStage(drawStageRef.current, reducedMotion);
     setDrawState("focusing");
 
     // The pick is already decided, so the write does not have to finish before we
@@ -1081,7 +1084,7 @@ export default function VaultPage() {
                   <small>{isCurrentPickPinned ? "Saved in Playing Next" : "Adds to Playing Next"}</small>
                 </span>
               </a>
-              <button type="button" className={`${styles.resultAction} ${styles.pickAnother}`} data-action="draw" disabled={isDrawing || (!canDraw && !quickPool.length)} onClick={() => void handleOpenVault({ deferCurrentPick: true, quick: !canDraw })}>
+              <button type="button" className={`${styles.resultAction} ${styles.pickAnother}`} data-action="draw" disabled={isDrawing || (!canDraw && !quickPool.length)} onClick={() => void handleOpenVault({ deferCurrentPick: true, quick: !canDraw, scrollToDraw: false })}>
                 <VaultIcon name="draw-from-vault" size={28} />
                 <span className={styles.resultActionCopy}><strong>Pick another</strong><small>Draw again from your deck</small></span>
               </button>
