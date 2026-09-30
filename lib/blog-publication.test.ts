@@ -28,6 +28,18 @@ test("an explicit blog draft cannot publish merely because its date passes", () 
   assert.equal(posts.isPublished({ ...draft, draft: false }, new Date("2030-01-01")), true);
 });
 
+test("only the approved family article joins the two existing published posts", () => {
+  const production = registry("production", "2026-09-30T12:00:00Z");
+  assert.deepEqual(production.listPosts().map((post) => post.slug), [
+    "steam-family-library-next-game",
+    "how-to-choose-your-next-steam-game",
+    "steam-deck-games-you-can-beat-in-under-10-hours"
+  ]);
+  assert.equal(isUnpublishedArticle("/blog/steam-family-library-next-game", Date.parse("2026-09-30T12:00:00Z")), false);
+  assert.equal(production.getPost("steam-family-sharing-play-at-the-same-time"), undefined);
+  assert.equal(production.getPost("how-to-organise-your-steam-library"), undefined);
+});
+
 test("production listings exclude scheduled posts even when previews are requested", () => {
   const posts = registry("production");
   assert.equal(posts.canPreviewScheduled(), false);

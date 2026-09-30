@@ -7,17 +7,19 @@ export function chooseNextSteamGame(): PostContent {
     overview: (
       <>
         <p>
-          You open Steam with an evening to yourself and somehow spend the first half hour
-          looking at games instead of playing one. There is the RPG you meant to start,
-          the strategy game you would have to learn again, and something from a sale that
-          you have completely forgotten buying. Eventually you launch the usual favourite,
-          or close the whole thing and watch something instead.
+          You open Steam with an evening to yourself, ready to finally play something,
+          and somehow spend the first half hour weighing up games you already own.
+          There is the RPG you keep saving for a proper weekend, the strategy game
+          whose controls you would have to learn again and a sale purchase you barely
+          remember making, all looking slightly less appealing the longer you stare
+          at them. By the time you launch the usual favourite, half the evening has gone.
         </p>
         <p>
-          When you cannot decide what to play, it helps to make the question smaller. Think
-          about the time and energy you have tonight, narrow your Steam library to three
-          games that fit, then give one a proper session. You can do that yourself or let
-          VaultShuffle help with the choice, without planning the fate of every game you own.
+          When you cannot decide what to play, the useful question is which game would
+          suit tonight. Think about the time and energy you have, narrow your Steam
+          library to three appealing choices and give one a proper session, whether
+          you make the final call yourself or let a game picker help. You can find
+          something worth starting without sorting out the future of your entire backlog.
         </p>
       </>
     ),
@@ -29,23 +31,29 @@ export function chooseNextSteamGame(): PostContent {
         body: (
           <>
             <p>
-              The game you are most excited to have finished is not always the one you want
-              to play after work. A sprawling RPG can be exactly your thing and still feel
-              like too much when you are tired, particularly if the first task is remembering
-              who everyone is and why your inventory is full of spoons.
+              The game you are most excited to have finished might be a terrible fit
+              for the evening you actually have. A sprawling RPG can be exactly your
+              thing and still feel like too much after work, particularly when getting
+              started means remembering who everyone is and why your inventory is full
+              of spoons. There is nothing wrong with keeping that adventure for a night
+              when you are looking forward to getting lost in it.
             </p>
             <p>
-              Before looking at individual games, decide what would feel good right now.
-              Do you want a challenge, a story to get lost in, or something familiar enough
-              that you can settle straight into it? Then think about how much time you
-              actually have, including any download or update standing between you and
-              the opening screen.
+              For now, think about what would feel good to play: a challenge that keeps
+              you busy, a story you can settle into or something familiar enough to
+              enjoy without much effort. That usually makes a more useful starting point
+              than comparing everything by reputation, and it gives you a reason to leave
+              some perfectly good games for another day. Include any download or update
+              in the time you have available, because an exciting choice is less useful
+              if you cannot actually get to it tonight.
             </p>
             <p>
-              Total game length only tells part of the story. A long game you already know
-              might suit half an hour better than a short game with an elaborate opening.
-              Look for a useful stopping point, whether that is a mission, a puzzle or the
-              next save, rather than assuming a short campaign means short sessions.
+              Game length helps, but the opening hours and stopping points matter too.
+              A long game you already know might suit half an hour beautifully, while
+              a short campaign with a lengthy introduction could take the whole session
+              to get going. Look for a mission, a few puzzles or a convenient save you
+              can reach with the time you have, rather than assuming a short story
+              automatically means easy short sessions.
             </p>
           </>
         )
@@ -57,21 +65,21 @@ export function chooseNextSteamGame(): PostContent {
         body: (
           <>
             <p>
-              Pick three games you already own that suit the evening you have in mind,
-              perhaps something you were enjoying last week, something untouched and an old
-              favourite. Keep those choices together in a Steam collection if it helps, then
-              make your decision there instead of going back to the full library.
+              Once you know the kind of evening you want, pick three games that could
+              give you it. Something you were enjoying last week, an untouched game
+              you are curious about and an old favourite make a useful starting trio,
+              because each offers a different reason to press play. Keep them in a
+              Steam collection if that helps you stay with the shortlist instead of
+              wandering back through everything you own.
             </p>
             <p>
-              Keep it practical. If you want something relaxing, leave the demanding games
-              for another night. If you fancy a fresh start, look at the games you have
-              barely touched. If a particular genre is calling to you, let that be enough
-              to rule out the others for now.
-            </p>
-            <p>
-              If two choices still seem equally appealing, pick whichever is installed and
-              ready. It is a perfectly reasonable tie breaker when the alternative is spending
-              the rest of your evening comparing review scores for games you already own.
+              Let your preferences do some of the work here. If you want to unwind,
+              leave the demanding games out; if you fancy a fresh start, focus on
+              something you have barely touched, with a favourite genre as another
+              way to narrow it down. When two choices still sound equally appealing,
+              go with the one that is installed and ready, because the extra time
+              spent comparing review scores is time you could be spending finding
+              out whether you enjoy it.
             </p>
           </>
         )
@@ -83,28 +91,27 @@ export function chooseNextSteamGame(): PostContent {
         body: (
           <>
             <p>
-              When several games sound equally good, letting something else choose can be
-              a relief. A random Steam game picker can break the tie, but a result from your
-              entire library might send you straight back to scrolling if it ignores what
-              you actually feel like playing.
+              If the shortlist has helped but you are still going round in circles,
+              letting something else choose can be a relief. A random Steam game
+              picker can break the tie, although a result from your whole library
+              might send you straight back to scrolling if it ignores the kind of
+              game you feel like playing. A suggestion is more useful when you can
+              see why it belongs in tonight&apos;s choices.
             </p>
             <p>
-              That is the problem we built VaultShuffle around. Connect your public Steam
-              library, choose your session, mood and goal, and the Vault draws from the
-              strongest eligible matches. It also explains the pick, so you have something
-              more useful to go on than a title appearing on screen.
+              That is the idea behind VaultShuffle: bring in your public Steam library,
+              choose your session, mood and goal, and the Vault draws from the strongest
+              eligible matches while explaining the pick. Try Chill and Something New
+              when you want to unwind with an unfamiliar game, or Finish Something
+              when making progress towards the credits sounds more appealing. A genre
+              filter can narrow things further if you already have something in mind.
             </p>
             <p>
-              For an evening when you want to unwind with something unfamiliar, try Chill
-              and Something New, with a genre filter if you have one in mind. If you would
-              rather return to a game already underway, choose Finish Something. Completed
-              games stay out of the draw, and you can remove games you do not want to play
-              from future picks without removing them from your Steam library.
-            </p>
-            <p>
-              The result is a suggestion, not a promise that the game will suit you perfectly.
-              Read the reasons and see whether you actually want to press play. If you do,
-              that is a good enough reason to stop comparing it with everything else.
+              Completed games stay out of the draw, and you can blacklist games you do
+              not want suggested without removing them from your Steam library. Read
+              the reasons behind the result and see whether it makes you want to play;
+              the suggestion does not have to be the perfect game for every possible
+              evening, just something you are curious enough to start now.
             </p>
           </>
         )
@@ -116,8 +123,9 @@ export function chooseNextSteamGame(): PostContent {
         body: (
           <>
             <p>
-              VaultShuffle is free. To get suggestions from the games you own, you need
-              to bring in your Steam library first:
+              VaultShuffle is free, and bringing in your library lets the suggestions
+              come from games you already own. Once the import is ready, you can go
+              straight to the Vault and make the choice smaller:
             </p>
             <ol>
               <li>
@@ -127,21 +135,21 @@ export function chooseNextSteamGame(): PostContent {
                 Your profile and game details need to be public so the games can be imported.
               </li>
               <li>
-                <strong>Set up a draw.</strong> Choose a session, mood and goal in the Vault,
-                then add a genre filter if there is something specific you fancy.
+                <strong>Set up a draw.</strong> Choose your session, mood and goal in the
+                Vault, with a genre filter if there is something specific you fancy.
               </li>
               <li>
-                <strong>Read your pick.</strong> Check the reasons it was suggested and open
-                it in Steam when you are ready. You can pin it to keep it handy, remove it
-                from future picks or draw again.
+                <strong>Read your pick.</strong> Look at why it was suggested and open it
+                in Steam when you are ready, or save it to Playing Next to keep it handy.
+                You can blacklist an unwanted suggestion or draw again.
               </li>
             </ol>
             <p>
-              If you would rather look around first, guest mode lets you draw from a sample
-              library without connecting Steam. When you do sign in through Steam, it happens
-              on Steam itself and VaultShuffle never receives your Steam password.
-              The <Link href="/faq" data-blog-action="faq">FAQ</Link> covers imports,
-              privacy and what happens to your saved choices.
+              If you want to look around before importing anything, guest mode lets
+              you try a draw from a sample library without connecting Steam. Signing
+              in through Steam happens on Steam itself, so VaultShuffle never receives
+              your password, and the <Link href="/faq" data-blog-action="faq">FAQ</Link>{" "}
+              covers imports, privacy and what happens to your saved choices.
             </p>
           </>
         )
@@ -153,26 +161,33 @@ export function chooseNextSteamGame(): PostContent {
         body: (
           <>
             <p>
-              Once you have a pick, play far enough to get past the settings menu and see
-              what it is offering. That might be the first mission or a few rounds rather
-              than a fixed number of minutes. You will have a much better idea of whether
-              you fancy another session once you have actually had a go.
+              Once you have a game in front of you, get past the settings menu and
+              play enough to see what it is offering. That might mean the first
+              mission or a few rounds rather than a fixed number of minutes, but
+              it gives you something real to base the next decision on. You will
+              know much more about whether you fancy another session after playing
+              than after another evening of comparing store pages.
             </p>
             <p>
-              If it does not land, use that to make the next choice easier. Perhaps you
-              wanted less reading, more action or something you already knew how to play.
-              If you know you do not want to play it, remove it from your picks in
-              VaultShuffle so the same unwanted suggestion does not keep appearing.
+              If it does not land, think about what you were missing: less reading,
+              more action or perhaps something you already knew how to play. Use that
+              to narrow the next choice, and blacklist the game in VaultShuffle if
+              you know you do not want it appearing in future picks. You can leave
+              it in your Steam library without having it compete for your attention
+              every time you want something to play.
             </p>
             <p>
-              If reaching the credits is what would get you excited about starting, our picks for{" "}
+              If the thought of reaching the credits is what gets you excited about
+              starting, our picks for{" "}
               <Link
                 href="/blog/steam-deck-games-you-can-beat-in-under-10-hours"
                 data-blog-action="open_post"
                 data-post-slug="steam-deck-games-you-can-beat-in-under-10-hours"
               >short Steam Deck games you can beat in under 10 hours</Link>{" "}
-              are a useful place to look. Otherwise, leave the rest of the backlog for another
-              day and see where this game takes you.
+              give you a few places to begin. Otherwise, leave the rest of the backlog
+              for another day and see where this game takes you, because actually
+              enjoying a session is a better result than finally settling on a perfect
+              plan for everything you own.
             </p>
           </>
         )

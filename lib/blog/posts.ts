@@ -3,6 +3,7 @@ import type { InfoSection } from "@/components/site/InfoPage";
 import type { VaultIconName } from "@/components/shared/VaultIcon";
 import { deckUnderTenHours } from "@/components/blog/posts/deck-under-ten-hours";
 import { chooseNextSteamGame } from "@/components/blog/posts/choose-next-steam-game";
+import { steamFamilyDiscovery } from "@/components/blog/posts/steam-family-discovery";
 import { BLOG_SCHEDULE } from "@/lib/blog/schedule";
 
 /**
@@ -82,6 +83,21 @@ export type BlogPost = BlogPostMeta & {
 // Explicit drafts can be reviewed locally without entering the publishing schedule.
 export const BLOG_POSTS: readonly BlogPost[] = [
   {
+    slug: "steam-family-library-next-game",
+    title: "Steam family sharing: find your next favourite game",
+    heading: "Your Steam family might already own your next favourite game",
+    description:
+      "Before buying another game, explore your Steam family's library. Find shared games, check copy availability and discover something worth playing with VaultShuffle.",
+    dek: "Your next great game could be waiting in someone else's library, with no trip to the Steam store needed.",
+    ...BLOG_SCHEDULE["steam-family-library-next-game"],
+    readingMinutes: 5,
+    topic: "Steam Families",
+    icon: "family",
+    banner: { kind: "image", src: "/assets/blog/steam-family-library-hero.png", alt: "Two household members discovering different games at their PC gaming desks" },
+    socialImage: "/assets/blog/steam-family-library-next-game.png",
+    content: steamFamilyDiscovery
+  },
+  {
     slug: "how-to-choose-your-next-steam-game",
     title: "Can't decide what to play? Pick your next Steam game",
     heading: "Can't decide what to play? How to pick your next Steam game",
@@ -89,10 +105,11 @@ export const BLOG_POSTS: readonly BlogPost[] = [
       "Stuck choosing what to play on Steam? Find a game in your own library that fits tonight, with practical advice and a guide to VaultShuffle's free game picker.",
     dek: "A library full of games and nothing you fancy? Here is how to find something worth starting without buying anything new.",
     ...BLOG_SCHEDULE["how-to-choose-your-next-steam-game"],
+    updated: "2026-09-30",
     readingMinutes: 5,
     topic: "Steam backlog",
     icon: "shuffle",
-    banner: { kind: "image", src: "/assets/vault/vault-header.webp", alt: "VaultShuffle's purple illuminated vault" },
+    banner: { kind: "image", src: "/assets/vault/vault-stage-open.png", alt: "VaultShuffle's open vault glowing with purple light" },
     socialImage: "/assets/blog/how-to-choose-your-next-steam-game.png",
     content: chooseNextSteamGame
   },

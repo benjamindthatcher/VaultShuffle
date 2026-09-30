@@ -1,5 +1,6 @@
 /** Shared by the article registry and the request gate; no article or database imports. */
 export const BLOG_SCHEDULE: Record<string, { published: string; draft?: boolean }> = {
+  "steam-family-library-next-game": { published: "2026-09-30" },
   "how-to-choose-your-next-steam-game": { published: "2026-09-28" },
   "steam-deck-games-you-can-beat-in-under-10-hours": { published: "2026-09-17" }
 };
