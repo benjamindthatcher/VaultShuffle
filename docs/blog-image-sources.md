@@ -12,6 +12,6 @@ Final prompt:
 
 ## Choosing your next Steam game
 
-Asset: `public/assets/blog/current-vault-interface.png`.
+Asset: `public/assets/blog/new-vault-interface.png`.
 
-Screenshot of the actual Vault interface on 30 September 2026, captured from an isolated production build of commit `9aba1b7` using the public guest catalogue. Evening Session, Chill and Something New are selected. No account information is shown. The article and index preserve the screenshot's proportions so its controls are not cropped into a narrow artwork strip. This replaces the old illustrated vault asset; no image generation was used for this screenshot.
+Screenshot of the new Vault interface supplied by the user on 30 September 2026, copied without alteration from `codex-clipboard-a1b9efce-0912-484a-982e-300bf1aabb91.png`. Weekend Session, Intense and Surprise Me are selected, with three genre filters and the game deck visible. The article and index preserve the screenshot's original 2134 by 1632 proportions. This replaces the screenshot of the earlier deployed interface; no image generation was used.
