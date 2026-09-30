@@ -9,7 +9,10 @@ export function PostCover({ banner, layout = "strip", eager = false }: {
   eager?: boolean;
 }) {
   return (
-    <div className={`${styles.cover} ${styles[layout]}`}>
+    <div
+      className={`${styles.cover} ${styles[layout]}`}
+      style={banner.kind === "image" && banner.aspectRatio ? { aspectRatio: banner.aspectRatio } : undefined}
+    >
       {banner.kind === "image" ? (
         <Image
           className={styles.image}

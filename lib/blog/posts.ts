@@ -39,7 +39,7 @@ import { BLOG_SCHEDULE } from "@/lib/blog/schedule";
 export type PostBanner =
   | { kind: "steam"; appids: readonly [number, number, number] }
   /** `src` is a path under /public, or a host allowed in next.config images. */
-  | { kind: "image"; src: string; alt?: string };
+  | { kind: "image"; src: string; alt?: string; aspectRatio?: string };
 
 export type BlogPostMeta = {
   slug: string;
@@ -109,7 +109,12 @@ export const BLOG_POSTS: readonly BlogPost[] = [
     readingMinutes: 5,
     topic: "Steam backlog",
     icon: "shuffle",
-    banner: { kind: "image", src: "/assets/vault/vault-stage-open.png", alt: "VaultShuffle's open vault glowing with purple light" },
+    banner: {
+      kind: "image",
+      src: "/assets/blog/current-vault-interface.png",
+      alt: "VaultShuffle's Vault game picker with Evening Session, Chill and Something New selected above the game deck",
+      aspectRatio: "1040 / 598"
+    },
     socialImage: "/assets/blog/how-to-choose-your-next-steam-game.png",
     content: chooseNextSteamGame
   },

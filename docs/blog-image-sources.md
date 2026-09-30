@@ -12,6 +12,6 @@ Final prompt:
 
 ## Choosing your next Steam game
 
-Asset: `public/assets/vault/vault-stage-open.png`.
+Asset: `public/assets/blog/current-vault-interface.png`.
 
-Existing VaultShuffle brand artwork reused as the article and index banner. No new generation or edits were made to this asset.
+Screenshot of the actual Vault interface on 30 September 2026, captured from an isolated production build of commit `9aba1b7` using the public guest catalogue. Evening Session, Chill and Something New are selected. No account information is shown. The article and index preserve the screenshot's proportions so its controls are not cropped into a narrow artwork strip. This replaces the old illustrated vault asset; no image generation was used for this screenshot.
