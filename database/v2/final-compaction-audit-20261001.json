@@ -1,0 +1,124 @@
+{
+  "project_ref": "vbjtbwelnhbbdfrqczyf",
+  "reason": "Fresh final bulk replacement rebuilt previously compacted indexes; repeat was warranted by measured regrowth. Eight completed libraries preserved.",
+  "before": {
+    "database_bytes": 483478675,
+    "indexes": [
+      {
+        "index": "catalog.duration_estimates_game_idx",
+        "bytes": 1122304,
+        "valid": true
+      },
+      {
+        "index": "catalog.duration_estimates_steam_app_id_provider_key",
+        "bytes": 1122304,
+        "valid": true
+      },
+      {
+        "index": "catalog.games_sort_title_idx",
+        "bytes": 2129920,
+        "valid": true
+      },
+      {
+        "index": "catalog.provider_state_pkey",
+        "bytes": 3112960,
+        "valid": true
+      },
+      {
+        "index": "catalog.review_decisions_appid_idx",
+        "bytes": 1572864,
+        "valid": true
+      },
+      {
+        "index": "catalog.review_decisions_game_idx",
+        "bytes": 1933312,
+        "valid": true
+      },
+      {
+        "index": "catalog.review_decisions_source_relation_source_record_key_key",
+        "bytes": 2162688,
+        "valid": true
+      },
+      {
+        "index": "migration.legacy_ingest_queue_archive_app_idx",
+        "bytes": 1187840,
+        "valid": true
+      },
+      {
+        "index": "migration.legacy_library_evidence_pkey",
+        "bytes": 17211392,
+        "valid": true
+      },
+      {
+        "index": "migration.library_row_map_pkey",
+        "bytes": 17211392,
+        "valid": true
+      },
+      {
+        "index": "reco.user_genre_preferences_snapshot_id_source_user_id_genre_moo_key",
+        "bytes": 3407872,
+        "valid": true
+      }
+    ]
+  },
+  "after": {
+    "database_bytes": 469175443,
+    "indexes": [
+      {
+        "index": "catalog.duration_estimates_game_idx",
+        "bytes": 860160,
+        "valid": true
+      },
+      {
+        "index": "catalog.duration_estimates_steam_app_id_provider_key",
+        "bytes": 860160,
+        "valid": true
+      },
+      {
+        "index": "catalog.games_sort_title_idx",
+        "bytes": 1351680,
+        "valid": true
+      },
+      {
+        "index": "catalog.provider_state_pkey",
+        "bytes": 2351104,
+        "valid": true
+      },
+      {
+        "index": "catalog.review_decisions_appid_idx",
+        "bytes": 1089536,
+        "valid": true
+      },
+      {
+        "index": "catalog.review_decisions_game_idx",
+        "bytes": 1376256,
+        "valid": true
+      },
+      {
+        "index": "catalog.review_decisions_source_relation_source_record_key_key",
+        "bytes": 1474560,
+        "valid": true
+      },
+      {
+        "index": "migration.legacy_ingest_queue_archive_app_idx",
+        "bytes": 925696,
+        "valid": true
+      },
+      {
+        "index": "migration.legacy_library_evidence_pkey",
+        "bytes": 12648448,
+        "valid": true
+      },
+      {
+        "index": "migration.library_row_map_pkey",
+        "bytes": 12648448,
+        "valid": true
+      },
+      {
+        "index": "reco.user_genre_preferences_snapshot_id_source_user_id_genre_moo_key",
+        "bytes": 2285568,
+        "valid": true
+      }
+    ]
+  }
+}

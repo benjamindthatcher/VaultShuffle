@@ -1,6 +1,6 @@
 # Coordinated V2 cutover
 
-Prepared 1 October 2026. This is an operator runbook, not a record that production has switched. Source **pfvblcopcmairdfeqdep** in Ireland remains authoritative. Inactive target **vbjtbwelnhbbdfrqczyf** in Virginia has 25 applied immutable migrations and the September rehearsal data. Preserve UTC instants without a geographic offset.
+Prepared 1 October 2026. The final frozen transfer and all eight fresh library recoveries are accepted. Source **pfvblcopcmairdfeqdep** in Ireland remains fenced/read-only; target **vbjtbwelnhbbdfrqczyf** in Virginia now contains the full final data and26 immutable migrations. Final opening/post-switch acceptance is recorded in [execution status](v2-execution-status.md), which supersedes historical states in the preparation checklist below. Preserve UTC instants without a geographic offset.
 
 ## Before any release or source freeze
 
