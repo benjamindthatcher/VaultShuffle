@@ -1,0 +1,150 @@
+{
+  "status": "accepted",
+  "project": "vbjtbwelnhbbdfrqczyf",
+  "completed_at": "2026-10-01T20:18:16.014949+00:00",
+  "database_before_bytes": 276147347,
+  "database_after_bytes": 251366547,
+  "database_reclaimed_bytes": 24780800,
+  "metadata_before_bytes": 68681728,
+  "metadata_after_bytes": 43884544,
+  "metadata_reclaimed_bytes": 24797184,
+  "metadata_rows": 29487,
+  "metadata_sha256": "ef521d96d57bc7e6293b82c8820578d294b08b1249da3298da7661e727ae2d6c",
+  "values_exact": true,
+  "schema_access_and_storage_options_unchanged": true,
+  "maintenance_sha256": "2c0f09a1a943d8c18d6f5906df2cc4d7ea824f1847ef45cc77f26eed17511325",
+  "archive": {
+    "path": "data/private/v2-cleanup/20261001/metadata-compression-archive/",
+    "sha256": "1867bee4f44f870487fb944bce3bcab5249d103ef3b065dbe4430c6502e6639c",
+    "bytes": 7559683,
+    "read_only_export": true,
+    "restored_values_exact": true
+  },
+  "local_validation": {
+    "archive_sha256": "1867bee4f44f870487fb944bce3bcab5249d103ef3b065dbe4430c6502e6639c",
+    "rows": 29487,
+    "fingerprint_unchanged": true,
+    "acl_rls_and_column_storage_unchanged": true,
+    "before": {
+      "total_bytes": 44400640,
+      "heap_bytes": 43712512,
+      "index_bytes": 679936,
+      "toast_bytes": 8192
+    },
+    "after": {
+      "total_bytes": 43892736,
+      "heap_bytes": 43204608,
+      "index_bytes": 679936,
+      "toast_bytes": 8192
+    },
+    "read_timings_before": {
+      "bounded_read_median_ms": 0.336,
+      "full_tag_scan_median_ms": 9.493
+    },
+    "read_timings_after": {
+      "bounded_read_median_ms": 0.332,
+      "full_tag_scan_median_ms": 9.071
+    },
+    "vacuum_seconds": 0.342,
+    "scope": "Actual VACUUM FULL on a restored metadata snapshot. Parent FK omitted only in this standalone local benchmark; production FK will remain unchanged."
+  },
+  "compression_benchmark": {
+    "candidates": [
+      {
+        "target": 2040,
+        "storage": "extended",
+        "compression": "pglz",
+        "total_bytes": 42876928,
+        "heap_bytes": 41844736,
+        "index_bytes": 991232,
+        "toast_bytes": 8192,
+        "bounded_read_median_ms": 0.385,
+        "full_tag_scan_median_ms": 10.012,
+        "copy_seconds": 0.455,
+        "fingerprint_exact": true
+      },
+      {
+        "target": 1024,
+        "storage": "extended",
+        "compression": "pglz",
+        "total_bytes": 42885120,
+        "heap_bytes": 41189376,
+        "index_bytes": 991232,
+        "toast_bytes": 671744,
+        "bounded_read_median_ms": 0.39,
+        "full_tag_scan_median_ms": 10.859,
+        "copy_seconds": 0.455,
+        "fingerprint_exact": true
+      },
+      {
+        "target": 512,
+        "storage": "extended",
+        "compression": "pglz",
+        "total_bytes": 42950656,
+        "heap_bytes": 40853504,
+        "index_bytes": 991232,
+        "toast_bytes": 1073152,
+        "bounded_read_median_ms": 0.471,
+        "full_tag_scan_median_ms": 12.095,
+        "copy_seconds": 0.45,
+        "fingerprint_exact": true
+      },
+      {
+        "target": 512,
+        "storage": "main",
+        "compression": "pglz",
+        "total_bytes": 42844160,
+        "heap_bytes": 41811968,
+        "index_bytes": 991232,
+        "toast_bytes": 8192,
+        "bounded_read_median_ms": 0.384,
+        "full_tag_scan_median_ms": 10.39,
+        "copy_seconds": 0.478,
+        "fingerprint_exact": true
+      },
+      {
+        "target": 256,
+        "storage": "main",
+        "compression": "pglz",
+        "total_bytes": 42844160,
+        "heap_bytes": 41811968,
+        "index_bytes": 991232,
+        "toast_bytes": 8192,
+        "bounded_read_median_ms": 0.384,
+        "full_tag_scan_median_ms": 10.977,
+        "copy_seconds": 0.451,
+        "fingerprint_exact": true
+      },
+      {
+        "target": 128,
+        "storage": "main",
+        "compression": "pglz",
+        "total_bytes": 42844160,
+        "heap_bytes": 41811968,
+        "index_bytes": 991232,
+        "toast_bytes": 8192,
+        "bounded_read_median_ms": 0.412,
+        "full_tag_scan_median_ms": 10.542,
+        "copy_seconds": 0.461,
+        "fingerprint_exact": true
+      }
+    ],
+    "conclusion": "Lower TOAST targets and MAIN storage offered less than 0.1% additional saving against the freshly packed default copy. Keep defaults; changing formats is not justified."
+  },
+  "scope": "One bounded physical compaction of catalogue metadata after the bulk refresh. No content deletion, schema migration, storage-setting change, account mutation or new runtime access. VACUUM FULL briefly holds an exclusive table lock; use only after measured churn, not as a scheduled routine.",
+  "runtime_validation": {
+    "public_routes_http_200": [
+      "/",
+      "/guest-catalogue",
+      "/releases"
+    ],
+    "existing_signed_in_library_loaded": true,
+    "game_description_and_tags_loaded": true,
+    "quarantined_wallpaper_engine_hidden": true,
+    "library_section_counts": {
+      "active": 310,
+      "blacklisted": 2,
+      "completed": 36
+    }
+  }
+}

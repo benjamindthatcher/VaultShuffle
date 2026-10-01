@@ -37,3 +37,20 @@ Measured storage fell another **291,384,467 → 249,466,003 bytes**, saving **41
 Use the latest measured storage receipt as the baseline. Routine statistics/maintenance may be useful after substantial churn; repeat index rebuilds or heap rewrites only with a measured reason. Repository cleanup does not reclaim live database storage.
 
 See [completion status](v2-execution-status.md), [architecture](database-architecture.md), [worker policy](nightly-workers.md) and [final acceptance](../database/v2/final-cutover-acceptance-20261001.json).
+
+## Metadata compaction after bulk refresh
+
+The 1 October catalogue refresh left reusable heap space. Protected catalogue
+metadata was exported read-only and restored locally before one bounded
+`VACUUM FULL (ANALYZE)` of `catalog.game_metadata`. All 29,487 row values and
+access controls matched afterwards. Metadata fell from 68.7 MB to 43.9 MB;
+measured database size fell from 276.1 MB to **251.4 MB**, saving another 24.8 MB.
+No compression setting, catalogue format or applied migration changed.
+
+Use [metadata acceptance](../database/v2/final-metadata-compaction-20261001.json)
+as the latest storage measurement. The retained
+[operator script](../database/v2/maintenance/20261001_compact_catalogue_metadata.sql)
+is one-off physical maintenance with a three-second lock wait and a 45-second
+statement limit. It does not delete data. `VACUUM FULL` briefly blocks reads and
+writes on the target table, so do not schedule it routinely or run it against
+other tables without fresh evidence. Normal autovacuum stays enabled.
