@@ -34,8 +34,14 @@ jobs:
           sudo apt-get install --yes postgresql-common
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
           sudo apt-get update
-          sudo apt-get install --yes postgresql-17
+          sudo apt-get install --yes postgresql-17 postgresql-server-dev-17
           "$VAULT_TEST_PG_BIN/postgres" --version
+      - name: Install the tested PGMQ 1.5.1 extension
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/pgmq/pgmq.git "$RUNNER_TEMP/pgmq"
+          git -C "$RUNNER_TEMP/pgmq" checkout --detach 7fd411d8ffd53b5313039f59167124c861d46430
+          make -C "$RUNNER_TEMP/pgmq/pgmq-extension" PG_CONFIG="$VAULT_TEST_PG_BIN/pg_config"
+          sudo make -C "$RUNNER_TEMP/pgmq/pgmq-extension" install PG_CONFIG="$VAULT_TEST_PG_BIN/pg_config"
       - run: npm ci
       - name: Create isolated build database
         shell: bash
