@@ -641,5 +641,3 @@
   line-height: 1.25;
   text-align: center;
 }
-
-.deviceGroup { min-width: 0; display: grid; align-content: start; gap: 8px; }

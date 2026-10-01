@@ -198,21 +198,7 @@ export function GlobalFiltersPanel({ filteredCount, familyCount, exclusionIds }:
         {renderGroup("releaseAge", "Release age", RELEASE_AGE, "wide")}
         {renderGroup("players", "How you play", PLAYERS, "mid")}
         {renderGroup("gameType", "Game type", GAME_TYPE)}
-        <div className={styles.deviceGroup}>
-          {renderGroup("device", "Device", DEVICE)}
-          {globalFilters.device === "deck" ? (
-            <div className={styles.choices} role="group" aria-label="Steam Deck rating">
-              {(["verified-playable", "verified"] as const).map((rating) => (
-                <button key={rating} type="button" data-vault-control="selection" data-control-indicator="bar"
-                  className={styles.choice}
-                  aria-pressed={(globalFilters.deckRating ?? "verified-playable") === rating}
-                  onClick={() => choose("deckRating", rating)}>
-                  {rating === "verified" ? "Verified only" : "Verified + Playable"}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        {renderGroup("device", "Device", DEVICE)}
         {hasFamilyGames ? renderGroup("access", "Library", ACCESS) : null}
 
         <div className={styles.group}>
