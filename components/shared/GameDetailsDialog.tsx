@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { Artwork } from "./Artwork";
+import { GameDetailsClose } from "./GameDetailsClose";
 import { useIsMounted } from "./useIsMounted";
 import { VaultIcon, type VaultIconName } from "./VaultIcon";
 import styles from "@/components/library/LibraryDetailsDrawer.module.css";
@@ -84,9 +85,9 @@ export function GameDetailsDialog({ gameId, title, artwork, description, titleAc
   return createPortal(<>
     <button type="button" className={styles.overlay} onClick={onClose} aria-label="Close game details" />
     <aside ref={drawerRef} className={styles.drawer} data-variant="library" data-vault-controls="standard" role="dialog" aria-modal="true" aria-labelledby={titleId} aria-describedby={descriptionId} tabIndex={-1}>
+      <GameDetailsClose buttonRef={closeButtonRef} onClose={onClose} />
       <div className={styles.hero}>
         <Artwork src={artwork} sizes="(max-width: 600px) 100vw, 560px" priority />
-        <button ref={closeButtonRef} type="button" data-vault-control="tertiary" data-control-size="icon" data-control-position="floating" className={styles.heroClose} onClick={onClose} aria-label="Close game details"><VaultIcon name="close" size={20} /></button>
       </div>
       <div className={styles.body}>
         <div className={styles.header}><div><p className={styles.eyebrow}>Game details</p><h2 className={styles.title} id={titleId}>{title}{titleAccessory}</h2></div></div>

@@ -347,7 +347,7 @@ test("Wishlist opens the Library-style popup on click and keeps descriptions out
 
 test("Wishlist and Library render the same details layout", async ({ page }) => {
   const layout = async () => page.getByRole("dialog").evaluate(dialog => {
-    const hero = dialog.firstElementChild!;
+    const hero = dialog.children[1]; // The sticky close control precedes the artwork.
     const body = dialog.lastElementChild!;
     const image = hero.querySelector("img")!;
     return {

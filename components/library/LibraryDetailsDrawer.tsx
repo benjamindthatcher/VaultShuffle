@@ -5,6 +5,7 @@ import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { SteamDeckDetails } from "@/components/shared/SteamDeckCompatibility";
 import { GameDetailsDialog } from "@/components/shared/GameDetailsDialog";
+import { GameDetailsClose } from "@/components/shared/GameDetailsClose";
 import { Artwork } from "@/components/shared/Artwork";
 import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
@@ -171,6 +172,7 @@ export function LibraryDetailsDrawer({
         aria-describedby={descriptionId}
         tabIndex={-1}
       >
+        <GameDetailsClose buttonRef={closeButtonRef} onClose={onClose} />
         <div className={styles.hero}>
               <Artwork
                 src={game.bannerUrl}
@@ -187,9 +189,6 @@ export function LibraryDetailsDrawer({
                 />
               </span>
               <span className={styles.heroShade} aria-hidden="true" />
-              <button ref={closeButtonRef} type="button" data-vault-control="tertiary" data-control-size="icon" data-control-position="floating" className={styles.heroClose} onClick={onClose} aria-label="Close game details">
-                <VaultIcon name="close" size={20} />
-              </button>
         </div>
 
         <div className={styles.body}>
