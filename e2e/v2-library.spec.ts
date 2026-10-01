@@ -1,4 +1,10 @@
 import { expect, test, type Page } from "@playwright/test";
+import { checkPreviewClose } from "./preview-close";
+
+test("Library preview close remains reachable while scrolling", async ({ page }, testInfo) => {
+  await fixture(page);
+  await checkPreviewClose(page, page.getByRole("button", { name: /^Details for / }).first(), `library-close-${testInfo.project.name}`);
+});
 
 const product = {
   manualProgress:null, completedAt:null, previousActiveStatus:null, reviewRequestedAt:null,

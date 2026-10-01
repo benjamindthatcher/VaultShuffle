@@ -39,7 +39,7 @@
 
 /* The artwork is the top of a rounded box now, not the top of a full-height
    column, so it has to be clipped to the same radius. */
-.drawer > .hero:first-child {
+.drawer > .hero {
   border-radius: 19px 19px 0 0;
 }
 
@@ -117,35 +117,27 @@
   pointer-events: none;
 }
 
-.heroClose {
+.closeAnchor {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  height: 0;
+}
+
+.previewClose {
   position: absolute;
-  z-index: 3;
-  top: 16px;
-  right: 16px;
-  display: grid;
-  place-items: center;
-  width: 44px;
-  height: 44px;
-  padding: 0;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 0 12px;
   border: 1px solid var(--vault-border);
-  border-radius: 50%;
-  background: var(--vault-feature-surface);
-  color: var(--vault-text);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 8px 24px color-mix(in srgb, var(--vault-shadow-color) 34%, transparent);
+  font-size: 0.875rem;
+  font-weight: 700;
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
-}
-
-.heroClose:hover {
-  border-color: var(--vault-accent);
-  background: var(--vault-feature-surface);
-  transform: translateY(-1px);
-}
-
-.heroClose:focus-visible {
-  outline: 2px solid var(--vault-accent);
-  outline-offset: 3px;
 }
 
 .body {
@@ -709,7 +701,7 @@
     box-shadow: var(--vault-elevation-shadow);
   }
 
-  .drawer > .hero:first-child {
+  .drawer > .hero {
     border-radius: 19px 19px 0 0;
   }
 

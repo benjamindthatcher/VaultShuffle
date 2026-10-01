@@ -1,4 +1,10 @@
 import {expect,test,type Page} from '@playwright/test';
+import { checkPreviewClose } from "./preview-close";
+
+test("Playing Next preview close remains reachable while scrolling", async ({ page }, testInfo) => {
+  const { shelf } = await fixture(page);
+  await checkPreviewClose(page, shelf.getByRole("button", { name: /^Pinned Adventure/ }), `pinned-close-${testInfo.project.name}`);
+});
 const product = {
   manualProgress:null, completedAt:null, previousActiveStatus:null, reviewRequestedAt:null,
   completionDismissedAt:null, completionDismissedMinutes:null, dateAdded:null,

@@ -1,4 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
+import { checkPreviewClose } from "./preview-close";
+
+test("Wishlist preview close remains reachable while scrolling", async ({ page }, testInfo) => {
+  const { release } = await fixture(page);
+  release();
+  await checkPreviewClose(page, page.getByRole("button", { name: "Details for Borrowed adventure", exact: true }), `wishlist-close-${testInfo.project.name}`);
+});
 import { encodeCatalogue } from "../lib/catalogue-wire";
 
 const session={logged_in:true,account_type:"manual",identity_verified:false,user_id:"11111111-1111-4111-8111-111111111111",steam_id:"76561198000000000",display_name:"Wishlist tester",steam_display_name:"",avatar_url:"",has_steam_key:false};
