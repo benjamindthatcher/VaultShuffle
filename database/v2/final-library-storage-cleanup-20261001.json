@@ -1,0 +1,79 @@
+{
+  "status": "accepted",
+  "project": "vbjtbwelnhbbdfrqczyf",
+  "completed_at": "2026-10-01T17:10:34.375169+00:00",
+  "database_before_bytes": 291384467,
+  "database_after_bytes": 249466003,
+  "database_reclaimed_bytes": 41918464,
+  "database_reduction_percent": 14.385963820096148,
+  "date_table_before_bytes": 74424320,
+  "date_table_after_bytes": 36790272,
+  "archived_state_before_bytes": 4341760,
+  "archived_state_after_bytes": 24576,
+  "main_library_bytes": 27541504,
+  "preserved_library_date_rows": 400341,
+  "archived_source_state_rows": 22019,
+  "archive_dump_bytes": 3976957,
+  "archive_dump_sha256": "b2f9c513be26f402288d6c3ff2f5abeff14ec4dc0b7de404c9dd2c3f6824f62d",
+  "protected_archive_path": "data/private/v2-cleanup/20261001/legacy-library-archive/",
+  "migrations": [
+    {
+      "version": "20261001164408",
+      "sha256": "722c9c85cb5a5d699b23305971a28c06a5dabe73f37ce39f9a0f99b6ef848088"
+    },
+    {
+      "version": "20261001170624",
+      "sha256": "fd4f0e27449bb10098bfb7f13b5b5b0df49329d7b24b4f2916d474f4a647bcb6"
+    }
+  ],
+  "archive_restore_validation": {
+    "foreign_keys_enforced": true,
+    "missing_archive_refused": true,
+    "changed_snapshot_refused": true,
+    "external_dependency_refused": true,
+    "late_failure_rollback_passed": true,
+    "live_domain_fingerprints_unchanged": true,
+    "dates_byte_exact": true,
+    "access_controls_unchanged": true,
+    "view_and_retention_registry_preserved": true,
+    "dropped_slots_removed": true
+  },
+  "verified_core_counts": {
+    "games": 29488,
+    "accounts": 743,
+    "sessions": 813,
+    "game_state": 20490,
+    "library_games": 408519
+  },
+  "live_library_join_probe": {
+    "kind": "library_join_probe",
+    "matches": 245,
+    "owner_policy": "(account_id = app.current_account_id())"
+  },
+  "security_advisors": "No warnings/errors; same 59 intentional RLS/no-policy informational notices before and after the first cleanup.",
+  "runtime_validation": {
+    "v2_tests_passed_before_heap_rebuild": 189,
+    "repository_integration_tests_passed_with_heap_rebuild": 101,
+    "typecheck_passed": true,
+    "public_routes_http_200": [
+      "/",
+      "/releases",
+      "/guest-catalogue"
+    ],
+    "existing_browser_session_loaded_library": true,
+    "browser_section_counts": {
+      "active": 320,
+      "blacklisted": 2,
+      "completed": 36
+    },
+    "accidental_browser_completion_reversed": true,
+    "accidental_completion_undone_and_no_vault_clear": {
+      "kind": "browser_correction",
+      "recent_counterstrike_events": 1,
+      "standing_recent_counterstrike_events": 0,
+      "vault_cleared_by_accidental_completion": 0
+    }
+  },
+  "scope": "Only unused legacy preservation values archived; original Library date strings retained exactly. No current ownership, state, activity or authored history removed by the cleanup. Applied historical migrations unchanged.",
+  "comparison_note": "This is a measured V2 before/after reduction, not evidence of the original 50\u201375% V1-to-V2 whole-database target."
+}

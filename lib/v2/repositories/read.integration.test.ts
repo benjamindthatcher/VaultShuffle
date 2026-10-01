@@ -473,8 +473,8 @@ test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acce
   });
 
   await t.test("product pages retain metadata and unknown facts without loading private detail text", async () => {
-    psql(fixture, `insert into app.library_legacy_measurements(account_id,steam_app_id,legacy_date_added_raw,discrepancy_kind)
-      values(1,100005,'2020-01-02','date_added_text_only'),(2,101150,'2021-03-04','date_added_text_only')`);
+    psql(fixture, `insert into app.library_legacy_measurements(account_id,steam_app_id,legacy_date_added_raw)
+      values(1,100005,'2020-01-02'),(2,101150,'2021-03-04')`);
     const page = await fixture.library.list(ACCOUNT_A, { search: "Game 0001", section: "all", limit: 2 });
     const card = page.items.find(item => item.gameId === 5);
     assert.ok(card?.product);
@@ -498,7 +498,8 @@ test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acce
     assert.equal(family.playtimeKnown, false);
     assert.equal(family.familyOwnerSteamId, '76561198000000011');
     assert.equal((await fixture.database.sql`select steam_app_id from app.library_legacy_measurements`).length, 0);
-    await assert.rejects(() => fixture.database.withPrincipal(ACCOUNT_A, tx => tx`select legacy_hours_played from app.library_legacy_measurements`));
+    assert.deepEqual(JSON.parse(psql(fixture, `select json_agg(attname order by attnum) from pg_attribute where attrelid='app.library_legacy_measurements'::regclass and attnum>0 and not attisdropped`, true)), ['account_id', 'steam_app_id', 'legacy_date_added_raw']);
+    await assert.rejects(() => fixture.database.withPrincipal(ACCOUNT_A, tx => tx`update app.library_legacy_measurements set legacy_date_added_raw='changed'`), /permission denied/);
     assert.deepEqual(Array.from(await fixture.database.withPrincipal(ACCOUNT_A, tx => tx`select steam_app_id::text from app.library_legacy_measurements`)), [{steam_app_id:'100005'}]);
     psql(fixture, 'delete from app.library_legacy_measurements');
   });

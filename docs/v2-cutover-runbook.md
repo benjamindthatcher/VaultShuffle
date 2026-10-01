@@ -28,6 +28,12 @@ The protected archive is `data/private/v2-cleanup/20261001/staging-archive/`: `s
 
 Measured database storage fell from **469,257,363 to 291,384,467 bytes**, reclaiming **177,872,896 bytes**. See [cleanup acceptance](../database/v2/final-staging-cleanup-20261001.json). No further purge of these launch staging rows is pending. Any future staging writes need their own archive and retention review.
 
-Use the existing measured storage audit as the baseline. Routine statistics/maintenance may be useful after substantial churn; repeat index rebuilds or heap rewrites only with a measured reason. Repository cleanup does not reclaim live database storage.
+The Library legacy relations were subsequently archived to protected `data/private/v2-cleanup/20261001/legacy-library-archive/`. The full schema/data/ACL dump SHA-256 is `b2f9c513be26f402288d6c3ff2f5abeff14ec4dc0b7de404c9dd2c3f6824f62d`. `RESTORE-ACCEPTED.json` and `HEAP-RESTORE-ACCEPTED.json` record actual restores, exact fingerprints and rollback/access verification. Unused measurements and source-state evidence remain recoverable there; do not restore those unused values into production as routine maintenance.
+
+Additive migrations `20261001164408` and `20261001170624` retain all 400,341 original Added strings and the existing runtime relation name/access, while removing unused legacy payload and physical dropped-column padding. The first migration refuses populated data without a restore-verified archive hash and exact two-relation fingerprints in the `vaultshuffle.legacy_archive_*` operator settings. These are one-off operator inputs, not application settings or an automated purge. Empty fresh installations replay normally. Historical migration files remain immutable; older phase-specific preservation fixtures target their original schema phase.
+
+Measured storage fell another **291,384,467 → 249,466,003 bytes**, saving **41,918,464 bytes**. [Library cleanup acceptance](../database/v2/final-library-storage-cleanup-20261001.json) records the archive and actual validation. Across the two post-launch cleanups, V2 went from 469.3 MB to 249.5 MB (46.8% reduction); that is not a like-for-like comparison with the smaller, earlier V1 snapshot.
+
+Use the latest measured storage receipt as the baseline. Routine statistics/maintenance may be useful after substantial churn; repeat index rebuilds or heap rewrites only with a measured reason. Repository cleanup does not reclaim live database storage.
 
 See [completion status](v2-execution-status.md), [architecture](database-architecture.md), [worker policy](nightly-workers.md) and [final acceptance](../database/v2/final-cutover-acceptance-20261001.json).
