@@ -59,3 +59,24 @@ Next and Vault explanations, while stored minutes and progress calculations keep
 their original precision. The isolated release passed 205 V2/playtime tests, 53
 Vault tests, typecheck, theme checks and targeted lint. Unrelated in-progress
 changes were excluded from this release. [Quarantine acceptance](../database/v2/runtime-quarantine-acceptance-20261001.json).
+
+## Catalogue metadata compaction
+
+After the bulk catalogue refresh, metadata occupied 68,681,728 bytes. A protected
+read-only snapshot was restored locally; six native compression configurations
+were benchmarked with exact values. Lower TOAST targets and MAIN storage offered
+less than 0.1% extra saving against a newly packed default table, so compression
+and schema defaults remain unchanged.
+
+One bounded `VACUUM FULL (ANALYZE)` compacted only `catalog.game_metadata`: it fell
+**68,681,728 → 43,884,544 bytes**, reclaiming **24,797,184 bytes**. Database size
+fell **276,147,347 → 251,366,547 bytes** (24,780,800 bytes reclaimed). All **29,487
+metadata rows** had the same before/after SHA256 fingerprint; columns, constraints,
+RLS, ACLs and storage settings were unchanged. No metadata, quarantine decision,
+ownership or personal history was removed. Production growth since the earlier
+cleanup explains why the new database total exceeds its earlier 249.5 MB reading.
+
+[Metadata compaction acceptance](../database/v2/final-metadata-compaction-20261001.json)
+records the snapshot, actual measurements and local read timings. The operator
+script is physical maintenance, not a migration. Repeat exclusive compaction
+only after measured substantial churn; normal autovacuum remains enabled.
