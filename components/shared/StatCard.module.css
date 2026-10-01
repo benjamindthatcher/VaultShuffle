@@ -40,7 +40,7 @@
   height: 48px;
   display: grid;
   place-items: center;
-  color: #bd73ff;
+  color: var(--vault-accent);
 }
 
 .content {
@@ -59,7 +59,7 @@
   display: block;
   font-size: clamp(1.3rem, 2.2vw, 1.62rem);
   line-height: 1;
-  color: #f7f8ff;
+  color: var(--vault-text);
 }
 
 /* Two lines' worth of room whether the note needs one or two, so the Library

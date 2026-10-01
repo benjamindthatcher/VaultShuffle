@@ -1,3 +1,5 @@
+import {isV2Authority} from "@/lib/database-authority";
+import {runV2CatalogueWorker} from "@/lib/v2/catalogue-worker";
 import { countPendingCatalogueJobs, processCatalogueQueue, queueStaleCatalogueMetadata } from "@/lib/catalogue";
 import { runNightlyWorker } from "@/lib/nightly-worker";
 
@@ -5,6 +7,7 @@ export const maxDuration = 120;
 
 export async function GET(request: Request) {
   return runNightlyWorker(request, "catalogue-metadata", async () => {
+      if (isV2Authority()) return runV2CatalogueWorker();
       // The route allows 120s; 105 leaves room for the run record and the response.
       const deadlineAt = Date.now() + 105_000;
 

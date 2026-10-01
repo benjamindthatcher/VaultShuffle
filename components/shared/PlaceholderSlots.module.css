@@ -32,7 +32,7 @@
   border: 0;
   border-radius: 10px;
   background: var(--vault-accent);
-  color: #fff;
+  color: var(--vault-text);
   font-size: 0.82rem;
   font-weight: 700;
 }

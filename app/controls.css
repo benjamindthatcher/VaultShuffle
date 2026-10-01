@@ -1,0 +1,248 @@
+/* Shared site-wide control standard. Apply data-vault-control or data-vault-card
+   to opt an element into its semantic family. theme.css owns structural paint;
+   this file owns approved action gradients, sheen, press and reduced motion.
+   Geometry remains local. Keep labels and surfaces stationary. */
+body [data-vault-control] {
+  --control-bg: var(--vault-well-surface);
+  --control-hover: #8d56d338;
+  --control-ink: var(--vault-text);
+  --control-edge: var(--vault-border);
+  --control-hover-edge: var(--vault-accent);
+  --control-shadow: inset 0 1px 0 #ffffff08;
+  --control-hover-shadow: inset 0 1px 0 #f1dbff70, inset 0 0 15px #bd83ff20, 0 0 12px #b16bfa1c;
+  --control-size: 100% 100%;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-height: var(--control-min-height, 44px);
+  border-radius: var(--control-radius, 10px);
+  color: var(--control-ink) !important;
+  background: var(--control-bg) !important;
+  background-size: var(--control-size) !important;
+  background-position: 0% 50% !important;
+  border-color: var(--control-edge) !important;
+  box-shadow: var(--control-shadow) !important;
+  filter: none !important;
+  transform: none !important;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 220ms ease, background-position 400ms ease, border-color 220ms ease, box-shadow 220ms ease, color 180ms ease;
+}
+body [data-vault-control] > * { z-index: 1; }
+body [data-vault-control]::after { content: ""; position: absolute; pointer-events: none; inset: 0; opacity: 0; }
+body [data-vault-control="primary"] {
+  --control-bg: linear-gradient(90deg, #934ee9 0%, #7535d8 16%, #514ac9 32%, #783abb 48%, #783abb 100%);
+  --control-hover: var(--control-bg);
+  --control-size: 250% 100%;
+  --control-ink: #fff;
+  --control-edge: #ba8fee;
+  --control-hover-edge: #e1c2ff;
+  --control-shadow: inset 0 1px 0 #ffffff26, 0 3px 6px #0002;
+  --control-hover-shadow: inset 0 1px 0 #ffffff38, 0 7px 22px #9959eb45;
+}
+body :is([data-vault-control="primary"], [data-vault-control="steam"], [data-vault-control="play-later"], [data-vault-control="blacklist"], [data-vault-control="success"])::after {
+  opacity: 1;
+  background: linear-gradient(110deg, transparent 20%, #ffffff20 45%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 600ms cubic-bezier(.2,.65,.3,1);
+}
+body :is([data-vault-control="secondary"], [data-control-hover="secondary"]) {
+  --control-hover: #4b2d70;
+  --control-hover-edge: #dcc0ff;
+  --control-hover-shadow: inset 0 1px 0 #f1dbff60, inset 0 0 18px #bd83ff18, 0 0 0 1px #c393ff20, 0 0 18px #b16bfa24;
+}
+/* A narrow satin sheen crosses a quiet outlined surface. Only light moves. */
+body :is([data-vault-control="secondary"], [data-control-hover="secondary"])::after {
+  z-index: -1;
+  opacity: 1;
+  background: linear-gradient(110deg, transparent 30%, #dcbaff12 42%, #f3e5ff45 50%, #dcbaff12 58%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 650ms cubic-bezier(.2,.65,.3,1);
+}
+body :is([data-vault-control="tertiary"], [data-vault-control="text"], [data-vault-control="disclosure"]) {
+  --control-bg: transparent;
+  --control-hover: #c8abff1a;
+  --control-ink: var(--vault-text-muted);
+  --control-edge: transparent;
+  --control-hover-edge: transparent;
+  --control-shadow: none;
+  --control-hover-shadow: none;
+}
+body :is([data-vault-control="tertiary"], [data-vault-control="text"])::after {
+  inset: auto 16px 5px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #c79cff 25%, #e5d0ff 50%, #c79cff 75%, transparent);
+  transform: scaleX(0);
+  transition: transform 240ms ease, opacity 180ms ease;
+}
+body [data-vault-control="text"] { min-height: auto; border-radius: 3px; overflow: visible; }
+body [data-vault-control="text"]::after { inset: auto 0 -3px; }
+/* Emphasised inline links stay recognisable at rest, then use the same underline interaction. */
+body [data-vault-control="text"][data-control-emphasis="strong"] { --control-ink: var(--vault-accent); }
+body [data-vault-control="text"][data-control-emphasis="strong"]::after { opacity: 0.65; transform: scaleX(.75); }
+body [data-vault-control="disclosure"] { border-radius: 0; --control-ink: var(--vault-text); }
+body [data-vault-control="selection"] {
+  --control-bg: var(--vault-well-surface);
+  --control-hover: #72469c40;
+  --control-edge: var(--vault-border);
+  --control-hover-edge: var(--vault-accent);
+  --control-shadow: none;
+  --control-hover-shadow: inset 0 1px 12px #cc99ff20;
+  --control-ink: var(--vault-text-muted);
+}
+body [data-vault-control="selection"]:is([aria-pressed="true"], [aria-selected="true"]) {
+  --control-bg: var(--vault-selection-surface);
+  --control-hover: var(--vault-selection-hover);
+  --control-edge: var(--vault-accent);
+  --control-hover-edge: #dec1ff;
+  --control-ink: var(--vault-text);
+  --control-shadow: inset 0 0 0 1px #cfadff28, inset 0 1px 0 #e2c5ff30;
+}
+body [data-vault-control="amber"] { --control-bg: #f8ca78; --control-hover: #ffdda0; --control-ink: #38200a; --control-edge: #ffdea1; --control-hover-edge: #ffe9bd; --control-hover-shadow: 0 6px 18px #f7b95525, inset 0 1px 0 #fff6; }
+body [data-vault-control="steam"] { --control-bg: linear-gradient(90deg, #1d587e 0%, #1a4b6f 16%, #173e60 32%, #142b49 48%, #142b49 100%); --control-hover: var(--control-bg); --control-size: 250% 100%; --control-ink: #fff; --control-edge: #4388ad; --control-hover-edge: #4388ad; --control-shadow: inset 0 1px 0 #ffffff38; --control-hover-shadow: inset 0 1px 0 #ffffff48, 0 5px 22px #142b4945; }
+body [data-vault-control="play-later"] { --control-bg: linear-gradient(90deg, #f4c56a 0%, #e6ae59 16%, #d79748 32%, #86551e 48%, #86551e 100%); --control-hover: var(--control-bg); --control-size: 250% 100%; --control-ink: #30200b; --control-edge: #f7d797; --control-hover-edge: #f7d797; --control-shadow: inset 0 1px 0 #ffffff38; --control-hover-shadow: inset 0 1px 0 #ffffff48, 0 5px 22px #86551e45; }
+body [data-vault-control="blacklist"] { --control-bg: linear-gradient(90deg, #ff9aa7 0%, #ee7f92 16%, #dd647d 32%, #a93e57 48%, #a93e57 100%); --control-hover: var(--control-bg); --control-size: 250% 100%; --control-ink: #35141d; --control-edge: #ffb4be; --control-hover-edge: #ffb4be; --control-shadow: inset 0 1px 0 #ffffff38; --control-hover-shadow: inset 0 1px 0 #ffffff48, 0 5px 22px #a93e5745; }
+body [data-vault-control="success"] { --control-bg: linear-gradient(90deg, #91e3bc 0%, #6fccad 16%, #4db59e 32%, #237254 48%, #237254 100%); --control-hover: var(--control-bg); --control-size: 250% 100%; --control-ink: #102e23; --control-edge: #a7f0ce; --control-hover-edge: #a7f0ce; --control-shadow: inset 0 1px 0 #ffffff38; --control-hover-shadow: inset 0 1px 0 #ffffff48, 0 5px 22px #23725445; }
+body :is([data-vault-control="secondary"], [data-control-hover="secondary"])[aria-pressed="true"] { --control-edge: var(--vault-accent); --control-bg: var(--vault-selection-surface); --control-hover: var(--vault-selection-hover); --control-ink: var(--vault-text); }
+@media (hover: hover) {
+  body [data-vault-control]:not(:disabled):not([data-control-static]):hover {
+    background: var(--control-hover) !important;
+    background-size: var(--control-size) !important;
+    background-position: 100% 50% !important;
+    border-color: var(--control-hover-edge) !important;
+    box-shadow: var(--control-hover-shadow) !important;
+  }
+  body :is([data-vault-control="primary"], [data-vault-control="steam"], [data-vault-control="play-later"], [data-vault-control="blacklist"], [data-vault-control="success"]):not(:disabled):not([data-control-static]):hover::after { transform: translateX(120%); }
+  body :is([data-vault-control="secondary"], [data-control-hover="secondary"]):not(:disabled):not([aria-busy="true"]):not([data-control-static]):hover::after { transform: translateX(120%); }
+  body :is([data-vault-control="tertiary"], [data-vault-control="text"]):not(:disabled):hover::after { opacity: 1; transform: scaleX(1); }
+}
+body [data-vault-control]:not(:disabled):not([data-control-static]):active {
+  box-shadow: inset 0 3px 7px #08021880, inset 0 0 0 100px #08021820 !important;
+  border-color: var(--control-hover-edge) !important;
+  transition-duration: 80ms;
+}
+body [data-vault-control]:active::after { opacity: 0; }
+body :is([data-vault-control="tertiary"], [data-vault-control="text"]):active::after { opacity: 1; transform: scaleX(.65); height: 2px; background: #e6ccff; }
+body [data-vault-control="selection"]:active { background: var(--vault-feature-surface) !important; }
+body [data-vault-control]:focus-visible { outline: 2px solid var(--vault-control-focus); outline-offset: 3px; }
+body [data-vault-control="disclosure"]:focus-visible { outline-offset: -3px; }
+body [data-vault-control]:disabled { --control-bg: var(--vault-well-surface); --control-ink: var(--vault-text-muted); --control-edge: var(--vault-border); --control-shadow: none; cursor: not-allowed; }
+body [data-vault-control][aria-busy="true"] { --control-bg: var(--vault-feature-surface); --control-ink: var(--vault-text); --control-edge: var(--vault-border); cursor: wait; }
+body [data-vault-control="steam"][aria-busy="true"] { --control-bg: #142b49; --control-ink: #d6e5f5; --control-edge: #526d91; }
+body [data-vault-control][aria-busy="true"]::after { display: none; }
+body [data-control-spinner] { width: 18px; height: 18px; border: 1.5px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: controlSpin 800ms linear infinite; }
+@keyframes controlSpin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  body [data-control-spinner] { animation: none; }
+}
+body [data-control-size="icon"] { min-width: 44px; min-height: 44px; }
+body [data-control-static] { cursor: default; }
+body [data-control-static]::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  body [data-vault-control],
+  body [data-vault-control]::after { transition: none; animation: none; }
+  body :is([data-vault-control="secondary"], [data-control-hover="secondary"])::after { display: none; }
+  body :is([data-vault-control="primary"], [data-vault-control="steam"], [data-vault-control="play-later"], [data-vault-control="blacklist"], [data-vault-control="success"])::after { display: none; }
+}
+
+body [data-control-position="floating"] { position: absolute; }
+/* Compact filter choices: a persistent inset bar replaces the checkmark.
+   The bar is independent of the transient hover/press sheen. */
+body [data-control-indicator="bar"] {
+  --control-hover: var(--vault-feature-surface);
+  --control-shadow: inset 0 0 0 1px #ac83d322;
+  --control-hover-shadow: inset 0 0 0 1px #c49ae880, inset 0 1px 0 #f3e3ff24;
+}
+body [data-control-indicator="bar"]:is([aria-pressed="true"], [aria-selected="true"]) {
+  --control-bg: var(--vault-selection-surface);
+  --control-hover: var(--vault-selection-hover);
+  --control-shadow: inset 0 0 0 1px #c8a1ed99, inset 0 1px 0 #f3e3ff24;
+  --control-edge: var(--vault-accent);
+  --control-ink: var(--vault-text);
+}
+body [data-control-indicator="bar"]::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  inset: auto 12px 4px;
+  height: 2px;
+  border-radius: 2px;
+  background: #e0c1ff;
+  opacity: 0;
+}
+body [data-control-indicator="bar"]:is([aria-pressed="true"], [aria-selected="true"])::before { opacity: 1; --control-bg: var(--vault-selection-surface); --control-hover: var(--vault-selection-hover); --control-edge: var(--vault-accent); --control-ink: var(--vault-text); }
+body [data-control-tone="danger"] {
+  --control-hover: #79344740;
+  --control-hover-edge: #e99bad;
+  --control-ink: #edb1c0;
+}
+/* Interactive cards and informational surfaces share stationary hover paint.
+   Surface-only panes keep their native semantics and never acquire press feedback.
+   Cards keep their artwork and geometry. Override the legacy blanket button
+   lift, tint and filter, including on transparent full-card click targets. */
+body :is([data-vault-card="interactive"], [data-vault-card="surface"]) {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transform: none !important;
+  filter: none !important;
+  transition: background-color 240ms ease, border-color 240ms ease, box-shadow 240ms ease;
+}
+body [data-vault-card-trigger] {
+  transform: none !important;
+  filter: none !important;
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+}
+body :is([data-vault-card="interactive"], [data-vault-card="surface"])::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 30%, #e2c4ff12 48%, transparent 65%);
+  opacity: 0;
+  transform: translateX(-120%);
+  transition: transform 700ms cubic-bezier(.2,.65,.3,1);
+}
+@media (hover: hover) {
+  body :is([data-vault-card="interactive"], [data-vault-card="surface"]):not(:disabled):hover {
+    border-color: var(--vault-accent) !important;
+    background-color: var(--vault-feature-surface) !important;
+    box-shadow: inset 0 0 0 1px #c59bec35, inset 0 1px 0 #efdaff28 !important;
+  }
+  body :is([data-vault-card="interactive"], [data-vault-card="surface"]):not(:disabled):hover::after { opacity: 1; transform: translateX(120%); }
+}
+body [data-vault-card="interactive"]:is(:focus-visible, :has([data-vault-card-trigger]:focus-visible)) {
+  outline: 2px solid var(--vault-control-focus);
+  outline-offset: 3px;
+  border-color: var(--vault-accent);
+}
+body [data-vault-card="interactive"]:is(:active, :has([data-vault-card-trigger]:active)):not(:disabled) {
+  background-color: var(--vault-well-surface) !important;
+  box-shadow: inset 0 3px 12px #08021880 !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  body :is([data-vault-card="interactive"], [data-vault-card="surface"]) { transition: none; }
+  body :is([data-vault-card="interactive"], [data-vault-card="surface"])::after { display: none; }
+}
+/* Multi-line result examples carry their own text colours in legacy modules. */
+body [data-vault-control="amber"] :is(strong, small, svg) { color: var(--control-ink); }
+
+@media (hover: hover) {
+ body :is([data-vault-control="play-later"], [data-vault-control="blacklist"], [data-vault-control="success"]):not([data-control-static]):hover { color: #fff !important; }
+}
+
+/* Selection semantics with the same satin response as secondary actions. */
+body [data-control-hover="secondary"] {
+  --control-hover: #4b2d70;
+  --control-hover-edge: #dcc0ff;
+  --control-hover-shadow: inset 0 1px 0 #f1dbff60, inset 0 0 18px #bd83ff18, 0 0 0 1px #c393ff20, 0 0 18px #b16bfa24;
+}
+body [data-control-hover="secondary"]:is([aria-pressed="true"], [aria-selected="true"]) {
+  --control-hover: var(--vault-selection-hover);
+  --control-bg: var(--vault-selection-surface);
+  --control-edge: var(--vault-accent);
+  --control-ink: var(--vault-text);
+}

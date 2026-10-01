@@ -16,7 +16,7 @@ export function BlogIndex({ posts }: { posts: BlogPost[] }) {
         <ul className={styles.list}>
           {posts.map((post, index) => (
             <li key={post.slug}>
-              <Link className={styles.post} href={`/blog/${post.slug}`} data-blog-action="open_post" data-post-slug={post.slug} data-post-topic={post.topic}>
+              <Link data-vault-card="interactive" className={styles.post} href={`/blog/${post.slug}`} data-blog-action="open_post" data-post-slug={post.slug} data-post-topic={post.topic}>
                 <PostCover banner={post.banner} layout="feature" eager={index === 0} />
                 <div className={styles.postBody}>
                   <span className={styles.meta}>

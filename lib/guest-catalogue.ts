@@ -2,7 +2,9 @@ import "server-only";
 
 import { unstable_cache } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import type { Game } from "@/lib/types";
+import {fullyEnriched,hasRealGenres,hasTags,guestGameFromCatalogue,type GuestCatalogueRow} from "./guest-catalogue-model.ts";
+import {isV2Authority} from "./database-authority.ts";
+import {getV2Runtime} from "./v2/runtime.ts";
 import { GUEST_POOL_SIZE, selectGuestPool } from "@/lib/guest-pool";
 
 /**
@@ -22,52 +24,8 @@ const GUEST_MIN_REVIEWS = 50;
 /** PostgREST caps responses at 1,000 rows on this project. */
 const GUEST_PAGE_SIZE = 1000;
 
-type GuestCatalogueRow = {
-  steam_appid: number;
-  name: string;
-  genres: string[];
-  tags: Record<string, number>;
-  short_description: string | null;
-  capsule_url: string | null;
-  header_url: string | null;
-  review_positive: number;
-  review_total: number | null;
-  main_story_minutes: number | null;
-  main_extras_minutes: number | null;
-  completionist_minutes: number | null;
-  duration_source: string | null;
-  duration_source_updated_at: string | null;
-  duration_confidence: Game["duration_confidence"];
-  duration_kind: Game["duration_kind"];
-  popularity_rank: number | null;
-};
-
-/** An empty array is not null, and "Unknown" is not a genre. */
-function hasRealGenres(genres: string[] | null | undefined) {
-  return (genres ?? []).some((genre) => genre && genre.toLowerCase() !== "unknown");
-}
-
-function hasTags(tags: Record<string, number> | null | undefined) {
-  return Boolean(tags && Object.keys(tags).length);
-}
-
-/**
- * The gates the SQL cannot express: an empty array is not null, "Unknown" is not
- * a genre, and artwork has to actually exist somewhere.
- */
-function fullyEnriched(row: GuestCatalogueRow) {
-  if (!hasRealGenres(row.genres)) return false;
-  if (!row.short_description?.trim()) return false;
-  if (!hasTags(row.tags)) return false;
-  if (!row.header_url && !row.capsule_url) return false;
-  // A guest choosing by session length needs a length to choose by. Endless
-  // games qualify because "no ending" is itself an answer.
-  const hasDuration = row.main_story_minutes !== null || row.duration_kind === "endless";
-  return hasDuration;
-}
-
 const FULL_ROW_COLUMNS =
-  "steam_appid,name,genres,tags,short_description,capsule_url,header_url,review_positive,review_total,main_story_minutes,main_extras_minutes,completionist_minutes,duration_source,duration_source_updated_at,duration_confidence,duration_kind,popularity_rank";
+  "steam_appid,name,genres,tags,short_description,capsule_url,header_url,review_positive,review_total,main_story_minutes,main_extras_minutes,completionist_minutes,duration_source,duration_source_updated_at,duration_confidence,duration_kind,popularity_rank,price_currency,price_initial,price_final,is_free,platform_windows,platform_mac,platform_linux,deck_compatibility,release_date,player_mode,categories";
 
 /** Only what selection needs. See the note in loadCachedGuestCatalogue. */
 const CANDIDATE_COLUMNS = "steam_appid,genres,tags,popularity_rank,review_total";
@@ -172,7 +130,8 @@ export async function buildGuestCataloguePool(): Promise<number> {
 }
 
 const loadCachedGuestCatalogue = unstable_cache(
-  async () => {
+  async (authority: "legacy"|"v2") => {
+    if (authority === "v2") return (await getV2Runtime()).guest.list();
     const supabase = getSupabaseAdmin();
 
     // The fast path: one indexed read of the pool the worker already chose.
@@ -201,9 +160,9 @@ const loadCachedGuestCatalogue = unstable_cache(
   },
   // What is cached is the mapped games, not the rows, so the key has to move
   // whenever their shape does - otherwise a deploy that adds a field serves the
-  // old shape for up to an hour and looks like it did not work. v5 adds the
-  // review counts the reasoning panel needs.
-  ["guest-catalogue-v5"],
+  // old shape for up to an hour and looks like it did not work. v7 separates
+  // legacy and V2 authority; shared prices/filter metadata stay unchanged.
+  ["guest-catalogue-v7-authority"],
   { revalidate: 60 * 60, tags: ["guest-catalogue"] }
 );
 
@@ -214,7 +173,7 @@ const loadCachedGuestCatalogue = unstable_cache(
 const GUEST_MINIMUM_USABLE = 200;
 
 export async function listGuestCatalogueGames() {
-  const games = await loadCachedGuestCatalogue();
+  const games = await loadCachedGuestCatalogue(isV2Authority()?"v2":"legacy");
   if (games.length < GUEST_MINIMUM_USABLE) {
     throw new Error(`Guest catalogue returned ${games.length} games; expected at least ${GUEST_MINIMUM_USABLE}.`);
   }
@@ -229,52 +188,4 @@ export async function listGuestCatalogueGames() {
     }));
   }
   return games;
-}
-
-function guestGameFromCatalogue(row: GuestCatalogueRow): Game {
-  const appId = Number(row.steam_appid);
-  const reviewTotal = Math.max(0, Number(row.review_total || 0));
-  const rating = reviewTotal > 0
-    ? Math.max(0, Math.min(10, Math.round(Number(row.review_positive || 0) * 10 / reviewTotal)))
-    : 0;
-
-  return {
-    id: `guest-${appId}`,
-    user_id: "",
-    title: String(row.name || "").trim(),
-    genre: row.genres.filter(Boolean).join(" / ") || "Unknown",
-    store: "Steam",
-    ownership: "Owned",
-    status: "Not Started",
-    rating,
-    hours_played: 0,
-    completion_percentage: 0,
-    priority: "Medium",
-    date_added: null,
-    last_played_at: null,
-    // A guest has no private notes. The Steam synopsis now travels in its own
-    // field rather than borrowing this one.
-    notes: "",
-    short_description: String(row.short_description || "").trim(),
-    steam_appid: String(appId),
-    capsule_url: row.capsule_url,
-    header_url: row.header_url,
-    main_story_minutes: row.main_story_minutes,
-    main_extras_minutes: row.main_extras_minutes,
-    completionist_minutes: row.completionist_minutes,
-    duration_source: row.duration_source,
-    duration_source_updated_at: row.duration_source_updated_at,
-    duration_confidence: row.duration_confidence,
-    duration_kind: row.duration_kind,
-    steam_tags: row.tags,
-    // Carried through, not just folded into the rating above. The reasoning
-    // panel judges how a game is regarded from the raw counts - "Hidden gem",
-    // "Everyone has played this" - and a rounded 0-10 cannot tell it whether 92%
-    // came from four hundred people or four hundred thousand. Dropping these
-    // silently cost guests one of the few reasons their session can produce.
-    review_positive: Number(row.review_positive || 0),
-    review_negative: Math.max(0, reviewTotal - Number(row.review_positive || 0)),
-    review_total: reviewTotal,
-    is_quarantined: false
-  };
 }

@@ -8,12 +8,8 @@
   position: fixed;
   inset: 0;
   pointer-events: none;
-  /* The landing page's ground, so walking in from the marketing site does not
-     change the colour under your feet. Two small radials on a near-black blue,
-     placed as they are on the landing page, rather than one wide purple wash. */
+  /* One shared ground; feature emphasis belongs to content panels. */
   background:
-    radial-gradient(circle at 72% 7%, rgba(88, 48, 216, 0.2), transparent 24%),
-    radial-gradient(circle at 8% 42%, rgba(45, 123, 255, 0.08), transparent 28%),
     var(--vault-ink);
   z-index: -2;
 }
@@ -33,11 +29,11 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border: 1px solid rgba(239, 132, 177, 0.42);
+  border: 1px solid color-mix(in srgb, var(--vault-danger) 42%, transparent);
   border-radius: 12px;
-  background: rgba(59, 15, 43, 0.82);
-  color: #ffd8e8;
-  box-shadow: 0 12px 30px rgba(20, 4, 18, 0.22);
+  background: var(--vault-feature-surface);
+  color: var(--vault-danger);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--vault-shadow-color) 22%, transparent);
 }
 
 /* Amber rather than the red of .loadNotice: the import worked, the data is just
@@ -50,23 +46,23 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  border: 1px solid rgba(224, 163, 74, 0.45);
+  border: 1px solid color-mix(in srgb, var(--vault-warning) 45%, transparent);
   border-radius: 12px;
-  background: rgba(48, 33, 10, 0.82);
-  color: #ffe6bd;
+  background: color-mix(in srgb, var(--vault-warning) 16%, transparent);
+  color: var(--vault-warning);
   font-size: 0.92rem;
   line-height: 1.45;
-  box-shadow: 0 12px 30px rgba(24, 15, 2, 0.22);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--vault-shadow-color) 22%, transparent);
 }
 
-.importNotice strong { color: #fff3df; }
+.importNotice strong { color: var(--vault-warning); }
 
 .importNotice button {
   flex: 0 0 auto;
   padding: 7px 12px;
-  border: 1px solid rgba(255, 214, 158, 0.45);
+  border: 1px solid color-mix(in srgb, var(--vault-warning) 45%, transparent);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--vault-text) 8%, transparent);
   color: inherit;
   font-weight: 700;
   white-space: nowrap;
@@ -75,9 +71,9 @@
 .loadNotice button {
   flex: 0 0 auto;
   padding: 7px 12px;
-  border: 1px solid rgba(255, 190, 220, 0.42);
+  border: 1px solid color-mix(in srgb, var(--vault-danger) 42%, transparent);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--vault-text) 8%, transparent);
   color: inherit;
   font-weight: 700;
 }

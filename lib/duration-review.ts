@@ -3,6 +3,8 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { classifyDurationReviewResponse, type DurationReviewSubmission } from "@/lib/duration-review-input";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isV2Authority } from "@/lib/database-authority";
+import { workerDatabase } from "@/lib/v2/owned-worker";
 
 const DURATION_QUEUE_COOKIE = "vault_duration_queue";
 const DURATION_QUEUE_COOKIE_SECONDS = 30 * 24 * 60 * 60;
@@ -83,6 +85,14 @@ function asQueueGame(row: Record<string, unknown>): DurationReviewGame {
 }
 
 export async function getDurationReviewQueueState(): Promise<DurationReviewQueueState> {
+  if (isV2Authority()) {
+    const database = await workerDatabase();
+    const [row] = await database.sql<{ queue: { total: number; remaining: number; games: Record<string, unknown>[] } }[]>`
+      select catalog.duration_review_queue() as queue`;
+    const { total, remaining } = row.queue;
+    const games = row.queue.games.map(asQueueGame);
+    return { game: games[0] ?? null, games, total, remaining, reviewed: Math.max(0, total - remaining) };
+  }
   const supabase = getSupabaseAdmin();
   const baseColumns = "steam_appid,name,header_url,capsule_url,duration_status,duration_kind,duration_source,users_that_imported,review_total";
   const [totalResult, remainingResult, gamesResult] = await Promise.all([
@@ -114,6 +124,10 @@ export async function getDurationReviewQueueState(): Promise<DurationReviewQueue
 }
 
 export async function undoDurationReview(steamAppId: number) {
+  if (isV2Authority()) {
+    await (await workerDatabase()).sql`select catalog.undo_duration_review(${String(steamAppId)}::bigint)`;
+    return;
+  }
   const { error } = await getSupabaseAdmin()
     .from("catalog_duration_reviews")
     .delete()
@@ -125,8 +139,13 @@ export async function undoDurationReview(steamAppId: number) {
 export async function saveDurationReview(
   submission: DurationReviewSubmission,
 ) {
-  const supabase = getSupabaseAdmin();
   const classified = classifyDurationReviewResponse(submission.response);
+  if (isV2Authority()) {
+    await (await workerDatabase()).sql`select catalog.save_duration_review(
+      ${String(submission.steamAppId)}::bigint, ${classified.responseText}, ${classified.responseKind}, ${classified.sourceUrl})`;
+    return;
+  }
+  const supabase = getSupabaseAdmin();
   const { data: unresolvedGame, error: lookupError } = await supabase
     .from("catalog_duration_review_queue")
     .select("steam_appid")

@@ -53,6 +53,20 @@ export const ANALYTICS_EVENTS = {
   playingNextProgressed: "playing_next_progressed",
   playingNextCompleted: "playing_next_completed",
 
+  // What to play next. One event with the action as a property: the question it
+  // answers is which lanes earn a pin or a launch and which only get dismissed,
+  // and that is one chart split by two properties, not six event names.
+  playNextAction: "play_next_action",
+
+  // Purchase discovery. Pageviews come from SiteExperience; these measure the
+  // search -> save -> store funnel. Imports remain one event per batch.
+  wishlistAction: "wishlist_action",
+  wishlistSearch: "wishlist_search",
+  wishlistGameSaved: "wishlist_game_saved",
+  wishlistGameRemoved: "wishlist_game_removed",
+  wishlistImport: "wishlist_import",
+  wishlistStoreOpened: "wishlist_store_opened",
+
   // Completion. The loop the whole product exists to close.
   completionClaimed: "completion_claimed",
   completionDismissed: "completion_dismissed",

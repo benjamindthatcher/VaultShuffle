@@ -115,8 +115,8 @@ function appealKind({
 }
 
 export function appealLabel(kind: GameAppealKind) {
-  if (kind === "phenomenon") return "Everyone has played this";
-  if (kind === "acclaimed") return "Widely loved";
+  if (kind === "phenomenon") return "Loved by players";
+  if (kind === "acclaimed") return "Highly rated";
   if (kind === "hidden-gem") return "Hidden gem";
   if (kind === "divisive") return "Divisive";
   return null;
@@ -126,9 +126,9 @@ export function appealLabel(kind: GameAppealKind) {
 export function appealDetail(appeal: GameAppeal) {
   const percent = appeal.positivity === null ? null : Math.round(appeal.positivity * 100);
   const reviews = formatReviewCount(appeal.reviewTotal);
-  if (appeal.kind === "phenomenon") return `${percent}% positive across ${reviews} reviews — this one is a landmark.`;
+  if (appeal.kind === "phenomenon") return `${percent}% positive across ${reviews} reviews.`;
   if (appeal.kind === "acclaimed") return `${percent}% positive across ${reviews} reviews.`;
-  if (appeal.kind === "hidden-gem") return `${percent}% positive from only ${reviews} reviews — beloved by the few who found it.`;
+  if (appeal.kind === "hidden-gem") return `${percent}% positive from only ${reviews} reviews. Beloved by the few who found it.`;
   if (appeal.kind === "divisive") return `Only ${percent}% positive across ${reviews} reviews, so expect a rough edge or two.`;
   return null;
 }

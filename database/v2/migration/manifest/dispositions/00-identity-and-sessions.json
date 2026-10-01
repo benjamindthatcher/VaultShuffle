@@ -1,0 +1,680 @@
+{
+  "domain": "Identity, sessions, merge audit",
+  "note": "Hand-authored decisions. Consumed by build_manifest.py, which enumerates columns from the live inventory and fails if any column here is missing. A relation-level 'summary' is narrative and never satisfies column coverage.",
+  "relations": {
+    "app_accounts": {
+      "role": "Account root for both manual workspaces and verified Steam accounts. app_users.id and manual_steam_profiles.id are the SAME uuid (readiness 6.1).",
+      "summary": "Migrated to app.accounts with an integer identity; old uuid retained as public_id. The Steam visibility booleans are PROJECTED to the app.account_capabilities tri-state under the account tuple decision (true->visible; false or NULL->unknown) and the raw tuple is preserved alongside it in app.account_capability_evidence, because the projection is lossy by design.",
+      "disposition_class": "migrated",
+      "target": "app.accounts + app.account_capabilities + app.account_capability_evidence",
+      "evidence": [
+        "readiness 6.1 account map",
+        "readiness 8.3 boolean to tri-state",
+        "docs/v2-m3-capability-decision.md: false is not proof of hidden",
+        "M1:89 app.accounts, M1:146 app.account_capabilities"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.accounts.id + app.accounts.public_id",
+          "transform": "uuid -> integer identity via migration.account_map, ordered by (created_at, id); the uuid is retained verbatim in app.accounts.public_id so no external reference breaks.",
+          "note": "Identity renumber. The original value survives in public_id, so no fact is lost, but the surrogate key changes, which is a transform not a rename.",
+          "evidence": [
+            "readiness 6.1",
+            "M1:90-91"
+          ]
+        },
+        "account_type": {
+          "disposition": "transformed",
+          "target": "app.accounts.account_kind",
+          "transform": "legacy 'manual'|'steam' -> v2 'manual'|'steam'. Value-identical today; carried as transformed because the target is a separately constrained domain (M1:92-93) and the mapping must be asserted rather than assumed.",
+          "note": "Also the input to app.steam_profiles.verified: readiness 14.1 flags that a missed mapping silently de-verifies every Steam account.",
+          "conflict": "readiness 14.1 - verified defaults to false (M1:110)"
+        },
+        "steam_library_visible": {
+          "disposition": "transformed",
+          "target": "app.account_capabilities.library_visibility + app.account_capability_evidence.raw_library_visible",
+          "transform": "Capability projection, not a value copy: true->'visible'; false->'unknown'; NULL->'unknown'. The raw boolean is ALSO written verbatim to the account-side evidence row, because the projection is deliberately lossy: a legacy false and a legacy NULL both project to 'unknown', so the original flag survives only in app.account_capability_evidence.",
+          "note": "docs/v2-m3-capability-decision.md. lib/steam-owned-games.ts:117 computes libraryVisible as games.length > 0, which cannot distinguish an empty library from a private one, so a legacy false is an availability heuristic and NOT a provider privacy assertion. Projecting it to 'hidden' would manufacture a privacy claim the source never made. 'hidden' remains a legal app.account_capabilities value (M1:146-153) but requires separate validated privacy evidence, which this source does not carry. readiness 8.3 guarded NULL only; the account tuple decision extends the same guard to false.",
+          "capability_projection": {
+            "rule": "legacy-boolean-to-capability",
+            "feeds_capability": true,
+            "evidence_precedence": "account_writer",
+            "mapping": {
+              "true": "visible",
+              "false": "unknown",
+              "null": "unknown"
+            },
+            "raw_evidence_target": "app.account_capability_evidence.raw_library_visible",
+            "authority": "docs/v2-m3-capability-decision.md"
+          },
+          "evidence": [
+            "docs/v2-m3-capability-decision.md",
+            "lib/steam-owned-games.ts:117",
+            "M1:146-153 app.account_capabilities tri-state domain",
+            "M3:438-441 projection_status domain has no 'hidden'"
+          ],
+          "decision_ref": "D-IDN-3",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_playtime_visible": {
+          "disposition": "transformed",
+          "target": "app.account_capabilities.playtime_visibility + app.account_capability_evidence.raw_playtime_visible",
+          "transform": "Capability projection, not a value copy: true->'visible'; false->'unknown'; NULL->'unknown'. The raw boolean is ALSO written verbatim to the account-side evidence row, because false and NULL are not distinguishable after projection.",
+          "note": "docs/v2-m3-capability-decision.md. lib/steam-owned-games.ts:117 computes playtimeVisible as some(hours_played > 0), so a fully visible library in which nothing has been played yields false. That is an availability heuristic, not a privacy assertion, and it must not become 'hidden'.",
+          "capability_projection": {
+            "rule": "legacy-boolean-to-capability",
+            "feeds_capability": true,
+            "evidence_precedence": "account_writer",
+            "mapping": {
+              "true": "visible",
+              "false": "unknown",
+              "null": "unknown"
+            },
+            "raw_evidence_target": "app.account_capability_evidence.raw_playtime_visible",
+            "authority": "docs/v2-m3-capability-decision.md"
+          },
+          "evidence": [
+            "docs/v2-m3-capability-decision.md",
+            "lib/steam-owned-games.ts:117",
+            "M1:146-153 app.account_capabilities tri-state domain"
+          ],
+          "decision_ref": "D-IDN-3",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_last_played_visible": {
+          "disposition": "transformed",
+          "target": "app.account_capabilities.last_played_visibility + app.account_capability_evidence.raw_last_played_visible",
+          "transform": "Capability projection, not a value copy: true->'visible'; false->'unknown'; NULL->'unknown'. The raw boolean is ALSO written verbatim to the account-side evidence row.",
+          "note": "docs/v2-m3-capability-decision.md. lib/steam-owned-games.ts:117 computes lastPlayedVisible as some(last_played_at), so an account whose games simply carry no last-played timestamp yields false. Absent timestamps are not a privacy assertion and must not become 'hidden'.",
+          "capability_projection": {
+            "rule": "legacy-boolean-to-capability",
+            "feeds_capability": true,
+            "evidence_precedence": "account_writer",
+            "mapping": {
+              "true": "visible",
+              "false": "unknown",
+              "null": "unknown"
+            },
+            "raw_evidence_target": "app.account_capability_evidence.raw_last_played_visible",
+            "authority": "docs/v2-m3-capability-decision.md"
+          },
+          "evidence": [
+            "docs/v2-m3-capability-decision.md",
+            "lib/steam-owned-games.ts:117",
+            "M1:146-153 app.account_capabilities tri-state domain"
+          ],
+          "decision_ref": "D-IDN-3",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_visibility_checked_at": {
+          "disposition": "preserved",
+          "target": "app.account_capabilities.checked_at + app.account_capability_evidence.raw_checked_at",
+          "note": "timestamptz to timestamptz, no offset applied (readiness 8.5). The capability decision makes the account-side tuple authoritative as a TUPLE, so its checked time travels with its three flags into the same account-side evidence row rather than being separated from them.",
+          "decision_ref": "D-IDN-3",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_games_seen": {
+          "disposition": "preserved",
+          "note": "Last observed owned-library size for the account. app.account_capabilities has no column for it and app.library_sync_state (M1:290) carries sync bookkeeping, not an observed count. Either a new column or an archive; not silently dropped. SETTLED: the capability decision makes the account-side tuple authoritative and names 'games seen' as part of that tuple, so it is preserved with the rest of the raw observation in app.account_capability_evidence rather than dropped for want of a column on app.account_capabilities.",
+          "target": "app.account_capability_evidence.raw_games_count",
+          "settled_by": [
+            "docs/v2-m3-capability-decision.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-IDN-3",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.accounts.created_at",
+          "note": "Also the primary sort key for deterministic identity assignment (readiness 6.1)."
+        },
+        "updated_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Row-level mutation bookkeeping with no v2 destination on app.accounts (M1:89-105 has created_at and last_seen_at only). Nothing reads it; it is regenerated by v2 write paths.",
+          "note": "Retired rather than archived: it records when the legacy row was last written, which has no meaning once the legacy row stops being written."
+        },
+        "last_visited_at": {
+          "disposition": "preserved",
+          "target": "app.accounts.last_seen_at",
+          "note": "Direct semantic match."
+        }
+      },
+      "settled_decisions": [
+        "D-IDN-1 SETTLED: the two manual accounts with no manual_steam_profiles row are reconciled rather than dropped, per plan 14.2 ('do not silently drop two manual account records'). They migrate as manual accounts with no app.steam_profiles row, which app.steam_profiles permits because it is keyed by account. The COUNT must be re-measured at the snapshot, which is snapshot check S-PROFILE-PRESENCE."
+      ],
+      "snapshot_checks": [
+        "S-PROFILE-PRESENCE",
+        "S-VIS-PRECEDENCE"
+      ]
+    },
+    "app_users": {
+      "role": "Verified Steam identity. Its id is the SAME uuid as the owning app_accounts.id (readiness 6.1), so it is a 1:1 extension, not a separate account.",
+      "summary": "Migrated to app.steam_profiles with verified = true. The Steam visibility columns here duplicate app_accounts; precedence is SETTLED by docs/v2-m3-capability-decision.md (the account-side tuple is authoritative as a tuple), and this side is preserved as profile-attributed raw evidence so a disagreement stays auditable. Neither side's false is treated as a privacy assertion.",
+      "disposition_class": "migrated",
+      "target": "app.steam_profiles",
+      "evidence": [
+        "M1:107 app.steam_profiles",
+        "readiness 14.1 verified default hazard"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.steam_profiles.account_id",
+          "transform": "Same uuid as app_accounts.id; resolved through migration.account_map to the integer account id.",
+          "note": "Not a separate identity. readiness 6.1 anchors this to 20260829224140_add_manual_steam_profiles.sql:66 and :128."
+        },
+        "steam_id": {
+          "disposition": "transformed",
+          "target": "app.steam_profiles.steam_id",
+          "transform": "text (17-digit) -> bigint, with a checked round-trip: bigint value must render back to the exact source text. M1:108 requires steam_id > 0.",
+          "note": "A text-to-bigint narrowing is a real conversion and must be verified per row, not assumed."
+        },
+        "display_name": {
+          "disposition": "transformed",
+          "target": "app.steam_profiles.display_name",
+          "transform": "v2 checks length(btrim(display_name)) between 1 and 80 (M1:111-112). Legacy is unbounded and nullable. Whitespace-only normalises to NULL; over-length is a conflict, NOT a truncation.",
+          "note": "Nonempty text must not be truncated or dropped (coordinator ruling). Over-length rows are reported, not trimmed.",
+          "conflict": "probe P07h counts display names failing the btrim length check"
+        },
+        "avatar_url": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.avatar_url",
+          "note": "v2 bounds length to 2048 (M1:114); probe P07h covers over-length."
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.created_at",
+          "note": "Profile creation instant."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.updated_at",
+          "note": "v2 keeps updated_at on steam_profiles (M1:116), unlike app.accounts."
+        },
+        "last_login_at": {
+          "disposition": "preserved",
+          "target": "app.accounts.last_login_at",
+          "note": "The interactive authenticated-login instant is preserved verbatim in the nullable app.accounts.last_login_at timestamptz column. NULL remains NULL if present. It is distinct from app.accounts.last_seen_at, which carries app_accounts.last_visited_at (lib/auth.ts:86); no derivation from visits, max(), or geographic offset is allowed.",
+          "settled_by": [
+            "docs/v2-claude-resume-20260910-afternoon.md",
+            "database/v2/M3-contract.md"
+          ],
+          "decision_ref": "D-IDN-4",
+          "snapshot_checks": [
+            "S-PROFILE-PRESENCE"
+          ],
+          "evidence": [
+            "lib/auth.ts:86 distinguishes a long-lived-session visit from a login",
+            "probe P07f counts visit_and_login_differ",
+            "database/v2/migration/manifest/physical-destination-index.json resolves app.accounts.last_login_at"
+          ]
+        },
+        "steam_library_visible": {
+          "disposition": "preserved",
+          "note": "Duplicates app_accounts.steam_library_visible. v2 has exactly one destination (app.account_capabilities). Precedence must be decided from measured disagreement, not assumed. SETTLED: retained as the PROFILE-side row of app.account_capability_evidence, distinguished by source_account_kind and evidence_precedence. It does not feed app.account_capabilities, because the capability decision makes the account-side tuple authoritative; it survives so a disagreement stays auditable instead of being silently erased.",
+          "target": "app.account_capability_evidence.raw_library_visible",
+          "capability_projection": {
+            "rule": "legacy-boolean-to-capability",
+            "feeds_capability": false,
+            "evidence_precedence": "profile_reader",
+            "mapping": {
+              "true": "visible",
+              "false": "unknown",
+              "null": "unknown"
+            },
+            "raw_evidence_target": "app.account_capability_evidence.raw_library_visible",
+            "authority": "docs/v2-m3-capability-decision.md",
+            "note": "Retained as raw evidence only. The mapping is recorded so the profile-side observation can be compared with the account-side one on the SAME semantics during reconciliation; it never writes app.account_capabilities."
+          },
+          "settled_by": [
+            "docs/v2-m3-capability-decision.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-IDN-2",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_playtime_visible": {
+          "disposition": "preserved",
+          "note": "Duplicates app_accounts.steam_playtime_visible; same single destination. SETTLED: retained as the PROFILE-side row of app.account_capability_evidence, distinguished by source_account_kind and evidence_precedence. It does not feed app.account_capabilities, because the capability decision makes the account-side tuple authoritative; it survives so a disagreement stays auditable instead of being silently erased.",
+          "target": "app.account_capability_evidence.raw_playtime_visible",
+          "capability_projection": {
+            "rule": "legacy-boolean-to-capability",
+            "feeds_capability": false,
+            "evidence_precedence": "profile_reader",
+            "mapping": {
+              "true": "visible",
+              "false": "unknown",
+              "null": "unknown"
+            },
+            "raw_evidence_target": "app.account_capability_evidence.raw_playtime_visible",
+            "authority": "docs/v2-m3-capability-decision.md",
+            "note": "Retained as raw evidence only; recorded on the same semantics as the account side so reconciliation compares like with like. It never writes app.account_capabilities."
+          },
+          "settled_by": [
+            "docs/v2-m3-capability-decision.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-IDN-2",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_last_played_visible": {
+          "disposition": "preserved",
+          "note": "Duplicates app_accounts.steam_last_played_visible; same single destination. SETTLED: retained as the PROFILE-side row of app.account_capability_evidence, distinguished by source_account_kind and evidence_precedence. It does not feed app.account_capabilities, because the capability decision makes the account-side tuple authoritative; it survives so a disagreement stays auditable instead of being silently erased.",
+          "target": "app.account_capability_evidence.raw_last_played_visible",
+          "capability_projection": {
+            "rule": "legacy-boolean-to-capability",
+            "feeds_capability": false,
+            "evidence_precedence": "profile_reader",
+            "mapping": {
+              "true": "visible",
+              "false": "unknown",
+              "null": "unknown"
+            },
+            "raw_evidence_target": "app.account_capability_evidence.raw_last_played_visible",
+            "authority": "docs/v2-m3-capability-decision.md",
+            "note": "Retained as raw evidence only; recorded on the same semantics as the account side so reconciliation compares like with like. It never writes app.account_capabilities."
+          },
+          "settled_by": [
+            "docs/v2-m3-capability-decision.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-IDN-2",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_visibility_checked_at": {
+          "disposition": "preserved",
+          "note": "Duplicates app_accounts.steam_visibility_checked_at. Whichever visibility triple wins must bring its own checked_at, or the tri-state and its timestamp disagree. SETTLED: retained as the PROFILE-side row of app.account_capability_evidence, distinguished by source_account_kind and evidence_precedence. It does not feed app.account_capabilities, because the capability decision makes the account-side tuple authoritative; it survives so a disagreement stays auditable instead of being silently erased.",
+          "target": "app.account_capability_evidence.raw_checked_at",
+          "settled_by": [
+            "docs/v2-m3-capability-decision.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-IDN-2",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        },
+        "steam_games_seen": {
+          "disposition": "preserved",
+          "note": "Duplicates app_accounts.steam_games_seen, which itself has no destination. SETTLED: retained as the PROFILE-side row of app.account_capability_evidence, distinguished by source_account_kind and evidence_precedence. It does not feed app.account_capabilities, because the capability decision makes the account-side tuple authoritative; it survives so a disagreement stays auditable instead of being silently erased.",
+          "target": "app.account_capability_evidence.raw_games_count",
+          "settled_by": [
+            "docs/v2-m3-capability-decision.md",
+            "coordinator ruling 12, docs/v2-m3-b-database-batch.md"
+          ],
+          "decision_ref": "D-IDN-2",
+          "snapshot_checks": [
+            "S-VIS-PRECEDENCE"
+          ]
+        }
+      },
+      "settled_decisions": [
+        "D-IDN-2 SETTLED: precedence is resolved by docs/v2-m3-capability-decision.md. The account-side tuple (three raw flags, checked time, games seen) is the legacy authoritative observation; fields are never selected independently from whichever side is non-null. Differing profile-side evidence is PRESERVED with source attribution in app.account_capability_evidence rather than erased. The 183 disagreements must be re-measured at the snapshot, and a profile-newer, profile-only-dated or equal-time conflicting case is a new exception to reconcile, not permission to flip precedence: that is snapshot check S-VIS-PRECEDENCE.",
+        "D-IDN-4 SETTLED: app_users.last_login_at maps verbatim to nullable app.accounts.last_login_at, separately from app.accounts.last_seen_at. NULL stays NULL; no visit-derived, max(), or geographic-offset substitution is permitted. The destination is present in the SQL-derived physical index and is covered by the sibling M3 contract."
+      ],
+      "snapshot_checks": [
+        "S-VIS-PRECEDENCE"
+      ]
+    },
+    "manual_steam_profiles": {
+      "role": "Unverified manual workspace built from a public Steam profile URL. id is the SAME uuid as the owning app_accounts.id.",
+      "summary": "Migrated to app.steam_profiles with verified = false. This is the other half of the readiness 14.1 verified hazard.",
+      "disposition_class": "migrated",
+      "target": "app.steam_profiles",
+      "evidence": [
+        "M1:107-127",
+        "M1:122-124 unique index on verified steam_id only"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.steam_profiles.account_id",
+          "transform": "Same uuid as app_accounts.id, resolved through migration.account_map.",
+          "note": "readiness 6.1."
+        },
+        "steam_id": {
+          "disposition": "transformed",
+          "target": "app.steam_profiles.steam_id",
+          "transform": "text -> bigint with a checked round-trip, as for app_users.steam_id.",
+          "note": "Manual profiles may legitimately share a steam_id with each other and with a verified profile; only verified rows are uniquely constrained (M1:122-124)."
+        },
+        "steam_profile_url": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.profile_url",
+          "note": "v2 bounds length to 2048 (M1:115)."
+        },
+        "display_name": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.display_name",
+          "note": "User-chosen workspace name. Legacy NOT NULL; v2 nullable with a btrim 1..80 check (M1:111-112). Over-length is a conflict, not a truncation."
+        },
+        "steam_display_name": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.steam_display_name",
+          "note": "Name as Steam reports it, kept separate from the user-chosen display_name (M1:112-113 keeps both)."
+        },
+        "avatar_url": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.avatar_url",
+          "note": "Bounded to 2048 in v2."
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.created_at",
+          "note": "Direct match."
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "target": "app.steam_profiles.updated_at",
+          "note": "Direct match."
+        }
+      },
+      "settled_decisions": [
+        "D-IDN-5 SETTLED: v2 permits one profile per account because app.steam_profiles.account_id is the primary key, and that constraint is frozen in M1. An account holding BOTH an app_users and a manual_steam_profiles row is therefore a reported conflict, not a schema change. Whether any such account exists is snapshot check S-PROFILE-PRESENCE (probe P03)."
+      ],
+      "snapshot_checks": [
+        "S-PROFILE-PRESENCE"
+      ]
+    },
+    "sessions": {
+      "role": "Verified Steam and manual-workspace session digests. The source session branch determines app.sessions.session_kind ('verified_steam' or 'manual').",
+      "summary": "Migrated to app.sessions; verified rows use session_kind 'verified_steam' and manual_profile_sessions rows use session_kind 'manual'. UUID identity is renumbered to bigint, while the exact decoded digest, account owner, expiry and migration.session_map mapping are preserved.",
+      "disposition_class": "migrated",
+      "target": "app.sessions",
+      "evidence": [
+        "readiness 8.7",
+        "M1:129 app.sessions",
+        "M1:132 octet_length(token_digest) = 32"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.sessions.id",
+          "transform": "uuid -> bigint identity. Safe because the cookie carries the token, not the id, and no external artefact references a session uuid (readiness 8.7).",
+          "note": "The source session UUID is retained in migration.session_map. A manual_profile_security_intents.source_manual_session_id is an intent-only reference; the intent expires at freeze while the session itself remains migratable."
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.sessions.account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "FK to app.accounts(id) on delete cascade."
+        },
+        "token_hash": {
+          "disposition": "transformed",
+          "target": "app.sessions.token_digest",
+          "transform": "64-char lowercase hex text -> bytea via decode(token_hash,'hex'), giving exactly 32 bytes (M1:132). Rows failing '^[0-9a-f]{64}$' cannot be converted and are a hard conflict.",
+          "note": "PRIVATE VALUE. Counted only; never printed, exported to a report, or logged. Legacy has UNIQUE but no format check on this column.",
+          "conflict": "probe P07i counts sessions.token_hash values failing the hex regex; probe P07j counts cross-table digest collisions"
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.sessions.created_at",
+          "note": "v2 checks expires_at > created_at (M1:137)."
+        },
+        "last_seen_at": {
+          "disposition": "preserved",
+          "target": "app.sessions.last_seen_at",
+          "note": "Legacy NOT NULL, v2 nullable. Widening, no conflict."
+        },
+        "expires_at": {
+          "disposition": "preserved",
+          "target": "app.sessions.expires_at",
+          "note": "Subject to the v2 check expires_at > created_at; a legacy row with expires_at <= created_at is a conflict rather than a coercion."
+        }
+      },
+      "settled_decisions": [
+        "D-SES-1 SETTLED: plan 14.2 requires the unified session table to decode valid hex digests to 32-byte bytea and to reconcile invalid or colliding digests PRIVATELY. A cross-table collision is therefore a reported conflict with a defined handling, not an undecided design question. Measuring it in the decoded representation across both tables is snapshot check S-SESSION-DIGEST (probe P07j)."
+      ],
+      "snapshot_checks": [
+        "S-SESSION-DIGEST"
+      ]
+    },
+    "manual_profile_sessions": {
+      "role": "Manual-workspace session digests, migrated to app.sessions with session_kind 'manual'.",
+      "summary": "Migrated to app.sessions with session_kind 'manual'; UUID identity is renumbered to bigint. The exact decoded token digest, manual account owner, created/last-seen/expiry instants and migration.session_map entry are preserved. Only manual_profile_security_intents expire at the freeze.",
+      "disposition_class": "migrated",
+      "target": "app.sessions",
+      "evidence": [
+        "readiness 8.7",
+        "M1:129 app.sessions",
+        "M1:132 token_digest bytea(32 bytes)",
+        "M3:1105 migration.session_map",
+        "lib/auth.ts:153-196 long-lived manual workspace session reader/writer"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "app.sessions.id + migration.session_map.legacy_id",
+          "transform": "uuid -> bigint identity for app.sessions.id; the exact source UUID is retained as migration.session_map.legacy_id.",
+          "note": "The browser carries the token, not the source UUID. The map preserves both source and target directions for recovery and deletion."
+        },
+        "profile_id": {
+          "disposition": "transformed",
+          "target": "app.sessions.account_id + migration.session_map.account_id",
+          "transform": "manual_steam_profiles.id uuid -> integer through migration.account_map; the manual owner is retained on the unified session and its session map.",
+          "note": "Foreign keys cascade with the owning app.accounts row."
+        },
+        "token_hash": {
+          "disposition": "transformed",
+          "target": "app.sessions.token_digest",
+          "transform": "64-character lowercase hex text -> bytea via decode(token_hash, 'hex'), giving exactly 32 bytes as required by M1:132. A malformed value is a hard conflict.",
+          "note": "PRIVATE VALUE. The exact digest is preserved only in the private target session; it is never printed, exported to a report, or logged.",
+          "conflict": "probe P07i counts manual_profile_sessions.token_hash values failing the hex regex; probe P07j counts cross-table digest collisions"
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "app.sessions.created_at",
+          "note": "The source creation instant is retained verbatim."
+        },
+        "last_seen_at": {
+          "disposition": "preserved",
+          "target": "app.sessions.last_seen_at",
+          "note": "The long-lived manual session visit instant is retained verbatim."
+        },
+        "expires_at": {
+          "disposition": "preserved",
+          "target": "app.sessions.expires_at",
+          "note": "The manual session expiry is retained verbatim; runtime refresh rules continue to apply after cutover."
+        }
+      },
+      "settled_decisions": [
+        "D-SES-2 SETTLED: plan 14.2 and lib/auth.ts treat manual_profile_sessions as long-lived manual workspace sessions; they migrate to app.sessions with session_kind 'manual'. Only the short-lived manual_profile_security_intents are expired and restarted at final maintenance."
+      ]
+    },
+    "manual_profile_security_intents": {
+      "role": "Pending manual-to-verified promotion intents, holding a one-time token digest and the OpenID callback nonce.",
+      "summary": "Not migrated: pending security intents expire at the freeze and the promotion flow restarts. Their value domains can satisfy the v2 branch, and the session FK is no longer a blocker because long-lived manual sessions migrate; the intent itself is intentionally not carried forward.",
+      "disposition_class": "archive-only",
+      "target": "not migrated; pending intents are expired and the flow restarts",
+      "archive_purpose": "Prove no pending promotion was silently lost, and give support a way to answer 'my link stopped working' during the cutover window. Counts and outcomes only.",
+      "archive_retention": "Bounded migration staging. Destroyed 30 days after validated cutover (plan 13), correcting the earlier 90-day window. Token and nonce columns are never written to the archive.",
+      "retention": {
+        "class": "bounded-migration-staging",
+        "bound": "30-days-after-validated-cutover",
+        "destination": "migration.legacy_auth_intent_audit",
+        "carries_account_identity": true,
+        "account_deletion": "Rows carry both source_account_id (uuid) and an integer account_id keyed to app.accounts. Deletion coverage must key on the retained UUID as well as the integer FK, or a row whose account_id is already null survives the account it describes.",
+        "account_export": "Intent outcome and timestamps only; token_hash and openid_response_nonce are never written to the archive, so neither can be exported.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Migration staging/exports - encrypted/private; purge within 30 days of validated cutover unless a recovery incident requires retention'"
+        ],
+        "note": "The physical archive uses staging-30d-post-cutover, matching the plan 13 bound. This relation contains only cutover evidence; no lasting private fact is retained here."
+      },
+      "evidence": [
+        "readiness 14.8",
+        "M1:421 ops.auth_intents",
+        "M1:433-434 intent-to-session FK",
+        "lib/auth.ts:330-347 one-time promotion token and nonce flow"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.legacy_intent_id",
+          "note": "Kept so a support query can identify a specific expired intent without re-deriving it from a token."
+        },
+        "source_account_id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.source_account_id",
+          "note": "NOT NULL in legacy, which is exactly what v2's promotion branch requires (readiness 14.8). Resolved through migration.account_map."
+        },
+        "source_manual_session_id": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Nothing in the v2 intent domain: the pending security intent expires at freeze. The referenced long-lived manual session is migrated separately to app.sessions and migration.session_map, but no expired intent row recreates this FK.",
+          "note": "This is an intent-only reference. It retires with manual_profile_security_intents; it does not justify expiring manual_profile_sessions."
+        },
+        "token_hash": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Nothing. The intent is expired, so the one-time token authenticates nothing. Excluded from the export and the archive.",
+          "note": "PRIVATE. It DOES satisfy '^[0-9a-f]{64}$' and would decode to the 32 bytes M1:426 requires - readiness 14.8 corrects the earlier claim that it would not - but the intent is not migrated, so that capability is unused."
+        },
+        "created_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.created_at",
+          "note": "For the cutover report."
+        },
+        "expires_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.expires_at",
+          "note": "Separates intents already dead at freeze from intents the freeze killed."
+        },
+        "consumed_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.consumed_at",
+          "note": "A consumed intent costs nothing at cutover; an unconsumed unexpired one does."
+        },
+        "target_account_id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.target_account_id",
+          "note": "Resolved through migration.account_map where the account still exists; null where it does not, which is itself the evidence."
+        },
+        "verified_steam_id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.verified_steam_id",
+          "note": "The Steam identity the intent was about. Needed to explain a failed promotion; it is a public Steam ID, not a credential."
+        },
+        "openid_response_nonce": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Nothing. A replay-protection nonce for a callback that will not be completed. readiness 14.8: this is a different, nullable column from token_hash and was wrongly identified as the identifying digest in an earlier draft.",
+          "note": "PRIVATE-adjacent. Excluded from export and archive."
+        },
+        "outcome": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_auth_intent_audit.outcome",
+          "note": "The terminal state of the intent, which is the whole value of the archive."
+        }
+      },
+      "settled_decisions": [
+        "D-SES-3 SETTLED: plan 14.2 and 14.3 expire pending manual promotion intents and restart the flow at final maintenance. The long-lived manual session source is migrated separately; session expiry is not part of this intent decision."
+      ]
+    },
+    "account_merges": {
+      "role": "Audit of manual-to-verified promotions and merges into an existing verified account.",
+      "summary": "Migrated to ops.account_merges, but readiness 4.6 is a real blocker: legacy source_account_id is deliberately NOT a foreign key and the merge path DELETES the source account, while v2 ops.account_merges.source_account_id references app.accounts(id).",
+      "disposition_class": "migrated",
+      "target": "ops.account_merges",
+      "evidence": [
+        "readiness 4.6",
+        "readiness 14 correction: promotions insert (source_id, source_id) and DO satisfy v2's promote branch",
+        "M1:457 ops.account_merges",
+        "20260830151421_secure_manual_profiles.sql:42-50 and :708"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "transformed",
+          "target": "ops.account_merges.id",
+          "transform": "uuid -> v2 identity; the legacy uuid is retained as a merge tombstone key so a deleted source public id stays resolvable.",
+          "note": "Coordinator ruling: preserve merge tombstones and deleted source public IDs."
+        },
+        "source_account_id": {
+          "disposition": "transformed",
+          "note": "The readiness 4.6 blocker. Legacy has no FK and the source row is deleted by the merge path; v2 requires a live app.accounts(id). Proposal D-MRG-1 is a 'deleted' tombstone account carrying this uuid as public_id, which satisfies the FK without weakening it and preserves the deleted source public ID the coordinator asked for.",
+          "target": "ops.account_merges.source_account_id + ops.account_merges.source_public_id + migration.legacy_account_merge_audit.source_tombstone_present",
+          "transform": "legacy uuid -> integer account id through migration.account_map. A source account deleted by the merge path resolves to a deterministic tombstone app.accounts row with lifecycle_status 'deleted' carrying this uuid as public_id, so the frozen FK holds without being weakened and the deleted source public ID survives. migration.legacy_account_merge_audit.source_tombstone_present records which rows needed one.",
+          "settled_by": [
+            "coordinator ruling 8, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-MRG-1",
+          "snapshot_checks": [
+            "S-MRG-TOMBSTONE"
+          ]
+        },
+        "target_account_id": {
+          "disposition": "transformed",
+          "target": "ops.account_merges.target_account_id",
+          "transform": "uuid -> integer via migration.account_map.",
+          "note": "Legacy already has an ON DELETE RESTRICT FK to app_accounts, so the target always survives."
+        },
+        "verified_steam_id": {
+          "disposition": "transformed",
+          "target": "ops.account_merges.verified_steam_id",
+          "transform": "text (17-digit, regex-checked in legacy) -> the v2 column's type, with a checked round-trip if the target is bigint.",
+          "note": "The Steam identity the merge established. Public identifier, not a credential."
+        },
+        "merge_mode": {
+          "disposition": "transformed",
+          "target": "ops.account_merges.mode",
+          "transform": "legacy 'promoted' -> v2 'promote'; legacy 'merged_existing' -> v2 'merge'.",
+          "note": "readiness 14 correction: the promote branch requires source_account_id = target_account_id, and the promotion path inserts (source_id, source_id) at 20260830151421_secure_manual_profiles.sql:352-362, so promotions satisfy it. Only 'merged_existing' is at risk, via D-MRG-1."
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "target": "ops.account_merges.created_at",
+          "note": "When the merge happened."
+        },
+        "analytics_delivered_at": {
+          "disposition": "preserved",
+          "target": "ops.account_merges.analytics_delivered_at",
+          "note": "Delivery bookkeeping for the legacy analytics sink. M3 keeps this timestamp on the durable ops.account_merges row so a delivered versus undelivered merge remains auditable without a staging-only copy."
+        }
+      },
+      "archive_purpose": "Explain a legacy merge whose analytics delivery is ambiguous, and hold the source-account tombstone evidence for D-MRG-1.",
+      "archive_retention": "Durable private fact bounded by the account, not by a feature's lifetime: retained while the account exists, removed with the account, and included in the account export. Coordinator ruling 8 preserves merge tombstones and deleted source public IDs separately, in ops.account_merges.",
+      "retention": {
+        "class": "durable-private-fact",
+        "bound": "while-the-account-exists",
+        "destination": "ops.account_merges",
+        "carries_account_identity": true,
+        "account_deletion": "Archive rows are keyed to app.accounts with ON DELETE CASCADE and carry source/target account UUIDs, so deletion coverage must key on the UUID as well as the integer FK. Coordinator ruling 8 separately requires the merge TOMBSTONE and the deleted source public id to survive in ops.account_merges and app.accounts(lifecycle_status='deleted'); that tombstone is a merge fact, not archived private content, and this archive stores no user text.",
+        "account_export": "A user's merge history is part of their account export: merge mode, the Steam identity the merge established, and when it happened.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
+          "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
+        ],
+        "note": "Durable because a merge is a lasting fact about the account, not migration bookkeeping. Its bound is the account, not the life of a feature."
+      },
+      "settled_decisions": [
+        "D-MRG-1 SETTLED by coordinator ruling 8: deleted merge source UUIDs get deterministic deleted-account tombstones AND map entries, and the union of existing identities and required tombstones is inventoried before integer IDs are assigned. That is option (a); the frozen FK is not relaxed. Whether any tombstone is actually required must be re-measured at the snapshot: snapshot check S-MRG-TOMBSTONE.",
+        "D-MRG-2 SETTLED (manifest-authored, constrained by rulings 8 and 12): ops.account_merges.reason is filled with a constant provenance literal recording that the source predates the field. Ruling 12 says preserve original facts first, and ruling 8 forbids added identity conferring anything it did not have; inventing a user-facing reason would assert a fact the source never held. Subject to coordinator review as an authored disposition."
+      ],
+      "snapshot_checks": [
+        "S-MRG-TOMBSTONE"
+      ]
+    }
+  }
+}

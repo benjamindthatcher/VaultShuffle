@@ -1,3 +1,4 @@
+import * as storeDetails from "./steam-store-details.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
@@ -12,6 +13,9 @@ function load(path: string, imports: Record<string, unknown>, globals: Record<st
   const mod = { exports: {} as Record<string, (...args: any[]) => any> }; // eslint-disable-line @typescript-eslint/no-explicit-any
   new Function("require", "module", "exports", ...Object.keys(globals), compiled)((name: string) => {
     if (name === "server-only") return {};
+      if (name === "./steam-store-details.ts") return storeDetails;
+      if (name === "@/lib/database-authority") return {isV2Authority: () => false};
+      if (name === "@/lib/v2/background-workers") return {};
     if (name in imports) return imports[name];
     throw new Error(`Unexpected dependency: ${name}`);
   }, mod, mod.exports, ...Object.values(globals));

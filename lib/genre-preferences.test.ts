@@ -350,3 +350,14 @@ test("switching a signal off is not a typo", () => {
   // ignores a zero-weight tally. It must not be mistaken for a bad row.
   assert.deepEqual(parseAlgorithmWeight(0, 0), { positive: 0, total: 0 });
 });
+
+
+test("personal taste evidence is structured and absent for population-only preferences", () => {
+  const rows = [baseline, { genre: "rpg", positive: 16, total: 20 }];
+  const personal = genrePreferenceAdjustment(context(rows), ["RPG"], "x", null);
+  assert.deepEqual(personal.evidence, { genre: "RPG", mood: null });
+  const population = genrePreferenceAdjustment(context([], null, rows), ["RPG"], "x", null);
+  assert.ok(population.points > 0);
+  assert.equal(population.evidence, undefined);
+  assert.equal(population.reason, null);
+});

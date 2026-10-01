@@ -23,7 +23,7 @@
 .table thead th {
   padding: 12px 14px;
   border-bottom: 1px solid var(--vault-border);
-  background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vault-accent) 14%, transparent), transparent);
   color: var(--vault-text-muted);
   font-size: 0.68rem;
   font-weight: 800;
@@ -35,7 +35,7 @@
 
 .table tbody tr + tr th,
 .table tbody tr + tr td {
-  border-top: 1px solid rgba(58, 40, 102, 0.55);
+  border-top: 1px solid var(--vault-border);
 }
 
 .table tbody th,
@@ -49,7 +49,7 @@
 
 .table tbody tr:hover th,
 .table tbody tr:hover td {
-  background: rgba(168, 85, 247, 0.07);
+  background: color-mix(in srgb, var(--vault-accent) 7%, transparent);
 }
 
 .gameCell {
@@ -98,14 +98,14 @@
 }
 
 .deckVerified {
-  border: 1px solid rgba(110, 231, 183, 0.4);
-  background: rgba(110, 231, 183, 0.13);
+  border: 1px solid color-mix(in srgb, var(--vault-success) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 13%, transparent);
   color: var(--vault-success);
 }
 
 .deckPlayable {
-  border: 1px solid rgba(201, 166, 255, 0.34);
-  background: rgba(168, 85, 247, 0.14);
+  border: 1px solid var(--vault-border);
+  background: color-mix(in srgb, var(--vault-accent) 14%, transparent);
   color: var(--vault-control-focus);
 }
 
@@ -170,7 +170,7 @@
   .gameCell {
     min-width: 0;
     padding: 12px 14px;
-    border-bottom: 1px solid rgba(58, 40, 102, 0.55);
+    border-bottom: 1px solid var(--vault-border);
   }
 
   .table tbody td {

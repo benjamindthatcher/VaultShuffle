@@ -7,6 +7,9 @@ import styles from "./LibraryGameGrid.module.css";
 
 type LibraryGameGridProps = {
   games: DemoGame[];
+  loadMore?: () => void;
+  total?: number;
+  loadingMore?: boolean;
   viewMode: "grid" | "list";
   onSelect: (gameId: string) => void;
   onComplete: (gameId: string) => void;
@@ -36,7 +39,7 @@ type LibraryGameGridProps = {
 const INITIAL_RENDER_COUNT = 60;
 const RENDER_BATCH = 60;
 
-export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onBlacklist, onTogglePin, pinnedIds = [], resetKey, selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
+export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onRestore, onBlacklist, onTogglePin, pinnedIds = [], resetKey, loadMore, total, loadingMore = false, selectable = false, selectedIds, onToggleSelect }: LibraryGameGridProps) {
   const [renderCount, setRenderCount] = useState(INITIAL_RENDER_COUNT);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
@@ -47,7 +50,7 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
   }
 
   const visible = games.length <= renderCount ? games : games.slice(0, renderCount);
-  const hasMore = visible.length < games.length;
+  const hasMore = visible.length < games.length || Boolean(loadMore);
 
   useEffect(() => {
     if (!hasMore) return;
@@ -59,14 +62,15 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) {
-          setRenderCount((current) => current + RENDER_BATCH);
+          if (visible.length < games.length) setRenderCount((current) => current + RENDER_BATCH);
+          else if (!loadingMore) loadMore?.();
         }
       },
       { rootMargin: "600px 0px" }
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasMore, visible.length]);
+  }, [hasMore, visible.length, games.length, loadMore, loadingMore]);
 
   return (
     <>
@@ -91,7 +95,7 @@ export function LibraryGameGrid({ games, viewMode, onSelect, onComplete, onResto
 
       {hasMore ? (
         <div ref={sentinelRef} className={styles.more} role="status">
-          Showing {visible.length} of {games.length}
+          Showing {visible.length} of {total ?? games.length}{loadingMore ? " · Loading…" : ""}
         </div>
       ) : null}
     </>

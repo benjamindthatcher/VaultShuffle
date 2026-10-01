@@ -121,7 +121,6 @@ export async function updateGame(userId: string, gameId: string, payload: GamePa
     last_played_at: payload.last_played_at,
     notes: payload.notes,
     completed_at: payload.completed_at,
-    slept_at: payload.slept_at,
     completion_suggestion_dismissed_at: payload.completion_suggestion_dismissed_at,
     completion_suggestion_dismissed_playtime: payload.completion_suggestion_dismissed_playtime
   });
@@ -135,12 +134,13 @@ export async function patchGame(userId: string, gameId: string, payload: Partial
     const { data: statusGame, error: statusError } = await supabase.rpc("set_user_game_status", {
       p_user_id: userId,
       p_game_id: gameId,
-      p_status: status
+      // The original applied RPC still uses this storage spelling until the
+      // authority switch. Product requests and V2 use permanent Blacklist.
+      p_status: status === "Blacklisted" ? "Slept" : status
     });
     if (statusError) throw statusError;
     delete update.status;
     delete update.completed_at;
-    delete update.slept_at;
     if (Object.keys(update).length === 0) {
       return statusGame ? findGame(userId, gameId) : null;
     }
@@ -256,13 +256,10 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
   }
   if (update.status === "Completed") {
     update.completed_at = typeof update.completed_at === "string" ? update.completed_at : new Date().toISOString();
-    update.slept_at = null;
-  } else if (update.status === "Slept") {
-    update.slept_at = typeof update.slept_at === "string" ? update.slept_at : new Date().toISOString();
+  } else if (update.status === "Blacklisted") {
     update.completed_at = null;
   } else if (typeof update.status === "string") {
     update.completed_at = null;
-    update.slept_at = null;
   }
   if (typeof update.completion_percentage === "number") {
     update.completion_percentage = clamp(Math.round(update.completion_percentage), 0, update.status === "Completed" ? 100 : 99);
@@ -273,7 +270,10 @@ function normalizePatchPayload(payload: Partial<GamePayload>) {
 function cleanStoredGame(game: Game) {
   const notes = cleanUserNotes(game.notes);
   const ownership = normalizeOwnership(game.ownership);
-  return notes === game.notes && ownership === game.ownership ? game : { ...game, notes, ownership };
+  const status = (game.status as string) === "Slept" ? "Blacklisted" : game.status;
+  const cleaned = { ...game, notes, ownership, status };
+  delete (cleaned as Game & { slept_at?: unknown }).slept_at;
+  return cleaned;
 }
 
 function cleanUserNotes(value: unknown) {

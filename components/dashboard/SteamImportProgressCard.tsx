@@ -17,7 +17,8 @@ const PURGE_SUGGESTION_MIN_GAMES = 40;
 
 export function SteamImportProgressCard() {
   const {
-    games,
+    unfilteredGameCount,
+    dataAuthority,
     isLive,
     isLoading,
     isSyncing,
@@ -90,7 +91,7 @@ export function SteamImportProgressCard() {
     const running = isSyncing || steamImport.status === "importing" || steamImport.status === "fetching";
     if (running) {
       runningRef.current = true;
-      if (games.length === 0) setWasFirstImport(true);
+      if (unfilteredGameCount === 0) setWasFirstImport(true);
       return;
     }
     if (!runningRef.current || steamImport.status !== "complete") return;
@@ -105,13 +106,13 @@ export function SteamImportProgressCard() {
       setEngaged(false);
     }, 4000);
     return () => window.clearTimeout(timer);
-  }, [games.length, isSyncing, steamImport.status, wasFirstImport]);
+  }, [unfilteredGameCount, isSyncing, steamImport.status, wasFirstImport]);
 
   useEffect(() => {
     if (!markerChecked || !steamImportChecked || isLoading || !isLive || isSyncing) return;
 
-    const hasNoLibrary = games.length === 0;
-    const shouldResume = steamImport.status === "importing";
+    const hasNoLibrary = unfilteredGameCount === 0;
+    const shouldResume = steamImport.status === "importing" || dataAuthority === "v2" && steamImport.status === "fetching";
     const shouldStart = refreshRequested
       || shouldResume
       || (hasNoLibrary && (steamImport.status === "idle" || steamImport.status === "complete"));
@@ -123,7 +124,8 @@ export function SteamImportProgressCard() {
     setEngaged(true);
     void syncSteamLibrary({ restart: refreshRequested || !shouldResume }).catch(() => undefined);
   }, [
-    games.length,
+    unfilteredGameCount,
+    dataAuthority,
     isLive,
     isLoading,
     isSyncing,
@@ -134,13 +136,13 @@ export function SteamImportProgressCard() {
     syncSteamLibrary
   ]);
 
-  const checkingForFirstImport = isLive && games.length === 0 && (!markerChecked || !steamImportChecked);
+  const checkingForFirstImport = isLive && unfilteredGameCount === 0 && (!markerChecked || !steamImportChecked);
   const running = isSyncing || checkingForFirstImport || steamImport.status === "importing" || steamImport.status === "fetching";
   const visible = running
     || justFinished
     || coolingDown
     || steamLibraryPrivate
-    || (steamImport.status === "failed" && games.length === 0)
+    || (steamImport.status === "failed" && unfilteredGameCount === 0)
     || (engaged && steamImport.status === "failed");
   if (!visible) return null;
 
@@ -184,7 +186,7 @@ export function SteamImportProgressCard() {
   }
 
   return (
-    <section className={`${styles.card}${failed ? ` ${styles.failed}` : ""}`} aria-live="polite">
+    <section data-vault-controls="standard" className={`${styles.card}${failed ? ` ${styles.failed}` : ""}`} aria-live="polite">
       <span className={styles.icon}><VaultIcon name={complete ? "check" : "steam-data"} size={23} /></span>
       <div className={styles.copy}>
         <h2>{title}</h2>
@@ -193,6 +195,7 @@ export function SteamImportProgressCard() {
       {complete && wasFirstImport ? (
         <div className={styles.handoffGroup}>
           <Link
+            data-vault-control="primary"
             className={styles.handoff}
             href="/vault"
             onClick={() => setJustFinished(false)}
@@ -208,6 +211,7 @@ export function SteamImportProgressCard() {
               stays the point. */}
           {steamImport.total >= PURGE_SUGGESTION_MIN_GAMES ? (
             <Link
+              data-vault-control="secondary"
               className={styles.handoffSecondary}
               href="/library?tab=active"
               onClick={() => setJustFinished(false)}
@@ -221,11 +225,12 @@ export function SteamImportProgressCard() {
       {steamLibraryPrivate ? (
         <div className={styles.privateFix}>
           <ol>
-            <li>Open your <a href={privacyUrl} target="_blank" rel="noreferrer">Steam privacy settings</a></li>
+            <li>Open your <a data-vault-control="text" href={privacyUrl} target="_blank" rel="noreferrer">Steam privacy settings</a></li>
             <li>Set <strong>Game details</strong> to <strong>Public</strong> — the only setting we read</li>
             <li>Come back and try again</li>
           </ol>
-          <button type="button" onClick={retry} disabled={isSyncing}>
+          <button data-vault-control="steam" aria-busy={isSyncing} type="button" onClick={retry} disabled={isSyncing}>
+            {isSyncing ? <span data-control-spinner aria-hidden="true" /> : null}
             {isSyncing ? "Checking…" : "I've made it public — try again"}
           </button>
         </div>
@@ -250,13 +255,14 @@ export function SteamImportProgressCard() {
         {/* During a cooldown the button counts down and stays disabled, rather
             than inviting a press that the window will only refuse again. */}
         {coolingDown ? (
-          <button type="button" disabled>
+          <button data-vault-control="steam" type="button" disabled>
             {cooldownSecondsLeft >= 60
               ? `Try again in ${waitLabel}`
               : `Try again in ${cooldownSecondsLeft}s`}
           </button>
         ) : failed ? (
-          <button type="button" onClick={retry} disabled={isSyncing}>
+          <button data-vault-control="steam" aria-busy={isSyncing} type="button" onClick={retry} disabled={isSyncing}>
+            {isSyncing ? <span data-control-spinner aria-hidden="true" /> : null}
             {isSyncing ? "Resuming…" : steamImport.total > steamImport.imported ? "Resume import" : "Try Steam again"}
           </button>
         ) : null}

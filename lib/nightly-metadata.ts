@@ -1,3 +1,5 @@
+import {isV2Authority} from "@/lib/database-authority";
+import {runV2NightlyOwnedRefresh} from "@/lib/v2/background-workers";
 import { recordSteamVisibility, upsertSteamGames } from "@/lib/games";
 import { recordImportedSteamAppIds } from "@/lib/catalogue";
 import { fetchOwnedSteamGames, fetchRecentlyPlayedSteamAppIds } from "@/lib/steam";
@@ -14,6 +16,7 @@ type SteamUser = {
 };
 
 export async function refreshNightlyMetadata() {
+  if (isV2Authority()) return runV2NightlyOwnedRefresh();
   const apiKey = process.env.STEAM_WEB_API_KEY;
   if (!apiKey) throw new Error("STEAM_WEB_API_KEY is required for the nightly refresh.");
 

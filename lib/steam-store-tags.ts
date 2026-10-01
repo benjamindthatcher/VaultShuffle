@@ -1,3 +1,5 @@
+import {readStorePageTags} from "./steam-tag-model.ts";
+export {readStorePageTags,type StoreTagState,type StorePageVerdict} from "./steam-tag-model.ts";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { steamRetryAfter } from "@/lib/steam-api-error";
 import { waitForSteamStoreRateLimit } from "@/lib/steam";
@@ -32,59 +34,8 @@ const STORE_PAGE_TIMEOUT_MS = 20_000;
  * a signed-in account as well and stay gated whatever we send, which is the 12%.
  */
 const AGE_GATE_COOKIE = "birthtime=283996801; mature_content=1; lastagecheckage=1-January-1980; Steam_Language=english";
-const INIT_APP_TAG_MODAL = /InitAppTagModal\(\s*(\d+)\s*,\s*(\[[\s\S]*?\])\s*,/;
-/** Furniture every product page carries and the storefront redirect carries none of. */
-const PRODUCT_PAGE = /apphub_AppName|game_area_purchase/;
-
-export type StoreTagState = "ok" | "no_tags" | "age_gated" | "unavailable" | "error";
-export type StorePageVerdict =
-  | { state: "ok"; tags: Record<string, number> }
-  | { state: "no_tags" | "age_gated" | "unavailable" };
-
 class StoreTagRateLimitError extends Error {
   constructor(readonly retryAfterSeconds: number) { super("Steam store rate limit reached."); }
-}
-
-/** What a fetched store page says about a game, without deciding what to do about it. */
-export function readStorePageTags(steamAppId: number, html: string): StorePageVerdict {
-  const match = INIT_APP_TAG_MODAL.exec(html);
-  if (!match) {
-    if (/agecheck/i.test(html)) return { state: "age_gated" };
-    // A delisted AppID redirects to the storefront, which carries none of a product
-    // page's furniture. A real product page whose tag block could not be read is a
-    // different thing and worth asking again in a month, rather than being written
-    // off as gone for six.
-    return { state: PRODUCT_PAGE.test(html) ? "no_tags" : "unavailable" };
-  }
-  // Steam answers some retired AppIDs with a replacement product's page. Tagging
-  // the wrong game is worse than leaving this one untagged, so the page has to
-  // admit to being the one that was asked for.
-  if (Number(match[1]) !== steamAppId) return { state: "unavailable" };
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(match[2]);
-  } catch {
-    return { state: "no_tags" };
-  }
-  if (!Array.isArray(parsed)) return { state: "no_tags" };
-
-  const tags = sanitizeStoreTags(parsed);
-  return Object.keys(tags).length ? { state: "ok", tags } : { state: "no_tags" };
-}
-
-function sanitizeStoreTags(entries: unknown[]): Record<string, number> {
-  const tags: Record<string, number> = {};
-  for (const entry of entries) {
-    if (!entry || typeof entry !== "object") continue;
-    const { name, count } = entry as { name?: unknown; count?: unknown };
-    if (typeof name !== "string") continue;
-    const tag = name.trim().replace(/\s+/g, " ");
-    const weight = Math.max(0, Math.round(Number(count)));
-    if (!tag || tag.length > 100 || !Number.isFinite(weight)) continue;
-    tags[tag] = weight;
-  }
-  return tags;
 }
 
 async function fetchStorePage(steamAppId: number) {

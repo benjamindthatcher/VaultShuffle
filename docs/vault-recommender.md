@@ -61,3 +61,44 @@ The live tables were checked again after the pause: 35,627 user genre rows, 1,02
 The implementation and local action flow are validated. Release completion still requires deploying the application and worker together, checking an authenticated production bootstrap, and observing the modern events from real production actions. The approved release contains only the Vault changes; unrelated feature work stays in the original checkout. At the time of this pre-deployment review, production event verification remained the final release gate.
 
 Remaining data limitations are intrinsic: Steam playtime includes replaying and idle time, duration estimates do not measure campaign progress, and family-shared personal playtime may be unknown. Explanations use estimates and conservative eligibility accordingly.
+
+
+## Polish and learning review, 25 September 2026
+
+This is a source-code review of the current checkout, not a new inspection of production tables. The earlier production observations above retain their original dates. The selection architecture and numeric learning weights are unchanged.
+
+### Signals and decisions
+
+| Signal | Current interpretation and review decision |
+| --- | --- |
+| Play now | Steam-client launch is 3 positive units; a store visit is 2.5 units of intent. Neither proves actual playtime. Preserve the distinction. |
+| Save for later / Playing Next | 2 positive units, weaker than launch. Active commitments outside Vault are included; events within five minutes of a commitment suppress a duplicate state vote. |
+| Remove / replace Playing Next | Frees a slot without a new negative vote. The earlier expression of interest remains historical evidence. |
+| Reroll | 1 negative unit per distinct draw, ignored if the same draw has a stronger opinion or reroll reason. Repeated rerolls accumulate gradually; duplicates on the same draw do not. |
+| Explicit reroll feedback | Not interested contributes 2 negative units; wrong mood contributes 1 only to that mood, not a per-game verdict. Too long, played enough and not tonight suppress the bare reroll without claiming genre dislike. |
+| Blacklist | Removes eligibility immediately; the persisted Library outcome supplies 4 negative units. Its automatic replacement does not also record a bare reroll or a second historical blacklist event. Undo clears the outcome timestamp, so it disappears at the next rebuild. |
+| Complete | 1 positive unit, deliberately below a save. The prior audit found bulk historical completions dominating draw decisions; increasing this solely because completion sounds stronger would recreate that bias. Keep the cap pending new outcome evidence. |
+| Launch after saving | The launch supersedes the save on the same draw; Playing Next baseline progress remains intact. Later ownership-playtime evidence is a separate, weaker signal. |
+| Dwell | No dwell signal is consumed by this worker. Do not invent one or equate leaving a card onscreen with acceptance. |
+| Historical Like / Dislike | Still consumed within the learning window; no retired controls are reintroduced. |
+
+Genre preferences are personal, shrunk toward a baseline, and bounded to ±8 points. Population genre priors help sparse users. Per-game verdicts are population-level, with an eight-unit prior and bounded verdict/popularity terms; there is no separate personal game-verdict model to infer from these tables. Draw and Library evidence decays with a 60-day half-life over 180 days, and at most 50 Library outcomes per user are counted. Ownership playtime is a current snapshot rather than a timestamped event stream. Family ownership rows are excluded from inferred playtime evidence; deliberate family-library actions remain usable.
+
+Learned genre preference only changes finalist probabilities in the experiment's test arm. It does not change eligibility or the finalist set. Quick Draw and collection draws remain uniform. Legacy `pinned` and `sleep` storage names retain their explicit Playing Next and Blacklist meanings. Live `algorithm_weights` can override the defaults above; this review did not read or change them.
+
+### Evidence-based fixes
+
+Personal-taste explanations now consume structured genre/mood evidence from the scorer. They no longer search display strings or depend on the four-item legacy reason list. Population-only evidence cannot be called personal taste, and the control arm does not explain a preference term it did not use.
+
+Result reasons preserve family provenance, then Goal, Session, Mood, selected Genres, revisit evidence, personal taste and positive appeal, with at most four tiles. Session copy distinguishes short/evening/weekend and uses supported sessionability. Revisit copy preserves date precision; family explanations never infer personal progress or recency. Divisive appeal still penalizes selection but does not appear as a positive reason. Technical fit and pool position moved to Vault Lens; the result shows only its qualitative match label.
+
+Blacklist on the result removes eligibility optimistically, removes Playing Next if necessary, and starts another pick without waiting for persistence. Undo waits behind the pending blacklist write and restores the previous status and available Playing Next slot. Failed writes reconcile through the existing mutation queue and show a recoverable error. History persistence runs independently of rendering; follow-up events capture the pending draw ID so rapid rerolls remain correctly attributed. Quick Draw's result explicitly says setup was not used, and rerolling that result remains a Quick Draw.
+
+The result retains four distinct actions: launch/store, save/status, reroll and blacklist. Mobile stacks them in that order. The store fallback remains named “View on Steam” because it cannot launch a client. Undo and error notices stack above the bottom analytics notice. The setup retains three editable steps, with consistent selected values and completed indicators.
+
+
+### Validation of this polish pass
+
+553 unit tests passed. The full 37-test Chromium browser suite passed, covering Vault, Playing Next, Library, navigation and Wishlist. After the last attribution/count fixes, all 14 Vault/Playing Next checks passed again, followed by a focused regression proving that a launch during reroll animation still belongs to the visible game. The production build and typecheck passed. Source lint excluding unrelated `.claude` worktrees passed with zero errors and 23 existing warnings; plain `npm run lint` also scans generated files in those nested worktrees and fails there.
+
+Browser coverage includes guest guided/Quick Draw, saved-state behavior, launch versus store intent, replacement/removal, failed saves, delayed Blacklist persistence, immediate Undo, repeated rerolls across a cycle, final-game empty state, slow history, mobile action order, mobile scroll stability and no horizontal overflow. Runtime error assertions passed. Desktop (1280×720) and mobile (390×844) result screenshots were inspected; Playwright was used because the Browser plugin was unavailable. Live Steam launch, production event arrival and live learning-table freshness were not exercised by the mocked signed-in browser flows. No deployment or database changes were made in this pass.

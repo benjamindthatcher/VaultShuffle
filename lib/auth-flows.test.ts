@@ -9,7 +9,6 @@ import * as library from "./steam-owned-games.ts";
 import * as snapshots from "./steam-library-snapshot.ts";
 import * as input from "./steam-profile-input.ts";
 import * as diagnostics from "./diagnostics.ts";
-import * as security from "./manual-profile-security.ts";
 
 // Execute the actual route handlers with explicit, in-memory service adapters.
 // Unknown imports fail closed: this harness cannot reach production or Supabase.
@@ -46,12 +45,11 @@ function harness(options: { libraryError?: Error; profileMissing?: boolean; visi
     "@/lib/diagnostics": diagnostics,
     "@/lib/diagnostics-server": { requestDiagnostics: diagnosticAdapter, reportApiFailure: () => undefined, reportServiceWarning: () => undefined },
     "@/lib/steam-api-error": steamErrors, "@/lib/steam-owned-games": library, "@/lib/steam-library-snapshot": snapshots,
-    "@/lib/steam-profile-input": input, "@/lib/manual-profile-security": security,
+    "@/lib/steam-profile-input": input,
     "@/lib/steam-setup-cache": { steamSetupCache: () => cache },
     "@/lib/rate-limit": { enforceRateLimit: async () => undefined, releaseRateLimit: async () => undefined, requestFingerprint: () => "test", RateLimitExceededError },
     "@/lib/recency-sync": { syncSteamRecentWindow: async () => ({ error: null }) },
     "@/lib/catalogue": { processCatalogueQueue: async () => undefined },
-    "@/lib/posthog-server": { deliverPostHogAccountProfileMerge: async () => undefined },
     "@/lib/auth": {
       SessionRequiredError,
       getCurrentSession: async () => loggedIn ? { user, sessionId: accountId } : null,
@@ -248,4 +246,21 @@ test("Steam start and callback share a diagnostic-only flow ID, including cancel
   const response = await h.route("auth/steam/callback", "GET")(new next.NextRequest("http://localhost/api/auth/steam/callback?openid.mode=cancel", { headers: { Cookie: `vault_auth_trace=${flowId}` } }));
   assert.equal(response.status, 307); assert.equal(h.accountsCreated, 0);
   assert.ok(h.entries.some((entry) => entry.flow_id === flowId && entry.error_code === "steam_sign_in_cancelled"));
+});
+
+test("retired merge entry returns to dashboard without starting Steam sign-in", async () => {
+  const h = harness({ existingSession: true });
+  const response = await h.route("auth/steam", "GET")(new Request("http://localhost/api/auth/steam?flow=secure-profile"));
+  assert.equal(response.headers.get("location"), "http://localhost/dashboard");
+  assert.equal(h.accountsCreated, 0);
+  assert.match(response.headers.get("set-cookie") ?? "", /vault_profile_security=;/);
+});
+
+test("a stale merge cookie cannot invoke a merge during verified Steam sign-in", async () => {
+  const h = harness({ existingSession: true });
+  const response = await h.route("auth/steam/callback", "GET")(new next.NextRequest(`http://localhost/api/auth/steam/callback?openid.claimed_id=https://steamcommunity.com/openid/id/${steamId}`, { headers: { Cookie: "vault_profile_security=retired-intent" } }));
+  assert.match(response.headers.get("location") ?? "", /\/dashboard$/);
+  assert.match(response.headers.get("set-cookie") ?? "", /vault_session=/);
+  assert.match(response.headers.get("set-cookie") ?? "", /vault_profile_security=;/);
+  assert.equal(h.accountsCreated, 1);
 });

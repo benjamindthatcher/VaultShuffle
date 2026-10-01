@@ -69,7 +69,7 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
         ref={triggerRef}
         id={triggerId}
         type="button"
-        className={styles.compactCard}
+        data-vault-control="secondary" className={styles.compactCard}
         data-active={selectionActive || undefined}
         onClick={() => setOpen(true)}
         aria-haspopup="dialog"
@@ -88,12 +88,12 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
       {open ? createPortal(<div className={styles.modalLayer}>
         <button type="button" className={styles.backdrop} onClick={close} aria-label="Close collection picker" />
         <div ref={dialogRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="collection-picker-title">
-          <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" className={styles.closeButton} onClick={close} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
+          <header className={styles.dialogHeader}><div><p className={styles.dialogEyebrow}>Vault pool</p><h2 id="collection-picker-title">Choose a collection</h2></div><button type="button" data-vault-control="tertiary" data-control-size="icon" className={styles.closeButton} onClick={close} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
           <label className={styles.search}><VaultIcon name="search" size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search collections…" /></label>
           <div className={styles.collectionList}>
             {visibleCollections.map((collection) => {
               const selected = collection.id === selectedCollection.id;
-              return <button key={collection.id} type="button" className={selected ? `${styles.collectionRow} ${styles.collectionRowSelected}` : styles.collectionRow} onClick={() => { onSelect(collection.id); close(); }}>
+              return <button data-vault-control="selection" data-control-hover="secondary" aria-pressed={selected} key={collection.id} type="button" className={selected ? `${styles.collectionRow} ${styles.collectionRowSelected}` : styles.collectionRow} onClick={() => { onSelect(collection.id); close(); }}>
                 <span className={styles.thumbnail}><Artwork src={collection.artworkUrl} sizes="72px" /></span>
                 <span><strong>{collection.name}</strong><small>{collection.id === "all" ? "No collection restriction" : collection.description}</small></span>
                 <span className={styles.rowCount}>{collectionCounts[collection.id] ?? 0} games</span>
@@ -102,7 +102,7 @@ export function VaultCollectionCard({ selectedCollection, collections, collectio
             })}
             {!visibleCollections.length ? <p className={styles.empty}>No collections match that search.</p> : null}
           </div>
-          <Link className={styles.manageLink} href="/collections">Manage collections <VaultIcon name="chevron-right" size={17} /></Link>
+          <Link data-vault-control="tertiary" className={styles.manageLink} href="/collections">Manage collections <VaultIcon name="chevron-right" size={17} /></Link>
         </div>
       </div>, document.body) : null}
     </section>

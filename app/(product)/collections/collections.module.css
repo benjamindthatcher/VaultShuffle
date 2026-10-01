@@ -24,7 +24,7 @@
 .primaryAction {
   border: 0;
   background: var(--vault-accent);
-  color: #fff;
+  color: var(--vault-text);
 }
 
 .secondaryAction {
@@ -88,7 +88,7 @@
   border: 1px solid var(--vault-card-border);
   border-radius: 10px;
   background: transparent;
-  color: #dc8cff;
+  color: var(--vault-accent);
 }
 
 .composerGrid {
@@ -130,13 +130,13 @@
   padding: 2px 2px 12px;
   scroll-behavior: smooth;
   scroll-snap-type: x mandatory;
-  scrollbar-color: #b447ff rgba(85, 77, 139, 0.16);
+  scrollbar-color: var(--vault-accent) color-mix(in srgb, var(--vault-accent) 16%, transparent);
   scrollbar-width: thin;
 }
 
 .collectionGrid:focus-visible {
   border-radius: 8px;
-  outline: 2px solid rgba(172, 113, 255, 0.72);
+  outline: 2px solid var(--vault-accent);
   outline-offset: 3px;
 }
 
@@ -171,7 +171,7 @@
 
 .formError {
   margin: 0;
-  color: #ff9eb7;
+  color: var(--vault-danger);
   font-size: 0.9rem;
   font-weight: 650;
 }
@@ -182,8 +182,8 @@
 }
 
 .dangerAction {
-  color: #ff9db1;
-  border-color: rgba(255, 112, 143, 0.26);
+  color: var(--vault-danger);
+  border-color: color-mix(in srgb, var(--vault-danger) 40%, transparent);
 }
 
 .placeholderAction {
@@ -192,7 +192,7 @@
   border: 0;
   border-radius: 10px;
   background: var(--vault-accent);
-  color: #fff;
+  color: var(--vault-text);
   font-size: 0.82rem;
   font-weight: 700;
 }
@@ -226,6 +226,7 @@
 
   .selectedActions > * {
     flex: 1 1 0;
+    min-width: max-content;
   }
 
   .composerActions {
@@ -277,7 +278,7 @@
   background: var(--vault-card-surface);
 }
 .suggestedCard strong {
-  color: #f2f4ff;
+  color: var(--vault-text);
   font-size: 0.92rem;
 }
 .suggestedCard small {
@@ -296,7 +297,7 @@
   border: 1px solid var(--vault-tile-selected-border);
   border-radius: 9px;
   background: var(--vault-tile-selected-surface);
-  color: #fff;
+  color: var(--vault-text);
   font-size: 0.82rem;
   font-weight: 600;
 }
@@ -305,3 +306,10 @@
   background: transparent;
   color: var(--vault-text-muted);
 }
+
+/* Informational game cards are not actions; keep their surfaces stationary. */
+.selectedGames > article:hover { transform: none; }
+.field :is(input, select):focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 2px; }
+.selectedActions { flex-wrap: wrap; }
+.collectionGrid { padding-top: 5px; padding-inline: 5px; }
+@media (prefers-reduced-motion: reduce) { .collectionGrid { scroll-behavior: auto; } }

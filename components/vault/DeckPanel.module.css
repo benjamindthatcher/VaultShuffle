@@ -27,7 +27,7 @@
 
 /* The eyebrow used on every other section label. */
 .heading p {
-  color: #d392ff;
+  color: var(--vault-accent);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.15em;

@@ -5,7 +5,7 @@ import { SharedInformationShell } from "@/components/site/SharedInformationShell
 import { pageOpenGraph, pageTwitter } from "@/lib/site";
 
 const description =
-  "Answers about VaultShuffle's free Steam game picker and backlog manager: Steam sign-in, library imports, recommendations, filters, devices, missing games, privacy, and deletion.";
+  "Answers about VaultShuffle's free Steam backlog manager, including library imports, game picks, Playing Next, collections, Wishlist, completion tracking and account access.";
 
 export const metadata: Metadata = {
   title: "Steam Backlog Manager FAQ",
@@ -17,79 +17,94 @@ export const metadata: Metadata = {
 
 const FAQ_ITEMS = [
   {
-    question: "What is VaultShuffle?",
+    question: "What is VaultShuffle, and is it free?",
     answer:
-      "VaultShuffle is a free Steam backlog manager and game picker. It imports your public library, helps you organise games and suggests what to play next based on your available time, mood and goal."
-  },
-  {
-    question: "How does VaultShuffle pick a game?",
-    answer:
-      "For a guided draw, VaultShuffle applies your filters and game statuses, then ranks eligible games using your session, mood, goal and game data. It makes a weighted choice from the strongest matches and shows the reasons behind the result."
-  },
-  {
-    question: "Is it just a random Steam game picker?",
-    answer:
-      "A guided draw uses randomness to choose between strong matches, rather than treating every game equally. Session and mood affect ranking; they do not guarantee a perfect fit. The option to skip the questions draws from a wider pool of eligible games."
+      "VaultShuffle is a free Steam backlog manager and game picker. It helps you choose what to play from your library, organise your games and keep track of what you finish. There is no paid tier or subscription."
   },
   {
     question: "How do I import my Steam library?",
     answer:
-      "Sign in with Steam, or enter a public Steam profile URL, custom profile name or SteamID. Your profile and game details need to be public for the import to work. You can also try guest mode with a sample library."
+      "Sign in with Steam, or enter your public Steam profile URL, custom profile name or SteamID. Your Steam profile and Game details must be public. If your playtime is missing, also check whether Steam is set to keep your total playtime private, then refresh your library."
   },
   {
-    question: "Is signing in with Steam safe?",
+    question: "Can I use VaultShuffle without signing in through Steam?",
     answer:
-      "Steam handles sign-in on its own website through OpenID. VaultShuffle receives confirmation of your SteamID, then reads public profile and library data through Steam's API. It never receives your Steam password or changes your Steam account."
+      "Yes. Try guest mode with a sample catalogue, or use a public Steam profile URL to create a VaultShuffle profile for that library. The URL option does not verify ownership: anyone with the same public profile link can access that VaultShuffle profile. Use Steam login if you want access tied to ownership of your Steam account."
   },
   {
-    question: "Do I have to sign in with Steam?",
+    question: "Can I return to my profile on another device?",
     answer:
-      "No. A public-profile import creates a separate VaultShuffle profile without verifying ownership of the Steam account. Your library and choices are saved on the server, with access tied to this browser's session. You can verify and link the profile through Steam later."
+      "Yes. Sign in with the same Steam account, or enter the same public profile URL if that is how you started. These methods use separate VaultShuffle profiles, so switching between them does not transfer your saved choices. Guest wishlist saves stay in that browser and do not transfer when you sign in."
   },
   {
-    question: "What do Session, Mood and Goal mean?",
+    question: "Is it safe to sign in with Steam?",
     answer:
-      "Session is the time you have, Mood is the level of effort you want, and Goal is whether you want to start something, make progress or be surprised. These choices shape a guided draw. You can skip them for a broader pick; collection draws use the selected collection instead."
+      "You sign in on Steam's own website. VaultShuffle receives confirmation of your SteamID and reads public profile and library data. It never receives your Steam password or permission to change your Steam account, games or purchases."
   },
   {
-    question: "What is ruled out before a draw?",
+    question: "How does VaultShuffle pick a game?",
     answer:
-      "Games marked completed or asleep, and games with an active snooze, are excluded from draws. Your global filters also apply, and some goals exclude further games—for example, Finish Something excludes endless games. Pinned games stay accessible on the Dashboard even if you change your filters."
+      "A guided draw uses Session for the time you have, Mood for the kind of experience you want, and Goal for starting something new, finding a nearby finish or being surprised. It favours stronger matches within your filters and explains the result. Roll the dice skips those choices and picks randomly from eligible games."
   },
   {
-    question: "Does VaultShuffle work for Steam Deck, Mac and Linux?",
+    question: "Why are there no games available for my draw?",
     answer:
-      "Yes. Mac and Linux filters use native platform support, so the Linux filter does not include Windows-only games that might work through Proton. The Steam Deck filter includes games marked Playable or Verified. Missing or outdated compatibility data can affect results; check Steam for your setup."
+      "Completed and blacklisted games stay out of draws. Global filters, selected genres, your goal and any active snoozes can narrow the pool further. Finish Something also needs a started game with a credible estimate of time remaining. Check Vault Lens to see what is narrowing your pool, then loosen a filter or try Surprise Me."
   },
   {
-    question: "Does VaultShuffle support Steam Families?",
+    question: "Can I filter games for Steam Deck, Mac or Linux?",
     answer:
-      "Yes. Add a family member's public Steam profile to include games estimated to be shareable from their library. Shared games are labelled, but Steam decides whether you can actually play them. VaultShuffle cannot read your playtime for those copies. You can disable family libraries, and a game you later buy becomes owned after a library refresh."
+      "Yes. Use the global device filter on the Dashboard. Steam Deck includes games marked Playable or Verified. Mac and Linux use native platform support, so Linux does not include every Windows game that might run through Proton. Compatibility data can change, so check Steam before playing."
   },
   {
-    question: "What can I do after VaultShuffle picks a game?",
+    question: "Can I include games from my Steam Family?",
     answer:
-      "You can open it in Steam, pin it, snooze it or draw again. Up to three pins appear on the Dashboard. Owned games show playtime and progress estimates where available; shared games show their source instead. Automatic and manual refreshes keep owned-game playtime up to date when Steam is available."
+      "Yes. Add a family member's public profile through Family Library on the Dashboard. VaultShuffle includes games it identifies as shareable and labels their source. Steam still decides whether you can play them, and VaultShuffle cannot read your personal playtime for those shared copies."
+  },
+  {
+    question: "What can I do after a game is picked?",
+    answer:
+      "Launch it with Play now, or use View on Steam when launching is unavailable. Save for later adds it to Playing Next, which holds up to three games on the Dashboard and in the Vault. You can replace a saved game when full, Reroll for another pick or Blacklist a game you do not want suggested."
+  },
+  {
+    question: "Can I bring back a game I blacklisted or marked complete?",
+    answer:
+      "Yes. Find it using the Library's status filters, open its details and choose Reactivate. Blacklist and Complete only change how VaultShuffle treats the game. Neither removes it from your Steam library."
   },
   {
     question: "Does VaultShuffle learn what I like?",
     answer:
-      "Actions such as playing, pinning, completing, snoozing and rerolling games influence future picks. This changes the odds within the eligible matches; it does not remove games from the shortlist or restrict you to one genre."
+      "Your play history and actions such as saving, launching, completing, blacklisting and rerolling games can influence recommendations. Learned preferences help choose between suitable games without overriding your filters. They are not applied to every guided draw, and Roll the dice and collection draws stay random."
   },
   {
-    question: "Why is a game missing from my library?",
+    question: "What are collections for?",
     answer:
-      "First check your Library filters and game statuses. If the game was not imported, Steam privacy settings, an incomplete API response or missing catalogue data may be the cause. Demos, tools and other non-game apps may be excluded. Shared games need an added family profile with a public library."
+      "Collections group your library into shelves. Choose the games yourself or create a smart collection that updates automatically from its preset. In the Vault, Collection Draw picks randomly from eligible games on the selected shelf. These collections are separate from your Steam collections."
   },
   {
-    question: "Is VaultShuffle free?",
+    question: "Does VaultShuffle know when I have finished a game?",
     answer:
-      "Yes. VaultShuffle has no paid tier, subscription or payment-card requirement."
+      "You decide when a game is complete. The completion check suggests games to review based on playtime, or you can mark one Complete in the Library. Progress and time remaining compare Steam playtime with estimated playthrough lengths. They cannot see your save file, so replaying, side content and idle time can affect the estimate."
+  },
+  {
+    question: "How does Wishlist work with my Steam wishlist?",
+    answer:
+      "Wishlist helps you discover and save games to consider buying. You can search Steam, browse recommendations or import your public Steam wishlist into your VaultShuffle profile. Importing adds games without removing existing saves. Changes here do not update Steam's wishlist. Displayed prices use your selected region; check Steam for the final price."
+  },
+  {
+    question: "Why is a game or recent playtime missing?",
+    answer:
+      "Check your Library and global filters, then choose Refresh from Steam in your profile menu. Your profile and Game details must be public, and a large import may still be processing. Steam can also return incomplete data or leave out private games, demos and other apps. If refreshing does not help, contact support."
+  },
+  {
+    question: "Does the Dashboard show what I spent on games?",
+    answer:
+      "No. Library value uses available Steam store prices, not your purchase history. Value recovered is the share of that value represented by games you marked complete, and value per hour compares price with playtime. Family games are excluded from these figures."
   },
   {
     question: "Can I delete my VaultShuffle data?",
     answer:
-      "Yes. Contact support to request deletion of your VaultShuffle profile and associated data. Signing out only ends access from this browser; it does not delete the saved profile. Deletion does not affect your Steam account or games."
+      "Yes. Use the Contact page to request deletion of your VaultShuffle profile and associated data. Signing out only ends the current browser session. Deleting VaultShuffle data does not affect your Steam account or games."
   }
 ] as const;
 
@@ -116,16 +131,12 @@ export default function FAQPage() {
       <InfoPage
         eyebrow="Help · Steam backlog manager"
         title="VaultShuffle FAQ"
-        intro="Help with library imports, game recommendations, filters and your VaultShuffle account."
+        intro="Help with your Steam library, game picks, saved games and VaultShuffle profile."
         icon="details"
         overview={{
-          title: "About VaultShuffle",
+          title: "Need a hand?",
           body: (
             <>
-              <p>
-                VaultShuffle helps you choose what to play from your Steam library. You can try a sample library,
-                import a public profile or sign in through Steam. The questions below explain how it works.
-              </p>
               <p>
                 See <Link href="/releases">what&apos;s new</Link>, read about <Link href="/steam-data">what Steam data is used</Link>,
                 or <Link href="/contact">contact us</Link> if your question is not covered below.

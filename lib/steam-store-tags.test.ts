@@ -1,3 +1,4 @@
+import * as tagModel from "./steam-tag-model.ts";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
@@ -14,6 +15,7 @@ function load(path: string, imports: Record<string, unknown>, globals: Record<st
   new Function("require", "module", "exports", ...Object.keys(globals), compiled)(
     (name: string) => {
       if (name === "server-only") return {};
+      if (name === "./steam-tag-model.ts") return tagModel;
       if (name in imports) return imports[name];
       throw new Error(`Unmocked dependency in isolated test: ${name}`);
     }, loaded, loaded.exports, ...Object.values(globals)

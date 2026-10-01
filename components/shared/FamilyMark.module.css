@@ -7,10 +7,10 @@
   flex: none;
   width: 22px;
   height: 22px;
-  border: 1px solid rgba(255, 196, 106, 0.5);
+  border: 1px solid color-mix(in srgb, var(--vault-warning) 50%, transparent);
   border-radius: 999px;
-  background: rgba(24, 18, 8, 0.82);
-  color: #ffc46a;
+  background: color-mix(in srgb, var(--vault-warning) 16%, transparent);
+  color: var(--vault-warning);
   backdrop-filter: blur(3px);
 }
 

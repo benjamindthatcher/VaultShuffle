@@ -1,3 +1,6 @@
+import {isV2Authority} from "@/lib/database-authority";
+import {runNightlyWorker} from "@/lib/nightly-worker";
+import {runV2LearningWorker} from "@/lib/v2/learning-worker";
 import { NextResponse } from "next/server";
 import { rebuildGenrePreferences } from "@/lib/genre-preference-worker";
 import { recountImportMetrics } from "@/lib/import-metrics";
@@ -6,6 +9,7 @@ import { withMetadataWorkerRun } from "@/lib/worker-runs";
 export const maxDuration = 300;
 
 export async function GET(request: Request) {
+  if (isV2Authority()) return runNightlyWorker(request,"genre-preferences",runV2LearningWorker);
   if (!process.env.CRON_SECRET || request.headers.get("authorization") !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

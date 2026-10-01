@@ -119,7 +119,7 @@ export function ContactContent() {
         <h1>Contact Us</h1>
         <p>
           For account help, library issues or privacy and deletion requests, use the form below or email{" "}
-          <a href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a>.
+          <a data-vault-control="text" href="mailto:support@vaultshuffle.com">support@vaultshuffle.com</a>.
         </p>
         <aside className={styles.quickRoute}>
           <div className={styles.quickRouteInner}>
@@ -130,7 +130,7 @@ export function ContactContent() {
                 <span>Report an issue or suggest a change. An email address is optional.</span>
               </div>
             </div>
-            <button type="button" onClick={() => openFeedback({ source: "contact-callout" })}>Share Feedback</button>
+            <button data-vault-control="secondary" type="button" onClick={() => openFeedback({ source: "contact-callout" })}>Share Feedback</button>
           </div>
         </aside>
       </section>
@@ -149,7 +149,7 @@ export function ContactContent() {
               <span><VaultIcon name="check" size={27} /></span>
               <h3 ref={successHeadingRef} tabIndex={-1}>Your message has been sent.</h3>
               <p>Any reply will be sent to the email address you provided.</p>
-              <button type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
+              <button data-vault-control="secondary" type="button" onClick={() => { setSuccess(false); setSubject(""); setMessage(""); }}>Send another message</button>
             </div>
           ) : (
             <form onSubmit={submit}>
@@ -171,7 +171,7 @@ export function ContactContent() {
                 <span>Message <small aria-hidden="true">{message.length.toLocaleString()} / 5,000</small></span>
                 <textarea required minLength={10} maxLength={5000} value={message} onChange={(event) => setMessage(event.target.value)} />
               </label>
-              <button className={styles.submit} type="submit" disabled={submitting}>{submitting ? "Sending…" : "Send Message"}</button>
+              <button data-vault-control="primary" aria-busy={submitting} className={styles.submit} type="submit" disabled={submitting}>{submitting ? <span data-control-spinner aria-hidden="true" /> : null}{submitting ? "Sending…" : "Send Message"}</button>
               {error ? <p className={styles.error} role="alert">{error}</p> : null}
             </form>
           )}

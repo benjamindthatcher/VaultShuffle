@@ -46,6 +46,13 @@ export type BacklogStats = {
   familyGames: number;
 };
 
+/** The V2 overview preserves absent price coverage rather than asserting zero. */
+export type BacklogOverviewStats = Omit<BacklogStats, "libraryValueCents" | "completedValueCents" | "unplayedValueCents" | "valueCompletedPercent" | "totalHours"> & {
+  libraryValueCents: number | null; completedValueCents: number | null;
+  unplayedValueCents: number | null; valueCompletedPercent: number | null;
+  totalHours: number | null; hoursCoverage?: string;
+};
+
 const EMPTY: BacklogStats = {
   currency: "USD",
   totalGames: 0,
@@ -146,7 +153,8 @@ function percent(part: number, whole: number) {
   return Math.max(0, Math.min(100, Math.round((part / whole) * 100)));
 }
 
-export function formatMoney(cents: number, currency = "USD") {
+export function formatMoney(cents: number | null, currency = "USD") {
+  if (cents === null) return "—";
   const amount = (cents || 0) / 100;
   try {
     // Prices are USD (the catalogue enforces it), so format in the currency's own
@@ -161,7 +169,8 @@ export function formatMoney(cents: number, currency = "USD") {
   }
 }
 
-export function formatHours(hours: number) {
+export function formatHours(hours: number | null) {
+  if (hours === null) return "—";
   if (hours >= 1000) return `${(hours / 1000).toFixed(1)}k`;
   return String(Math.round(hours));
 }

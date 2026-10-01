@@ -1,7 +1,6 @@
 "use client";
 
-import { featureAvailable } from "@/lib/steam-capabilities";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import Link from "next/link";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
@@ -9,11 +8,19 @@ import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { useCompletionClaimNotice } from "@/components/shared/CompletionClaimBanner";
 import { NoticeStack } from "@/components/shared/NoticeStack";
 import { useWelcomeBackNotice } from "@/components/shared/WelcomeBack";
-import { ManualProfileAccessNotice } from "@/components/shared/ManualProfileAccessNotice";
+import { FinishedGameCard } from "@/components/dashboard/FinishedGameCard";
+import { CompletionHistory } from "@/components/dashboard/CompletionHistory";
+import { completionHistory } from "@/lib/completion-history";
+import { useV2Dashboard } from "@/components/dashboard/useV2Dashboard";
+import { useV2Library } from "@/components/library/useV2Library";
+import { dashboardStats } from "@/lib/v2/dashboard-view-model";
+import { libraryGame } from "@/lib/v2/library-view-model";
+import { globalFilterParams } from "@/lib/v2/filter-query";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { ValueDial } from "@/components/dashboard/ValueDial";
-import { buildBacklogStats, formatHours, formatMoney, formatValueRate } from "@/lib/backlog-stats";
+import { LibraryOverview } from "@/components/dashboard/LibraryOverview";
+import { buildBacklogStats, formatMoney } from "@/lib/backlog-stats";
+import { LOCAL_DASHBOARD_PREVIEW } from "@/lib/dashboard-preview";
 import { PageHeading } from "@/components/shared/PageHeading";
 import { StatCard, StatPanel } from "@/components/shared/StatCard";
 import { GlobalFiltersPanel } from "@/components/dashboard/GlobalFiltersPanel";
@@ -29,48 +36,60 @@ import { FamilyGameMark } from "@/components/shared/FamilyMark";
 type DashboardDetailsSurface = "dashboard_guest" | "dashboard_pinned" | "dashboard_value" | "dashboard_finished";
 
 export default function DashboardPage() {
-  const { games, allGames, collections, isLive, isLoading, playtime, steamImport, steamImportChecked, capabilities, vaultState, recordVaultAction, updateGame, restoreGame, setGameCollection } = useAppData();
+  const { games, allGames, collections, isLive, isLoading, steamImport, steamImportChecked, vaultState, recordVaultAction, updateGame: saveGame, restoreGame: reactivateGame, setGameCollection, dataAuthority, libraryDataVersion, globalFilters, rememberLibraryGames, unfilteredGameCount, unfilteredFamilyCount } = useAppData();
 
   // Every game on this page names a game, so every game on this page opens it.
   // These were flat tiles: the dashboard could tell you Palworld was your best
   // value for money and then offer no way to look at it.
   const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
   const [detailsSurface, setDetailsSurface] = useState<DashboardDetailsSurface | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [savingNotes, setSavingNotes] = useState(false);
   const [pinCandidate, setPinCandidate] = useState<DemoGame | null>(null);
-  const detailsGame = detailsGameId
-    ? games.find((game) => game.id === detailsGameId) ?? allGames.find((game) => game.id === detailsGameId) ?? null
-    : null;
+  const v2=isLive && dataAuthority === "v2";
+  const remote=useV2Dashboard(v2,globalFilterParams(globalFilters),libraryDataVersion);
+  const remoteDetail=useV2Library(false,"",String(libraryDataVersion));
+  // Completion history is unfiltered, as in the existing product, and fetched only when opened.
+  const history=useV2Library(v2 && historyOpen,"section=completed&sort=recent&direction=desc&limit=60",String(libraryDataVersion));
+  const highlights=useMemo(()=>remote.payload?.cards.map(libraryGame)??[],[remote.payload]);
+  useEffect(()=>{if(v2 && highlights.length)rememberLibraryGames(highlights);},[v2,highlights,rememberLibraryGames]);
+  const detailsGame = v2 ? remoteDetail.detail?.id === detailsGameId ? remoteDetail.detail : null
+    : detailsGameId ? games.find(game=>game.id===detailsGameId)??allGames.find(game=>game.id===detailsGameId)??null : null;
 
   function openDetails(gameId: string, surface: DashboardDetailsSurface) {
     setDetailsGameId(gameId);
     setDetailsSurface(surface);
+    if(v2)void remoteDetail.openDetail(gameId);
+  }
+  async function updateGame(id:string, patch:Parameters<typeof saveGame>[1]) {
+    await saveGame(id,patch);
+    if(v2 && id===detailsGameId)await remoteDetail.openDetail(id);
+  }
+  async function restoreGame(id:string) {
+    await reactivateGame(id);
+    if(v2 && id===detailsGameId)await remoteDetail.openDetail(id);
   }
 
   function closeDetails() {
+    remoteDetail.closeDetail();
     setDetailsGameId(null);
     setDetailsSurface(null);
   }
   const completionNotice = useCompletionClaimNotice();
   const welcomeNotice = useWelcomeBackNotice();
 
-  const stats = useMemo(() => buildBacklogStats(games), [games]);
+  const stats = useMemo(() => v2 && remote.payload ? dashboardStats(remote.payload) : buildBacklogStats(games), [v2,remote.payload,games]);
 
-  const recentCompletions = useMemo(
-    () => games
-      .filter((game) => game.status === "Completed" && game.completedAt)
-      .sort((left, right) => String(right.completedAt).localeCompare(String(left.completedAt)))
-      .slice(0, 8),
-    [games]
-  );
+  const recentCompletions = useMemo(() => v2 ? highlights.filter(game=>remote.payload?.recentCompletions.some(item=>item.gameId===Number(game.id))).sort((a,b)=>(b.completedAt??"").localeCompare(a.completedAt??"")).slice(0,4) : completionHistory(games).slice(0,4),[v2,highlights,remote.payload,games]);
+  const allCompletions = useMemo(() => v2 ? history.games : completionHistory(allGames), [v2,history.games,allGames]);
 
   const bestValueGames = useMemo(
-    () => games
+    () => v2 ? (remote.payload?.bestValueGames.flatMap(item=>{const game=highlights.find(game=>Number(game.id)===item.game.gameId);return game?[{game,cents:item.cents,centsPerHour:item.centsPerHour}]:[];})??[]) : games
       .filter((game) => game.ownership === "Owned" && game.hoursPlayed >= 1 && Number(game.priceInitial ?? 0) > 0)
-      .map((game) => ({ game, centsPerHour: Number(game.priceInitial) / game.hoursPlayed }))
+      .map((game) => ({ game, cents: Number(game.priceInitial), centsPerHour: Number(game.priceInitial) / game.hoursPlayed }))
       .sort((left, right) => left.centsPerHour - right.centsPerHour)
       .slice(0, 5),
-    [games]
+    [games,v2,remote.payload,highlights]
   );
 
   const guestSummary = useMemo(() => ({
@@ -88,6 +107,8 @@ export default function DashboardPage() {
   // same wherever it is met.
   const detailsPanel = (
     <>
+    {v2 && remoteDetail.detailPending ? <p role="status">Loading game details…</p> : null}
+    {v2 && remoteDetail.error ? <p role="alert">{remoteDetail.error}</p> : null}
     <LibraryDetailsDrawer
       game={detailsGame}
       previewMode={!isLive}
@@ -121,15 +142,15 @@ export default function DashboardPage() {
       onManagePins={() => { if (detailsGame) setPinCandidate(detailsGame); }}
       onComplete={async () => {
         if (!detailsGame) return;
-        await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+        await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString() });
       }}
       onRestore={async () => {
         if (!detailsGame) return;
         await restoreGame(detailsGame.id);
       }}
-      onSleep={async () => {
+      onBlacklist={async () => {
         if (!detailsGame) return;
-        await updateGame(detailsGame.id, { status: "Slept", sleptAt: new Date().toISOString(), completedAt: null });
+        await updateGame(detailsGame.id, { status: "Blacklisted", completedAt: null });
       }}
     />
     {pinCandidate ? <ManagePinsDialog
@@ -142,37 +163,40 @@ export default function DashboardPage() {
     </>
   );
 
-  if (!isLive) {
+  const localPreview = LOCAL_DASHBOARD_PREVIEW && !isLive;
+
+  if (!isLive && !localPreview) {
     return (
-      <div className={styles.page}>
+      <div className={styles.page} data-vault-controls="standard">
         <PageHeading title="Dashboard preview" />
 
         <GuestPreviewNotice feature="Dashboard" icon="details">
           These are catalogue facts, not claims about your library. Connect a public Steam library whenever you want this dashboard to become yours.
         </GuestPreviewNotice>
 
-        <PinnedCommitments games={games} pins={vaultState.pins ?? []} pinnedIds={vaultState.pinnedIds} onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")} onUnpin={(gameId) => { void recordVaultAction("unpinned", gameId).catch(() => {}); }} showEmpty />
+        <PinnedCommitments games={games} pins={vaultState.pins ?? []} pinnedIds={vaultState.pinnedIds} onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")} onUnpin={(gameId) => { void recordVaultAction("unpinned", gameId).catch(() => {}); }} showEmpty compactEmpty />
 
-        <section className={styles.hero}>
-          <p className={styles.heroLabel}>Guest catalogue ready</p>
-          <p className={styles.heroValue}>{games.length}<span> popular Steam games</span></p>
-          <p className={styles.heroHint}>Browse the catalogue, build a preview collection or ask the Vault to choose one.</p>
-        </section>
+        <>
+            <section className={styles.hero}>
+              <p className={styles.heroLabel}>Guest catalogue ready</p>
+              <p className={styles.heroValue}>{games.length}<span> popular Steam games</span></p>
+              <p className={styles.heroHint}>Browse the catalogue, build a preview collection or ask the Vault to choose one.</p>
+            </section>
 
-
-        <StatPanel label="Guest catalogue summary" columns={4}>
-          <StatCard label="Catalogue games" value={games.length} note="Popular games available to explore." />
-          <StatCard label="Genres represented" value={guestSummary.genres} note="Useful for trying Vault filters." />
-          <StatCard label="Time estimates" value={guestSummary.timed} note="Games with a known playthrough length." />
-          <StatCard label="Review signals" value={guestSummary.reviewed} note="Games with public Steam review data." />
-        </StatPanel>
+            <StatPanel label="Guest catalogue summary" columns={4}>
+              <StatCard label="Catalogue games" value={games.length} note="Popular games available to explore." />
+              <StatCard label="Genres represented" value={guestSummary.genres} note="Useful for trying Vault filters." />
+              <StatCard label="Time estimates" value={guestSummary.timed} note="Games with a known playthrough length." />
+              <StatCard label="Review signals" value={guestSummary.reviewed} note="Games with public Steam review data." />
+            </StatPanel>
+        </>
 
         <section className={styles.section}>
           <SectionHeading title="A look inside the guest catalogue" />
           <ol className={`${styles.cardGrid} ${styles.guestGrid}`}>
             {guestSummary.featured.map((game) => (
-              <li key={game.id} className={styles.gameCard}>
-                <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_guest")} aria-label={`Open ${game.title}`} />
+              <li key={game.id} className={styles.gameCard} data-vault-card="interactive">
+                <button type="button" className={styles.cardOpen} data-vault-card-trigger onClick={() => openDetails(game.id, "dashboard_guest")} aria-label={`Open ${game.title}`} />
                 <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /><FamilyGameMark game={game} overlay /></span>
                 <strong className={styles.cardTitle}>{game.title}</strong>
                 <small className={styles.cardMeta}>{game.genres.slice(0, 3).join(" · ") || "Steam catalogue"}</small>
@@ -181,7 +205,7 @@ export default function DashboardPage() {
             ))}
           </ol>
           <Link
-            className={styles.centredAction}
+            data-vault-control="primary" className={styles.centredAction}
             href="/vault"
           >
             Try a Vault draw<VaultIcon name="chevron-right" size={16} />
@@ -193,7 +217,7 @@ export default function DashboardPage() {
     );
   }
 
-  const awaitingFirstLibrary = games.length === 0 && (
+  const awaitingFirstLibrary = !localPreview && (v2 ? unfilteredGameCount === 0 : games.length === 0) && (
     isLoading
     || !steamImportChecked
     || steamImport.status === "idle"
@@ -203,8 +227,14 @@ export default function DashboardPage() {
   );
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} data-vault-controls="standard">
       <h1 className="visually-hidden">Dashboard</h1>
+
+      {localPreview ? (
+        <GuestPreviewNotice feature="Dashboard" icon="details">
+          Local design preview — all dashboard modules are visible. Playtime, completions and family members use sample data. Filters and game changes work locally and reset on reload.
+        </GuestPreviewNotice>
+      ) : null}
 
       {awaitingFirstLibrary ? null : (
         <>
@@ -223,113 +253,74 @@ export default function DashboardPage() {
               is the one thing here you might act on tonight; the library's value
               and its stats are a standing report that keeps. */}
           <PinnedCommitments
-            games={games}
+            games={v2 ? allGames : games}
             pins={vaultState.pins ?? []}
             pinnedIds={vaultState.pinnedIds}
             onSelect={(gameId) => openDetails(gameId, "dashboard_pinned")}
             onUnpin={(gameId) => { void recordVaultAction("unpinned", gameId).catch(() => {}); }}
             compact
             showEmpty
+            compactEmpty
             emptySlotLabel="Let Vault find something worth playing."
           />
 
+          {v2 && remote.pending ? <p role="status">Loading your dashboard…</p> : null}
+          {v2 && remote.error ? <p role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p> : null}
+          {!v2 || remote.payload ? <LibraryOverview stats={stats} /> : null}
 
-          {/* Above the standing report, because it governs it: every number
-              below this panel is counted from the games it leaves in play. */}
-          <GlobalFiltersPanel />
+          {/* These filters also govern the overview above. */}
+          <GlobalFiltersPanel filteredCount={v2 ? remote.payload ? remote.payload.aggregates.ownedGames+remote.payload.aggregates.familyGames : null : undefined}
+            familyCount={v2 ? unfilteredFamilyCount : undefined} exclusionIds={v2 ? remote.payload?.availableExclusions ?? [] : undefined} />
 
           {/* Sits with the filters rather than in an account screen: both answer
               "what is even on the table", and adding a family member changes the
               pool the same way a filter does. Renders nothing at all unless
               NEXT_PUBLIC_FAMILY_SHARING is set - see lib/family-flag.ts. */}
-          <FamilySharingCard />
-
-          <ValueDial
-            percent={stats.valueCompletedPercent}
-            completedValue={formatMoney(stats.completedValueCents, stats.currency)}
-            libraryValue={formatMoney(stats.libraryValueCents, stats.currency)}
-            completedGames={stats.completedGames}
-            totalGames={stats.totalGames}
-          />
-
-          <StatPanel label="Backlog summary" columns={5}>
-            <StatCard label="Hours played" value={formatHours(stats.totalHours)} note="across the whole library" />
-            <StatCard
-              label="Play streak"
-              value={!featureAvailable("playStreak", capabilities) ? "—" : `${playtime.streakDays}d`}
-              note={!featureAvailable("playStreak", capabilities)
-                ? "Starts once we have a couple of nights of history"
-                : playtime.streakDays
-                  ? `${Math.round(playtime.minutesLast7Days / 60)}h in the last week`
-                  : "No play recorded yesterday"}
-            />
-            {/* Names the gap rather than leaving it. Every figure in this panel
-                is about the shelf you paid for, so a library that also holds
-                family games will not add up to the Library's count unless the
-                difference is stated. */}
-            <StatCard
-              label="Games completed"
-              value={`${stats.completedPercent}%`}
-              note={stats.familyGames
-                ? `${stats.completedGames} of ${stats.totalGames} owned · ${stats.familyGames} family not counted`
-                : `${stats.completedGames} of ${stats.totalGames}`}
-            />
-            <StatCard label="Never opened" value={stats.unplayedGames} note={`worth ${formatMoney(stats.unplayedValueCents, stats.currency)}`} />
-            <StatCard
-              label="Best value"
-              value={stats.bestValue ? formatValueRate(stats.bestValue, stats.currency) : "—"}
-              note={stats.bestValue ? stats.bestValue.title : "Play something to find out"}
-            />
-          </StatPanel>
+          <FamilySharingCard preview={localPreview} />
 
           {bestValueGames.length ? (
             <section className={styles.section}>
               <SectionHeading title="Most value for money" />
               <ol className={styles.podium}>
-                {bestValueGames.slice(0, 3).map(({ game, centsPerHour }, index) => (
-                  <li key={game.id} className={styles.podiumCard} data-place={index + 1}>
-                    <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_value")} aria-label={`Open ${game.title}`} />
+                {bestValueGames.slice(0, 3).map(({ game, cents, centsPerHour }, index) => (
+                  <li key={game.id} className={styles.podiumCard} data-vault-card="interactive" data-place={index + 1}>
+                    <button type="button" className={styles.cardOpen} data-vault-card-trigger onClick={() => openDetails(game.id, "dashboard_value")} aria-label={`Open ${game.title}`} />
                     <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 300px" /><FamilyGameMark game={game} overlay /></span>
-                    <span className={styles.place}>
-                      <VaultIcon name="trophy" size={18} />
-                      {index === 0 ? "1st" : index === 1 ? "2nd" : "3rd"}
+                    <span className={styles.podiumHeading}>
+                      <span className={styles.place}>
+                        <VaultIcon name="trophy" size={18} />
+                        {index === 0 ? "1st" : index === 1 ? "2nd" : "3rd"}
+                      </span>
+                      <strong className={styles.cardTitle} title={game.title}>{game.title}</strong>
                     </span>
-                    <strong className={styles.cardTitle}>{game.title}</strong>
-                    <small className={styles.cardMeta}>{Math.round(game.hoursPlayed)}h from {formatMoney(Number(game.priceInitial), stats.currency)}</small>
-                    <span className={styles.cardValue}>{formatMoney(Math.round(centsPerHour), stats.currency)}<small>/hour</small></span>
+                    <span className={styles.podiumMetrics}>
+                      <span className={styles.cardValue}>{formatMoney(Math.round(centsPerHour), stats.currency)}<small>/hour</small></span>
+                      <small className={styles.cardMeta}>{Math.round(game.hoursPlayed)}h from {formatMoney(cents, stats.currency)}</small>
+                    </span>
                   </li>
                 ))}
               </ol>
             </section>
           ) : null}
 
-          <section className={styles.section}>
-            <SectionHeading title="Recently finished" />
+          {!v2 || remote.payload ? <section className={styles.section}>
+            <SectionHeading title="Recently finished" action={<button type="button" data-vault-control="tertiary" className={styles.historyAction} aria-expanded={historyOpen} aria-controls="completion-history-panel" onClick={() => setHistoryOpen((open) => !open)}><VaultIcon name="clock" size={16} />Completion history <VaultIcon name="chevron-down" size={16} /></button>} />
+            {historyOpen ? <CompletionHistory games={allCompletions} currency={stats.currency} onSelect={(id) => openDetails(id, "dashboard_finished")}
+              total={v2 ? history.page?.total : undefined} loadMore={v2 && history.page?.nextCursor ? history.loadMore : undefined}
+              pending={v2 && history.pending} error={v2 ? history.error : null} retry={history.retry} /> : null}
             {recentCompletions.length ? (
-              <ol className={styles.cardGrid}>
-                {recentCompletions.map((game) => (
-                  <li key={game.id} className={styles.gameCard}>
-                    <button type="button" className={styles.cardOpen} onClick={() => openDetails(game.id, "dashboard_finished")} aria-label={`Open ${game.title}`} />
-                    <span className={styles.cardArt}><Artwork src={game.bannerUrl} sizes="(max-width: 760px) 45vw, 240px" /><FamilyGameMark game={game} overlay /></span>
-                    <strong className={styles.cardTitle}>{game.title}</strong>
-                    <small className={styles.cardMeta}>{new Date(String(game.completedAt)).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</small>
-                    <span className={styles.cardValue}>{formatMoney(Number(game.priceInitial ?? 0), stats.currency)}</span>
-                  </li>
-                ))}
+              <ol className={styles.finishedGrid}>
+                {recentCompletions.map((game) => <FinishedGameCard key={game.id} game={game} currency={stats.currency} onSelect={(id) => openDetails(id, "dashboard_finished")} />)}
               </ol>
             ) : (
               <div className={styles.empty}>
                 <p><strong>Nothing finished yet.</strong> The bar above fills every time you complete something.</p>
-                <Link className={styles.emptyAction} href="/vault">Draw something to play</Link>
+                <Link data-vault-control="primary" className={styles.emptyAction} href="/vault">Draw something to play</Link>
               </div>
             )}
-          </section>
+          </section> : null}
 
-          {/* Last on the page. It is a standing fact about the account rather
-              than something to act on tonight, so the dashboard's own work comes
-              first - and it renders nothing at all for a Steam-connected
-              account. */}
-          <ManualProfileAccessNotice />
+
         </>
       )}
 

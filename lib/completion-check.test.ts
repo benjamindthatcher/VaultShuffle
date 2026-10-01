@@ -49,7 +49,7 @@ test("sleeping a game says nothing about whether it was finished", () => {
   // credits is a different question, and skipping slept games meant one you had
   // finished and then put to sleep was never asked about and never reached the
   // Completed page.
-  const found = findCompletionCandidates([game({ id: "b", status: "Slept", hoursPlayed: 20 })]);
+  const found = findCompletionCandidates([game({ id: "b", status: "Blacklisted", hoursPlayed: 20 })]);
   assert.deepEqual(found.map(({ game }) => game.id), ["b"]);
 });
 

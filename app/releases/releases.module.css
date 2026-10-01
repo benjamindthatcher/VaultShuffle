@@ -11,20 +11,20 @@
 }
 
 .releaseOverview {
-  --overview-rgb: 194, 122, 255;
+  --overview-rgb: var(--vault-accent-rgb);
   position: relative;
   overflow: hidden;
   margin: 0 0 20px;
   padding: 32px 24px;
-  border: 1px solid rgba(168, 85, 247, 0.52);
+  border: 1px solid var(--vault-border);
   border-radius: 16px;
   background:
-    radial-gradient(circle at 8% -25%, rgba(168, 85, 247, 0.3), transparent 46%),
-    radial-gradient(circle at 96% 0%, rgba(78, 141, 255, 0.14), transparent 38%),
-    linear-gradient(135deg, #21143f, #121735 62%, #0e122b);
+    radial-gradient(circle at 8% -25%, color-mix(in srgb, var(--vault-accent) 30%, transparent), transparent 46%),
+    radial-gradient(circle at 96% 0%, color-mix(in srgb, var(--vault-accent) 14%, transparent), transparent 38%),
+    linear-gradient(135deg, var(--vault-surface), var(--vault-surface) 62%, var(--vault-well-surface));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.055),
-    0 12px 30px rgba(4, 5, 20, 0.16);
+    inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 5.5%, transparent),
+    0 12px 30px color-mix(in srgb, var(--vault-shadow-color) 16%, transparent);
 }
 
 .releaseOverview::before {
@@ -32,7 +32,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--vault-accent) 95%, transparent), color-mix(in srgb, var(--vault-accent) 72%, transparent), transparent 82%);
 }
 
 .overviewInner {
@@ -72,7 +72,7 @@
 }
 
 .highlight {
-  --highlight-rgb: 168, 85, 247;
+  --highlight-rgb: var(--vault-accent-rgb);
   position: relative;
   min-height: 150px;
   display: grid;
@@ -85,12 +85,12 @@
   border-radius: 14px;
   background:
     radial-gradient(circle at 12% 0%, rgba(var(--highlight-rgb), 0.17), transparent 50%),
-    linear-gradient(145deg, #1d1736, #14152e 76%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    linear-gradient(145deg, var(--vault-surface), var(--vault-surface) 76%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 4.5%, transparent);
 }
 
-.highlight:nth-child(2) { --highlight-rgb: 78, 141, 255; }
-.highlight:nth-child(3) { --highlight-rgb: 194, 122, 255; }
+.highlight:nth-child(2) { --highlight-rgb: var(--vault-accent-rgb); }
+.highlight:nth-child(3) { --highlight-rgb: var(--vault-accent-rgb); }
 
 .highlight::before {
   content: "";
@@ -140,26 +140,23 @@
   gap: 20px;
 }
 
-/* A navy well rather than the purple --vault-well-surface (#120a24). The panel
-   these sit in is already rgba(7, 11, 29, .68), so a purple-black block was the
-   one thing on the page pulling against it. Same lightness, hue moved from
-   about 270deg to 235deg, so it still reads as recessed. */
+/* Repeated release groups use the shared recessed surface. */
 .group {
-  --group-rgb: 168, 85, 247;
+  --group-rgb: var(--vault-accent-rgb);
   position: relative;
   overflow: hidden;
   padding: 26px 24px 14px;
-  border: 1px solid rgba(148, 119, 199, 0.28);
+  border: 1px solid var(--vault-border);
   border-radius: 14px;
   background:
     linear-gradient(90deg, rgba(var(--group-rgb), 0.045), transparent 32%),
-    linear-gradient(180deg, #10132f, #0d1028);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    linear-gradient(180deg, var(--vault-surface), var(--vault-well-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 2.5%, transparent);
 }
 
-.group:nth-child(4n + 2) { --group-rgb: 78, 141, 255; }
-.group:nth-child(4n + 3) { --group-rgb: 110, 231, 183; }
-.group:nth-child(4n) { --group-rgb: 194, 122, 255; }
+.group:nth-child(4n + 2) { --group-rgb: var(--vault-accent-rgb); }
+.group:nth-child(4n + 3) { --group-rgb: var(--vault-success-rgb); }
+.group:nth-child(4n) { --group-rgb: var(--vault-accent-rgb); }
 
 .group::before {
   content: "";
@@ -213,7 +210,7 @@
   gap: 12px;
   margin: 0;
   padding: 14px 0;
-  border-top: 1px solid rgba(118, 92, 176, 0.16);
+  border-top: 1px solid var(--vault-border);
   font-size: 0.92rem;
   line-height: 1.7;
 }
@@ -238,16 +235,16 @@
 /* Weight descends with the order above: a new capability should catch the eye
    from across the block, a bug fix should be findable but not shout. Same four
    hues, decreasing fill and border strength. */
-.tagNew { color: #f1e3ff; border: 1px solid rgba(168, 85, 247, 0.7); background: rgba(168, 85, 247, 0.3); }
-.tagChanged { color: #ffdcb0; border: 1px solid rgba(255, 176, 70, 0.44); background: rgba(255, 176, 70, 0.17); }
-.tagImproved { color: #cbe1ff; border: 1px solid rgba(93, 149, 255, 0.34); background: rgba(45, 123, 255, 0.13); }
-.tagFixed { color: rgba(197, 232, 219, 0.82); border: 1px solid rgba(110, 231, 183, 0.2); background: rgba(110, 231, 183, 0.05); }
+.tagNew { color: var(--vault-text); border: 1px solid var(--vault-border); background: color-mix(in srgb, var(--vault-accent) 30%, transparent); }
+.tagChanged { color: var(--vault-warning); border: 1px solid color-mix(in srgb, var(--vault-warning) 44%, transparent); background: color-mix(in srgb, var(--vault-warning) 17%, transparent); }
+.tagImproved { color: var(--vault-text); border: 1px solid var(--vault-border); background: color-mix(in srgb, var(--vault-accent) 13%, transparent); }
+.tagFixed { color: var(--vault-success); border: 1px solid color-mix(in srgb, var(--vault-success) 40%, transparent); background: color-mix(in srgb, var(--vault-success) 5%, transparent); }
 
 .releaseCoda.releaseCoda {
   width: min(calc(80% + 37px), 100%);
   max-width: none;
   margin: 18px auto 0;
-  color: rgba(245, 241, 255, 0.82);
+  color: var(--vault-text-muted);
   font-size: 0.84rem;
   line-height: 1.58;
 }

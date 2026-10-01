@@ -72,7 +72,9 @@ const ACCESS: Choice<GlobalFilters["access"]>[] = [
   { id: "family", label: "Family only" }
 ];
 
-export function GlobalFiltersPanel() {
+export function GlobalFiltersPanel({ filteredCount, familyCount, exclusionIds }: {
+  filteredCount?: number | null; familyCount?: number; exclusionIds?: readonly string[];
+} = {}) {
   const { globalFilters, setGlobalFilters, games, allGames, unfilteredGameCount } = useAppData();
   // Collapsed by default. Twenty-two chips is the largest control on the page by
   // a distance, and the panel governs the page it sits on top of - it earns its
@@ -82,8 +84,8 @@ export function GlobalFiltersPanel() {
   // Only the categories this library actually contains. Offering "VR" to someone
   // who owns no VR game is a control whose every setting produces the same list.
   const availableExclusions = useMemo(
-    () => availableExclusionCategories(allGames.map((game) => game.exclusions)),
-    [allGames]
+    () => exclusionIds ? new Set(exclusionIds) : availableExclusionCategories(allGames.map((game) => game.exclusions)),
+    [allGames, exclusionIds]
   );
   // One flowing list rather than three labelled columns. Every other well in
   // this panel is a single row 38px tall; three stacked blocks of 137, 137 and
@@ -109,7 +111,7 @@ export function GlobalFiltersPanel() {
   // Only offered once there is something to filter. A library with no shared
   // games would get a control whose every option produces the same list, which
   // is worse than no control - it implies a distinction that is not there.
-  const hasFamilyGames = allGames.some((game) => isFamilyAccess(game.accessSource));
+  const hasFamilyGames = familyCount !== undefined ? familyCount > 0 : allGames.some((game) => isFamilyAccess(game.accessSource));
 
   const activeCount = activeGlobalFilterCount(globalFilters);
   const isDefault = isDefaultGlobalFilters(globalFilters);
@@ -144,7 +146,7 @@ export function GlobalFiltersPanel() {
             const neutral = choice.id === DEFAULT_GLOBAL_FILTERS[key];
             return (
               <button
-                key={choice.id}
+                data-vault-control="selection" data-control-indicator="bar" key={choice.id}
                 type="button"
                 className={!active ? styles.choice : neutral ? styles.choiceCurrent : styles.choiceOn}
                 aria-pressed={active}
@@ -168,7 +170,7 @@ export function GlobalFiltersPanel() {
             Global filters
           </h2>
           <p className={styles.subheading}>
-            Applied everywhere — the Vault, the Library, every count below.
+            Applied everywhere — the Vault, the Library and your dashboard.
           </p>
         </div>
 
@@ -177,14 +179,14 @@ export function GlobalFiltersPanel() {
             number changed. */}
         <div className={styles.status}>
           <p className={`${styles.count} ${isDefault ? "" : styles.countNarrowed}`} aria-live="polite">
-            <span className={styles.countValue}>{games.length}</span>
+            <span className={styles.countValue}>{filteredCount === null ? "…" : filteredCount ?? games.length}</span>
             <span className={styles.countLabel}>
               {isDefault ? "games in play" : `of ${unfilteredGameCount} in play`}
             </span>
           </p>
 
           {isDefault ? null : (
-            <button type="button" className={styles.clear} onClick={() => setGlobalFilters(DEFAULT_GLOBAL_FILTERS)}>
+            <button type="button" data-vault-control="tertiary" className={styles.clear} onClick={() => setGlobalFilters(DEFAULT_GLOBAL_FILTERS)}>
               <VaultIcon name="clear-filters" size={15} />
               Clear {activeCount}
             </button>
@@ -210,7 +212,7 @@ export function GlobalFiltersPanel() {
                 its row missing. */}
             <button
               type="button"
-              role="switch"
+              data-vault-control="disclosure" role="switch"
               aria-checked={globalFilters.hidePoorlyReviewed}
               aria-labelledby="global-filter-reviews-label"
               className={globalFilters.hidePoorlyReviewed ? `${styles.switch} ${styles.switchOn}` : styles.switch}
@@ -242,7 +244,7 @@ export function GlobalFiltersPanel() {
           >
             <button
               type="button"
-              className={styles.exclusionsHeader}
+              data-vault-control="disclosure" className={styles.exclusionsHeader}
               aria-expanded={showExclusions}
               aria-controls="global-filter-exclusion-chips"
               onClick={() => setShowExclusions((open) => !open)}
@@ -274,7 +276,7 @@ export function GlobalFiltersPanel() {
                   {excludedCount ? (
                     <button
                       type="button"
-                      className={styles.exclusionsReset}
+                      data-vault-control="tertiary" className={styles.exclusionsReset}
                       onClick={() => setGlobalFilters({ ...globalFilters, excluded: [] })}
                     >
                       <VaultIcon name="undo" size={14} />
@@ -293,7 +295,7 @@ export function GlobalFiltersPanel() {
                     const on = globalFilters.excluded.includes(category.id);
                     return (
                       <button
-                        key={category.id}
+                        data-vault-control="selection" data-control-indicator="bar" key={category.id}
                         type="button"
                         className={on ? `${styles.exclusionChip} ${styles.exclusionChipOn}` : styles.exclusionChip}
                         aria-pressed={on}

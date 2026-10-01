@@ -10,7 +10,7 @@ import { useAnalyticsSettings } from "@/components/site/SiteExperience";
 export function AnalyticsSettingsLink({ className }: { className?: string }) {
   const { openAnalyticsSettings } = useAnalyticsSettings();
   return (
-    <button type="button" className={className} onClick={openAnalyticsSettings}>
+    <button data-vault-control="text" type="button" className={className} onClick={openAnalyticsSettings}>
       Analytics Settings
     </button>
   );

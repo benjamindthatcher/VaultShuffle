@@ -14,7 +14,7 @@
   background: var(--vault-sheet-surface);
 }
 
-.failed { border-color: rgba(239, 132, 177, 0.42); }
+.failed { border-color: color-mix(in srgb, var(--vault-danger) 42%, transparent); }
 
 .icon {
   display: grid;
@@ -22,8 +22,8 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: rgba(142, 77, 255, 0.16);
-  color: #dcb4ff;
+  background: color-mix(in srgb, var(--vault-accent) 16%, transparent);
+  color: var(--vault-text);
 }
 
 .copy { display: grid; gap: 2px; min-width: 0; }
@@ -44,14 +44,14 @@
   height: 5px;
   overflow: hidden;
   border-radius: 999px;
-  background: rgba(134, 91, 255, 0.2);
+  background: color-mix(in srgb, var(--vault-accent) 20%, transparent);
 }
 
 .fill {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #8f58ff, #7ce7b2);
+  background: linear-gradient(90deg, var(--vault-accent), var(--vault-success));
   transition: width 420ms ease-out;
 }
 
@@ -100,7 +100,7 @@
   padding: 9px 16px;
   border-radius: 999px;
   background: var(--vault-accent);
-  color: #fff;
+  color: var(--vault-text);
   font-size: 0.86rem;
   font-weight: 700;
   white-space: nowrap;
@@ -112,20 +112,22 @@
 .privateFix { grid-column: 1 / -1; display: grid; gap: 12px; }
 .privateFix ol { margin: 0; padding-left: 20px; display: grid; gap: 5px; color: var(--vault-text-muted); font-size: 0.82rem; line-height: 1.45; }
 .privateFix li strong { color: var(--vault-text); }
-.privateFix a { color: #d392ff; text-decoration: underline; text-underline-offset: 2px; }
-.privateFix button { justify-self: start; min-height: 40px; padding: 9px 16px; border: 0; border-radius: 999px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.84rem; cursor: pointer; }
+.privateFix a { color: var(--vault-accent); text-decoration: underline; text-underline-offset: 2px; }
+.privateFix button { justify-self: start; min-height: 40px; padding: 9px 16px; border: 0; border-radius: 999px; background: var(--vault-accent); color: var(--vault-text); font-weight: 700; font-size: 0.84rem; cursor: pointer; }
 .privateFix button:disabled { opacity: 0.6; cursor: default; }
 
 /* Two ways on from a finished import, the second quieter than the first. */
 .handoffGroup { display: grid; justify-items: start; gap: 8px; }
 
 .handoffSecondary {
-  padding: 4px 2px;
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 16px;
+  border: 1px solid var(--vault-border-strong);
   color: var(--vault-text-muted);
   font-size: 0.79rem;
   font-weight: 600;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  text-decoration: none;
 }
 
 .handoffSecondary:hover { color: var(--vault-text); }
@@ -133,3 +135,6 @@
 @media (max-width: 560px) {
   .handoffGroup { grid-column: 1 / -1; justify-items: start; }
 }
+
+.privateFix button,
+.progressBlock button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }

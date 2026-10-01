@@ -3,7 +3,7 @@ import { steamCapsuleLargeImage, steamHeaderImage } from "@/lib/steam-images";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
 
 export type DemoOwnership = "Owned";
-export type DemoStatus = "Not Started" | "In Progress" | "Slept" | "Completed";
+export type DemoStatus = "Not Started" | "In Progress" | "Blacklisted" | "Completed";
 export type VaultSessionId = "short" | "evening" | "weekend";
 export type VaultMoodId = "chill" | "intense" | "brain-off";
 export type VaultGoalId = "new" | "finish" | "surprise";
@@ -16,6 +16,8 @@ export type DemoCollection = {
   artworkUrl: string;
   accent: string;
   smartPreset?: import("@/lib/types").SmartCollectionPreset;
+  count?: number;
+  preview?: readonly import("./v2/repositories/collections-core").CollectionPreview[];
 };
 
 export type DemoGame = {
@@ -25,7 +27,10 @@ export type DemoGame = {
   ownership: DemoOwnership;
   status: DemoStatus;
   hoursPlayed: number;
+  /** Absent on older/guest models; false means the provider gave no personal minutes. */
+  playtimeKnown?: boolean;
   completionPercent: number;
+  progressKnown?: boolean;
   priority: "Medium" | "High" | "Must Play";
   genres: string[];
   description: string;
@@ -53,9 +58,13 @@ export type DemoGame = {
   sessionability?: number;
   moodTags: VaultMoodId[];
   moodScores?: import("@/lib/vault-matching").VaultMoodScores;
+  /**
+   * Gameplay tags as shares of the strongest, for "games like this one". Absent
+   * where the catalogue has no tags yet. See lib/play-next.ts.
+   */
+  tagProfile?: Record<string, number>;
   completedAt?: string | null;
   previousActiveStatus?: "Not Started" | "In Progress" | null;
-  sleptAt?: string | null;
   completionSuggestionDismissedAt?: string | null;
   completionSuggestionDismissedPlaytime?: number | null;
   duration?: import("@/lib/types").GameDurationEstimate;
@@ -108,7 +117,7 @@ export const demoCollections: DemoCollection[] = [
     name: "Cosmic Odyssey",
     description: "Curated adventures across the stars, the void, and the strange unknown.",
     artworkUrl: collectionBanner("Cosmic Odyssey") || steamHeaderImage(753640),
-    accent: "Sci-fi worlds and atmosphere-first journeys."
+    accent: "Science fiction worlds and atmospheric journeys."
   },
   {
     id: "story-rich",
@@ -116,13 +125,13 @@ export const demoCollections: DemoCollection[] = [
     name: "Story Rich",
     description: "Unforgettable writing, heavy choices, and worlds worth disappearing into.",
     artworkUrl: collectionBanner("Story Rich") || steamHeaderImage(632470),
-    accent: "Narrative-led picks for deeper sessions."
+    accent: "Games with rich stories for deeper sessions."
   },
   {
     id: "short-sweet",
     kind: "smart",
     name: "Short & Sweet",
-    description: "High-payoff games that fit neatly into busy evenings.",
+    description: "Rewarding games that fit neatly into busy evenings.",
     artworkUrl: collectionBanner("Short & Sweet") || steamHeaderImage(383870),
     accent: "Faster wins without sacrificing vibe."
   },
@@ -130,7 +139,7 @@ export const demoCollections: DemoCollection[] = [
     id: "comfort-games",
     kind: "custom",
     name: "Comfort Games",
-    description: "Reliable favourites for low-friction nights and soft landings.",
+    description: "Reliable favourites for relaxed nights and soft landings.",
     artworkUrl: collectionBanner("Comfort Games") || steamHeaderImage(413150),
     accent: "Chill energy and familiar joy."
   }
@@ -148,7 +157,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 58,
     priority: "High",
     genres: ["Action", "RPG", "Sci-Fi", "Open World"],
-    description: "A neon-soaked open world with story threads worth settling into properly.",
+    description: "An open world full of neon and story threads worth settling into properly.",
     artworkUrl: steamCapsuleLargeImage(1091500),
     bannerUrl: steamHeaderImage(1091500),
     lastPlayedLabel: "2h ago",
@@ -168,7 +177,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 34,
     priority: "Must Play",
     genres: ["RPG", "Narrative", "Adventure"],
-    description: "Dense conversation, worldbuilding, and brilliant writing for story-led sessions.",
+    description: "Dense conversation, worldbuilding, and brilliant writing for sessions focused on story.",
     artworkUrl: steamCapsuleLargeImage(632470),
     bannerUrl: steamHeaderImage(632470),
     lastPlayedLabel: "3d ago",
@@ -188,7 +197,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "High",
     genres: ["Action", "Roguelike", "Fantasy"],
-    description: "Fast, slick runs with a perfect one-more-go rhythm.",
+    description: "Fast, slick runs that keep you coming back for another go.",
     artworkUrl: steamCapsuleLargeImage(1145360),
     bannerUrl: steamHeaderImage(1145360),
     lastPlayedLabel: "New",
@@ -228,7 +237,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "Must Play",
     genres: ["Adventure", "Narrative", "Sci-Fi"],
-    description: "Curiosity-driven exploration with a huge payoff if you give it room.",
+    description: "Exploration that rewards curiosity if you give it room.",
     artworkUrl: steamCapsuleLargeImage(753640),
     bannerUrl: steamHeaderImage(753640),
     lastPlayedLabel: "New",
@@ -268,7 +277,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "Medium",
     genres: ["Adventure", "Narrative"],
-    description: "A compact story-led evening pick with strong atmosphere and a clean finish line.",
+    description: "A compact story for an evening, with strong atmosphere and a clear finish line.",
     artworkUrl: steamCapsuleLargeImage(383870),
     bannerUrl: steamHeaderImage(383870),
     lastPlayedLabel: "New",
@@ -328,7 +337,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "Must Play",
     genres: ["RPG", "Fantasy", "Narrative"],
-    description: "The big story commitment for long-form nights when you want to disappear into a world.",
+    description: "A big story for longer nights when you want to disappear into a world.",
     artworkUrl: steamCapsuleLargeImage(1086940),
     bannerUrl: steamHeaderImage(1086940),
     lastPlayedLabel: "New",
@@ -348,7 +357,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "Medium",
     genres: ["Action", "Roguelike", "Platformer"],
-    description: "An easy drop-in for when you want kinetic play without too much setup.",
+    description: "Easy to drop into when you want kinetic play without too much setup.",
     artworkUrl: steamCapsuleLargeImage(588650),
     bannerUrl: steamHeaderImage(588650),
     lastPlayedLabel: "New",
@@ -368,7 +377,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "Medium",
     genres: ["Adventure", "Simulation", "Cozy"],
-    description: "A breezy, low-pressure choice with plenty of charm and bite-sized progress.",
+    description: "A breezy, relaxed choice with plenty of charm and satisfying moments of progress.",
     artworkUrl: steamCapsuleLargeImage(1868140),
     bannerUrl: steamHeaderImage(1868140),
     lastPlayedLabel: "New",
@@ -388,7 +397,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "High",
     genres: ["RPG", "Sci-Fi", "Narrative"],
-    description: "A heavyweight sci-fi comfort pick when you want a bigger arc to commit to.",
+    description: "A substantial science fiction comfort pick when you want a bigger arc to commit to.",
     artworkUrl: steamCapsuleLargeImage(1328670),
     bannerUrl: steamHeaderImage(1328670),
     lastPlayedLabel: "New",
@@ -408,7 +417,7 @@ const demoGameFixtures: Array<Omit<DemoGame, "recency">> = [
     completionPercent: 0,
     priority: "High",
     genres: ["Action", "Sci-Fi", "Roguelike"],
-    description: "Relentless action and a strong sci-fi tone for high-focus evenings.",
+    description: "Relentless action and a strong science fiction tone for evenings when you want to focus.",
     artworkUrl: steamCapsuleLargeImage(1649240),
     bannerUrl: steamHeaderImage(1649240),
     lastPlayedLabel: "New",

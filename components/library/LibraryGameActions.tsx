@@ -12,12 +12,12 @@ type Props = {
 
 /** Shared by the catalogue and details: the order and meaning never change. */
 export function LibraryGameActions({ status, pinned, onBlacklist, onComplete, onRestore, onPlayingNext }: Props) {
-  const active = status !== "Slept" && status !== "Completed";
+  const active = status !== "Blacklisted" && status !== "Completed";
   return <div className={styles.actions} role="group" aria-label="Game actions">
-    {!active && onRestore ? <button type="button" className={styles.restore} onClick={onRestore}><ActionIcon kind="restore" /><span>Reactivate</span></button> : null}
-    {status !== "Slept" && onBlacklist ? <button type="button" className={styles.blacklist} onClick={onBlacklist}><ActionIcon kind="blacklist" /><span>Blacklist</span></button> : null}
-    {status !== "Completed" && onComplete ? <button type="button" className={styles.complete} onClick={onComplete}><ActionIcon kind="complete" /><span>Complete</span></button> : null}
-    {active && onPlayingNext ? <button type="button" className={styles.next} onClick={onPlayingNext}><ActionIcon kind="next" /><span>{pinned ? "Remove from Playing Next" : "Playing Next"}</span></button> : null}
+    {!active && onRestore ? <button type="button" data-vault-control="secondary" className={styles.restore} onClick={onRestore}><ActionIcon kind="restore" /><span>Reactivate</span></button> : null}
+    {status !== "Blacklisted" && onBlacklist ? <button type="button" data-vault-control="blacklist" className={styles.blacklist} onClick={onBlacklist}><ActionIcon kind="blacklist" /><span>Blacklist</span></button> : null}
+    {status !== "Completed" && onComplete ? <button type="button" data-vault-control="success" className={styles.complete} onClick={onComplete}><ActionIcon kind="complete" /><span>Complete</span></button> : null}
+    {active && onPlayingNext ? <button type="button" data-vault-control="play-later" className={styles.next} onClick={onPlayingNext}><ActionIcon kind="next" /><span>{pinned ? "Remove from Playing Next" : "Playing Next"}</span></button> : null}
   </div>;
 }
 

@@ -1,0 +1,244 @@
+{
+  "reddit_discovery_batches": [
+    {
+      "batch": 1,
+      "queries": [
+        "site:reddit.com/r/Steam/comments/ \"organize\" \"library\"",
+        "site:reddit.com/r/Steam/comments/ \"collections\" \"library\" \"how\"",
+        "site:reddit.com/r/patientgamers/comments/ \"backlog\" \"how\"",
+        "site:reddit.com/r/patientgamers/comments/ \"finish\" \"games\" \"why\""
+      ]
+    },
+    {
+      "batch": 2,
+      "theme": "organisation",
+      "queries": [
+        "site:reddit.com/r/Steam/comments/ \"organize library\"",
+        "site:reddit.com/r/Steam/comments/ \"dynamic collections\"",
+        "site:reddit.com/r/Steam/comments/ \"unplayed games\" filter",
+        "site:reddit.com/r/Steam/comments/ \"hide games\" library"
+      ]
+    },
+    {
+      "batch": 3,
+      "theme": "buying",
+      "queries": [
+        "site:reddit.com/r/Steam/comments/ \"buy games\" \"never play\"",
+        "site:reddit.com/r/patientgamers/comments/ \"buying games\"",
+        "site:reddit.com/r/Steam/comments/ \"sale\" \"backlog\"",
+        "site:reddit.com/r/patientgamers/comments/ \"wishlist\""
+      ]
+    },
+    {
+      "batch": 4,
+      "theme": "returning",
+      "queries": [
+        "site:reddit.com/r/patientgamers/comments/ \"long break\" game",
+        "site:reddit.com/r/patientgamers/comments/ \"restart\" games",
+        "site:reddit.com/r/patientgamers/comments/ \"never finish\"",
+        "site:reddit.com/r/patientgamers/comments/ \"multiple games\""
+      ]
+    },
+    {
+      "batch": 5,
+      "theme": "backlog",
+      "queries": [
+        "site:reddit.com/r/patientgamers \"backlog\" \"overwhelmed\"",
+        "site:reddit.com/r/patientgamers \"backlog\" \"guilt\"",
+        "site:reddit.com/r/Steam \"backlog\" \"unplayed\"",
+        "site:reddit.com/r/patientgamers \"backlog\" \"spreadsheet\""
+      ]
+    },
+    {
+      "batch": 6,
+      "theme": "time",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"30 minutes\"",
+        "site:reddit.com/r/gamingsuggestions \"busy\" \"dad\"",
+        "site:reddit.com/r/patientgamers \"limited time\"",
+        "site:reddit.com/r/gamingsuggestions \"short sessions\""
+      ]
+    },
+    {
+      "batch": 7,
+      "theme": "energy",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"after work\"",
+        "site:reddit.com/r/gamingsuggestions \"tired\"",
+        "site:reddit.com/r/gamingsuggestions \"relaxing\" \"combat\"",
+        "site:reddit.com/r/patientgamers \"gaming\" \"burnout\""
+      ]
+    },
+    {
+      "batch": 8,
+      "theme": "coop",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"co-op\" \"casual\"",
+        "site:reddit.com/r/gamingsuggestions \"coop\" \"non gamer\"",
+        "site:reddit.com/r/gamingsuggestions \"co-op\" \"busy\"",
+        "site:reddit.com/r/Steam \"friends\" \"games in common\""
+      ]
+    },
+    {
+      "batch": 9,
+      "theme": "pause",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"pause\" \"any time\"",
+        "site:reddit.com/r/gamingsuggestions \"save anywhere\"",
+        "site:reddit.com/r/gamingsuggestions \"interruptions\"",
+        "site:reddit.com/r/gamingsuggestions \"easy to return\""
+      ]
+    },
+    {
+      "batch": 10,
+      "theme": "tools",
+      "queries": [
+        "site:reddit.com/r/Steam \"backlog tracker\"",
+        "site:reddit.com/r/Steam \"random game picker\"",
+        "site:reddit.com/r/patientgamers \"tracking games\"",
+        "site:reddit.com/r/Steam \"HowLongToBeat\" \"library\""
+      ]
+    },
+    {
+      "batch": 11,
+      "theme": "completion",
+      "queries": [
+        "site:reddit.com/r/patientgamers \"guilt\" \"finish\"",
+        "site:reddit.com/r/patientgamers \"when to quit\"",
+        "site:reddit.com/r/patientgamers \"achievements\" \"enjoy\"",
+        "site:reddit.com/r/patientgamers \"one game at a time\""
+      ]
+    },
+    {
+      "batch": 12,
+      "theme": "family",
+      "queries": [
+        "site:reddit.com/r/Steam \"family sharing\" \"same time\"",
+        "site:reddit.com/r/Steam \"Steam Families\" \"same game\"",
+        "site:reddit.com/r/Steam \"family sharing\" \"different games\"",
+        "site:reddit.com/r/Steam \"family sharing\" \"eligible\""
+      ]
+    },
+    {
+      "batch": 13,
+      "theme": "discovery",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"hidden gems\" \"Steam\"",
+        "site:reddit.com/r/Steam \"games in common\"",
+        "site:reddit.com/r/Steam \"recommendations\" \"owned\"",
+        "site:reddit.com/r/patientgamers \"how do you discover\""
+      ]
+    },
+    {
+      "batch": 14,
+      "theme": "offline",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"offline\" \"single player\"",
+        "site:reddit.com/r/SteamDeck \"offline\" \"travel\" games",
+        "site:reddit.com/r/Steam \"offline mode\" \"games\"",
+        "site:reddit.com/r/Steam \"single player\" \"internet\""
+      ]
+    },
+    {
+      "batch": 15,
+      "theme": "grind",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"no grinding\"",
+        "site:reddit.com/r/gamingsuggestions \"respect your time\"",
+        "site:reddit.com/r/patientgamers \"side quests\" \"skip\"",
+        "site:reddit.com/r/gamingsuggestions \"linear\" \"open world\""
+      ]
+    },
+    {
+      "batch": 16,
+      "theme": "returning",
+      "queries": [
+        "site:reddit.com/r/patientgamers \"relearn\" \"controls\"",
+        "site:reddit.com/r/patientgamers \"restart or continue\"",
+        "site:reddit.com/r/gamingsuggestions \"easy to pick\" \"weeks\"",
+        "site:reddit.com/r/patientgamers \"forgot\" \"story\" \"return\""
+      ]
+    },
+    {
+      "batch": 17,
+      "theme": "low_spec",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"low end\" \"laptop\"",
+        "site:reddit.com/r/Steam \"controller\" \"filter\"",
+        "site:reddit.com/r/gamingsuggestions \"controller\" \"casual\"",
+        "site:reddit.com/r/gamingsuggestions \"motion sickness\""
+      ]
+    },
+    {
+      "batch": 18,
+      "theme": "buying",
+      "queries": [
+        "site:reddit.com/r/patientgamers \"stop buying\" games",
+        "site:reddit.com/r/Steam \"wishlist\" \"too many\"",
+        "site:reddit.com/r/patientgamers \"demos\" \"buy\"",
+        "site:reddit.com/r/Steam \"buying\" \"bundles\" \"play\""
+      ]
+    },
+    {
+      "batch": 19,
+      "theme": "organisation",
+      "queries": [
+        "site:reddit.com/r/Steam \"unplayed\" \"filter\" \"library\"",
+        "site:reddit.com/r/Steam \"hidden games\" \"remove\"",
+        "site:reddit.com/r/Steam \"collections\" \"finished\"",
+        "site:reddit.com/r/Steam \"playtime\" \"sort\""
+      ]
+    },
+    {
+      "batch": 20,
+      "theme": "choice",
+      "queries": [
+        "site:reddit.com/r/Steam \"cant decide what to play\"",
+        "site:reddit.com/r/patientgamers \"analysis paralysis\"",
+        "site:reddit.com/r/patientgamers \"too many games\"",
+        "site:reddit.com/r/Steam \"random\" \"picker\""
+      ]
+    },
+    {
+      "batch": 21,
+      "theme": "comfort",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"controller\" \"relax\"",
+        "site:reddit.com/r/gamingsuggestions \"mouse only\"",
+        "site:reddit.com/r/gamingsuggestions \"no time limits\"",
+        "site:reddit.com/r/gamingsuggestions \"no daily\""
+      ]
+    },
+    {
+      "batch": 22,
+      "theme": "time",
+      "queries": [
+        "site:reddit.com/r/gamingsuggestions \"busy dad\"",
+        "site:reddit.com/r/gamingsuggestions \"full time job\"",
+        "site:reddit.com/r/patientgamers \"long games\" \"time\"",
+        "site:reddit.com/r/gamingsuggestions \"30 minute\" \"coop\""
+      ]
+    },
+    {
+      "batch": 23,
+      "theme": "tracking",
+      "queries": [
+        "site:reddit.com/r/patientgamers \"backlog tracker\"",
+        "site:reddit.com/r/Steam \"unplayed games\" \"how many\"",
+        "site:reddit.com/r/Steam \"hours played\" \"accurate\"",
+        "site:reddit.com/r/patientgamers \"beaten\" \"completed\" difference"
+      ]
+    }
+  ],
+  "competition_queries": [
+    "\"how to get back into a game\" \"long break\"",
+    "\"PC games\" \"pause\" \"any time\"",
+    "\"stop buying games\" \"never play\"",
+    "\"co-op games\" \"beginners\" \"PC\"",
+    "\"mouse only games\" Steam",
+    "\"linear games\" \"open world fatigue\"",
+    "\"Steam library\" \"sort\" \"HowLongToBeat\"",
+    "\"organize Steam library\" \"dynamic collections\""
+  ],
+  "note": "Competition search results are supplemental, not added to the corpus counts."
+}

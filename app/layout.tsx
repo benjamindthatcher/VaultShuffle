@@ -1,8 +1,10 @@
+import { VAULT_THEME } from "@/lib/theme";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { SiteExperience } from "@/components/site/SiteExperience";
 import { siteConfig } from "@/lib/site";
 import "./globals.css";
+import "./controls.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -67,7 +69,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "dark",
-  themeColor: "#07091a",
+  themeColor: VAULT_THEME.ground,
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover"

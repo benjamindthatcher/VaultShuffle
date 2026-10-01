@@ -5,11 +5,9 @@
   display: grid;
   place-items: center;
   overflow: hidden;
-  /* The page's own ground, not a near-black of its own. #02030C predates the
-     purple ramp, so signing in dropped you onto a black screen and then back
-     onto a purple one. */
+  /* Keep loading on the same VaultShuffle Purple page ground. */
   background:
-    radial-gradient(150% 90% at 50% -30%, rgba(124, 62, 214, 0.35), transparent 70%),
+    radial-gradient(150% 90% at 50% -30%, color-mix(in srgb, var(--vault-accent) 35%, transparent), transparent 70%),
     var(--vault-ink);
   opacity: 0;
   pointer-events: none;

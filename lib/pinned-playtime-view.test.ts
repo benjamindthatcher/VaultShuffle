@@ -100,11 +100,10 @@ test("refresh preserves completion and set-aside decisions", () => {
   });
   const slept = game({
     id: "slept",
-    status: "Slept",
-    sleptAt: NOW.toISOString(),
+    status: "Blacklisted",
     previousActiveStatus: "In Progress"
   });
-  const [mergedCompleted, mergedSlept] = mergePinnedPlaytime(
+  const [mergedCompleted, mergedBlacklisted] = mergePinnedPlaytime(
     [completed, slept],
     [game({ hoursPlayed: 10, completionPercent: 50 }), game({ id: "slept", hoursPlayed: 10 })]
   );
@@ -114,9 +113,8 @@ test("refresh preserves completion and set-aside decisions", () => {
   assert.equal(mergedCompleted.completedAt, NOW.toISOString());
   assert.equal(mergedCompleted.completionSuggestionDismissedAt, NOW.toISOString());
   assert.equal(mergedCompleted.completionSuggestionDismissedPlaytime, 5);
-  assert.equal(mergedSlept.status, "Slept");
-  assert.equal(mergedSlept.sleptAt, NOW.toISOString());
-  assert.equal(mergedSlept.previousActiveStatus, "In Progress");
+  assert.equal(mergedBlacklisted.status, "Blacklisted");
+  assert.equal(mergedBlacklisted.previousActiveStatus, "In Progress");
 });
 
 test("a stale completed response cannot restore 100 percent after the player restores the game", () => {

@@ -15,7 +15,7 @@ type GuestPreviewNoticeProps = {
 export function GuestPreviewNotice({ feature, icon, children }: GuestPreviewNoticeProps) {
   const featureId = feature.toLowerCase().replaceAll(" ", "_");
   return (
-    <aside className={styles.notice} aria-label={`${feature} guest preview`}>
+    <aside className={styles.notice} data-vault-controls="standard" aria-label={`${feature} guest preview`}>
       <span className={styles.icon} aria-hidden="true"><VaultIcon name={icon} size={22} /></span>
       <span className={styles.copy}>
         <strong>{feature} preview</strong>
@@ -24,7 +24,7 @@ export function GuestPreviewNotice({ feature, icon, children }: GuestPreviewNoti
       <span className={styles.actions}>
         <a
           href="/api/auth/steam"
-          className={styles.steamAction}
+          data-vault-control="steam" className={styles.steamAction}
           onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
             location: `${featureId}_preview`,
             feature: featureId,
@@ -35,7 +35,7 @@ export function GuestPreviewNotice({ feature, icon, children }: GuestPreviewNoti
         </a>
         <Link
           href={`/setup/steam-profile?from=guest_${featureId}_preview`}
-          className={styles.profileAction}
+          data-vault-control="primary" className={styles.profileAction}
         >
           <VaultIcon name="id" size={17} />
           Create profile

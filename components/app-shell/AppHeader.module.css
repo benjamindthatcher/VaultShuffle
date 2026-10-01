@@ -3,7 +3,7 @@
   z-index: 20;
   padding: 0 24px;
   backdrop-filter: blur(18px);
-  border-bottom: 1px solid rgba(142, 102, 255, 0.14);
+  border-bottom: 1px solid var(--vault-border);
   background: var(--vault-chrome);
 }
 
@@ -48,11 +48,11 @@
 }
 
 .brandWord {
-  color: rgba(244, 247, 255, 0.94);
+  color: var(--vault-text);
 }
 
 .brandAccent {
-  background: linear-gradient(90deg, #d66eff, #4e8dff);
+  background: var(--vault-brand-gradient);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -105,12 +105,12 @@
 
 .navLock {
   flex: 0 0 auto;
-  color: rgba(205, 142, 255, 0.72);
+  color: var(--vault-text-muted);
 }
 
 .navLink:hover {
   color: var(--vault-text);
-  background: linear-gradient(180deg, transparent, rgba(142, 77, 255, 0.07));
+  background: linear-gradient(180deg, transparent, color-mix(in srgb, var(--vault-accent) 7%, transparent));
 }
 
 .navLinkActive {
@@ -125,8 +125,8 @@
   bottom: 0;
   height: 5px;
   border-radius: 999px;
-  background: linear-gradient(90deg, var(--vault-accent), #da74ff, var(--vault-accent-strong));
-  box-shadow: 0 0 18px rgba(143, 88, 255, 0.82);
+  background: linear-gradient(90deg, var(--vault-accent), var(--vault-accent), var(--vault-accent-strong));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--vault-accent) 30%, transparent);
 }
 
 .profileMenu {
@@ -140,10 +140,10 @@
   align-items: center;
   gap: 12px;
   padding: 8px 14px 8px 10px;
-  border: 1px solid rgba(142, 102, 255, 0.24);
+  border: 1px solid var(--vault-border);
   border-radius: 999px;
-  background: rgba(18, 24, 52, 0.88);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background: var(--vault-well-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 4%, transparent);
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -159,7 +159,7 @@
   display: inline-grid;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(160, 72, 255, 0.92), rgba(50, 75, 255, 0.92));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--vault-accent) 92%, transparent), color-mix(in srgb, var(--vault-accent-blue) 92%, transparent));
   font-size: 0.84rem;
   font-weight: 700;
 }
@@ -192,17 +192,17 @@
   display: grid;
   gap: 8px;
   padding: 12px;
-  border: 1px solid rgba(142, 102, 255, 0.28);
+  border: 1px solid var(--vault-border);
   border-radius: 20px;
-  background: rgba(8, 12, 29, 0.98);
-  box-shadow: 0 22px 54px rgba(0, 0, 0, 0.48);
+  background: var(--vault-surface);
+  box-shadow: 0 22px 54px color-mix(in srgb, var(--vault-shadow-color) 48%, transparent);
 }
 
 .accountSummary {
   display: grid;
   gap: 4px;
   padding: 8px 10px 12px;
-  border-bottom: 1px solid rgba(142, 102, 255, 0.16);
+  border-bottom: 1px solid var(--vault-border);
 }
 
 .accountSummary span,
@@ -212,6 +212,10 @@
 }
 
 .menuAction {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid transparent;
   width: 100%;
   padding: 11px 12px;
   border-radius: 12px;
@@ -222,15 +226,15 @@
 }
 
 .menuAction:hover {
-  background: rgba(143, 88, 255, 0.12);
+  background: color-mix(in srgb, var(--vault-accent) 12%, transparent);
 }
 
 .profileCreateAction {
-  color: #a7f3d0;
+  color: var(--vault-success);
 }
 
 .profileCreateAction:hover {
-  background: rgba(15, 157, 112, 0.14);
+  background: color-mix(in srgb, var(--vault-success) 14%, transparent);
 }
 
 .menuAction:disabled {
@@ -239,7 +243,7 @@
 }
 
 .dangerAction {
-  color: #ff9db1;
+  color: var(--vault-danger);
 }
 
 .accountMessage {
@@ -293,12 +297,13 @@
     display: grid;
     min-height: 44px;
     gap: 0;
-    overflow: visible;
+    overflow-x: auto;
+    grid-auto-columns: max-content;
   }
 
   .navLink {
     min-width: 0;
-    padding: 10px 2px 12px;
+    padding: 10px 10px 12px;
     text-align: center;
     font-size: 0.7rem;
   }
@@ -314,6 +319,7 @@
     min-height: 42px;
     gap: 8px;
     padding: 5px 10px 5px 6px;
+    background: var(--vault-well-surface);
   }
 
   .profileAvatar {
@@ -331,3 +337,5 @@
 
 /* Device mode: a single-choice group, so the three options are mutually
    exclusive by construction rather than by three separate toggles. */
+
+.menuAction > svg, .menuAction > [data-control-spinner] { flex-shrink: 0; }

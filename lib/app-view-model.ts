@@ -12,6 +12,7 @@ import type { CollectionMembership } from "@/lib/collections";
 import { collectionBanner } from "@/lib/vaultshuffle-assets";
 import { deriveMoodScores, deriveSessionFits, moodTagsFromScores } from "@/lib/vault-matching";
 import { matchesSmartPreset } from "@/lib/smart-collections";
+import { playNextTagProfile } from "@/lib/play-next";
 
 export type CollectionDetailPayload = {
   collection: Collection;
@@ -195,9 +196,9 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
       familyOwnerName: null,
       moodTags: moodTagsFromScores(moodScores),
       moodScores,
+      tagProfile: playNextTagProfile(game.steam_tags),
       completedAt: game.completed_at,
       previousActiveStatus: game.previous_active_status === "In Progress" ? "In Progress" : game.previous_active_status ? "Not Started" : null,
-      sleptAt: game.slept_at,
       completionSuggestionDismissedAt: game.completion_suggestion_dismissed_at,
       completionSuggestionDismissedPlaytime: game.completion_suggestion_dismissed_playtime,
       platforms: {

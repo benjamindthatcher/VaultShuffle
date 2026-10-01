@@ -14,10 +14,10 @@ import { siteConfig } from "@/lib/site";
  * uses neither, and both are noise in the file.
  */
 const routes = [
-  { path: "", lastModified: "2026-09-04" },
+  { path: "", lastModified: "2026-09-29" },
   { path: "/blog", lastModified: "2026-09-17" },
   { path: "/releases", lastModified: "2026-09-04" },
-  { path: "/faq", lastModified: "2026-09-04" },
+  { path: "/faq", lastModified: "2026-09-29" },
   { path: "/steam-data", lastModified: "2026-09-04" },
   { path: "/privacy", lastModified: "2026-09-17" },
   { path: "/terms", lastModified: "2026-09-04" },

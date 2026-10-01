@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { isV2Authority } from "@/lib/database-authority";
+import { getV2Runtime } from "@/lib/v2/runtime";
+import { currentV2Session } from "@/lib/v2/current-session";
 
 type RateLimitOptions = {
   bucket: string;
@@ -41,6 +44,17 @@ function digestIdentity(bucket: string, identity: string) {
 }
 
 export async function enforceRateLimit(options: RateLimitOptions) {
+  if (isV2Authority()) {
+    const runtime = await getV2Runtime();
+    const digest = Buffer.from(digestIdentity(options.bucket,options.identity),"hex");
+    const rows = await runtime.database.sql<RateLimitResult[]>`
+      select allowed,remaining,retry_after_seconds from app.consume_request_limit(${options.bucket},${digest},${options.limit},${options.windowSeconds})
+    `;
+    const row = rows[0];
+    if (!row) throw new Error("The request limit could not be checked.");
+    if (!row.allowed) throw new RateLimitExceededError(Math.max(1,row.retry_after_seconds),options.message);
+    return { remaining: row.remaining };
+  }
   const { data, error } = await getSupabaseAdmin().rpc("consume_api_rate_limit", {
     p_bucket: options.bucket,
     p_key_hash: digestIdentity(options.bucket, options.identity),
@@ -83,6 +97,11 @@ export async function enforceRateLimit(options: RateLimitOptions) {
  */
 export async function releaseRateLimit(options: Pick<RateLimitOptions, "bucket" | "identity">) {
   try {
+    if (isV2Authority()) {
+      const digest = Buffer.from(digestIdentity(options.bucket,options.identity),"hex");
+      await (await getV2Runtime()).database.sql`select app.refund_request_limit(${options.bucket},${digest})`;
+      return;
+    }
     const keyHash = digestIdentity(options.bucket, options.identity);
     const supabase = getSupabaseAdmin();
     const { data } = await supabase
@@ -117,6 +136,16 @@ export async function releaseRateLimit(options: Pick<RateLimitOptions, "bucket" 
 }
 
 export async function enforceAuthenticatedWriteRate(userId: string) {
+  if (isV2Authority()) {
+    const session = await currentV2Session();
+    if (!session || session.user.id!==userId) throw new Error("A current account is required.");
+    const digest = Buffer.from(digestIdentity("authenticated_write",`user:${userId}`),"hex");
+    const rows = await (await getV2Runtime()).database.withPrincipal(session.principal, tx =>
+      tx<RateLimitResult[]>`select allowed,remaining,retry_after_seconds from app.consume_request_limit('authenticated_write',${digest},120,60)`);
+    if (!rows[0]) throw new Error("The request limit could not be checked.");
+    if (!rows[0].allowed) throw new RateLimitExceededError(Math.max(1,rows[0].retry_after_seconds),"Your account is making changes too quickly. Please wait a moment before trying again.");
+    return { remaining: rows[0].remaining };
+  }
   return enforceRateLimit({
     bucket: "authenticated_write",
     identity: `user:${userId}`,

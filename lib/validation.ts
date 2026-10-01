@@ -21,7 +21,7 @@ export const gamePayloadSchema = z.object({
   genre: z.string().trim().max(80).default("Unknown"),
   store: z.string().trim().max(80).default("Steam"),
   ownership: z.literal("Owned").default("Owned"),
-  status: z.enum(["Not Started", "Sampled", "In Progress", "Slept", "Completed"]).default("Not Started"),
+  status: z.enum(["Not Started", "Sampled", "In Progress", "Blacklisted", "Completed"]).default("Not Started"),
   rating: z.coerce.number().int().min(0).max(10).default(0),
   hours_played: z.coerce.number().min(0).default(0),
   completion_percentage: z.coerce.number().int().min(0).max(100).default(0),
@@ -34,14 +34,13 @@ export const gamePayloadSchema = z.object({
 
 export const patchGameSchema = z.object({
   ownership: z.literal("Owned").optional(),
-  status: z.enum(["Not Started", "Sampled", "In Progress", "Slept", "Completed"]).optional(),
+  status: z.enum(["Not Started", "Sampled", "In Progress", "Blacklisted", "Completed"]).optional(),
   hours_played: z.coerce.number().min(0).optional(),
   completion_percentage: z.coerce.number().int().min(0).max(100).optional(),
   priority: prioritySchema.optional(),
   last_played_at: z.preprocess((value) => (value === undefined || value === "" ? null : value), z.string().trim().nullable()).optional(),
   notes: z.string().trim().max(5000).optional(),
   completed_at: z.string().datetime().nullable().optional(),
-  slept_at: z.string().datetime().nullable().optional(),
   completion_suggestion_dismissed_at: z.string().datetime().nullable().optional(),
   completion_suggestion_dismissed_playtime: z.coerce.number().min(0).nullable().optional(),
   restore_active: z.boolean().optional()

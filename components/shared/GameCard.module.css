@@ -15,13 +15,13 @@
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(8, 11, 28, 0.72);
-  color: rgba(233, 236, 255, 0.86);
+  border: 1px solid var(--vault-border);
+  background: var(--vault-surface);
+  color: var(--vault-text-muted);
   backdrop-filter: blur(4px);
 }
-.unpinButton:hover { border-color: rgba(255, 138, 128, 0.6); background: rgba(70, 14, 24, 0.78); color: #ffb4c2; }
-.unpinButton:focus-visible { outline: 2px solid #ffffff; outline-offset: 2px; }
+.unpinButton:hover { border-color: color-mix(in srgb, var(--vault-danger) 60%, transparent); background: color-mix(in srgb, var(--vault-danger) 16%, transparent); color: var(--vault-danger); }
+.unpinButton:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 2px; }
 .menuTrigger {
   position: relative;
   z-index: 1;
@@ -30,36 +30,36 @@
   padding: 0;
   border: 0;
   border-radius: 8px;
-  color: #fff7ff;
+  color: var(--vault-text);
   background: transparent;
   font-size: 1.05rem;
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.08em;
   filter:
-    drop-shadow(1px 0 0 #6547ff)
-    drop-shadow(-1px 0 0 #6547ff)
-    drop-shadow(0 1px 0 #6547ff)
-    drop-shadow(0 -1px 0 #6547ff)
-    drop-shadow(0 1px 2px #03040d);
+    drop-shadow(1px 0 0 color-mix(in srgb, var(--vault-accent) 15%, transparent))
+    drop-shadow(-1px 0 0 color-mix(in srgb, var(--vault-accent) 15%, transparent))
+    drop-shadow(0 1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent))
+    drop-shadow(0 -1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent))
+    drop-shadow(0 1px 2px var(--vault-shadow-color));
   cursor: pointer;
   transition: color 140ms ease, filter 140ms ease, transform 140ms ease;
 }
 .menuTrigger:hover {
-  color: #ffffff;
+  color: var(--vault-text);
   border-color: transparent;
   background: transparent;
   box-shadow: none;
   filter:
-    drop-shadow(1px 0 0 #d067ff)
-    drop-shadow(-1px 0 0 #d067ff)
-    drop-shadow(0 1px 0 #d067ff)
-    drop-shadow(0 -1px 0 #d067ff)
-    drop-shadow(0 1px 2px #03040d)
-    drop-shadow(0 0 4px rgba(208, 103, 255, 0.72));
+    drop-shadow(1px 0 0 color-mix(in srgb, var(--vault-accent) 30%, transparent))
+    drop-shadow(-1px 0 0 color-mix(in srgb, var(--vault-accent) 30%, transparent))
+    drop-shadow(0 1px 0 color-mix(in srgb, var(--vault-accent) 30%, transparent))
+    drop-shadow(0 -1px 0 color-mix(in srgb, var(--vault-accent) 30%, transparent))
+    drop-shadow(0 1px 2px var(--vault-shadow-color))
+    drop-shadow(0 0 4px color-mix(in srgb, var(--vault-accent) 30%, transparent));
   transform: scale(1.08);
 }
-.menuTrigger:focus-visible { outline: 2px solid #ffffff; outline-offset: 3px; }
+.menuTrigger:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 3px; }
 
 @media (max-width: 720px) {
   .menuShell { top: 9px; right: 9px; }
@@ -67,13 +67,13 @@
   .menuTrigger { width: 40px; height: 40px; }
   .menu { top: 44px; }
 }
-.menu { position: fixed; z-index: 1000; width: max-content; min-width: 188px; display: grid; gap: 3px; padding: 6px; border: 1px solid rgba(186, 111, 255, 0.34); border-radius: 11px; background: #090d22; box-shadow: 0 16px 45px rgba(0, 0, 0, 0.48); }
+.menu { position: fixed; z-index: 1000; width: max-content; min-width: 188px; display: grid; gap: 3px; padding: 6px; border: 1px solid var(--vault-border); border-radius: 11px; background: var(--vault-surface); box-shadow: 0 16px 45px color-mix(in srgb, var(--vault-shadow-color) 48%, transparent); }
 .menu button,
 .menu a { display: flex; align-items: center; gap: 9px; padding: 10px 12px; border: 0; border-radius: 7px; color: var(--vault-text); background: transparent; font: inherit; text-align: left; text-decoration: none; }
 .menu button:hover,
 .menu button:focus-visible,
 .menu a:hover,
-.menu a:focus-visible { background: rgba(151, 73, 255, 0.18); outline: none; }
+.menu a:focus-visible { background: color-mix(in srgb, var(--vault-accent) 18%, transparent); outline: none; }
 .completeMenuItem {
   list-style: none;
 }
@@ -101,13 +101,12 @@
   text-align: left;
   box-shadow: var(--vault-shadow);
   transition:
-    transform 160ms ease,
     border-color 160ms ease;
 }
 
 .card:hover {
-  transform: translateY(-1px);
-  border-color: rgba(175, 126, 255, 0.44);
+  transform: none;
+  border-color: var(--vault-accent);
 }
 
 .cardList {
@@ -156,7 +155,7 @@
 }
 
 .status {
-  color: #d7a2ff;
+  color: var(--vault-text);
   font-size: 0.8rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -200,7 +199,7 @@
 .progress {
   flex: 0 0 auto;
   margin-left: auto;
-  color: #d7a2ff;
+  color: var(--vault-text);
   font-weight: 700;
 }
 
@@ -217,7 +216,7 @@
 }
 
 .stateSeparator {
-  color: rgba(215, 162, 255, 0.58);
+  color: var(--vault-text-muted);
 }
 
 @media (min-width: 860px) {
@@ -282,30 +281,30 @@
 
 /* Purple, as it is everywhere else in the app that means "set this aside". */
 .quickSleep {
-  border-color: rgba(168, 85, 247, 0.34);
-  background: rgba(168, 85, 247, 0.12);
-  color: #dcbcff;
+  border-color: var(--vault-border);
+  background: color-mix(in srgb, var(--vault-accent) 12%, transparent);
+  color: var(--vault-text);
 }
 
 .quickSleep:hover {
-  border-color: rgba(168, 85, 247, 0.62);
-  background: rgba(168, 85, 247, 0.22);
+  border-color: var(--vault-accent);
+  background: color-mix(in srgb, var(--vault-accent) 22%, transparent);
 }
 
 .quickComplete {
-  border-color: rgba(110, 231, 183, 0.34);
-  background: rgba(110, 231, 183, 0.1);
-  color: #b6f4d4;
+  border-color: color-mix(in srgb, var(--vault-success) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 10%, transparent);
+  color: var(--vault-success);
 }
 
 .quickComplete:hover {
-  border-color: rgba(110, 231, 183, 0.6);
-  background: rgba(110, 231, 183, 0.2);
+  border-color: color-mix(in srgb, var(--vault-success) 60%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 20%, transparent);
 }
 
 .quickSleep:focus-visible,
 .quickComplete:focus-visible {
-  outline: 2px solid #c08bff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 2px;
 }
 
@@ -350,12 +349,12 @@
   place-items: center;
   width: 24px;
   height: 24px;
-  border: 1.5px solid rgba(226, 215, 255, 0.55);
+  border: 1.5px solid var(--vault-border);
   border-radius: 7px;
   /* Dark enough to read as an empty box against pale artwork, which plain
      translucency was not. */
-  background: rgba(6, 9, 24, 0.72);
-  color: #ffffff;
+  background: var(--vault-well-surface);
+  color: var(--vault-text);
   backdrop-filter: blur(2px);
   transition: background 120ms ease, border-color 120ms ease;
 }

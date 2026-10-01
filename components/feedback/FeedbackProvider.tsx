@@ -183,16 +183,16 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
       <div className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby={titleId} ref={dialogRef} tabIndex={-1}>
         <header className={styles.header}>
           <div><p>Suggestions and issues</p><h2 id={titleId}>Share Feedback</h2></div>
-          <button type="button" onClick={onClose} disabled={submitting} aria-label="Close feedback"><VaultIcon name="close" size={20} /></button>
+          <button data-vault-control="tertiary" type="button" onClick={onClose} disabled={submitting} data-control-size="icon" aria-label="Close feedback"><VaultIcon name="close" size={20} /></button>
         </header>
         {status === "success" ? (
-          <div className={styles.success} role="status"><span><VaultIcon name="check" size={27} /></span><h3>Your feedback has been sent.</h3><p>Thank you for helping us improve VaultShuffle.</p><button type="button" onClick={onClose}>Close</button></div>
+          <div className={styles.success} role="status"><span><VaultIcon name="check" size={27} /></span><h3>Your feedback has been sent.</h3><p>Thank you for helping us improve VaultShuffle.</p><button data-vault-control="tertiary" type="button" onClick={onClose}>Close</button></div>
         ) : (
           <form onSubmit={submit} className={styles.form}>
             <p className={styles.intro}>Describe a problem or suggest an improvement. Include any steps that help explain the issue.</p>
             <div className={styles.segmented} role="group" aria-label="Feedback type">
-              <button type="button" aria-pressed={type === "improvement"} onClick={() => setType("improvement")}>Improvement</button>
-              <button type="button" aria-pressed={type === "bug"} onClick={() => setType("bug")}>Bug Report</button>
+              <button data-vault-control="selection" type="button" aria-pressed={type === "improvement"} onClick={() => setType("improvement")}>Improvement</button>
+              <button data-vault-control="selection" type="button" aria-pressed={type === "bug"} onClick={() => setType("bug")}>Bug Report</button>
             </div>
             <label className={styles.field}><span>Your feedback</span><textarea required minLength={10} maxLength={2000} value={message} onChange={(event) => { setMessage(event.target.value); setStatus("editing"); }} placeholder={type === "bug" ? "What happened, and what did you expect to happen?" : "What feature or experience could be better?"} /><small aria-hidden="true">{message.length.toLocaleString()} / 2,000</small></label>
             {messageHint ? <p className={styles.hint} role="status">{messageHint}</p> : null}
@@ -200,7 +200,7 @@ function FeedbackModal({ initialType, source, route, onClose }: { initialType: F
             <label className={styles.checkbox}><input type="checkbox" checked={contactAllowed} onChange={(event) => setContactAllowed(event.target.checked)} /><span>You may contact me about this feedback</span></label>
             {contactAllowed ? <label className={styles.field}><span>Email address</span><input required type="email" maxLength={320} value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" /></label> : null}
             {emailHint ? <p className={styles.hint} role="status">{emailHint}</p> : null}
-            <div className={styles.actions}><button type="button" onClick={onClose} disabled={submitting}>Cancel</button><button type="submit" disabled={!valid || submitting}>{submitting ? "Submitting…" : type === "bug" ? "Submit Bug Report" : "Submit Feedback"}</button></div>
+            <div className={styles.actions}><button data-vault-control="tertiary" type="button" onClick={onClose} disabled={submitting}>Cancel</button><button data-vault-control="primary" type="submit" aria-busy={submitting} disabled={!valid || submitting}>{submitting ? <span data-control-spinner aria-hidden="true" /> : null}{submitting ? "Submitting…" : type === "bug" ? "Submit Bug Report" : "Submit Feedback"}</button></div>
             {error ? <p className={styles.error} role="alert">{error}</p> : null}
           </form>
         )}

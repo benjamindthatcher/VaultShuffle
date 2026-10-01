@@ -25,7 +25,8 @@ test("FAQ shows the signed in app navigation before library data loads", async (
   const nav = page.getByRole("navigation", { name: "Primary" });
   await expect(nav.getByRole("link", { name: "Dashboard" })).toBeVisible({ timeout: 3_000 });
   await expect(nav.getByRole("link", { name: "Library" })).toBeVisible();
-  await expect(page.getByText("Test player", { exact: true }).first()).toBeVisible();
+  await page.locator("header details > summary").click();
+  await expect(page.locator("header details[open]").getByText("Test player", { exact: true }).last()).toBeVisible();
 });
 
 test("FAQ retries the session after an app bootstrap failure", async ({ page }) => {
@@ -43,7 +44,8 @@ test("FAQ retries the session after an app bootstrap failure", async ({ page }) 
 
   await expect(page).toHaveURL(/\/faq$/);
   await expect(page.getByRole("navigation", { name: "Primary" }).getByRole("link", { name: "Dashboard" })).toBeVisible();
-  await expect(page.getByText("Test player", { exact: true }).first()).toBeVisible();
+  await page.locator("header details > summary").click();
+  await expect(page.locator("header details[open]").getByText("Test player", { exact: true }).last()).toBeVisible();
 });
 
 test("FAQ keeps the public header for guests", async ({ page }) => {

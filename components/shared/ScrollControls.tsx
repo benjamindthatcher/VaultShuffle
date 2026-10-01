@@ -43,8 +43,8 @@ export function ScrollControls({ targetRef, axis, step, className = "", label = 
     node.scrollBy({ left: direction * distance, behavior: "smooth" });
   }
 
-  return <div className={`${styles.controls} ${className}`} role="group" aria-label={label}>
-    <button type="button" disabled={position.start} onClick={() => move(-1)} aria-label="Scroll left"><VaultIcon name="chevron-left" size={18} /></button>
-    <button type="button" disabled={position.end} onClick={() => move(1)} aria-label="Scroll right"><VaultIcon name="chevron-right" size={18} /></button>
+  return <div data-vault-controls="standard" className={`${styles.controls} ${className}`} role="group" aria-label={label}>
+    <button data-vault-control="secondary" data-control-size="icon" type="button" disabled={position.start} onClick={() => move(-1)} aria-label="Scroll left"><VaultIcon name="chevron-left" size={18} /></button>
+    <button data-vault-control="secondary" data-control-size="icon" type="button" disabled={position.end} onClick={() => move(1)} aria-label="Scroll right"><VaultIcon name="chevron-right" size={18} /></button>
   </div>;
 }

@@ -53,41 +53,35 @@ export function LibraryToolbar({
         <LibraryFilterMenu filters={filters} genres={filterGenres} onChange={onFiltersChange} />
 
         <div className={styles.selectField}>
-          <span className={styles.controlLabel}>
+          <label className={styles.controlLabel} id="library-sort-label" htmlFor="library-sort">Sort</label>
+          <div className={styles.sortControl} role="group" aria-labelledby="library-sort-label">
             <button
               type="button"
+              data-vault-control="secondary" data-control-size="icon"
               className={styles.sortDirection}
               aria-label={`${sortReversed ? "Restore" : "Reverse"} current sort order`}
               aria-pressed={sortReversed}
               title={`${sortReversed ? "Restore" : "Reverse"} current sort order`}
               onClick={onToggleSortDirection}
             >
-              <VaultIcon name="sort" size={15} />
+              <VaultIcon name="sort" size={17} />
             </button>
-            <label htmlFor="library-sort">Sort</label>
-          </span>
-          <LibrarySortMenu value={sort} onChange={onSortChange} showDuration={showDurationSort} />
+            <LibrarySortMenu value={sort} onChange={onSortChange} showDuration={showDurationSort} />
+          </div>
         </div>
 
-        <div className={styles.viewToggle} role="group" aria-label="View mode">
-          <button
-            type="button"
-            className={viewMode === "grid" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}
-            onClick={() => onViewModeChange("grid")}
-            aria-pressed={viewMode === "grid"}
-          >
-            <VaultIcon name="grid" size={16} /> <span>Grid</span>
-          </button>
-          <button
-            type="button"
-            className={viewMode === "list" ? `${styles.toggleButton} ${styles.toggleButtonActive}` : styles.toggleButton}
-            onClick={() => onViewModeChange("list")}
-            aria-pressed={viewMode === "list"}
-          >
-            <VaultIcon name="list" size={16} /> <span>List</span>
-          </button>
-        </div>
-        <button type="button" className={styles.selectionToggle} aria-pressed={selectionMode} onClick={onToggleSelection}><VaultIcon name="check" size={16} /><span>{selectionMode ? "Done" : "Select"}</span></button>
+        <button
+          type="button"
+          data-vault-control="secondary"
+          className={styles.viewToggle}
+          aria-label={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+          title={`Switch to ${viewMode === "grid" ? "list" : "grid"} view`}
+          onClick={() => onViewModeChange(viewMode === "grid" ? "list" : "grid")}
+        >
+          <VaultIcon name={viewMode === "grid" ? "list" : "grid"} size={16} />
+          <span>{viewMode === "grid" ? "List" : "Grid"}</span>
+        </button>
+        <button type="button" data-vault-control="secondary" className={styles.selectionToggle} aria-pressed={selectionMode} onClick={onToggleSelection}><VaultIcon name="check" size={16} /><span>{selectionMode ? "Done" : "Select"}</span></button>
       </div>
     </section>
   );

@@ -9,6 +9,8 @@ const config = [
   {
     ignores: [
       ".next/**",
+      // Nested agent checkouts have their own lint/build context.
+      ".claude/worktrees/**",
       "node_modules/**",
       "data/**",
       "scripts/**"

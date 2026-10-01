@@ -14,6 +14,7 @@ export type VaultState = {
   pins: VaultPin[];
   snoozedIds: string[];
   currentPickId: string | null;
+  currentDrawId?: string | null;
 };
 
 export async function getVaultState(userId: string): Promise<VaultState> {

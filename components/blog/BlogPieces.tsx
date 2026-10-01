@@ -88,11 +88,11 @@ export function PostCta({ heading, body }: { heading: string; body: string }) {
         <p>{body}</p>
       </div>
       <div className={styles.ctaActions}>
-        <Link className={styles.ctaPrimary} href="/vault" data-blog-action="try_guest">
+        <Link data-vault-control="primary" className={styles.ctaPrimary} href="/vault" data-blog-action="try_guest">
           Try it as a guest
           <VaultIcon name="chevron-right" size={18} />
         </Link>
-        <Link className={styles.ctaSecondary} href="/faq" data-blog-action="faq">
+        <Link data-vault-control="secondary" className={styles.ctaSecondary} href="/faq" data-blog-action="faq">
           FAQ
         </Link>
       </div>
@@ -114,7 +114,7 @@ export function PostOutro({ children }: { children: ReactNode }) {
 export function AllPostsLink() {
   return (
     <p className={styles.allPostsRow}>
-      <Link className={styles.allPosts} href="/blog" data-blog-action="all_posts">
+      <Link data-vault-control="secondary" className={styles.allPosts} href="/blog" data-blog-action="all_posts">
         View all posts
       </Link>
     </p>

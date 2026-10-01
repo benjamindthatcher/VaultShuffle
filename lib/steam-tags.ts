@@ -1,3 +1,5 @@
+import {tagWriteDecision,sanitizeSteamTags} from "./steam-tag-model.ts";
+export {tagWriteDecision,type TagWriteDecision} from "./steam-tag-model.ts";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { steamRetryAfter } from "@/lib/steam-api-error";
 import { promoteIfEndless } from "@/lib/endless-sync";
@@ -189,32 +191,6 @@ export async function processSteamTagQueue(limit = 60, deadlineAt = Date.now() +
   };
 }
 
-export type TagWriteDecision = "write" | "keep-existing" | "keep-other-source";
-
-/**
- * Whether SteamSpy's answer should replace what a game already has.
- *
- * SteamSpy is not the only source of tags and is the weaker one for anything
- * recent: it returns `tags: []` for newer games - Metro Exodus, ARC Raiders, PEAK
- * all came back empty - which sanitizeSteamTags turns into `{}`. Written straight
- * through, that marks a game tagged with nothing, and every filter that reads tags
- * goes blind on exactly the games people are most likely to be looking for.
- */
-export function tagWriteDecision(
-  current: { hasTags: boolean; source: string | null } | undefined,
-  fetched: Record<string, number>
-): TagWriteDecision {
-  // Nothing to protect. Even an empty answer is worth recording: it is what
-  // SteamSpy knows, and the row held nothing before.
-  if (!current?.hasTags) return "write";
-  // Store-page tags carry real vote weights for games SteamSpy has never heard of.
-  // SteamSpy does not get to replace them, whatever it returns.
-  if (current.source && current.source !== "steamspy") return "keep-other-source";
-  // SteamSpy refreshing its own row, with nothing to say this time.
-  if (!Object.keys(fetched).length) return "keep-existing";
-  return "write";
-}
-
 /** What the claimed rows already hold, read once rather than per game. */
 async function loadHeldTags(
   supabase: ReturnType<typeof getSupabaseAdmin>,
@@ -266,16 +242,6 @@ async function fetchSteamCommunityTags(steamAppId: number) {
     throw new Error("SteamSpy returned metadata for a different AppID.");
   }
   return sanitizeSteamTags(payload.tags);
-}
-
-function sanitizeSteamTags(value: unknown) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const entries = Object.entries(value as Record<string, unknown>).flatMap(([rawTag, rawWeight]) => {
-    const tag = rawTag.trim().replace(/\s+/g, " ");
-    const weight = Math.max(0, Math.round(Number(rawWeight)));
-    return tag && tag.length <= 100 && Number.isFinite(weight) ? [[tag, weight] as const] : [];
-  });
-  return Object.fromEntries(entries);
 }
 
 async function waitForSteamSpyRateLimit() {

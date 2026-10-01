@@ -21,7 +21,7 @@ function harness(live = false) {
   const queue = new MutationQueue(async () => {});
   let fail = false;
   const dependencies = {
-    isLive: live, liveVaultStateRef: state, guestVaultStateRef: state, liveGamesRef: games, guestGamesRef: games,
+    isLive: live, dataAuthority: 'legacy', liveVaultStateRef: state, guestVaultStateRef: state, liveGamesRef: games, guestGamesRef: games,
     setLiveVaultState: setState, setGuestVaultState: setState,
     setLiveGames: (update: (value: unknown) => unknown) => { games.current = update(games.current) as typeof games.current; },
     setGuestGames: (update: (value: unknown) => unknown) => { games.current = update(games.current) as typeof games.current; },

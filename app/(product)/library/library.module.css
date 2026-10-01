@@ -27,32 +27,32 @@
 
 .statusTabs { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)); justify-self: center; gap: 6px; padding: 6px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
 .statusTab, .statusTabActive { min-height: 40px; display: flex; align-items: center; justify-content: center; gap: 9px; padding: 0 18px; border: 1px solid transparent; border-radius: 10px; color: var(--vault-text-muted); background: transparent; font-weight: 650; font-size: 0.88rem; }
-.statusTab strong, .statusTabActive strong { min-width: 25px; padding: 3px 7px; border-radius: 999px; background: rgba(144, 96, 255, 0.14); color: #d59eff; font-size: 0.8rem; }
+.statusTab strong, .statusTabActive strong { min-width: 25px; padding: 3px 7px; border-radius: 999px; background: color-mix(in srgb, var(--vault-accent) 14%, transparent); color: var(--vault-text); font-size: 0.8rem; }
 .statusTabActive { border-color: var(--vault-tile-selected-border); color: var(--vault-text); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); }
-.statusTab:focus-visible, .statusTabActive:focus-visible { outline: 2px solid #c08bff; outline-offset: 2px; }
+.statusTab:focus-visible, .statusTabActive:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 2px; }
 .placeholderGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 @media (min-width: 760px) { .placeholderGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
-.placeholderAction { min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--vault-accent); color: #fff; font-size: 0.82rem; font-weight: 700; }
+.placeholderAction { min-height: 34px; padding: 0 14px; border: 0; border-radius: 10px; background: var(--vault-accent); color: var(--vault-text); font-size: 0.82rem; font-weight: 700; }
 .emptyState { width: min(440px, 100%); margin-inline: auto; display: grid; justify-items: center; gap: 8px; padding: 40px 20px; color: var(--vault-text-muted); text-align: center; }
 .emptyState h3, .emptyState p { margin: 0; }
-.emptyState button { min-height: 40px; margin-top: 8px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
-.undoToast { position: fixed; z-index: 30; right: 24px; bottom: max(24px, var(--vault-bottom-notice-offset, 0px)); display: flex; align-items: center; gap: 12px; max-width: min(580px, calc(100vw - 32px)); padding: 10px 14px; border: 1px solid var(--vault-feature-border); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
-.undoToast button { min-width: 44px; min-height: 44px; flex-shrink: 0; border: 0; background: transparent; color: #d98cff; font-weight: 800; }
+.emptyState button { min-height: 40px; margin-top: 8px; padding: 0 16px; border: 0; border-radius: 10px; background: var(--vault-accent); color: var(--vault-text); font-weight: 700; font-size: 0.86rem; }
+.undoToast { position: fixed; z-index: 30; right: 24px; bottom: max(24px, var(--vault-bottom-notice-offset, 0px)); display: flex; align-items: center; gap: 12px; max-width: min(580px, calc(100vw - 32px)); padding: 10px 14px; border: 1px solid var(--vault-feature-border); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px color-mix(in srgb, var(--vault-shadow-color) 50%, transparent); }
+.undoToast button { min-width: 44px; min-height: 44px; flex-shrink: 0; border: 0; background: transparent; color: var(--vault-accent); font-weight: 800; }
 
-.undoToast button:focus-visible { outline: 2px solid #ceb0ff; outline-offset: 2px; border-radius: 5px; }
+.undoToast button:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 2px; border-radius: 5px; }
 @media (max-width: 520px) { .undoToast { right: 16px; bottom: max(16px, var(--vault-bottom-notice-offset, 0px)); font-size: .82rem; gap: 5px; } }
 .pinnedShelf { display: grid; gap: 10px; }
 .pinnedHeader { display: flex; align-items: center; gap: 12px; }
 .pinnedHeader h2 { margin: 0; font-size: 1.02rem; font-weight: 700; }
-.pinnedHeader h2 span { color: #d58cff; }
-.pinnedHeader button { min-height: 40px; margin-left: auto; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: #d58cff; font-weight: 750; }
+.pinnedHeader h2 span { color: var(--vault-accent); }
+.pinnedHeader button { min-height: 40px; margin-left: auto; padding: 0 10px; border: 0; border-radius: 8px; background: transparent; color: var(--vault-accent); font-weight: 750; }
 .slotDots { display: flex; gap: 5px; }
-.slotDots span { width: 8px; height: 8px; border: 1px solid #a871ff; border-radius: 50%; }
-.slotDots span[data-filled="true"] { background: #c15fff; box-shadow: 0 0 8px rgba(193,95,255,.5); }
+.slotDots span { width: 8px; height: 8px; border: 1px solid var(--vault-border); border-radius: 50%; }
+.slotDots span[data-filled="true"] { background: var(--vault-accent); box-shadow: 0 0 8px color-mix(in srgb, var(--vault-accent) 15%, transparent); }
 .pinnedGrid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
-.pinnedGrid:focus-visible { border-radius: 8px; outline: 2px solid rgba(172, 113, 255, 0.72); outline-offset: 3px; }
+.pinnedGrid:focus-visible { border-radius: 8px; outline: 2px solid var(--vault-accent); outline-offset: 3px; }
 .pinnedCard { position: relative; min-width: 0; }
-.pinBadge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 5px 8px; border: 1px solid var(--vault-border-strong); border-radius: 999px; background: rgba(45,22,78,.9); color: #e29cff; font-size: .72rem; }
+.pinBadge { position: absolute; z-index: 3; top: 8px; left: 8px; padding: 5px 8px; border: 1px solid var(--vault-border-strong); border-radius: 999px; background: var(--vault-surface); color: var(--vault-text); font-size: .72rem; }
 .emptyPin { min-height: 96px; display: grid; place-items: center; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); color: var(--vault-text-soft); }
 @media (max-width: 720px) { .pinnedGrid { display: flex; overflow-x: auto; } .pinnedGrid > * { flex: 0 0 78%; } }
 
@@ -113,7 +113,7 @@
   padding: 0 2px;
   font-size: 0.75rem;
   font-weight: 650;
-  color: #7ce7b2;
+  color: var(--vault-success);
 }
 
 /* Three tabs at a 140px floor demand 420px of columns, and with the gaps,
@@ -225,12 +225,12 @@
 .bulkBlacklist,
 .bulkComplete {
   border-color: rgba(var(--bulk-rgb), .32);
-  background: linear-gradient(135deg, rgba(var(--bulk-rgb), .14), rgba(var(--bulk-rgb), .04)), #10172a;
+  background: var(--vault-surface);
   color: var(--bulk-text);
-  box-shadow: inset 0 1px 0 #ffffff0a;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 3.92%, transparent);
 }
-.bulkBlacklist { --bulk-rgb: 245, 158, 85; --bulk-text: #ffc394; }
-.bulkComplete { --bulk-rgb: 77, 211, 153; --bulk-text: #a7f0ce; }
+.bulkBlacklist { --bulk-rgb: var(--vault-warning-rgb); --bulk-text: var(--vault-warning); }
+.bulkComplete { --bulk-rgb: var(--vault-success-rgb); --bulk-text: var(--vault-success); }
 .bulkBlacklist:hover,
 .bulkComplete:hover { background: rgba(var(--bulk-rgb), .21); border-color: rgba(var(--bulk-rgb), .65); }
 .bulkBlacklist svg,
@@ -239,14 +239,14 @@
 /* Green, as waking a game or moving it back is putting it into play - the same
    thing the Vault's own confirmations mean. */
 .bulkRestore {
-  border-color: rgba(110, 231, 183, 0.34);
-  background: rgba(110, 231, 183, 0.12);
-  color: #b6f4d4;
+  border-color: color-mix(in srgb, var(--vault-success) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 12%, transparent);
+  color: var(--vault-success);
 }
 
 .bulkRestore:hover:not(:disabled) {
-  border-color: rgba(110, 231, 183, 0.62);
-  background: rgba(110, 231, 183, 0.22);
+  border-color: color-mix(in srgb, var(--vault-success) 62%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 22%, transparent);
 }
 
 .bulkRestore:disabled {
@@ -258,7 +258,7 @@
 .bulkBlacklist:focus-visible,
 .bulkComplete:focus-visible,
 .bulkRestore:focus-visible {
-  outline: 2px solid #c08bff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 2px;
   border-radius: 10px;
 }

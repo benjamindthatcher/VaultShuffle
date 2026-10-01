@@ -27,7 +27,7 @@ async function fixture(page: Page, { failFirst = false, delay = 0 } = {}) {
       if (delay) await new Promise(resolve => setTimeout(resolve, delay));
       if (failFirst && writes.length === 1) return route.fulfill({ status: 400, json: { error: "Test save rejected" } });
       const game = stored.find(entry => entry.id === id)!;
-      Object.assign(game, patch.restore_active ? { status: "Not Started", completed_at: null, slept_at: null } : patch);
+      Object.assign(game, patch.restore_active ? { status: "Not Started", completed_at: null } : patch);
       return route.fulfill({ json: game });
     }
     if (path === "/api/steam/owned-games") return route.fulfill({ json: { progress: { status: "idle", imported: 0, total: 0, percent: 0, playHistoryMissing: false, lastError: null, startedAt: null, completedAt: null } } });
@@ -42,6 +42,28 @@ async function fixture(page: Page, { failFirst = false, delay = 0 } = {}) {
 const cards = (page: Page) => page.locator("article[data-game-id]");
 const card = (page: Page, id = 0) => page.locator(`article[data-game-id="library-${id}"]`);
 const undo = (page: Page) => page.locator("[data-library-undo]").getByRole("button", { name: "Undo", exact: true });
+
+for (const width of [1280,390]) {
+  test(`Blacklist survives reload and returns to Active only after manual reactivation (${width}px)`,async({page})=>{
+    await page.setViewportSize({width,height:844});
+    const state=await fixture(page);
+    await card(page).getByRole('button',{name:'Blacklist',exact:true}).click();
+    await expect.poll(()=>state.stored[0].status).toBe('Blacklisted');
+    expect(Object.hasOwn(state.writes[0].patch,'slept_at')).toBe(false);
+    expect(Object.hasOwn(state.writes[0].patch,'blacklisted_at')).toBe(false);
+    await page.reload();
+    await page.getByRole('tab',{name:'Blacklisted 1',exact:true}).click();
+    await expect(card(page)).toBeVisible();
+    await expect(card(page)).toContainText('Blacklisted');
+    await card(page).getByRole('button',{name:'Reactivate',exact:true}).focus();
+    await expect(card(page).getByRole('button',{name:'Reactivate',exact:true})).toBeFocused();
+    await card(page).getByRole('button',{name:'Reactivate',exact:true}).click();
+    await expect.poll(()=>state.stored[0].status).toBe('Not Started');
+    await page.getByRole('tab',{name:'Active 130',exact:true}).click();
+    await expect(card(page)).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  });
+}
 
 for (const action of ["Blacklist", "Complete"] as const) {
   test(`Active bulk ${action} updates all selected games immediately and supports batch Undo`, async ({ page }) => {
@@ -65,7 +87,7 @@ for (const action of ["Blacklist", "Complete"] as const) {
     await expect.poll(() => state.writes.length).toBe(4);
     await expect.poll(() => state.stored.slice(0, 2).map(game => game.status)).toEqual(["Not Started", "Not Started"]);
     expect(state.writes.map(write => write.patch.status)).toEqual([
-      action === "Blacklist" ? "Slept" : "Completed", action === "Blacklist" ? "Slept" : "Completed", "Not Started", "Not Started",
+      action === "Blacklist" ? "Blacklisted" : "Completed", action === "Blacklist" ? "Blacklisted" : "Completed", "Not Started", "Not Started",
     ]);
     await page.reload();
     await expect(page.getByRole("tab", { name: "Active 130", exact: true })).toBeVisible();
@@ -96,7 +118,7 @@ test("blacklist then immediate Undo is optimistic and persists the final choice"
   await expect(card(page)).toBeVisible();
   await expect.poll(() => state.writes.length).toBe(2);
   await expect.poll(() => state.stored[0].status).toBe("Not Started");
-  expect(state.writes.map(entry => entry.patch.status)).toEqual(["Slept", "Not Started"]);
+  expect(state.writes.map(entry => entry.patch.status)).toEqual(["Blacklisted", "Not Started"]);
   await page.reload();
   await expect(page.getByRole("tab", { name: "Active 130", exact: true })).toBeVisible();
 });

@@ -6,13 +6,16 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { findCompletionCandidates } from "@/lib/completion-check";
+import { findCompletionCandidates, type CompletionCandidate } from "@/lib/completion-check";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import { formatMoney } from "@/lib/backlog-stats";
 import { trackCompletionClaim, trackCompletionDismissed } from "@/lib/completion-tracking";
 import { PageHeading } from "@/components/shared/PageHeading";
 import styles from "./finished.module.css";
 import { FamilyGameMark } from "@/components/shared/FamilyMark";
+import { useV2Library } from "@/components/library/useV2Library";
+import { requestJson } from "@/lib/api-client";
+import { RequestFailure } from "@/lib/request-failure";
 
 /**
  * Claiming what you already finished.
@@ -24,19 +27,31 @@ import { FamilyGameMark } from "@/components/shared/FamilyMark";
  * unclaimed for months.
  */
 export default function FinishedPage() {
-  const { games, isLive, updateGame, refresh } = useAppData();
+  const { games, isLive, dataAuthority, isLoading, updateGame, refresh } = useAppData();
+  const v2=isLive&&dataAuthority==='v2';
+  // Keep this visit's rows stationary after answering; the next cursor read
+  // reconciles changed revisions. Each response hydrates at most 60 games.
+  const remote=useV2Library(v2,'limit=60','review','/api/v2/completion-review');
+  const [reviewed,setReviewed]=useState<Record<string,CompletionCandidate>>({});
   const [claimed, setClaimed] = useState<Record<string, "finished" | "not-yet">>({});
   const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkAction, setBulkAction] = useState<"finished" | "not-yet" | null>(null);
+  const bulkRunning = bulkAction !== null;
   const [error, setError] = useState("");
 
-  const candidates = useMemo(() => findCompletionCandidates(games), [games]);
+  const candidates = useMemo(() => {
+    if(!v2)return findCompletionCandidates(games);
+    const current=findCompletionCandidates(remote.games);
+    const known=new Set(current.map(({game})=>game.id));
+    return [...current,...Object.values(reviewed).filter(({game})=>!known.has(game.id))];
+  }, [games,v2,remote.games,reviewed]);
 
   // Fired once per visit, from the queue as it was found rather than as it is
   const pending = candidates.filter((candidate) => !claimed[candidate.game.id]);
 
   const selectedIds = pending.filter((candidate) => selected[candidate.game.id]);
-  const allSelected = pending.length > 0 && selectedIds.length === pending.length;
+  const selectionLimit=v2?Math.min(500,pending.length):pending.length;
+  const allSelected = selectionLimit > 0 && selectedIds.length === selectionLimit;
   const selectedValue = selectedIds.reduce(
     (total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
 
@@ -44,13 +59,27 @@ export default function FinishedPage() {
   const claimedValue = candidates
     .filter((candidate) => claimed[candidate.game.id] === "finished")
     .reduce((total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
-  const remainingValue = pending
-    .reduce((total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
+  const answeredLoaded=remote.games.filter(game=>claimed[game.id]);
+  const remainingCount=v2?Math.max(0,(remote.page?.total??0)-answeredLoaded.length):pending.length;
+  const remainingValue = v2?Math.max(0,(remote.page?.completionValueCents??0)-answeredLoaded.reduce((sum,game)=>sum+(game.isFree?0:Number(game.priceInitial??0)),0))
+    :pending.reduce((total, candidate) => total + (candidate.game.isFree ? 0 : Number(candidate.game.priceInitial ?? 0)), 0);
+
+  function saveError(caught:unknown) {
+    if(v2&&caught instanceof RequestFailure) return caught.status===401?'Please sign in again to save your answers.'
+      :caught.status===404?'One of those games is no longer available. Refresh and try again.':'Could not save that. Please try again.';
+    return caught instanceof Error?caught.message:'Could not save that. Please try again.';
+  }
 
   async function saveOne(gameId: string, finished: boolean, bulk = false) {
-    const game = games.find((entry) => entry.id === gameId);
+    const game = candidates.find(({game}) => game.id === gameId)?.game;
+    if(v2) {
+      await requestJson('/api/v2/completion-review',{method:'POST',body:JSON.stringify({action:finished?'claimed':'dismissed',game_ids:[Number(gameId)],request_key:crypto.randomUUID(),surface:bulk?'sweep_bulk':'sweep'})});
+      if(game) {if(finished)trackCompletionClaim(game,bulk?'sweep_bulk':'sweep',false);else trackCompletionDismissed(game,bulk);}
+      await refresh({quiet:true});
+      return;
+    }
     if (finished) {
-      await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString(), sleptAt: null });
+      await updateGame(gameId, { status: "Completed", completedAt: new Date().toISOString() });
       if (game) trackCompletionClaim(game, bulk ? "sweep_bulk" : "sweep", isLive);
     } else {
       if (game) trackCompletionDismissed(game, bulk);
@@ -76,6 +105,8 @@ export default function FinishedPage() {
    */
   async function claim(gameId: string, finished: boolean) {
     if (bulkRunning || claimed[gameId]) return;
+    const candidate=candidates.find(({game})=>game.id===gameId);
+    if(candidate)setReviewed(value=>({...value,[gameId]:candidate}));
     setClaimed((value) => ({ ...value, [gameId]: finished ? "finished" : "not-yet" }));
     setError("");
     try {
@@ -86,7 +117,8 @@ export default function FinishedPage() {
         delete reverted[gameId];
         return reverted;
       });
-      setError(caught instanceof Error ? caught.message : "Could not save that. Please try again.");
+      setReviewed(value=>{const next={...value};delete next[gameId];return next;});
+      setError(saveError(caught));
     }
   }
 
@@ -106,7 +138,7 @@ export default function FinishedPage() {
   async function claimSelected(finished: boolean) {
     const chosen = pending.filter((candidate) => selected[candidate.game.id]);
     if (!chosen.length || bulkRunning) return;
-    setBulkRunning(true);
+    setBulkAction(finished ? "finished" : "not-yet");
     setError("");
 
     const mark = finished ? "finished" as const : "not-yet" as const;
@@ -118,6 +150,10 @@ export default function FinishedPage() {
         // Guest state is local, so there is nothing to batch and nothing to
         // spend: the existing per-game path already only touches memory.
         for (const candidate of chosen) await saveOne(candidate.game.id, finished, true);
+      } else if(v2) {
+        await requestJson('/api/v2/completion-review',{method:'POST',body:JSON.stringify({action:finished?'claimed':'dismissed',game_ids:chosen.map(({game})=>Number(game.id)),request_key:crypto.randomUUID(),surface:'sweep_bulk'})});
+        for(const {game} of chosen) {if(finished)trackCompletionClaim(game,'sweep_bulk',false);else trackCompletionDismissed(game,true);}
+        await refresh({quiet:true});
       } else {
         const response = await fetch("/api/games/completions", {
           method: "POST",
@@ -149,29 +185,31 @@ export default function FinishedPage() {
         await refresh({ quiet: true });
       }
       setClaimed((value) => ({ ...value, ...done }));
+      setReviewed(value=>({...value,...Object.fromEntries(chosen.map(candidate=>[candidate.game.id,candidate]))}));
     } catch (caught) {
       // Nothing is marked done on a failure. The batch is one request, so either
       // the sweep landed or none of it did - saying otherwise would hide games
       // that are still waiting to be answered.
-      setError(caught instanceof Error ? caught.message : "Some games could not be saved. The rest were kept.");
+      setError(saveError(caught));
     } finally {
       setSelected({});
-      setBulkRunning(false);
+      setBulkAction(null);
     }
   }
 
   function toggle(gameId: string) {
+    if(v2&&!selected[gameId]&&selectedIds.length>=500)return;
     setSelected((value) => ({ ...value, [gameId]: !value[gameId] }));
   }
 
   function toggleAll() {
     if (allSelected) return setSelected({});
-    setSelected(Object.fromEntries(pending.map((candidate) => [candidate.game.id, true])));
+    setSelected(Object.fromEntries(pending.slice(0,selectionLimit).map((candidate) => [candidate.game.id, true])));
   }
 
   return (
-    <div className={styles.page}>
-      <PageHeading title={!isLive ? "Completion check preview" : pending.length ? "Did you finish these?" : "Nothing left to claim"}>
+    <div data-vault-controls="standard" className={styles.page}>
+      <PageHeading title={!isLive ? "Completion check preview" : remainingCount||remote.pending||isLoading ? "Did you finish these?" : "Nothing left to claim"}>
         {!isLive ? "This page becomes a real review queue once Steam can provide your playtime." : undefined}
       </PageHeading>
 
@@ -190,8 +228,11 @@ export default function FinishedPage() {
       ) : null}
 
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
+      {v2&&remote.error?<p className={styles.error} role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p>:null}
+      {(isLoading||(v2&&remote.pending&&!remote.page))?<p role="status">Loading completion check…</p>:null}
+      {v2&&remote.page?<p role="status">{remainingCount} games left to review</p>:null}
 
-      {pending.length ? (
+      {candidates.length ? (
         <>
         <div className={styles.selectBar}>
           <label className={styles.selectAll}>
@@ -202,7 +243,7 @@ export default function FinishedPage() {
               onChange={toggleAll}
               disabled={bulkRunning}
             />
-            <span>{allSelected ? "Clear selection" : `Select all ${pending.length}`}</span>
+            <span>{allSelected ? "Clear selection" : v2&&pending.length>500?'Select first 500':`Select all ${pending.length}`}</span>
           </label>
           {selectedIds.length ? null : (
             <span className={styles.selectedNote}>{formatMoney(remainingValue)} still to claim</span>
@@ -212,11 +253,11 @@ export default function FinishedPage() {
               <span className={styles.selectedNote}>
                 {selectedIds.length} selected{selectedValue ? ` · ${formatMoney(selectedValue)}` : ""}
               </span>
-              <button type="button" className={styles.primary} disabled={bulkRunning} onClick={() => void claimSelected(true)}>
-                {bulkRunning ? "Claiming…" : `Mark ${selectedIds.length} finished`}
+              <button type="button" data-vault-control="success" aria-busy={bulkAction === "finished"} className={styles.primary} disabled={bulkRunning} onClick={() => void claimSelected(true)}>
+                {bulkAction === "finished" ? <><span data-control-spinner aria-hidden="true" />Claiming…</> : `Mark ${selectedIds.length} finished`}
               </button>
-              <button type="button" className={styles.secondary} disabled={bulkRunning} onClick={() => void claimSelected(false)}>
-                Not yet
+              <button type="button" data-vault-control="secondary" aria-busy={bulkAction === "not-yet"} className={styles.secondary} disabled={bulkRunning} onClick={() => void claimSelected(false)}>
+                {bulkAction === "not-yet" ? <><span data-control-spinner aria-hidden="true" />Saving…</> : "Not yet"}
               </button>
             </div>
           ) : null}
@@ -232,7 +273,7 @@ export default function FinishedPage() {
           {candidates.map((candidate) => {
             const outcome = claimed[candidate.game.id];
             return (
-            <li key={candidate.game.id} className={outcome ? `${styles.row} ${styles.rowDecided}` : selected[candidate.game.id] ? styles.rowSelected : styles.row}>
+            <li data-vault-card={outcome ? undefined : "surface"} key={candidate.game.id} className={outcome ? `${styles.row} ${styles.rowDecided}` : selected[candidate.game.id] ? styles.rowSelected : styles.row}>
               {/* Everything but the two buttons ticks the box. Aiming at the
                   checkbox itself is a poor way to work down a list, and the rest
                   of the row means the same thing: this one. */}
@@ -242,7 +283,7 @@ export default function FinishedPage() {
                     type="checkbox"
                     checked={Boolean(selected[candidate.game.id])}
                     onChange={() => toggle(candidate.game.id)}
-                    disabled={bulkRunning || Boolean(outcome)}
+                    disabled={bulkRunning || Boolean(outcome) || (v2&&!selected[candidate.game.id]&&selectedIds.length>=500)}
                     aria-label={`Select ${candidate.game.title}`}
                   />
                 </span>
@@ -264,12 +305,14 @@ export default function FinishedPage() {
                 ) : (<>
                 <button
                   type="button"
+                  data-vault-control="success"
                   className={styles.primary}
                   disabled={bulkRunning}
                   onClick={() => void claim(candidate.game.id, true)}
                 >Finished</button>
                 <button
                   type="button"
+                  data-vault-control="secondary"
                   className={styles.secondary}
                   disabled={bulkRunning}
                   onClick={() => void claim(candidate.game.id, false)}
@@ -280,18 +323,19 @@ export default function FinishedPage() {
             );
           })}
         </ul>
+        {v2&&remote.page?.nextCursor?<button type="button" data-vault-control="secondary" disabled={remote.pending||bulkRunning} aria-busy={remote.pending} onClick={()=>void remote.loadMore()}>{remote.pending?<><span data-control-spinner aria-hidden="true"/>Loading…</>:'Load more games'}</button>:null}
         </>
-      ) : (
+      ) : !isLoading&&(!v2||(!remote.pending&&!remote.error&&remote.page))? (
         <div className={styles.done}>
           <p>{!isLive
             ? "There is nothing personal to check yet. You can still browse the guest Library and try the rest of VaultShuffle."
             : claimedCount ? "That is your backlog looking a lot more honest." : "Nothing to claim right now."}</p>
           <div className={styles.doneActions}>
-            <Link className={styles.primaryLink} href="/dashboard">See your dashboard</Link>
-            <Link className={styles.secondaryLink} href="/vault">Draw something to play</Link>
+            <Link data-vault-control="primary" className={styles.primaryLink} href="/dashboard">See your dashboard</Link>
+            <Link data-vault-control="secondary" className={styles.secondaryLink} href="/vault">Draw something to play</Link>
           </div>
         </div>
-      )}
+      ):null}
     </div>
   );
 }

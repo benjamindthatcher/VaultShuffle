@@ -158,7 +158,7 @@ export function InfoPage({ eyebrow, title, intro, cover, sections, icon = "detai
             className={`${styles.section} ${variant === "release" ? styles.sectionRelease : styles.sectionDocument}`}
             open={section.open}
           >
-            <summary className={styles.summary}>
+            <summary data-vault-control="disclosure" className={styles.summary}>
               {variant === "release" ? (
                 <>
                   <h2>{section.title}</h2>

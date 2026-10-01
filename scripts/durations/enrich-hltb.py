@@ -429,26 +429,6 @@ def edition_retry_variants(title, alias=None):
     return list(dict.fromkeys(value.strip(" -:|") for value in values if value.strip(" -:|")))
 
 
-def igdb_alias_retry_variants(title, aliases):
-    """Search only exact-mapped IGDB identities that are genuinely new Steam-title variants."""
-    title_normalized = normalized(title)
-    title_canonical = canonical_title(title)
-    values = []
-    for alias in aliases or []:
-        if not alias or not str(alias).strip():
-            continue
-        alias_normalized = normalized(alias)
-        alias_canonical = canonical_title(alias)
-        if not alias_normalized:
-            continue
-        if alias_normalized == title_normalized:
-            continue
-        if alias_canonical and title_canonical and alias_canonical == title_canonical:
-            continue
-        values.extend(title_variants(alias))
-    return list(dict.fromkeys(value.strip(" -:|") for value in values if value.strip(" -:|")))
-
-
 def normalized(value):
     """N1 identity: case, punctuation, marks and Latin diacritics only; no word removal."""
     plain = html.unescape(HTML_TAG.sub(" ", MARKS.sub("", str(value)))).replace("&", " and ")
@@ -870,11 +850,6 @@ def main():
         action="store_true",
         help="Search only markup-cleaned or edition-stripped variants.",
     )
-    parser.add_argument(
-        "--igdb-alias-retry",
-        action="store_true",
-        help="Search only canonical identities supplied by exact IGDB-to-Steam mappings.",
-    )
     parser.add_argument("--limit", type=int, default=1000)
     parser.add_argument("--delay", type=float, default=1.25)
     args = parser.parse_args()
@@ -933,9 +908,7 @@ def main():
         input_alias = game.get("search_title") if isinstance(game, dict) else None
         approved_alias = alias_by_appid.get(appid, {})
         approved_title = approved_alias.get("search_title")
-        if args.igdb_alias_retry:
-            title_candidates = igdb_alias_retry_variants(game["name"], game.get("aliases", []))
-        elif args.edition_retry:
+        if args.edition_retry:
             title_candidates = edition_retry_variants(game["name"], input_alias or approved_title)
         elif args.normalized_retry:
             title_candidates = normalized_retry_variants(game["name"], input_alias or approved_title)
@@ -946,7 +919,6 @@ def main():
                 game["name"],
                 input_alias,
                 approved_title,
-                *(game.get("aliases", []) if args.igdb_alias_retry else []),
             ]
             if title
         ))

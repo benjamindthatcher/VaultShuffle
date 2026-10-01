@@ -1,3 +1,4 @@
+import { VAULT_THEME } from "@/lib/theme";
 import type { MetadataRoute } from "next";
 import { siteConfig } from "@/lib/site";
 
@@ -13,8 +14,8 @@ export default function manifest(): MetadataRoute.Manifest {
     // install, and the install prompt reads as suspicious to first-time visitors.
     // The manifest is kept for its icons and theme colour.
     display: "browser",
-    background_color: "#050713",
-    theme_color: "#07091a",
+    background_color: VAULT_THEME.ground,
+    theme_color: VAULT_THEME.ground,
     categories: ["games", "entertainment", "utilities"],
     icons: [
       {

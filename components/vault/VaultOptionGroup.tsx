@@ -9,6 +9,7 @@ type VaultOption = {
 };
 
 type VaultOptionGroupProps = {
+  variant?: "default" | "landing" | "compact";
   title: string;
   stepNumber: number;
   options: readonly VaultOption[];
@@ -23,6 +24,7 @@ type VaultOptionGroupProps = {
 };
 
 export function VaultOptionGroup({
+  variant = "default",
   title,
   stepNumber,
   options,
@@ -35,22 +37,25 @@ export function VaultOptionGroup({
   lockedOptionIds = [],
   onLockedSelect
 }: VaultOptionGroupProps) {
+  const compact = variant !== "default";
   const groupId = `vault-setup-${title.toLowerCase()}`;
   const optionsId = `${groupId}-options`;
 
   return (
-    <section className={styles.group} id={groupId} data-state={state} data-expanded={expanded || undefined}>
+    <section className={`${styles.group}${compact ? ` ${styles.landing}` : ""}`} id={groupId} data-state={state} data-expanded={expanded || undefined}>
       <h2 className={styles.headingRow}>
-        <button type="button" className={styles.headingButton} aria-expanded={expanded} aria-controls={optionsId} onClick={onToggle}>
+        <button type="button" data-vault-control="disclosure" className={styles.headingButton} aria-expanded={expanded} aria-controls={optionsId} onClick={onToggle}>
           <span className={styles.stepNumber} aria-hidden="true">
-            {state === "complete" ? <VaultIcon name="check" size={17} /> : stepNumber}
+            {state === "complete" && !compact ? <VaultIcon name="check" size={17} /> : stepNumber}
           </span>
           <VaultIcon name={groupIconName(title)} className={styles.groupIcon} />
           <span className={styles.headingCopy}>
             <strong>{title}</strong>
-            <small>{selectedLabel ?? (state === "active" ? "Choose one to continue" : "Required choice")}</small>
+            {!compact ? <small>{selectedLabel ?? "Choose one"}</small> : null}
           </span>
-          <span className={styles.stateLabel}>{state === "complete" ? "Ready" : state === "active" ? "Choose one" : "Required"}</span>
+          <span className={styles.stateLabel}>
+            {selectedLabel ?? "Choose one"}{selectedLabel && <VaultIcon name="check" size={14} />}
+          </span>
           <VaultIcon name="chevron-down" size={18} className={styles.headingChevron} />
         </button>
       </h2>
@@ -61,6 +66,8 @@ export function VaultOptionGroup({
           const isLocked = lockedOptionIds.includes(option.id);
           return (
             <button
+              data-vault-control="selection"
+              data-control-hover={variant === "compact" ? "secondary" : undefined}
               key={option.id}
               type="button"
               className={`${styles.optionButton}${isActive ? ` ${styles.optionButtonActive}` : ""}${isLocked ? ` ${styles.optionButtonLocked}` : ""}`}
@@ -70,6 +77,7 @@ export function VaultOptionGroup({
             >
               <VaultIcon name={optionIconName(option.id)} size={38} className={styles.optionIcon} />
               <strong className={styles.optionLabel}>{option.label}</strong>
+              {isActive ? <span className={styles.selectedMark} aria-hidden="true"><VaultIcon name="check" size={18} /></span> : null}
               {isLocked ? <span className={styles.lockMark} title="Uses your Steam playtime"><VaultIcon name="privacy" size={14} /></span> : null}
             </button>
           );

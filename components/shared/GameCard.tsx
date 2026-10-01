@@ -18,7 +18,7 @@ type GameCardProps = {
   onClick?: () => void;
   onComplete?: () => void;
   onRestore?: () => void;
-  onSleep?: () => void;
+  onBlacklist?: () => void;
   onTogglePin?: () => void;
   /** Direct unpin, shown as an X on the card so a pin can be dropped from anywhere. */
   onUnpin?: () => void;
@@ -35,14 +35,14 @@ type GameCardProps = {
   onToggleSelect?: () => void;
 };
 
-export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onSleep, onTogglePin, onUnpin, pinned = false, showProgress = false, selectable = false, selected = false, onToggleSelect }: GameCardProps) {
+export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore, onBlacklist, onTogglePin, onUnpin, pinned = false, showProgress = false, selectable = false, selected = false, onToggleSelect }: GameCardProps) {
   const steamLink = useSteamPlayLink(game.steamAppId);
   const [menuOpen, setMenuOpen] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const menuShellRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const isList = layout === "list";
-  const isActiveGame = game.status !== "Completed" && game.status !== "Slept";
+  const isActiveGame = game.status !== "Completed" && game.status !== "Blacklisted";
   const durationLabel = formatGameDuration(game.duration);
   // One icon, no label. A shared game should be recognisable at a glance without
   // turning the card into a disclaimer - the details panel explains it.
@@ -84,7 +84,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
     const trigger = menuShellRef.current?.getBoundingClientRect();
     if (!trigger) return;
     const menuWidth = 196;
-    const estimatedHeight = game.status === "Completed" || game.status === "Slept" ? 142 : 238;
+    const estimatedHeight = game.status === "Completed" || game.status === "Blacklisted" ? 142 : 238;
     const left = Math.max(8, Math.min(window.innerWidth - menuWidth - 8, trigger.right - menuWidth));
     const top = trigger.bottom + estimatedHeight + 8 <= window.innerHeight
       ? trigger.bottom + 6
@@ -111,7 +111,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
               carries the length instead. */}
           <span>{isFamily
             ? durationLabel || "Family library"
-            : `${game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}${durationLabel ? ` · ${durationLabel}` : ""}`}</span>
+            : `${game.playtimeKnown === false ? "Playtime unavailable" : game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}${durationLabel ? ` · ${durationLabel}` : ""}`}</span>
           {isList ? (
             <span className={styles.listState}>
               <span className={styles.status}>{game.status}</span>
@@ -125,7 +125,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
   );
 
   if (!onClick) {
-    return <article className={isList ? `${styles.card} ${styles.cardList}` : styles.card}>{content}</article>;
+    return <article data-vault-card="surface" className={isList ? `${styles.card} ${styles.cardList}` : styles.card}>{content}</article>;
   }
 
   return <article className={`${styles.cardShell}${menuOpen ? ` ${styles.cardShellMenuOpen}` : ""}`}>
@@ -134,6 +134,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
         the card could mean. Details are still on the menu. */}
     <button
       type="button"
+      data-vault-card="interactive"
       className={isList ? `${styles.card} ${styles.cardList}` : styles.card}
       onClick={selectable ? onToggleSelect : onClick}
       aria-pressed={selectable ? selected : undefined}
@@ -161,13 +162,13 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
         another page; both are one tap now.
         Active games only: a finished or sleeping game has different work to do,
         and that stays in the menu. */}
-    {isActiveGame && (onSleep || onComplete) ? (
+    {isActiveGame && (onBlacklist || onComplete) ? (
       <div className={styles.quickActions}>
-        {onSleep ? (
+        {onBlacklist ? (
           <button
             type="button"
             className={styles.quickSleep}
-            onClick={(event) => { event.stopPropagation(); onSleep(); }}
+            onClick={(event) => { event.stopPropagation(); onBlacklist(); }}
           >
             <VaultIcon name="sleep" size={16} />Blacklist
           </button>
@@ -183,17 +184,17 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
         ) : null}
       </div>
     ) : null}
-    {(onComplete || onRestore || onSleep || onTogglePin) ? <div ref={menuShellRef} className={styles.menuShell}>
+    {(onComplete || onRestore || onBlacklist || onTogglePin) ? <div ref={menuShellRef} className={styles.menuShell}>
       <button type="button" className={styles.menuTrigger} aria-label={`Actions for ${game.title}`} aria-expanded={menuOpen} onClick={toggleMenu}><VaultIcon name="menu-dots" size={20} /></button>
       {menuOpen ? createPortal(<div ref={menuRef} className={styles.menu} style={menuPosition} role="menu">
         <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onClick?.(); }}><VaultIcon name="details" size={18} />View Details</button>
-        {game.status === "Completed" || game.status === "Slept" ? <>
+        {game.status === "Completed" || game.status === "Blacklisted" ? <>
           {onRestore ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onRestore(); }}><VaultIcon name="restore-active" size={18} />Restore to Active</button> : null}
-          {game.status === "Completed" && onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Blacklist</button> : null}
-          {game.status === "Slept" && onComplete ? <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setMenuOpen(false); onComplete(); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button> : null}
+          {game.status === "Completed" && onBlacklist ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onBlacklist(); }}><VaultIcon name="sleep" size={18} />Blacklist</button> : null}
+          {game.status === "Blacklisted" && onComplete ? <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setMenuOpen(false); onComplete(); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button> : null}
         </> : <>
           {onTogglePin ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onTogglePin(); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Remove from Playing Next" : "Add to Playing Next"}</button> : null}
-          {onSleep ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onSleep(); }}><VaultIcon name="sleep" size={18} />Blacklist game</button> : null}
+          {onBlacklist ? <button type="button" role="menuitem" onClick={() => { setMenuOpen(false); onBlacklist(); }}><VaultIcon name="sleep" size={18} />Blacklist game</button> : null}
           {onComplete ? <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { setMenuOpen(false); onComplete(); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button> : null}
           <a role="menuitem" href={steamLink.href} target={steamLink.target} rel={steamLink.rel} onClick={() => setMenuOpen(false)}><VaultIcon name="open-steam" size={18} />Open on Steam</a>
         </>}

@@ -1,10 +1,13 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import { unstable_rethrow } from "next/navigation";
 import { NextResponse, after } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { enforceAuthenticatedWriteRate } from "@/lib/rate-limit";
 import type { AppUser, SteamPlayerSummary } from "@/lib/types";
-import { asManualProfileSecurityError } from "@/lib/manual-profile-security";
+import { isV2Authority } from "@/lib/database-authority";
+import { getV2Runtime } from "@/lib/v2/runtime";
+import { currentV2Session } from "@/lib/v2/current-session";
 
 export const SESSION_COOKIE = "vault_session";
 const SESSION_DAYS = 30;
@@ -20,7 +23,6 @@ const SESSION_DAYS = 30;
 const VISIT_THROTTLE_MS = 60 * 60 * 1000;
 const MANUAL_SESSION_DAYS = 365;
 const MANUAL_TOKEN_PREFIX = "manual.";
-const PROFILE_SECURITY_INTENT_MINUTES = 10;
 
 function describeSupabaseError(error: unknown, fallback: string) {
   if (!error) return fallback;
@@ -65,6 +67,20 @@ export class SessionLookupError extends Error {
 }
 
 export async function getCurrentSession() {
+  if (isV2Authority()) {
+    try {
+      const session = await currentV2Session();
+      if (session) {
+        try { after(async () => {
+          await (await getV2Runtime()).auth.recordVisit(session.principal).catch(() => undefined);
+        }); } catch { /* Non-request scripts do not record a visit. */ }
+      }
+      return session;
+    } catch (error) {
+      unstable_rethrow(error);
+      throw new SessionLookupError(error);
+    }
+  }
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return null;
@@ -233,6 +249,7 @@ export async function requireWriteSession() {
 }
 
 export async function createSessionForSteamId(steamId: string, profile?: SteamPlayerSummary | null) {
+  if (isV2Authority()) return (await getV2Runtime()).auth.startVerified(steamId, sessionSecret(), profile);
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + SESSION_DAYS * 24 * 60 * 60 * 1000);
@@ -259,71 +276,6 @@ export async function createSessionForSteamId(steamId: string, profile?: SteamPl
   };
 }
 
-export async function createManualProfileSecurityIntent(input: {
-  accountId: string;
-  manualSessionId: string;
-}) {
-  const supabase = getSupabaseAdmin();
-  const token = crypto.randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + PROFILE_SECURITY_INTENT_MINUTES * 60 * 1000);
-  const { error } = await supabase.rpc("create_manual_profile_security_intent", {
-    p_source_account_id: input.accountId,
-    p_source_manual_session_id: input.manualSessionId,
-    p_token_hash: hashToken(token),
-    p_expires_at: expiresAt.toISOString(),
-  });
-
-  if (error) {
-    throw asManualProfileSecurityError(error, "link_intent_invalid");
-  }
-  return { token, expiresAt };
-}
-
-export async function completeManualProfileSecurity(input: {
-  intentToken: string;
-  manualSessionId: string;
-  verifiedSteamId: string;
-  profile?: SteamPlayerSummary | null;
-  openIdResponseNonce: string;
-}) {
-  const supabase = getSupabaseAdmin();
-  const token = crypto.randomBytes(32).toString("base64url");
-  const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
-  const { data, error } = await supabase
-    .rpc("complete_manual_profile_security", {
-      p_intent_token_hash: hashToken(input.intentToken),
-      p_manual_session_id: input.manualSessionId,
-      p_verified_steam_id: input.verifiedSteamId,
-      p_steam_display_name: input.profile?.display_name ?? null,
-      p_avatar_url: input.profile?.avatar_url ?? null,
-      p_new_session_token_hash: hashToken(token),
-      p_new_session_expires_at: expiresAt.toISOString(),
-      p_openid_response_nonce: input.openIdResponseNonce,
-    })
-    .single();
-
-  if (error || !data) {
-    throw asManualProfileSecurityError(error, "link_merge_failed");
-  }
-
-  const result = data as {
-    account_id: unknown;
-    merge_mode: unknown;
-    merged_from_account_id: unknown;
-  };
-  const mergeMode = String(result.merge_mode);
-  if (mergeMode !== "promoted" && mergeMode !== "merged_existing") {
-    throw asManualProfileSecurityError(null, "link_merge_failed");
-  }
-
-  return {
-    token,
-    accountId: String(result.account_id),
-    sourceAccountId: String(result.merged_from_account_id),
-    mergeMode,
-  } as const;
-}
-
 export async function createManualProfileSession(input: {
   steamId: string;
   profileUrl: string;
@@ -331,6 +283,7 @@ export async function createManualProfileSession(input: {
   steamDisplayName: string;
   avatarUrl: string | null;
 }) {
+  if (isV2Authority()) return (await getV2Runtime()).auth.startManual(input, sessionSecret());
   const supabase = getSupabaseAdmin();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + MANUAL_SESSION_DAYS * 24 * 60 * 60 * 1000);
@@ -376,6 +329,7 @@ export async function createManualProfileSession(input: {
  * under an advisory lock so two devices cannot create the same identity.
  */
 export async function findManualProfileForSteamId(steamId: string) {
+  if (isV2Authority()) return (await getV2Runtime()).auth.lookupManual(steamId);
   const { data, error } = await getSupabaseAdmin()
     .from("manual_steam_profiles")
     .select("display_name, steam_display_name, avatar_url, created_at")
@@ -400,6 +354,11 @@ export async function updateSteamUserProfile(
   accountType: AppUser["account_type"],
   profile: SteamPlayerSummary,
 ) {
+  if (isV2Authority()) {
+    const session = await currentV2Session();
+    if (!session || session.user.id !== userId || session.user.account_type !== accountType) throw new SessionRequiredError();
+    return (await getV2Runtime()).auth.updateProfile(session.principal, profile);
+  }
   const supabase = getSupabaseAdmin();
   if (accountType === "manual") {
     const { data, error } = await supabase
@@ -435,6 +394,11 @@ export async function deleteCurrentSession() {
   const cookieStore = await cookies();
   const token = cookieStore.get(SESSION_COOKIE)?.value;
   if (!token) return;
+  if (isV2Authority()) {
+    const session = await currentV2Session();
+    if (session) await (await getV2Runtime()).auth.revoke(session.principal, token, sessionSecret());
+    return;
+  }
 
   const supabase = getSupabaseAdmin();
   await supabase

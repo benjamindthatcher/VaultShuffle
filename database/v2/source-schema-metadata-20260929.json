@@ -1,0 +1,3844 @@
+{
+  "observed_at": "2026-09-29",
+  "source_project": "pfvblcopcmairdfeqdep",
+  "scope": "Read-only public table/view names, columns and policy counts only. Not constraints, policy definitions, grants, routines, view definitions, indexes, triggers or scheduled jobs. No data rows.",
+  "evidence_csv_sha256": "919128b8fd8837a9f7d2ca566a5dd2c1775ac4b1b5aa79f52373dd9d3886f32c",
+  "public_tables": [
+    {
+      "name": "account_merges",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "source_account_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "target_account_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "verified_steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "merge_mode",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "analytics_delivered_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 7
+        }
+      ]
+    },
+    {
+      "name": "algorithm_weights",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "key",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "positive",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "total",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "note",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "api_rate_limits",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "bucket",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "key_hash",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "window_started_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "request_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "app_accounts",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "account_type",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "steam_library_visible",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "steam_playtime_visible",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "steam_last_played_visible",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "steam_visibility_checked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "steam_games_seen",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "last_visited_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        }
+      ]
+    },
+    {
+      "name": "app_settings",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "key",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "value",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        }
+      ]
+    },
+    {
+      "name": "app_users",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "avatar_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "last_login_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "steam_library_visible",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "steam_playtime_visible",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "steam_last_played_visible",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "steam_visibility_checked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "steam_games_seen",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 12
+        }
+      ]
+    },
+    {
+      "name": "catalog_duration_import_runs",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "imported_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "skipped_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "source_updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "source_sha256",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "expected_app_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "staged_row_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 10
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "manifest",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 12
+        }
+      ]
+    },
+    {
+      "name": "catalog_duration_review_queue",
+      "kind": "v",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": true,
+          "ordinal": 1
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 2
+        },
+        {
+          "name": "header_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "capsule_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "duration_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "duration_kind",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "duration_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "users_that_imported",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "review_total",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        }
+      ]
+    },
+    {
+      "name": "catalog_duration_reviews",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "response_text",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "response_kind",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "source_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "reviewer_user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 7
+        }
+      ]
+    },
+    {
+      "name": "catalog_game_quarantine",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 2
+        },
+        {
+          "name": "steam_type",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "matched_rule",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "genres",
+          "type": "ARRAY",
+          "udt": "_text",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "categories",
+          "type": "ARRAY",
+          "udt": "_text",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "review_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "first_detected_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 10
+        },
+        {
+          "name": "last_detected_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 11
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 12
+        },
+        {
+          "name": "review_notes",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 13
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 14
+        }
+      ]
+    },
+    {
+      "name": "catalog_game_sightings",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "import_count",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "first_seen_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        }
+      ]
+    },
+    {
+      "name": "catalog_games",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "normalized_name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "steam_type",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "developer",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "publisher",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "genres",
+          "type": "ARRAY",
+          "udt": "_text",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "categories",
+          "type": "ARRAY",
+          "udt": "_text",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "tags",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "short_description",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "release_date",
+          "type": "date",
+          "udt": "date",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "is_free",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": false,
+          "ordinal": 12
+        },
+        {
+          "name": "capsule_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 13
+        },
+        {
+          "name": "header_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 14
+        },
+        {
+          "name": "review_positive",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 15
+        },
+        {
+          "name": "review_negative",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 16
+        },
+        {
+          "name": "review_total",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 17
+        },
+        {
+          "name": "price_currency",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": true,
+          "ordinal": 18
+        },
+        {
+          "name": "price_initial",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 19
+        },
+        {
+          "name": "price_final",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 20
+        },
+        {
+          "name": "discount_percent",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 21
+        },
+        {
+          "name": "popularity_rank",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 22
+        },
+        {
+          "name": "popularity_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 23
+        },
+        {
+          "name": "popularity_metric",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 24
+        },
+        {
+          "name": "popularity_low",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": true,
+          "ordinal": 25
+        },
+        {
+          "name": "popularity_high",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": true,
+          "ordinal": 26
+        },
+        {
+          "name": "popularity_ccu",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 27
+        },
+        {
+          "name": "source_captured_at",
+          "type": "date",
+          "udt": "date",
+          "nullable": true,
+          "ordinal": 28
+        },
+        {
+          "name": "first_seen_reason",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 29
+        },
+        {
+          "name": "import_sighting_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 30
+        },
+        {
+          "name": "first_seen_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 31
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 32
+        },
+        {
+          "name": "metadata_fetched_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 33
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 34
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 35
+        },
+        {
+          "name": "users_that_imported",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 36
+        },
+        {
+          "name": "main_story_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 37
+        },
+        {
+          "name": "main_extras_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 38
+        },
+        {
+          "name": "completionist_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 39
+        },
+        {
+          "name": "duration_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 40
+        },
+        {
+          "name": "duration_source_game_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 41
+        },
+        {
+          "name": "duration_source_updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 42
+        },
+        {
+          "name": "duration_confidence",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 43
+        },
+        {
+          "name": "duration_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 44
+        },
+        {
+          "name": "duration_kind",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 45
+        },
+        {
+          "name": "tags_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 46
+        },
+        {
+          "name": "tags_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 47
+        },
+        {
+          "name": "tags_fetched_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 48
+        },
+        {
+          "name": "tags_processing_started_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 49
+        },
+        {
+          "name": "tags_next_attempt_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 50
+        },
+        {
+          "name": "tags_failure_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 51
+        },
+        {
+          "name": "tags_last_error",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 52
+        },
+        {
+          "name": "platform_windows",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 53
+        },
+        {
+          "name": "platform_mac",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 54
+        },
+        {
+          "name": "platform_linux",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 55
+        },
+        {
+          "name": "deck_compatibility",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": true,
+          "ordinal": 56
+        },
+        {
+          "name": "deck_checked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 57
+        },
+        {
+          "name": "duration_manual_override",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": false,
+          "ordinal": 58
+        },
+        {
+          "name": "player_mode",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 59
+        },
+        {
+          "name": "store_tags_checked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 60
+        },
+        {
+          "name": "store_tags_state",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 61
+        }
+      ]
+    },
+    {
+      "name": "catalog_ingest_queue",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "reason",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "priority",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "requested_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "source_rank",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "source_payload",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "attempts",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "processing_started_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "rejection_reason",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 12
+        },
+        {
+          "name": "first_requested_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 13
+        },
+        {
+          "name": "last_requested_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 14
+        },
+        {
+          "name": "processed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 15
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 16
+        }
+      ]
+    },
+    {
+      "name": "catalog_seed_runs",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "metric",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "captured_at",
+          "type": "date",
+          "udt": "date",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "requested_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "accepted_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "source_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "source_sha256",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 9
+        }
+      ]
+    },
+    {
+      "name": "collection_games",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "collection_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "collections",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "description",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "kind",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "rules",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 8
+        }
+      ]
+    },
+    {
+      "name": "completion_events",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "undone_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "hours_played",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "estimate_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "price_cents",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 10
+        }
+      ]
+    },
+    {
+      "name": "contact_messages",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 2
+        },
+        {
+          "name": "enquiry_type",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "subject",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "message",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "dedupe_hash",
+          "type": "character",
+          "udt": "bpchar",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "status",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 10
+        }
+      ]
+    },
+    {
+      "name": "feedback_submissions",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 2
+        },
+        {
+          "name": "feedback_type",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "message",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "contact_allowed",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "contact_email",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "route",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "app_area",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "client_context",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "dedupe_hash",
+          "type": "character",
+          "udt": "bpchar",
+          "nullable": false,
+          "ordinal": 10
+        },
+        {
+          "name": "status",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 11
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 12
+        }
+      ]
+    },
+    {
+      "name": "game_duration_aliases",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_app_id",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "search_title",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "release_year",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "review_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 7
+        }
+      ]
+    },
+    {
+      "name": "game_duration_estimates",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_app_id",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "provider",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "provider_game_id",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "main_story_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "main_extra_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "completionist_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "submission_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "match_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "match_confidence",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "provider_updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "checked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 11
+        },
+        {
+          "name": "next_refresh_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 12
+        },
+        {
+          "name": "last_error_code",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 13
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 14
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 15
+        },
+        {
+          "name": "evidence",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 16
+        }
+      ]
+    },
+    {
+      "name": "game_duration_jobs",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_app_id",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "priority",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "attempts",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "locked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "locked_by",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "last_error_code",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "last_error_message",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 10
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 11
+        }
+      ]
+    },
+    {
+      "name": "game_preference_globals",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "positive",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "total",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "total_hours",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "genre_preference_globals",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "genre",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "context_mood",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "positive",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "total",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "guest_catalogue_pool",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "position",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "refreshed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 3
+        }
+      ]
+    },
+    {
+      "name": "manual_profile_security_intents",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "source_account_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "source_manual_session_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "token_hash",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "consumed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "target_account_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "verified_steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "openid_response_nonce",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "outcome",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 11
+        }
+      ]
+    },
+    {
+      "name": "manual_profile_sessions",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "profile_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "token_hash",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        }
+      ]
+    },
+    {
+      "name": "manual_steam_profiles",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "steam_profile_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "steam_display_name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "avatar_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 8
+        }
+      ]
+    },
+    {
+      "name": "metadata_worker_runs",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "worker_name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "finished_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "duration_ms",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "counts",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "summary",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "error_message",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 9
+        }
+      ]
+    },
+    {
+      "name": "purge_reviews",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "reviewed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "playtime_minutes_at_review",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "progress_at_review",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "last_played_at_review",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 9
+        }
+      ]
+    },
+    {
+      "name": "sessions",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "token_hash",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "last_seen_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        }
+      ]
+    },
+    {
+      "name": "steam_import_jobs",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "total_games",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "imported_games",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "games",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "play_history_missing",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "started_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "processing_token",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "processing_started_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 12
+        }
+      ]
+    },
+    {
+      "name": "user_family_members",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "display_name",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "avatar_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "profile_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "candidate_appids",
+          "type": "ARRAY",
+          "udt": "_int8",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "library_seen",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 8
+        },
+        {
+          "name": "games_imported",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "last_synced_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "last_error",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 12
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 13
+        }
+      ]
+    },
+    {
+      "name": "user_game_pins",
+      "kind": "r",
+      "policy_count": 1,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "slot",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "pinned_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "scope",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "hours_at_pin",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": true,
+          "ordinal": 6
+        }
+      ]
+    },
+    {
+      "name": "user_game_snoozes",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "snoozed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "snoozed_until",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 4
+        }
+      ]
+    },
+    {
+      "name": "user_game_state",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "slept_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "prev_active_status",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "dismissed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "dismissed_playtime",
+          "type": "numeric",
+          "udt": "numeric",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "review_requested_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "last_played_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "last_observed_played_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "recency_source",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "recency_evidence_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 12
+        },
+        {
+          "name": "family_owner_steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 13
+        },
+        {
+          "name": "family_verified_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 14
+        }
+      ]
+    },
+    {
+      "name": "user_games",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "ownership",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 7
+        },
+        {
+          "name": "hours_played",
+          "type": "numeric",
+          "udt": "numeric",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "completion_percentage",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 10
+        },
+        {
+          "name": "date_added",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 12
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 13
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 15
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 16
+        },
+        {
+          "name": "last_played_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 17
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 18
+        },
+        {
+          "name": "slept_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 19
+        },
+        {
+          "name": "completion_suggestion_dismissed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 20
+        },
+        {
+          "name": "completion_suggestion_dismissed_playtime",
+          "type": "numeric",
+          "udt": "numeric",
+          "nullable": true,
+          "ordinal": 21
+        },
+        {
+          "name": "previous_active_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 29
+        },
+        {
+          "name": "catalog_steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 32
+        },
+        {
+          "name": "last_observed_played_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 33
+        },
+        {
+          "name": "recency_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 34
+        },
+        {
+          "name": "recency_evidence_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 35
+        },
+        {
+          "name": "observed_playtime_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 36
+        },
+        {
+          "name": "review_requested_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 37
+        },
+        {
+          "name": "access_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 38
+        },
+        {
+          "name": "family_owner_steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 39
+        },
+        {
+          "name": "family_verified_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 40
+        }
+      ]
+    },
+    {
+      "name": "user_games_with_catalog",
+      "kind": "v",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 2
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "genre",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "store",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "ownership",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "status",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "rating",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "hours_played",
+          "type": "numeric",
+          "udt": "numeric",
+          "nullable": true,
+          "ordinal": 9
+        },
+        {
+          "name": "completion_percentage",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 10
+        },
+        {
+          "name": "priority",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 11
+        },
+        {
+          "name": "date_added",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 12
+        },
+        {
+          "name": "notes",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 13
+        },
+        {
+          "name": "steam_appid",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 14
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 15
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 16
+        },
+        {
+          "name": "last_played_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 17
+        },
+        {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 18
+        },
+        {
+          "name": "slept_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 19
+        },
+        {
+          "name": "completion_suggestion_dismissed_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 20
+        },
+        {
+          "name": "completion_suggestion_dismissed_playtime",
+          "type": "numeric",
+          "udt": "numeric",
+          "nullable": true,
+          "ordinal": 21
+        },
+        {
+          "name": "main_story_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 22
+        },
+        {
+          "name": "main_extras_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 23
+        },
+        {
+          "name": "completionist_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 24
+        },
+        {
+          "name": "duration_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 25
+        },
+        {
+          "name": "duration_source_updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 26
+        },
+        {
+          "name": "duration_confidence",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 27
+        },
+        {
+          "name": "previous_active_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 28
+        },
+        {
+          "name": "is_quarantined",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 29
+        },
+        {
+          "name": "quarantine_reason",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 30
+        },
+        {
+          "name": "catalog_steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": true,
+          "ordinal": 31
+        },
+        {
+          "name": "capsule_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 32
+        },
+        {
+          "name": "header_url",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 33
+        },
+        {
+          "name": "price_currency",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": true,
+          "ordinal": 34
+        },
+        {
+          "name": "price_initial",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 35
+        },
+        {
+          "name": "price_final",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 36
+        },
+        {
+          "name": "discount_percent",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": true,
+          "ordinal": 37
+        },
+        {
+          "name": "is_free",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 38
+        },
+        {
+          "name": "duration_kind",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 39
+        },
+        {
+          "name": "steam_tags",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": true,
+          "ordinal": 40
+        },
+        {
+          "name": "platform_windows",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 41
+        },
+        {
+          "name": "platform_mac",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 42
+        },
+        {
+          "name": "platform_linux",
+          "type": "boolean",
+          "udt": "bool",
+          "nullable": true,
+          "ordinal": 43
+        },
+        {
+          "name": "deck_compatibility",
+          "type": "smallint",
+          "udt": "int2",
+          "nullable": true,
+          "ordinal": 44
+        },
+        {
+          "name": "review_positive",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 45
+        },
+        {
+          "name": "review_negative",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 46
+        },
+        {
+          "name": "review_total",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 47
+        },
+        {
+          "name": "release_date",
+          "type": "date",
+          "udt": "date",
+          "nullable": true,
+          "ordinal": 48
+        },
+        {
+          "name": "duration_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 49
+        },
+        {
+          "name": "tags_status",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 50
+        },
+        {
+          "name": "short_description",
+          "type": "character varying",
+          "udt": "varchar",
+          "nullable": true,
+          "ordinal": 51
+        },
+        {
+          "name": "last_observed_played_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 52
+        },
+        {
+          "name": "recency_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 53
+        },
+        {
+          "name": "recency_evidence_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 54
+        },
+        {
+          "name": "observed_playtime_minutes",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": true,
+          "ordinal": 55
+        },
+        {
+          "name": "review_requested_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 56
+        },
+        {
+          "name": "steam_categories",
+          "type": "ARRAY",
+          "udt": "_text",
+          "nullable": true,
+          "ordinal": 57
+        },
+        {
+          "name": "access_source",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 58
+        },
+        {
+          "name": "family_owner_steam_id",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 59
+        },
+        {
+          "name": "family_verified_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 60
+        },
+        {
+          "name": "player_mode",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 61
+        }
+      ]
+    },
+    {
+      "name": "user_genre_preferences",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "genre",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "context_mood",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "positive",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "total",
+          "type": "double precision",
+          "udt": "float8",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        }
+      ]
+    },
+    {
+      "name": "user_playtime_snapshots",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "captured_on",
+          "type": "date",
+          "udt": "date",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "total_minutes",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "games_with_playtime",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "user_vault_state",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "current_game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 2
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 3
+        }
+      ]
+    },
+    {
+      "name": "user_wishlist",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "source",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "added_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        }
+      ]
+    },
+    {
+      "name": "vault_draw_events",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "draw_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "event_type",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        }
+      ]
+    },
+    {
+      "name": "vault_draws",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 3
+        },
+        {
+          "name": "drawn_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "session",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 5
+        },
+        {
+          "name": "mood",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 6
+        },
+        {
+          "name": "goal",
+          "type": "text",
+          "udt": "text",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "collection_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 8
+        },
+        {
+          "name": "selected_genres",
+          "type": "ARRAY",
+          "udt": "_text",
+          "nullable": false,
+          "ordinal": 9
+        },
+        {
+          "name": "eligible_pool_count",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 10
+        },
+        {
+          "name": "reroll_index",
+          "type": "integer",
+          "udt": "int4",
+          "nullable": false,
+          "ordinal": 11
+        },
+        {
+          "name": "finalist_appids",
+          "type": "ARRAY",
+          "udt": "_int8",
+          "nullable": true,
+          "ordinal": 12
+        }
+      ]
+    },
+    {
+      "name": "vault_events",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "game_id",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "action",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 4
+        },
+        {
+          "name": "context",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        }
+      ]
+    },
+    {
+      "name": "wishlist_store_cache",
+      "kind": "r",
+      "policy_count": 0,
+      "columns": [
+        {
+          "name": "steam_appid",
+          "type": "bigint",
+          "udt": "int8",
+          "nullable": false,
+          "ordinal": 1
+        },
+        {
+          "name": "country",
+          "type": "text",
+          "udt": "text",
+          "nullable": false,
+          "ordinal": 2
+        },
+        {
+          "name": "game",
+          "type": "jsonb",
+          "udt": "jsonb",
+          "nullable": true,
+          "ordinal": 3
+        },
+        {
+          "name": "checked_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": true,
+          "ordinal": 4
+        },
+        {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 5
+        },
+        {
+          "name": "retry_after",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 6
+        },
+        {
+          "name": "lease_token",
+          "type": "uuid",
+          "udt": "uuid",
+          "nullable": true,
+          "ordinal": 7
+        },
+        {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "udt": "timestamptz",
+          "nullable": false,
+          "ordinal": 8
+        }
+      ]
+    }
+  ]
+}

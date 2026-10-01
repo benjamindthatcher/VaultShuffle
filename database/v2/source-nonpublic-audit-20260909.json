@@ -1,0 +1,307 @@
+{
+  "evidence_kind": "read-only aggregate audit, not migration snapshot",
+  "net_queue_count": 0,
+  "observed_at_utc": "2026-09-09T21:39:52.213728+00:00",
+  "auth_users_count": 0,
+  "net_queue_columns": [
+    {
+      "name": "id",
+      "type": "bigint"
+    },
+    {
+      "name": "method",
+      "type": "net.http_method"
+    },
+    {
+      "name": "url",
+      "type": "text"
+    },
+    {
+      "name": "headers",
+      "type": "jsonb"
+    },
+    {
+      "name": "body",
+      "type": "bytea"
+    },
+    {
+      "name": "timeout_milliseconds",
+      "type": "integer"
+    }
+  ],
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "nonpublic_relations": [
+    {
+      "kind": "r",
+      "name": "audit_log_entries",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "custom_oauth_providers",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "flow_state",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "identities",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "instances",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "mfa_amr_claims",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "mfa_challenges",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "mfa_factors",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "oauth_authorizations",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "oauth_client_states",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "oauth_clients",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "oauth_consents",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "one_time_tokens",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "refresh_tokens",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "saml_providers",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "saml_relay_states",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "schema_migrations",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "sessions",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "sso_domains",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "sso_providers",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "users",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "webauthn_challenges",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "webauthn_credentials",
+      "schema": "auth",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "job",
+      "schema": "cron",
+      "extension": "pg_cron"
+    },
+    {
+      "kind": "r",
+      "name": "job_run_details",
+      "schema": "cron",
+      "extension": "pg_cron"
+    },
+    {
+      "kind": "v",
+      "name": "hypopg_hidden_indexes",
+      "schema": "extensions",
+      "extension": "hypopg"
+    },
+    {
+      "kind": "v",
+      "name": "hypopg_list_indexes",
+      "schema": "extensions",
+      "extension": "hypopg"
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements",
+      "schema": "extensions",
+      "extension": "pg_stat_statements"
+    },
+    {
+      "kind": "v",
+      "name": "pg_stat_statements_info",
+      "schema": "extensions",
+      "extension": "pg_stat_statements"
+    },
+    {
+      "kind": "r",
+      "name": "_http_response",
+      "schema": "net",
+      "extension": "pg_net"
+    },
+    {
+      "kind": "r",
+      "name": "http_request_queue",
+      "schema": "net",
+      "extension": "pg_net"
+    },
+    {
+      "kind": "p",
+      "name": "messages",
+      "schema": "realtime",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "schema_migrations",
+      "schema": "realtime",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "subscription",
+      "schema": "realtime",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "buckets",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "buckets_analytics",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "buckets_vectors",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "migrations",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "objects",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "s3_multipart_uploads_parts",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "vector_indexes",
+      "schema": "storage",
+      "extension": null
+    },
+    {
+      "kind": "r",
+      "name": "schema_migrations",
+      "schema": "supabase_migrations",
+      "extension": null
+    },
+    {
+      "kind": "v",
+      "name": "decrypted_secrets",
+      "schema": "vault",
+      "extension": "supabase_vault"
+    },
+    {
+      "kind": "r",
+      "name": "secrets",
+      "schema": "vault",
+      "extension": "supabase_vault"
+    }
+  ],
+  "storage_buckets_count": 0,
+  "storage_objects_count": 0
+}

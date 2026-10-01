@@ -3,8 +3,22 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchSteamPlayerSummary } from "@/lib/steam";
 import type { SessionPayload } from "@/lib/types";
 import { reportServiceWarning } from "@/lib/diagnostics-server";
+import { isV2Authority } from "@/lib/database-authority";
+import { currentV2Session } from "@/lib/v2/current-session";
 
 export async function getSessionPayload(): Promise<SessionPayload> {
+  if (isV2Authority()) {
+    const session = await currentV2Session();
+    const user = session?.user;
+    return {
+      logged_in: Boolean(session), account_type: user?.account_type ?? "guest",
+      identity_verified: session?.principal.identityVerified ?? false,
+      steam_playtime_visible: session?.steamPlaytimeVisible ?? null,
+      user_id: user?.id ?? "", steam_id: user?.steam_id ?? "",
+      display_name: user?.display_name ?? "", steam_display_name: user?.steam_display_name ?? user?.display_name ?? "",
+      avatar_url: user?.avatar_url ?? "", has_steam_key: Boolean(process.env.STEAM_WEB_API_KEY),
+    };
+  }
   const session = await getCurrentSession();
   let user = session?.user ?? null;
   const apiKey = process.env.STEAM_WEB_API_KEY;

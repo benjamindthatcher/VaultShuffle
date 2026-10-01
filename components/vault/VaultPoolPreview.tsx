@@ -1,8 +1,7 @@
 "use client";
 
-import { memo, useCallback, useEffect, useRef, useState } from "react";
-import type { RefObject } from "react";
-import { vaultMatchLabel, type VaultPoolEntry } from "@/lib/vault";
+import { memo, useCallback, useEffect, useRef } from "react";
+import { type VaultPoolEntry } from "@/lib/vault";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { candidateFallback } from "@/lib/vaultshuffle-assets";
@@ -16,43 +15,16 @@ type VaultPoolPreviewProps = {
   winner?: VaultPoolEntry["game"] | null;
   highlightedId?: string | null;
   onSelect?: (gameId: string) => void;
-  sleepingId?: string | null;
-  onSleep?: (gameId: string) => void;
-  pinnedIds?: string[];
-  onPin?: (gameId: string) => void;
-  onComplete?: (gameId: string) => void;
   onUserScroll?: () => void;
-  allowActions?: boolean;
 };
 
-export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, sleepingId = null, onSleep, pinnedIds = [], onPin, onComplete, onUserScroll, allowActions = true }: VaultPoolPreviewProps) {
-  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+export function VaultPoolPreview({ entries, drawState = "idle", winner = null, highlightedId = null, onSelect, onUserScroll }: VaultPoolPreviewProps) {
   const railRef = useRef<HTMLDivElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
   const progressTrackRef = useRef<HTMLDivElement>(null);
   const progressThumbRef = useRef<HTMLSpanElement>(null);
   const programmaticScrollRef = useRef(false);
   const onUserScrollRef = useRef(onUserScroll);
   const isDrawing = drawState === "focusing" || drawState === "revealing";
-
-  useEffect(() => {
-    if (!openMenuId) return;
-
-    function closeOnOutsidePointer(event: PointerEvent) {
-      if (!menuRef.current?.contains(event.target as Node)) setOpenMenuId(null);
-    }
-
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") setOpenMenuId(null);
-    }
-
-    document.addEventListener("pointerdown", closeOnOutsidePointer);
-    document.addEventListener("keydown", closeOnEscape);
-    return () => {
-      document.removeEventListener("pointerdown", closeOnOutsidePointer);
-      document.removeEventListener("keydown", closeOnEscape);
-    };
-  }, [openMenuId]);
 
   // Keyed on the winner's id, not the winner object: the parent found that object
   // fresh on every render, so this effect re-ran through the whole draw and
@@ -128,10 +100,6 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
   // and takes only primitives and these stable callbacks, so a phase change now
   // re-renders the one or two cards whose own state actually changed.
   const onSelectRef = useRef(onSelect);
-  const onPinRef = useRef(onPin);
-  const onSleepRef = useRef(onSleep);
-  const onCompleteRef = useRef(onComplete);
-
   // Assigned after the render rather than during it. Writing a ref while
   // rendering is a side effect: React may render a component without committing
   // it, which would leave these pointing at callbacks from a render that never
@@ -140,24 +108,13 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
   useEffect(() => {
     onUserScrollRef.current = onUserScroll;
     onSelectRef.current = onSelect;
-    onPinRef.current = onPin;
-    onSleepRef.current = onSleep;
-    onCompleteRef.current = onComplete;
   });
 
   const handleSelect = useCallback((gameId: string) => onSelectRef.current?.(gameId), []);
-  const handlePin = useCallback((gameId: string) => onPinRef.current?.(gameId), []);
-  const handleSleep = useCallback((gameId: string) => onSleepRef.current?.(gameId), []);
-  const handleComplete = useCallback((gameId: string) => onCompleteRef.current?.(gameId), []);
-  const handleToggleMenu = useCallback((gameId: string) => {
-    setOpenMenuId((current) => current === gameId ? null : gameId);
-  }, []);
-  const handleCloseMenu = useCallback(() => setOpenMenuId(null), []);
-
   return (
     <div className={styles.railWrap} data-draw-state={drawState} aria-busy={isDrawing}>
       <div className={styles.lightSweep} aria-hidden="true" />
-      <button type="button" className={`${styles.arrow} ${styles.arrowLeft}`} aria-label="Previous games" onClick={() => moveRail(-1)}><VaultIcon name="chevron-left" /></button>
+      <button type="button" data-vault-control="secondary" data-control-size="icon" data-control-position="floating" className={`${styles.arrow} ${styles.arrowLeft}`} aria-label="Previous games" onClick={() => moveRail(-1)}><VaultIcon name="chevron-left" /></button>
       <div className={styles.grid} ref={railRef}>
       {entries.map(({ game, score }, index) => (
         <PoolCard
@@ -166,21 +123,11 @@ export function VaultPoolPreview({ entries, drawState = "idle", winner = null, h
           score={score}
           index={index}
           highlighted={highlightedId === game.id}
-          menuOpen={openMenuId === game.id}
-          pinned={pinnedIds.includes(game.id)}
-          sleeping={sleepingId === game.id}
-          allowActions={allowActions}
-          menuRef={menuRef}
           onSelect={handleSelect}
-          onToggleMenu={handleToggleMenu}
-          onCloseMenu={handleCloseMenu}
-          onPin={handlePin}
-          onSleep={handleSleep}
-          onComplete={handleComplete}
         />
       ))}
       </div>
-      <button type="button" className={`${styles.arrow} ${styles.arrowRight}`} aria-label="Next games" onClick={() => moveRail(1)}><VaultIcon name="chevron-right" /></button>
+      <button type="button" data-vault-control="secondary" data-control-size="icon" data-control-position="floating" className={`${styles.arrow} ${styles.arrowRight}`} aria-label="Next games" onClick={() => moveRail(1)}><VaultIcon name="chevron-right" /></button>
       <div ref={progressTrackRef} className={styles.progressTrack} aria-hidden="true"><span ref={progressThumbRef} /></div>
     </div>
   );
@@ -191,63 +138,39 @@ type PoolCardProps = {
   score: VaultPoolEntry["score"];
   index: number;
   highlighted: boolean;
-  menuOpen: boolean;
-  pinned: boolean;
-  sleeping: boolean;
-  allowActions: boolean;
-  menuRef: RefObject<HTMLDivElement | null>;
   onSelect: (gameId: string) => void;
-  onToggleMenu: (gameId: string) => void;
-  onCloseMenu: () => void;
-  onPin: (gameId: string) => void;
-  onSleep: (gameId: string) => void;
-  onComplete: (gameId: string) => void;
 };
 
-const PoolCard = memo(function PoolCard({
-  game, score, index, highlighted, menuOpen, pinned, sleeping, allowActions, menuRef,
-  onSelect, onToggleMenu, onCloseMenu, onPin, onSleep, onComplete
-}: PoolCardProps) {
-  const durationLabel = formatGameDuration(game.duration);
+const PoolCard = memo(function PoolCard({ game, score, index, highlighted, onSelect }: PoolCardProps) {
+  const durationLabel = formatGameDuration(game.duration)?.replace(/ estimated$/, " est");
+  // The existing deck order decides the leading candidate. Lower scores keep
+  // an honest eligibility label; unscored pools do not imply a measured fit.
+  const fit = score <= 0 ? "eligible" : index === 0 ? "top" : score >= 82 ? "strong" : score >= 50 ? "good" : "eligible";
+  const fitLabel = { top: "Top candidate", strong: "Strong fit", good: "Good fit", eligible: "Eligible pick" }[fit];
 
   return (
     <article
-      className={`${styles.card}${highlighted ? ` ${styles.cardHighlighted}` : ""}${menuOpen ? ` ${styles.cardMenuOpen}` : ""}`}
+      className={`${styles.card}${highlighted ? ` ${styles.cardHighlighted}` : ""}`}
       id={`vault-card-${game.id}`}
       data-game-id={game.id}
     >
-      <button type="button" className={styles.cardAction} onClick={() => onSelect(game.id)} aria-label={`View details for ${game.title}`}>
+      <button type="button" data-vault-card="interactive" className={styles.cardAction} onClick={() => onSelect(game.id)} aria-label={`View details for ${game.title}`}>
         <div className={styles.cardArt}>
-          <Artwork src={game.bannerUrl} fallbackSrc={candidateFallback(index)} sizes="(max-width: 720px) 44vw, 210px" />
+          <Artwork src={game.bannerUrl} fallbackSrc={candidateFallback(index)} sizes="(max-width: 719px) 78vw, (max-width: 1099px) 32vw, 25vw" />
           <FamilyGameMark game={game} overlay />
         </div>
         <div className={styles.cardBody}>
-          <div className={styles.cardTopRow}>
-            <h3 className={styles.cardTitle}>{game.title}</h3>
-            <span className={styles.cardStatus}>{game.status}</span>
-          </div>
-          <p className={styles.cardCopy}>{game.description}</p>
-          <div className={styles.tagRow}>{game.genres.slice(0, 3).map((genre) => <span key={genre}>{genre}</span>)}</div>
+          <h3 className={styles.cardTitle}>{game.title}</h3>
+          <div className={styles.tagRow}>{game.genres.slice(0, 2).map((genre) => <span key={genre}>{genre}</span>)}</div>
           <div className={styles.cardMeta}>
-            <strong>{vaultMatchLabel(score)}</strong>
-            {durationLabel ? <span>{durationLabel}</span> : null}
+            <strong className={styles.fitLabel} data-fit={fit}><span aria-hidden="true">★</span>{fitLabel}</strong>
+            {durationLabel ? <span className={styles.duration}>
+              {game.duration?.endless ? <span className={styles.endlessIcon} aria-hidden="true">∞</span> : <VaultIcon name="clock" size={15} />}
+              {durationLabel}
+            </span> : null}
           </div>
         </div>
       </button>
-      {allowActions ? <div ref={menuOpen ? menuRef : undefined} className={styles.menuShell} onClick={(event) => event.stopPropagation()}>
-        <button
-          type="button"
-          className={styles.menuTrigger}
-          aria-label={`Actions for ${game.title}`}
-          aria-expanded={menuOpen}
-          onClick={() => onToggleMenu(game.id)}
-        ><VaultIcon name="menu-dots" size={20} /></button>
-        {menuOpen ? <div className={styles.menu} role="menu">
-          <button type="button" role="menuitem" onClick={() => { onCloseMenu(); onPin(game.id); }}><VaultIcon name={pinned ? "unpin" : "pin"} size={18} />{pinned ? "Remove from Playing Next" : "Add to Playing Next"}</button>
-          <button type="button" role="menuitem" disabled={sleeping} onClick={() => { onCloseMenu(); onSleep(game.id); }}><VaultIcon name="sleep" size={18} />Blacklist game</button>
-          <button type="button" role="menuitem" className={styles.completeMenuItem} onClick={() => { onCloseMenu(); onComplete(game.id); }}><VaultIcon name="mark-completed" size={18} />Mark as Completed</button>
-        </div> : null}
-      </div> : null}
     </article>
   );
 });

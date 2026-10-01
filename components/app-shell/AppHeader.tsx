@@ -13,7 +13,8 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/vault", label: "Vault" },
   { href: "/library", label: "Library" },
-  { href: "/collections", label: "Collections" }
+  { href: "/collections", label: "Collections" },
+  { href: "/wishlist", label: "Wishlist" }
 ];
 
 type AppHeaderProps = {
@@ -78,11 +79,13 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
         {variant === "product" ? (
           <nav className={styles.nav} aria-label="Primary">
             {NAV_ITEMS.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={item.href === "/wishlist" && !isActive ? () => trackNavigationEvent(ANALYTICS_EVENTS.wishlistAction, { action: "entered", entry_point: "navigation", destination: "/wishlist" }) : undefined}
                   className={isActive ? `${styles.navLink} ${styles.navLinkActive}` : styles.navLink}
                 >
                   {item.label}
@@ -106,7 +109,7 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
             <span className={styles.profileName}>{isLoading ? "Loading" : profileName}</span>
             <VaultIcon name="chevron-down" size={15} className={styles.profileChevron} />
           </summary>
-          <div className={styles.profilePopover}>
+          <div className={styles.profilePopover} data-vault-controls="standard">
             <div className={styles.accountSummary}>
               <strong>{profileName}</strong>
               <span>{isLive ? (session.account_type === "manual" ? "Browser-only profile" : "Steam connected") : "Guest preview"}</span>
@@ -115,14 +118,16 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
               <>
                 <button
                   type="button"
+                  data-vault-control="secondary"
                   className={styles.menuAction}
                   onClick={handleSync}
                   disabled={isSyncing || isLoading}
                   aria-busy={isSyncing}
                 >
+                  {isSyncing ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="refresh-prices" size={18} />}
                   {isSyncing ? "Refreshing from Steam…" : "Refresh from Steam"}
                 </button>
-                <button type="button" className={`${styles.menuAction} ${styles.dangerAction}`} onClick={() => void signOut()}>
+                <button data-vault-control="tertiary" data-control-tone="danger" type="button" className={`${styles.menuAction} ${styles.dangerAction}`} onClick={() => void signOut()}>
                   {session.account_type === "manual" ? "Sign out of this browser" : "Sign out"}
                 </button>
               </>
@@ -130,18 +135,20 @@ export function AppHeader({ variant = "product" }: AppHeaderProps) {
               <>
                 <a
                   href="/api/auth/steam"
+                  data-vault-control="steam"
                   className={styles.menuAction}
                   onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
                     location: "guest_profile_menu",
                   })}
                 >
-                  Sign in with Steam
+                  <VaultIcon name="open-steam" size={18} />Sign in with Steam
                 </a>
                 <Link
                   href="/setup/steam-profile?from=guest_profile_menu"
+                  data-vault-control="secondary"
                   className={`${styles.menuAction} ${styles.profileCreateAction}`}
                 >
-                  Create profile from URL
+                  <VaultIcon name="id" size={18} />Create profile from URL
                 </Link>
               </>
             )}

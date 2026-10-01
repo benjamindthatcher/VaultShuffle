@@ -10,9 +10,9 @@
 
 .stat {
   padding: 18px 16px;
-  border: 1px solid rgba(168, 85, 247, 0.42);
+  border: 1px solid var(--vault-border);
   border-radius: var(--vault-sheet-radius);
-  background: linear-gradient(135deg, #21143f, #121735 70%);
+  background: var(--vault-surface);
 }
 
 .statValue {
@@ -60,7 +60,7 @@
 .table thead th {
   padding: 12px 14px;
   border-bottom: 1px solid var(--vault-border);
-  background: linear-gradient(180deg, rgba(168, 85, 247, 0.14), transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--vault-accent) 14%, transparent), transparent);
   color: var(--vault-text-muted);
   font-size: 0.68rem;
   font-weight: 800;
@@ -72,7 +72,7 @@
 
 .table tbody tr + tr th,
 .table tbody tr + tr td {
-  border-top: 1px solid rgba(58, 40, 102, 0.55);
+  border-top: 1px solid var(--vault-border);
 }
 
 .table tbody th,
@@ -111,7 +111,7 @@
 .barTrack {
   height: 11px;
   border-radius: 999px;
-  background: rgba(58, 40, 102, 0.6);
+  background: var(--vault-well-surface);
   overflow: hidden;
 }
 
@@ -173,13 +173,13 @@
   gap: 24px;
   margin: 22px 0 0;
   padding: 42px 32px 38px;
-  border: 1px solid rgba(178, 131, 240, 0.4);
+  border: 1px solid var(--vault-border);
   border-radius: 20px;
   background:
-    radial-gradient(ellipse at 50% -20%, rgba(168, 85, 247, 0.24), transparent 62%),
-    radial-gradient(ellipse at 100% 100%, rgba(78, 141, 255, 0.1), transparent 55%),
-    linear-gradient(135deg, #1c1534, #10142c 75%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 16px 36px rgba(0, 0, 0, 0.16);
+    radial-gradient(ellipse at 50% -20%, color-mix(in srgb, var(--vault-accent) 24%, transparent), transparent 62%),
+    radial-gradient(ellipse at 100% 100%, color-mix(in srgb, var(--vault-accent) 10%, transparent), transparent 55%),
+    linear-gradient(135deg, var(--vault-surface), var(--vault-well-surface) 75%);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 6%, transparent), 0 16px 36px color-mix(in srgb, var(--vault-shadow-color) 16%, transparent);
   text-align: center;
 }
 
@@ -188,7 +188,7 @@
   position: absolute;
   inset: 0 12% auto;
   height: 2px;
-  background: linear-gradient(90deg, transparent, #bd83ff, #7ea9ff, transparent);
+  background: linear-gradient(90deg, transparent, var(--vault-accent), var(--vault-accent), transparent);
   pointer-events: none;
 }
 
@@ -199,11 +199,11 @@
   width: 58px;
   height: 58px;
   margin: 4px 0 0;
-  border: 1px solid rgba(207, 166, 255, 0.65);
+  border: 1px solid var(--vault-border);
   border-radius: 16px;
-  background: linear-gradient(140deg, #7041aa, #332159);
-  box-shadow: 0 8px 28px rgba(168, 85, 247, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-  color: #f3e7ff;
+  background: linear-gradient(140deg, var(--vault-accent), var(--vault-feature-surface));
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--vault-accent) 15%, transparent), inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent);
+  color: var(--vault-text);
 }
 
 .ctaEmblem::before,
@@ -212,15 +212,15 @@
   position: absolute;
   z-index: -1;
   inset: 2px;
-  border: 1px solid rgba(170, 129, 234, 0.35);
+  border: 1px solid var(--vault-border);
   border-radius: 13px;
-  background: #241a3d;
+  background: var(--vault-surface);
   transform: translateX(-15px) rotate(-16deg);
 }
 
 .ctaEmblem::after {
-  background: #17223d;
-  border-color: rgba(126, 169, 255, 0.35);
+  background: var(--vault-surface);
+  border-color: var(--vault-border);
   transform: translateX(15px) rotate(16deg);
 }
 
@@ -242,7 +242,7 @@
 
 .cta .ctaCopy p {
   margin: 0;
-  color: #cbc4df;
+  color: var(--vault-text);
   font-size: 1rem;
   line-height: 1.7;
   text-wrap: pretty;
@@ -272,33 +272,33 @@
 }
 
 .ctaPrimary {
-  border: 1px solid #b884fa;
-  background: linear-gradient(135deg, #8e3ee2, #6932cf);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 5px 20px rgba(124, 58, 237, 0.25);
-  color: #fff;
+  border: 1px solid var(--vault-border);
+  background: linear-gradient(135deg, var(--vault-accent), var(--vault-accent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent), 0 5px 20px color-mix(in srgb, var(--vault-accent) 15%, transparent);
+  color: var(--vault-text);
 }
 
 .ctaPrimary:hover {
-  border-color: #d3adff;
-  background: linear-gradient(135deg, #9e4dec, #7940dd);
-  box-shadow: 0 6px 24px rgba(124, 58, 237, 0.4);
+  border-color: var(--vault-accent);
+  background: linear-gradient(135deg, var(--vault-accent), var(--vault-accent));
+  box-shadow: 0 6px 24px color-mix(in srgb, var(--vault-accent) 30%, transparent);
 }
 
 .ctaSecondary {
   min-width: 90px;
-  border: 1px solid rgba(178, 151, 218, 0.4);
-  background: rgba(12, 14, 32, 0.45);
+  border: 1px solid var(--vault-border);
+  background: color-mix(in srgb, var(--vault-surface) 45%, transparent);
   color: var(--vault-text);
 }
 
 .ctaSecondary:hover {
-  border-color: #b884fa;
-  background: rgba(168, 85, 247, 0.13);
+  border-color: var(--vault-accent);
+  background: color-mix(in srgb, var(--vault-accent) 13%, transparent);
 }
 
 .ctaPrimary:focus-visible,
 .ctaSecondary:focus-visible {
-  outline: 2px solid #e0c5ff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 4px;
 }
 
@@ -345,7 +345,7 @@
 .cta .ctaActions .ctaPrimary,
 .cta .ctaActions .ctaPrimary:hover,
 .cta .ctaActions .ctaPrimary:focus-visible {
-  color: #fff;
+  color: var(--vault-text);
   text-decoration: none;
 }
 
@@ -399,7 +399,7 @@
 
   .table tbody th {
     padding: 12px 14px;
-    border-bottom: 1px solid rgba(58, 40, 102, 0.55);
+    border-bottom: 1px solid var(--vault-border);
   }
 
   .table tbody td {

@@ -1,0 +1,80 @@
+{
+  "domain": "Current saved Wishlist and disposable Store cache",
+  "relations": {
+    "user_wishlist": {
+      "role": "Current account-saved Steam AppIDs, independent of catalogue/Library ownership.",
+      "summary": "Preserve account, raw AppID, original source and exact added_at. Unavailable/unreleased games remain saved without synthetic catalogue rows.",
+      "disposition_class": "migrated",
+      "target": "app.wishlist_games",
+      "columns": {
+        "user_id": {
+          "disposition": "transformed",
+          "target": "app.wishlist_games.account_id",
+          "note": "Resolve the source owner through the same-run account map; account deletion cascades."
+        },
+        "steam_appid": {
+          "disposition": "preserved",
+          "target": "app.wishlist_games.steam_app_id",
+          "note": "Exact unsigned Steam AppID, no catalogue foreign key or fabricated identity."
+        },
+        "source": {
+          "disposition": "preserved",
+          "target": "app.wishlist_games.source",
+          "note": "Original local/steam provenance, immutable on duplicate import."
+        },
+        "added_at": {
+          "disposition": "preserved",
+          "target": "app.wishlist_games.added_at",
+          "note": "Original UTC instant with exact microseconds, immutable on duplicate import."
+        }
+      }
+    },
+    "wishlist_store_cache": {
+      "role": "Disposable country-specific Steam Store response and refresh lease.",
+      "summary": "Rebuild from Steam Store under current country-aware runtime rules; no authored account facts. Do not copy old cache payload, expiry or lease.",
+      "disposition_class": "archive-only",
+      "columns": {
+        "steam_appid": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "country": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "game": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "checked_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "expires_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "retry_after": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "lease_token": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        },
+        "lease_until": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Steam Store fetch for the saved AppID and country; runtime cache/lease is rebuilt, not resumed.",
+          "note": "Disposable provider cache or scheduling state, not authored Wishlist membership."
+        }
+      }
+    }
+  }
+}

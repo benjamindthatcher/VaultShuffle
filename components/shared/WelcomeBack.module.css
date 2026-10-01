@@ -11,9 +11,9 @@
 .item { display: inline-flex; align-items: center; gap: 9px; color: var(--vault-text-muted); font-size: 0.83rem; }
 .item > span:last-child { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 7px; }
 .item strong { color: var(--vault-text); font-weight: 700; }
-.item svg { color: #d59eff; flex: none; }
-.streak svg { color: #7ce7b2; }
-.streak strong { color: #7ce7b2; }
+.item svg { color: var(--vault-text); flex: none; }
+.streak svg { color: var(--vault-success); }
+.streak strong { color: var(--vault-success); }
 .finished {
   margin-left: auto;
   min-width: 0;

@@ -32,18 +32,18 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
 
   return createPortal(
     <aside className={styles.prompt} aria-label="Optional library connection suggestion">
-      <button type="button" className={styles.close} onClick={onClose} aria-label="Dismiss suggestion">
+      <button type="button" data-vault-control="tertiary" data-control-size="icon" data-control-position="floating" className={styles.close} onClick={onClose} aria-label="Dismiss suggestion">
         <VaultIcon name="close" size={16} />
       </button>
       <span className={styles.icon} aria-hidden="true"><VaultIcon name="finish-something" size={22} /></span>
       <span className={styles.copy}>
         <strong>This one needs your playtime</strong>
-        <small>Connect a public library so VaultShuffle can spot games you have actually started. You can keep using the {catalogueSize}-game preview without it.</small>
+        <small>Connect a public library so VaultShuffle can spot games you have actually started. You can keep previewing all {catalogueSize} games without it.</small>
       </span>
       <span className={styles.actions}>
         <a
           href="/api/auth/steam"
-          className={styles.primary}
+          data-vault-control="steam" className={styles.primary}
           onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.signInStarted, {
             location: "guest_personal_progress_nudge",
             reason,
@@ -53,11 +53,11 @@ export function GuestSignInPrompt({ open, onClose, catalogueSize, reason = "pers
         </a>
         <Link
           href="/setup/steam-profile?from=guest_personal_progress_nudge"
-          className={styles.profile}
+          data-vault-control="secondary" className={styles.profile}
         >
           Create profile
         </Link>
-        <button type="button" className={styles.secondary} onClick={onClose}>Keep previewing</button>
+        <button type="button" data-vault-control="tertiary" className={styles.secondary} onClick={onClose}>Keep previewing</button>
       </span>
     </aside>,
     document.body

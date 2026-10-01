@@ -1,0 +1,154 @@
+{
+  "document": "M3 assessed dispositions for non-`public` schemas",
+  "status": "proposal-for-coordinator-review",
+  "milestone": "M3",
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "basis": [
+    "database/v2/source-schema-inventory-20260909.json lists these 10 schemas alongside `public` but enumerates NO relations for any of them.",
+    "readiness section 10 item 2 names exactly this gap as an open probe.",
+    "Every disposition below is therefore ASSESSED FROM THE SCHEMA'S KNOWN ROLE, not measured. The optional platform probes in database/v2/migration/probes/platform-optional.sql are what turn each assessment into a measurement after relation preflight."
+  ],
+  "standing_prohibitions": [
+    "Vault secrets are NEVER exported, counted by value, described by content, or copied. This is absolute and is not conditional on any probe result.",
+    "Schedule definitions carrying authorization headers are NEVER exported. `cron.job.command` may be tested for whether it mentions credential material; its content is never returned.",
+    "No probe or export in this milestone reads a row from `auth`, `storage.objects` metadata beyond size, or any credential store."
+  ],
+  "schemas": {
+    "auth": {
+      "owner": "Supabase GoTrue",
+      "assessed_role": "Supabase's built-in authentication. VaultShuffle uses CUSTOM sessions (lib/auth.ts hashToken, and the public `sessions` / `manual_profile_sessions` tables), so this schema is expected to be UNUSED.",
+      "disposition": "not-exported / verify-empty",
+      "rationale": "If `auth.users` is empty, the schema carries no VaultShuffle data and nothing is lost by ignoring it. If it is NOT empty, then custom sessions are not the whole authentication story and readiness 8.7's session plan is incomplete, which is a finding that must reopen that section rather than something to migrate around.",
+      "carries_credentials": true,
+      "credential_note": "auth.users holds password hashes, refresh tokens and identity provider material. Even if non-empty, NONE of it is exported. A non-empty result is reported as a COUNT and as a reopened design question, never as data.",
+      "probe": "P02b",
+      "blocking": "A non-zero auth.users count BLOCKS the freeze until the session design is reconciled.",
+      "v2_target": "none. M1 creates app.sessions with its own digest model (M1:129-141)."
+    },
+
+    "cron": {
+      "owner": "pg_cron extension",
+      "assessed_role": "Scheduled jobs. readiness section 15 step 2 requires every schedule to be FENCED before the freeze, so that no worker writes to the source after the snapshot is taken.",
+      "disposition": "inventory-only / fence-before-freeze",
+      "rationale": "The schedules themselves are v1 operational configuration and are NOT migrated: v2 rebuilds its own scheduling. A repeatable-read rehearsal remains consistent if a schedule writes concurrently; final cutover still needs a deliberate freeze or fence so the exported snapshot and authority switch have a defined boundary.",
+      "carries_credentials": true,
+      "credential_note": "cron.job.command routinely contains an `Authorization: Bearer ...` header for calling an edge function or an internal endpoint. It is NEVER selected, NEVER exported and NEVER pasted into a report. Probe P02c returns only active-job counts, command length, and booleans saying whether command text mentions credential words; schedule names and command text remain private.",
+      "probe": "P02c, P02d",
+      "blocking": "The list of active schedules is a freeze prerequisite. Fencing is an operational step for M6/M7, not a schema change, and is not performed in this batch.",
+      "v2_target": "none. v2 scheduling is rebuilt; plan 14.2 states due work is rebuilt rather than resumed."
+    },
+
+    "extensions": {
+      "owner": "Supabase / PostgreSQL extensions",
+      "assessed_role": "Installed extension objects (pgcrypto, uuid-ossp, pg_stat_statements and similar). Contains extension-provided functions and types, not application data.",
+      "disposition": "not-exported / record-installed-set",
+      "rationale": "No rows here belong to VaultShuffle. What must be recorded is WHICH extensions are installed and at what version, because a v2 target missing an extension the source relied on fails at load time rather than at review time. gen_random_uuid() in particular is used by M1 defaults (M1:90, M1:344).",
+      "carries_credentials": false,
+      "credential_note": "A function BODY in this schema could in principle embed a literal, so P04b's credential-word boolean covers `extensions` as well as `public`.",
+      "probe": "P02a, and the extensions arm of P08c",
+      "blocking": "Not blocking, but the installed-extension set is a prerequisite for the M3 rehearsal environment being a faithful copy.",
+      "v2_target": "none directly; the target must have the same extensions available."
+    },
+
+    "graphql": {
+      "owner": "pg_graphql",
+      "assessed_role": "GraphQL resolver internals for pg_graphql. Machine-generated; contains no application data.",
+      "disposition": "not-exported / derived",
+      "rationale": "Entirely derived from the `public` schema's shape. Nothing here is authored, and it regenerates from whatever schema exists. Exporting it would export a stale reflection of a schema we are replacing.",
+      "carries_credentials": false,
+      "probe": "P02a (relation count only, to confirm it holds nothing unexpected)",
+      "blocking": "Not blocking.",
+      "v2_target": "none. The v2 private schemas have NO browser or Data API exposure by design (M1 grants USAGE on app and catalog to runtime roles only, M1:781-782), so no GraphQL reflection is wanted."
+    },
+
+    "graphql_public": {
+      "owner": "pg_graphql",
+      "assessed_role": "The publicly exposed GraphQL entry point.",
+      "disposition": "not-exported / derived",
+      "rationale": "Same reasoning as `graphql`. It is an exposure surface, not data. Its EXISTENCE is worth noting in the cutover review precisely because v2 deliberately has no equivalent exposure, but nothing in it is migrated.",
+      "carries_credentials": false,
+      "probe": "P02a",
+      "blocking": "Not blocking.",
+      "v2_target": "none, deliberately."
+    },
+
+    "net": {
+      "owner": "pg_net extension",
+      "assessed_role": "Asynchronous outbound HTTP from the database, used by the workers. Holds a request queue and a response table.",
+      "disposition": "inventory-only / drain-or-accept-loss-before-freeze",
+      "rationale": "An IN-FLIGHT outbound request at freeze time is work that will neither complete nor be retried. Per plan 14.2 in-flight work is not resumed, so this is not migrated; but the COUNT matters, because a large queue at freeze means the freeze happened mid-batch and some enrichment silently did not land.",
+      "carries_credentials": true,
+      "credential_note": "pg_net request rows carry the HEADERS of the outbound request, which is where an API key lives. No header, body or URL is read. Probe P02e returns queue count only; the source queue has no `created`, `created_at` or `enqueued_at` age column, so no age is invented.",
+      "probe": "P02e",
+      "blocking": "A large or old queue at freeze is a finding for the cutover report, not a blocker in itself.",
+      "v2_target": "none. v2 enrichment dispatch is ops.enrichment_outbox (M2:216)."
+    },
+
+    "realtime": {
+      "owner": "Supabase Realtime",
+      "assessed_role": "Change-broadcast subscriptions and message buffers.",
+      "disposition": "not-exported / derived",
+      "rationale": "Ephemeral broadcast state, regenerated by whatever subscribes next. VaultShuffle's v2 private schemas are not browser-exposed, so no realtime subscription against them is intended.",
+      "carries_credentials": false,
+      "credential_note": "Realtime message payloads can echo row content, so nothing here is exported even though it is assessed as ephemeral.",
+      "probe": "P02a",
+      "blocking": "Not blocking.",
+      "v2_target": "none."
+    },
+
+    "storage": {
+      "owner": "Supabase Storage",
+      "assessed_role": "Object storage buckets and object metadata. readiness section 10 item 2 asks specifically whether an object-storage RECOVERY PLAN is needed at all, which depends entirely on whether any bucket holds anything.",
+      "disposition": "unresolved-pending-probe",
+      "rationale": "VaultShuffle serves images from Steam's CDN by URL (catalog_games.capsule_url / header_url are external URLs), so the expectation is that storage is EMPTY or holds only incidental assets. If a bucket holds user-supplied content, that is user data with no entry in the 486-column manifest, and it needs its own plan. The assessment cannot be closed without P02f.",
+      "carries_credentials": false,
+      "credential_note": "Object PATHS can be identifying (a filename can contain an account or Steam identifier), so probe P02f groups only by the fixed public/private flag and returns object counts, numeric byte totals and invalid-size counts. No bucket id, object name, path or metadata document is returned.",
+      "probe": "P02f",
+      "blocking": "A non-empty non-public bucket BLOCKS the claim that the 486-column manifest is complete coverage of user data, because it would mean user data exists outside the relational schema entirely.",
+      "v2_target": "none proposed. If P02f finds content, a separate object plan is required and this becomes an M3 gap."
+    },
+
+    "supabase_migrations": {
+      "owner": "Supabase CLI",
+      "assessed_role": "The applied-migration ledger. Plan section 14.1 requires exactly this as the migration audit ledger.",
+      "disposition": "exported / audit-archive",
+      "rationale": "This durable ledger records which migration versions were applied to the source and when. Its bounded version/count metadata belongs in the migration audit; any statement or definition text is captured separately for private review. The ledger is retained as useful schema provenance without asserting that it is the sole surviving history of the source.",
+      "carries_credentials": false,
+      "credential_note": "The `statements` column, where present, contains applied DDL. DDL can embed a literal (a role password in an old CREATE ROLE, for example), so statement bodies are reviewed before archiving rather than bulk-copied. Probe P02g returns counts and version bounds only.",
+      "probe": "P02g",
+      "archive": "+migration.legacy_schema_migration_ledger",
+      "archive_purpose": "Preserve the applied-migration history of the v1 database as the plan 14.1 audit ledger, and as the only provenance for schema changes made after the migrations folder was deleted.",
+      "archive_retention": "Permanent. It is the provenance record for a database that will otherwise cease to exist, and it contains no user data.",
+      "blocking": "Not blocking, but it must be captured BEFORE the source is decommissioned, since it cannot be reconstructed afterwards.",
+      "v2_target": "+migration.legacy_schema_migration_ledger (archive)."
+    },
+
+    "vault": {
+      "owner": "Supabase Vault / pgsodium",
+      "assessed_role": "Encrypted secret storage.",
+      "disposition": "EXCLUDED-ABSOLUTELY",
+      "rationale": "Secrets are not migrated, not exported, not decrypted, not counted by value and not described by content. v2 obtains its provider credentials from its own configured environment at deploy time; it does not inherit them through a data migration. There is no scenario in this milestone in which reading a secret is the right answer.",
+      "carries_credentials": true,
+      "credential_note": "Neither `vault.secrets` nor `vault.decrypted_secrets` nor any pgsodium view is read by any probe. This is enforced mechanically: database/v2/migration/tests/test_probe_safety.py::test_s2_vault_secrets_is_never_referenced fails the test suite if any probe file so much as names them.",
+      "probe": "P02a only, which counts RELATIONS in the schema from pg_class and reads no row. Deliberately NOT probed for a secret count: how many secrets an installation holds is itself operational information we do not need.",
+      "blocking": "Not blocking. The only cutover requirement is that v2's own environment is configured with the credentials it needs, which is an M6/M7 operational step outside this batch and outside this agent's authority.",
+      "v2_target": "none, deliberately and permanently."
+    }
+  },
+
+  "summary": {
+    "exported": ["supabase_migrations"],
+    "inventory_only": ["cron", "net"],
+    "verify_only": ["auth"],
+    "unresolved_pending_probe": ["storage"],
+    "not_exported_derived": ["extensions", "graphql", "graphql_public", "realtime"],
+    "excluded_absolutely": ["vault"],
+    "count": 10
+  },
+
+  "what_this_document_is_not": [
+    "It is not a measurement. No relation in any of these schemas has been read.",
+    "It is not authorisation to run the P02 probes; they are proposals for coordinator review like everything else in this batch.",
+    "It does not fence any schedule, drain any queue or change any configuration. Those are M6/M7 operational steps."
+  ]
+}

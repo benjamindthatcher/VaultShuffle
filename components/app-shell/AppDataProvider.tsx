@@ -7,8 +7,9 @@ import { useImmediateState } from "@/components/shared/useImmediateState";
 import { pinProgressHours } from "@/lib/completion-celebration";
 import { steamCapabilities, type SteamCapabilities } from "@/lib/steam-capabilities";
 import type { ReactNode } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
+import { LOCAL_DASHBOARD_PREVIEW, seedDashboardPreview } from "@/lib/dashboard-preview";
 import { buildCollectionDetails, guestFallbackGames, guestPreviewCollection, guestSession, mapGuestGames, mapLiveCollections, mapLiveGames, withFamilyOwnerNames } from "@/lib/app-view-model";
 import { FAMILY_SHARING_ENABLED } from "@/lib/family-flag";
 import type { FamilyImportCounts } from "@/lib/family-sharing";
@@ -20,6 +21,7 @@ import type { VaultDraw, VaultDrawEventType, VaultDrawInput } from "@/lib/vault-
 import type { GenrePreference } from "@/lib/genre-preferences";
 import type { PlaytimeSummary } from "@/lib/playtime-summary";
 import type { PinnedPlaytimeResult } from "@/lib/pinned-playtime";
+import type { PinnedRefreshResult } from "@/lib/v2/repositories/pinned-core";
 import { mergePinnedPlaytime } from "@/lib/pinned-playtime-view";
 import {
   DEFAULT_GLOBAL_FILTERS,
@@ -36,15 +38,27 @@ import { withTransientRetry } from "@/lib/request-failure";
 import { diagnosticFailure, diagnosticId } from "@/lib/diagnostics";
 import { readStoredCooldown, saveCooldown, storedCooldownError } from "@/lib/cooldown-storage";
 import { RECORDED_FINALIST_LIMIT } from "@/lib/vault";
+import type { VaultDrawRequest, VaultDrawResult } from "@/lib/v2/vault";
 import {
   IDLE_STEAM_IMPORT,
   type SteamImportProgress
 } from "@/lib/steam-import-progress";
 
+import type { BootstrapPayload } from "@/lib/v2/repositories/bootstrap-core";
+import type { LibraryCard } from "@/lib/v2/repositories/library-core";
+import { libraryGame } from "@/lib/v2/library-view-model";
+import { collectionModel } from "@/lib/v2/collection-view-model";
+import type { CollectionSummary } from "@/lib/v2/repositories/collections-core";
+import type { GameMutationReceipt } from "@/lib/v2/game-mutation";
+
 type CollectionInput = { name: string; description: string; kind?: "custom" | "smart"; rules?: { preset: SmartCollectionPreset } };
 
 type AppBootstrapPayload = {
   session: SessionPayload;
+  dataAuthority?: "v2";
+  bootstrap?: BootstrapPayload;
+  pinGames?: LibraryCard[];
+  collectionMetadata?: readonly CollectionSummary[];
   games?: Game[];
   collections?: Collection[];
   memberships?: CollectionMembership[];
@@ -80,6 +94,9 @@ const EMPTY_GAME_PREFERENCES: Record<string, [number, number, number]> = {};
 const EMPTY_PLAYTIME: PlaytimeSummary = { streakDays: 0, minutesLast7Days: 0, minutesLast30Days: 0, daysTracked: 0, dailyGains: [] };
 
 type AppDataContextValue = {
+  dataAuthority: "legacy" | "v2";
+  libraryDataVersion: number;
+  rememberLibraryGames: (games: DemoGame[]) => void;
   session: SessionPayload;
   games: DemoGame[];
   collections: DemoCollection[];
@@ -105,6 +122,7 @@ type AppDataContextValue = {
   allGames: DemoGame[];
   /** Owned games before the global filters ran, so the panel can show its effect. */
   unfilteredGameCount: number;
+  unfilteredFamilyCount: number;
   isLoading: boolean;
   isSyncing: boolean;
   steamImport: SteamImportProgress;
@@ -115,7 +133,7 @@ type AppDataContextValue = {
   refresh: (options?: { quiet?: boolean }) => Promise<boolean>;
   checkSteamImport: () => Promise<SteamImportProgress>;
   syncSteamLibrary: (options?: { restart?: boolean }) => Promise<number>;
-  refreshPinnedPlaytime: () => Promise<PinnedPlaytimeResult>;
+  refreshPinnedPlaytime: () => Promise<Omit<PinnedPlaytimeResult,"games">>;
   isRefreshingPinnedPlaytime: boolean;
   pinnedRefreshAvailableAt: number | null;
   signOut: () => Promise<void>;
@@ -134,12 +152,14 @@ type AppDataContextValue = {
   createCollection: (payload: CollectionInput) => Promise<string>;
   updateCollection: (collectionId: string, payload: CollectionInput) => Promise<void>;
   removeCollection: (collectionId: string) => Promise<void>;
-  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }, context?: Record<string, unknown>) => Promise<void>;
-  restoreGame: (gameId: string, options?: { silent?: boolean; context?: Record<string, unknown> }) => Promise<void>;
+  updateGame: (gameId: string, patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null }, context?: Record<string, unknown>) => Promise<GameMutationReceipt | void>;
+  restoreGame: (gameId: string, options?: { silent?: boolean; context?: Record<string, unknown> }) => Promise<GameMutationReceipt | void>;
   setGameCollection: (gameId: string, collectionId: string, assigned: boolean) => Promise<void>;
   addGamesToCollection: (collectionId: string, gameIds: string[]) => Promise<void>;
   recordVaultAction: (action: VaultAction, gameId: string, context?: Record<string, unknown>) => Promise<void>;
   recordVaultDraw: (gameId: string, input: VaultDrawInput) => Promise<VaultDraw>;
+  drawV2Vault: (request: VaultDrawRequest) => Promise<VaultDrawResult>;
+  clearVaultSnoozes: () => Promise<void>;
   loadVaultHistory: () => Promise<void>;
   recordDrawEvent: (drawId: string, eventType: VaultDrawEventType, analytics?: Record<string, unknown>) => Promise<void>;
   clearVaultHistory: () => Promise<void>;
@@ -172,8 +192,11 @@ export type FamilyMemberAddOutcome = {
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 export function AppDataProvider({ children, initialSession = guestSession }: { children: ReactNode; initialSession?: SessionPayload }) {
+  const [dataAuthority, setDataAuthority] = useState<"legacy" | "v2">("legacy");
+  const [v2Bootstrap, setV2Bootstrap] = useState<BootstrapPayload | null>(null);
+  const [libraryDataVersion, setLibraryDataVersion] = useState(0);
   const [session, setSession] = useState<SessionPayload>(initialSession);
-  const [guestGames, setGuestGames, guestGamesRef] = useImmediateState<DemoGame[]>(guestFallbackGames);
+  const [guestGames, setGuestGames, guestGamesRef] = useImmediateState<DemoGame[]>(seedDashboardPreview(guestFallbackGames));
   const [guestCollections, setGuestCollections] = useState<DemoCollection[]>(() => guestPreviewCollection(guestFallbackGames.length));
   const [liveGames, setLiveGames, liveGamesRef] = useImmediateState<DemoGame[]>([]);
   const [liveCollections, setLiveCollections] = useState<DemoCollection[]>(() => mapLiveCollections([]));
@@ -202,11 +225,24 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   const [globalFilters, setGlobalFiltersState] = useState<GlobalFilters>(DEFAULT_GLOBAL_FILTERS);
   const [loadError, setLoadError] = useState<string | null>(null);
   const syncPromiseRef = useRef<Promise<number> | null>(null);
-  const pinnedRefreshPromiseRef = useRef<Promise<PinnedPlaytimeResult> | null>(null);
+  const pinnedRefreshPromiseRef = useRef<Promise<Omit<PinnedPlaytimeResult,"games">> | null>(null);
   const [isRefreshingPinnedPlaytime, setIsRefreshingPinnedPlaytime] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [familyBusy, setFamilyBusy] = useState(false);
+  const familyReadSequenceRef = useRef(0);
   const [pinnedRefreshAvailableAt, setPinnedRefreshAvailableAt] = useState<number | null>(null);
+
+  const rememberLibraryGames = useCallback((games: DemoGame[]) => {
+    setLiveGames(current => {
+      const byId = new Map(current.map(game => [game.id, game]));
+      for (const game of games) byId.set(game.id, { ...byId.get(game.id), ...game });
+      const pinned = new Set(liveVaultStateRef.current.pinnedIds);
+      if (liveVaultStateRef.current.currentPickId) pinned.add(liveVaultStateRef.current.currentPickId);
+      const cached = [...byId.values()];
+      // A small entity cache, not a substitute for the full Library rowset.
+      return [...cached.filter(game => pinned.has(game.id)), ...cached.filter(game => !pinned.has(game.id)).slice(-200)];
+    });
+  }, [setLiveGames, liveVaultStateRef]);
 
   const reportedProgressRef = useRef(new Set<string>());
   const mutationQueueRef = useRef<MutationQueue | null>(null);
@@ -218,7 +254,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     return mutationQueueRef.current;
   }
 
-  function mutationContext(context: Record<string, unknown> = {}) {
+  function mutationContext(context: Record<string, unknown> = {}): Record<string, unknown> & {source:string} {
     const source = typeof window === "undefined" ? "unknown" : window.location.pathname.split("/")[1] || "unknown";
     return { source, ...context };
   }
@@ -280,7 +316,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
           const catalogue = await api<GuestCataloguePayload>("/guest-catalogue");
           const mappedGuestGames = mapGuestGames(catalogue.games ?? []);
           if (!mappedGuestGames.length) throw new Error("Guest catalogue was empty.");
-          setGuestGames(mappedGuestGames);
+          setGuestGames(seedDashboardPreview(mappedGuestGames));
           setGuestCollections(guestPreviewCollection(mappedGuestGames.length));
         } catch {
           setLoadError("The live guest catalogue is temporarily unavailable. A smaller preview is still ready.");
@@ -289,6 +325,22 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
       }
 
       setIsLive(true);
+      setDataAuthority(bootstrap.dataAuthority ?? "legacy");
+      if (bootstrap.dataAuthority === "v2") {
+        if (!bootstrap.bootstrap || !bootstrap.pinGames) throw Error("Incomplete V2 bootstrap");
+        const current = bootstrap.bootstrap;
+        setV2Bootstrap(current);
+        setLiveCollections((bootstrap.collectionMetadata ?? []).map(collectionModel));
+        setLibraryDataVersion(version => version + 1);
+        setLiveGames(bootstrap.pinGames.map(libraryGame));
+        setLiveVaultState({pinnedIds:current.pins.map(pin=>String(pin.gameId)),
+          pins:current.pins.map(pin=>({gameId:String(pin.gameId),pinnedAt:pin.pinnedAt,
+            hoursAtPin:pin.personalMinutesBaseline === null ? null : pin.personalMinutesBaseline/60})),
+          snoozedIds:(current.snoozedIds ?? []).map(String),currentPickId:current.currentPick ? String(current.currentPick.gameId) : null,
+          currentDrawId:current.currentPick?.drawId ?? null});
+        return true;
+      }
+      setV2Bootstrap(null);
       const { games, collections, memberships, vaultState } = bootstrap;
       if (bootstrap.data_error || !games || !collections || !memberships || !vaultState) {
         setLoadError("Your VaultShuffle data could not be loaded. Please retry.");
@@ -424,10 +476,11 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
    * at its empty default.
    */
   async function loadFamily() {
-    if (!FAMILY_SHARING_ENABLED || !isLive) return;
+    if (!FAMILY_SHARING_ENABLED || !isLive || isLoading) return;
+    const sequence = ++familyReadSequenceRef.current;
     try {
-      const payload = await api<{ members?: FamilyMember[] }>("/api/family");
-      setFamilyMembers(payload.members ?? []);
+      const payload = await api<{ members?: FamilyMember[] }>(dataAuthority === "v2" ? "/api/v2/family" : "/api/family");
+      if (sequence === familyReadSequenceRef.current) setFamilyMembers(payload.members ?? []);
     } catch {
       // The roster is an enhancement on top of a library that already loaded.
       // Failing to read it must not take the dashboard down with it.
@@ -435,10 +488,11 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   }
 
   useEffect(() => {
-    if (!FAMILY_SHARING_ENABLED || !isLive) return;
+    if (!FAMILY_SHARING_ENABLED || !isLive || isLoading) return;
     void loadFamily();
+    return () => { familyReadSequenceRef.current++; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLive, session.user_id]);
+  }, [isLive, isLoading, session.user_id, dataAuthority]);
 
   /**
    * Every family write re-reads the library afterwards.
@@ -460,7 +514,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
   async function addFamilyMember(profile: string) {
     return withFamilyWrite(async () => {
-      const payload = await api<FamilyMemberAddOutcome>("/api/family", {
+      const payload = await api<FamilyMemberAddOutcome>(dataAuthority === "v2" ? "/api/v2/family" : "/api/family", {
         method: "POST",
         body: JSON.stringify({ profile })
       });
@@ -477,7 +531,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
   async function removeFamilyMember(memberId: string) {
     return withFamilyWrite(async () => {
-      const payload = await api<FamilyRemovalOutcome>(`/api/family/${memberId}`, { method: "DELETE" });
+      const payload = await api<FamilyRemovalOutcome>(`${dataAuthority === "v2" ? "/api/v2/family" : "/api/family"}/${memberId}`, { method: "DELETE" });
       trackEvent(ANALYTICS_EVENTS.familyMemberRemoved, {
         removed: payload.removed,
         retained: payload.retained
@@ -488,7 +542,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
   async function recheckFamilyLibrary() {
     return withFamilyWrite(async () => {
-      const payload = await api<{ counts: FamilyImportCounts }>("/api/family/sync", { method: "POST" });
+      const payload = await api<{ counts: FamilyImportCounts }>(dataAuthority === "v2" ? "/api/v2/family/sync" : "/api/family/sync", { method: "POST" });
       return payload.counts;
     });
   }
@@ -514,8 +568,9 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
   async function checkSteamImport() {
     try {
-      const result = await api<{ progress: SteamImportProgress }>("/api/steam/owned-games");
+      const result = await api<{ progress: SteamImportProgress; private_library?: boolean }>(dataAuthority === "v2" ? "/api/v2/steam/owned-games" : "/api/steam/owned-games");
       setSteamImport(result.progress);
+      if (dataAuthority === "v2") setSteamLibraryPrivate(result.private_library === true);
       return result.progress;
     } finally {
       setSteamImportChecked(true);
@@ -532,7 +587,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     return promise;
   }
 
-  async function runPinnedPlaytimeRefresh(): Promise<PinnedPlaytimeResult> {
+  async function runPinnedPlaytimeRefresh(): Promise<Omit<PinnedPlaytimeResult,"games">> {
     if (!isLive) throw new Error("Connect a Steam profile to refresh pinned playtime.");
     // The refs change synchronously, unlike the rendered loading flags. That
     // closes the tiny same-tab window where both buttons could be pressed
@@ -547,11 +602,19 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
     setIsRefreshingPinnedPlaytime(true);
     try {
-      const result = await api<PinnedPlaytimeResult>("/api/steam/pinned-playtime", {
-        method: "POST",
-        body: "{}"
-      });
-      const mapped = mapLiveGames(result.games, []);
+      let result: Omit<PinnedPlaytimeResult,"games">;
+      let mapped: DemoGame[];
+      if (dataAuthority === "v2") {
+        const response = await api<PinnedRefreshResult>("/api/v2/steam/pinned-playtime", {method:"POST",body:"{}"});
+        result = response;
+        mapped = response.games.map(libraryGame);
+        if (response.capabilities) setV2Bootstrap(current => current ? {...current,capabilities:response.capabilities} : current);
+        if (response.refreshed > 0) setLibraryDataVersion(version => version + 1);
+      } else {
+        const response = await api<PinnedPlaytimeResult>("/api/steam/pinned-playtime", {method:"POST",body:"{}"});
+        result = response;
+        mapped = mapLiveGames(response.games, []);
+      }
       // This is deliberately not a full bootstrap or import. Keep the shelf,
       // pin baselines, collections and any in-flight player edits intact.
       setLiveGames((current) => mergePinnedPlaytime(current, mapped));
@@ -610,30 +673,38 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     setSteamLibraryPrivate(false);
     let steamImportSaved = restart ? false : steamImport.imported > 0;
     let importCompleted = false;
+    const importRequestKey = dataAuthority === "v2" ? crypto.randomUUID() : undefined;
     try {
-      let result = await withTransientRetry(() => requestSteamImportBatch(restart));
+      let result = await withTransientRetry(() => requestSteamImportBatch(restart, importRequestKey));
       setSteamImport(result.progress);
       steamImportSaved = result.progress.imported > 0;
 
       let unchangedResponses = 0;
-      while (result.progress.status === "importing") {
+      let pollCount = 0;
+      while (result.progress.status === "importing" || dataAuthority === "v2" && result.progress.status === "fetching") {
         if (result.retry_after_seconds) {
           const retryAfterMs = result.retry_after_seconds * 1000;
           await new Promise((resolve) => window.setTimeout(resolve, retryAfterMs));
         }
         const previousImported = result.progress.imported;
-        result = await withTransientRetry(() => requestSteamImportBatch(false));
+        result = dataAuthority === "v2"
+          ? await withTransientRetry(() => api<{ progress: SteamImportProgress; retry_after_seconds?: number; private_library?: boolean }>("/api/v2/steam/owned-games"))
+          : await withTransientRetry(() => requestSteamImportBatch(false));
         setSteamImport(result.progress);
         steamImportSaved ||= result.progress.imported > 0;
         unchangedResponses = result.progress.imported === previousImported
           ? unchangedResponses + 1
           : 0;
-        if (unchangedResponses >= 3) {
+        if (dataAuthority === "v2" && ++pollCount >= 45 && result.progress.status !== "complete") {
+          throw Object.assign(new Error("Your Steam library check is still running. Its queue is saved; check again shortly."), { code: "import_pending" });
+        }
+        if (dataAuthority !== "v2" && unchangedResponses >= 3) {
           throw new Error("The Steam import stopped making progress. Its saved batches are safe; retry to resume.");
         }
       }
 
       if (result.progress.status === "failed") {
+        if (dataAuthority === "v2" && "private_library" in result && result.private_library) throw new SteamLibraryPrivateError(result.progress.lastError || "Steam did not share your games list.");
         throw new Error(result.progress.lastError || "The Steam import paused before it finished.");
       }
       importCompleted = result.progress.status === "complete";
@@ -659,6 +730,10 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
       // over the top of an import that went on to finish. Every job in the table
       // had completed; the only thing that had failed was the reporting.
       const actual = await checkSteamImport().catch(() => null);
+      if (dataAuthority === "v2" && (actual?.status === "importing" || actual?.status === "fetching")) {
+        setSteamImport(actual);
+        throw error;
+      }
       if (actual?.status === "complete") {
         setSteamImportCooldownUntil(null);
         await load().catch(() => null);
@@ -704,10 +779,10 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     }
   }
 
-  function requestSteamImportBatch(restart: boolean) {
-    return api<{ progress: SteamImportProgress; retry_after_seconds?: number }>("/api/steam/owned-games", {
+  function requestSteamImportBatch(restart: boolean, requestKey?: string) {
+    return api<{ progress: SteamImportProgress; retry_after_seconds?: number; private_library?: boolean }>(dataAuthority === "v2" ? "/api/v2/steam/owned-games" : "/api/steam/owned-games", {
       method: "POST",
-      body: JSON.stringify({ restart })
+      body: JSON.stringify(dataAuthority === "v2" ? { request_key: requestKey ?? crypto.randomUUID() } : { restart })
     });
   }
 
@@ -717,6 +792,12 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   }
 
   async function createCollection(payload: CollectionInput) {
+    if (isLive && dataAuthority === "v2") {
+      const {collectionId}=await api<{collectionId:string}>("/api/v2/collections",{method:"POST",body:JSON.stringify(payload)});
+      await load({quiet:true});
+      trackEvent(ANALYTICS_EVENTS.collectionCreated,{kind:payload.kind??"custom"});
+      return collectionId;
+    }
     if (isLive) {
       // The id comes from the server, so this one round trip is unavoidable -
       // but re-reading the whole library afterwards is not. A collection created
@@ -759,6 +840,10 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   }
 
   async function updateCollection(collectionId: string, payload: CollectionInput) {
+    if (isLive && dataAuthority === "v2") {
+      await api(`/api/v2/collections/${collectionId}`,{method:"PATCH",body:JSON.stringify(payload)});
+      await load({quiet:true});return;
+    }
     if (isLive) {
       setLiveCollections((current) => current.map((collection) => collection.id === collectionId ? {
         ...collection,
@@ -780,6 +865,10 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   }
 
   async function removeCollection(collectionId: string) {
+    if (isLive && dataAuthority === "v2") {
+      await api(`/api/v2/collections/${collectionId}`,{method:"DELETE"});
+      await load({quiet:true});return;
+    }
     if (isLive) {
       setLiveCollections((current) => current.filter((collection) => collection.id !== collectionId));
       setLiveGames((current) => current.map((game) => game.collectionIds.includes(collectionId)
@@ -797,7 +886,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
   async function updateGame(
     gameId: string,
-    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
+    patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
     context: Record<string, unknown> = {}
   ) {
     const properties = mutationContext(context);
@@ -805,8 +894,8 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     const game = (isLive ? liveGamesRef.current : guestGamesRef.current).find((entry) => entry.id === gameId);
     const pin = before.pins.find((entry) => entry.gameId === gameId);
     const trackSuccess = () => {
-      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { ...properties, game_id: gameId, status: patch.status === "Slept" ? "Blacklisted" : patch.status, count: 1 });
-      if (before.pinnedIds.includes(gameId) && (patch.status === "Completed" || patch.status === "Slept")) {
+      if (patch.status) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { ...properties, game_id: gameId, status: patch.status === "Blacklisted" ? "Blacklisted" : patch.status, count: 1 });
+      if (before.pinnedIds.includes(gameId) && (patch.status === "Completed" || patch.status === "Blacklisted")) {
         trackEvent(patch.status === "Completed" ? ANALYTICS_EVENTS.playingNextCompleted : ANALYTICS_EVENTS.playingNextRemoved, {
           ...properties, game_id: gameId, steam_app_id: game?.steamAppId,
           reason: patch.status === "Completed" ? "completed" : "blacklisted",
@@ -819,20 +908,38 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     const setVault = isLive ? setLiveVaultState : setGuestVaultState;
     setGames((current) => current.map((entry) => entry.id === gameId
       ? applyGamePatch(entry, patch, isLive ? liveGameSummary(entry) : undefined) : entry));
-    if (patch.status === "Completed" || patch.status === "Slept") setVault((current) => ({
+    if (patch.status === "Completed" || patch.status === "Blacklisted") setVault((current) => ({
       ...current,
       pinnedIds: current.pinnedIds.filter((id) => id !== gameId),
       pins: current.pins.filter((entry) => entry.gameId !== gameId),
       currentPickId: current.currentPickId === gameId ? null : current.currentPickId
     }));
     if (!isLive) { trackSuccess(); return; }
-    await persistMutation("update_game", gameId, properties, async () => {
+    return persistMutation("update_game", gameId, properties, async () => {
+      if (dataAuthority === "v2") {
+        if (patch.hoursPlayed !== undefined || patch.priority !== undefined) throw Error("This game edit is not available yet.");
+        let receipt:GameMutationReceipt|undefined;
+        if (patch.status) {
+          const action = patch.status === "Completed" ? "complete" : patch.status === "Blacklisted" ? "blacklist" : "reactivate";
+          const body = properties.action === "undo"
+            ? {restore_decision:{status:patch.status,completed_at:patch.completedAt ?? null,expected_version:properties.expected_version}}
+            : {action,request_key:crypto.randomUUID(),...(properties.surface === "vault" ? {surface:"vault"} : {})};
+          receipt=await api<GameMutationReceipt>(`/api/v2/library/${gameId}`, {method:"PATCH",body:JSON.stringify(body)});
+        }
+        if (patch.notes !== undefined) await api(`/api/v2/library/${gameId}`, {method:"PATCH",body:JSON.stringify({notes:patch.notes})});
+        // Undo never turns an inferred display percentage into manual progress.
+        if (patch.completionPercent !== undefined && properties.action !== "undo") await api(`/api/v2/library/${gameId}`, {method:"PATCH",body:JSON.stringify({progress:patch.completionPercent})});
+        if (patch.completionSuggestionDismissedAt !== undefined) await api(`/api/v2/library/${gameId}`, {method:"PATCH",body:JSON.stringify({dismiss_completion:patch.completionSuggestionDismissedAt !== null})});
+        await load({quiet:true});
+        trackSuccess();
+        return receipt;
+      }
       await api(`/api/games/${gameId}`, {
         method: "PATCH",
         body: JSON.stringify({
           status: patch.status, completion_percentage: patch.completionPercent,
           hours_played: patch.hoursPlayed, notes: patch.notes, priority: patch.priority,
-          completed_at: patch.completedAt, slept_at: patch.sleptAt,
+          completed_at: patch.completedAt,
           completion_suggestion_dismissed_at: patch.completionSuggestionDismissedAt,
           completion_suggestion_dismissed_playtime: patch.completionSuggestionDismissedPlaytime
         })
@@ -854,9 +961,14 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
       if (!options?.silent) trackEvent(ANALYTICS_EVENTS.gameStatusChanged, { ...properties, game_id: gameId, status: "Active", restored: true, count: 1 });
     };
     if (!isLive) { trackSuccess(); return; }
-    await persistMutation("restore_game", gameId, properties, async () => {
-      await api(`/api/games/${gameId}`, { method: "PATCH", body: JSON.stringify({ restore_active: true }) });
+    return persistMutation("restore_game", gameId, properties, async () => {
+      let receipt:GameMutationReceipt|undefined;
+      if (dataAuthority === "v2") {
+        receipt=await api<GameMutationReceipt>(`/api/v2/library/${gameId}`, {method:"PATCH",body:JSON.stringify({action:"reactivate"})});
+        await load({quiet:true});
+      } else await api(`/api/games/${gameId}`, { method: "PATCH", body: JSON.stringify({ restore_active: true }) });
       trackSuccess();
+      return receipt;
     });
   }
 
@@ -869,7 +981,11 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
    */
   async function addGamesToCollection(collectionId: string, gameIds: string[]) {
     if (!gameIds.length) return;
-
+    if (isLive && dataAuthority === "v2") {
+      await api(`/api/v2/collections/${collectionId}/games`,{method:"POST",body:JSON.stringify({game_ids:gameIds.map(Number)})});
+      await load({quiet:true});
+      trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged,{action:"added",count:gameIds.length});return;
+    }
     if (isLive) {
       // Serial rather than parallel: the writes take a per-user advisory lock, so
       // firing forty at once queues them on the database instead of the client.
@@ -892,6 +1008,12 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   }
 
   async function setGameCollection(gameId: string, collectionId: string, assigned: boolean) {
+    if (isLive && dataAuthority === "v2") {
+      await api(`/api/v2/collections/${collectionId}/games${assigned ? "" : `/${gameId}`}`,{
+        method:assigned?"POST":"DELETE",body:assigned?JSON.stringify({game_id:Number(gameId)}):undefined});
+      await load({quiet:true});
+      trackEvent(ANALYTICS_EVENTS.collectionMembershipChanged,{action:assigned?"added":"removed"});return;
+    }
     if (isLive) {
       setLiveGames((current) => current.map((game) => game.id === gameId ? {
         ...game,
@@ -937,6 +1059,18 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     };
     if (!isLive) { trackSuccess(next); return; }
     await persistMutation(action, gameId, properties, async (revision) => {
+      if (dataAuthority === "v2") {
+        if (action === "unsnoozed") {
+          await api("/api/v2/vault/snoozes",{method:"DELETE",body:JSON.stringify({game_id:Number(gameId)})});
+          await load({quiet:true});
+          return;
+        }
+        if (action !== "pinned" && action !== "unpinned") throw Error("This Vault action is not available yet.");
+        await api("/api/v2/pins", {method:"POST",body:JSON.stringify({action:action === "pinned" ? "pin" : "unpin",game_id:Number(gameId),...(typeof context.replace_game_id === "string" ? {replace_game_id:Number(context.replace_game_id)} : {})})});
+        await load({quiet:true});
+        trackSuccess(liveVaultStateRef.current);
+        return;
+      }
       const saved = await api<VaultState>("/api/vault/state", { method: "POST", body: JSON.stringify({ action, game_id: gameId, context }) });
       if (mutations().isLatest(revision)) setVault(saved);
       trackSuccess(saved);
@@ -945,11 +1079,34 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
   async function loadVaultHistory() {
     if (!isLive) return;
-    const { draws } = await api<{ draws: VaultDraw[] }>("/api/vault/history");
+    const { draws, games: historyGames } = await api<{ draws: VaultDraw[]; games?: LibraryCard[] }>(dataAuthority === "v2" ? "/api/v2/vault/history" : "/api/vault/history");
+    if (historyGames) rememberLibraryGames(historyGames.map(libraryGame));
     setLiveVaultHistory(draws);
   }
 
+  async function drawV2Vault(request: VaultDrawRequest): Promise<VaultDrawResult> {
+    if (!isLive || dataAuthority !== "v2") throw Error("A live V2 session is required.");
+    const result = await mutations().enqueue(() => api<VaultDrawResult>("/api/v2/vault",{method:"POST",body:JSON.stringify(request)}));
+    rememberLibraryGames([result.game]);
+    setLiveVaultState(current => ({...current,currentPickId:result.game.id,currentDrawId:result.draw.id,
+      snoozedIds:result.activeSnoozedIds ?? current.snoozedIds.filter(id => id !== result.game.id)}));
+    setLiveVaultHistory(current => [result.draw,...current.filter(draw => draw.id !== result.draw.id)].slice(0,50));
+    return result;
+  }
+
+  async function clearVaultSnoozes() {
+    if (isLive && dataAuthority === "v2") {
+      await api("/api/v2/vault/snoozes",{method:"DELETE",body:JSON.stringify({})});
+      setLiveVaultState(current => ({...current,snoozedIds:[]}));
+      setLibraryDataVersion(version => version + 1);
+      return;
+    }
+    const ids = (isLive ? liveVaultStateRef.current : guestVaultStateRef.current).snoozedIds;
+    await Promise.all(ids.map(id => recordVaultAction("unsnoozed",id)));
+  }
+
   async function recordVaultDraw(gameId: string, input: VaultDrawInput) {
+    if (isLive && dataAuthority === "v2") throw Error("V2 draws must use server selection.");
     if (isLive) {
       const { state, draw } = await mutations().enqueue(() => api<{ state: VaultState; draw: VaultDraw }>("/api/vault/history", { method: "POST", body: JSON.stringify({ game_id: gameId, steam_app_id: input.steamAppId, session: input.session, mood: input.mood, goal: input.goal, collection_id: input.collectionId, selected_genres: input.selectedGenres, eligible_pool_count: input.eligiblePoolCount, reroll_index: input.rerollIndex, finalist_appids: input.finalistAppIds?.slice(0, RECORDED_FINALIST_LIMIT) }) }));
       setLiveVaultState((current) => ({ ...current, currentPickId: state.currentPickId }));
@@ -981,15 +1138,17 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
     }
 
     if (isLive) {
-      const { event } = await api<{ event: VaultDraw["events"][number] }>("/api/vault/history/events", { method: "POST", keepalive: true, body: JSON.stringify({ draw_id: drawId, event_type: eventType }) });
-      setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [event, ...draw.events] } : draw));
+      const { event } = await api<{ event: VaultDraw["events"][number] }>(dataAuthority === "v2" ? "/api/v2/vault/history/events" : "/api/vault/history/events", { method: "POST", keepalive: true, body: JSON.stringify({ draw_id: drawId, event_type: eventType, ...(dataAuthority === "v2" ? {request_key:crypto.randomUUID()} : {}) }) });
+      setLiveVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw,
+        events:dataAuthority === "v2" ? [event,...draw.events].slice(0,8) : [event,...draw.events] } : draw));
       return;
     }
     setGuestVaultHistory((current) => current.map((draw) => draw.id === drawId ? { ...draw, events: [{ id: crypto.randomUUID(), drawId, eventType, createdAt: new Date().toISOString() }, ...draw.events] } : draw));
   }
 
   async function clearVaultHistory() {
-    if (isLive) await api("/api/vault/history", { method: "DELETE" });
+    if (isLive) await api(dataAuthority === "v2" ? "/api/v2/vault/history" : "/api/vault/history", { method: "DELETE" });
+    if (isLive && dataAuthority === "v2") setLiveVaultState(current => ({...current,currentDrawId:null}));
     if (isLive) setLiveVaultHistory([]); else setGuestVaultHistory([]);
   }
 
@@ -997,10 +1156,8 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   // every count on the page - reads from this, so a global filter genuinely
   // removes a game from consideration rather than hiding it in one view.
   //
-  // Signed-in only. The panel is not offered to guests, and the choices outlive
-  // a session in localStorage, so filtering the guest catalogue too would let
-  // someone sign out and find a preview quietly missing games with no control
-  // anywhere to explain it or put them back.
+  // Production guests have no filter panel. The local interactive dashboard
+  // does, so its count, summary and Library must share the same filtered pool.
   // A shared game says whose shelf it came from. The roster and the library are
   // two requests and either can land first, so the name is overlaid here rather
   // than baked in at map time. Identity is preserved when nothing changes, so
@@ -1011,21 +1168,26 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
   );
   const allGames = isLive ? namedLiveGames : guestGames;
   const visibleGames = useMemo(
-    () => isLive ? namedLiveGames.filter((game) => matchesGlobalFilters(game, globalFilters)) : guestGames,
+    () => isLive
+      ? namedLiveGames.filter((game) => matchesGlobalFilters(game, globalFilters))
+      : LOCAL_DASHBOARD_PREVIEW
+        ? guestGames.filter((game) => matchesGlobalFilters(game, globalFilters))
+        : guestGames,
     [globalFilters, guestGames, isLive, namedLiveGames]
   );
-  const unfilteredGameCount = allGames.length;
+  const unfilteredGameCount = dataAuthority === "v2" && v2Bootstrap ? v2Bootstrap.ownedTotal + v2Bootstrap.familyTotal : allGames.length;
   const activePlaytime = isLive ? livePlaytime : EMPTY_PLAYTIME;
-  const capabilities = useMemo(() => steamCapabilities({
+  const capabilities = useMemo(() => isLive && dataAuthority === 'v2' && v2Bootstrap?.capabilities ? v2Bootstrap.capabilities : steamCapabilities({
     isLive,
     games: visibleGames,
     playtimeVisible: session.steam_playtime_visible !== false,
     daysTracked: activePlaytime.daysTracked
-  }), [activePlaytime.daysTracked, isLive, session.steam_playtime_visible, visibleGames]);
+  }), [activePlaytime.daysTracked, dataAuthority, v2Bootstrap, isLive, session.steam_playtime_visible, visibleGames]);
 
   const value = useMemo<AppDataContextValue>(
     () => ({
       session,
+      dataAuthority, libraryDataVersion, rememberLibraryGames,
       playHistoryMissing,
       capabilities,
       deviceMode: globalFilters.device,
@@ -1033,6 +1195,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
       setGlobalFilters,
       allGames,
       unfilteredGameCount,
+      unfilteredFamilyCount: v2Bootstrap?.familyTotal ?? allGames.filter(game => game.accessSource === "family").length,
       setDeviceMode,
       games: visibleGames,
       collections: isLive ? liveCollections : guestCollections,
@@ -1073,11 +1236,13 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
       addGamesToCollection,
       recordVaultAction,
       recordVaultDraw,
+      drawV2Vault,
+      clearVaultSnoozes,
       loadVaultHistory,
       recordDrawEvent,
       clearVaultHistory
     }),
-    [capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, globalFilters, liveGames, namedLiveGames, familyMembers, familyBusy, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
+    [dataAuthority, libraryDataVersion, rememberLibraryGames, v2Bootstrap, capabilities, session, isLive, isLoading, isSyncing, isRefreshingPinnedPlaytime, pinnedRefreshAvailableAt, steamImport, steamImportChecked, steamImportCooldownUntil, steamLibraryPrivate, loadError, playHistoryMissing, globalFilters, liveGames, namedLiveGames, familyMembers, familyBusy, liveCollections, guestGames, guestCollections, liveVaultState, guestVaultState, liveGenrePreferences, liveGenrePreferenceGlobals, livePlaytime, liveVaultHistory, guestVaultHistory]
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;
@@ -1085,7 +1250,7 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
 
 function applyGamePatch(
   game: DemoGame,
-  patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; sleptAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
+  patch: { status?: DemoGame["status"]; completionPercent?: number; hoursPlayed?: number; notes?: string; priority?: DemoGame["priority"]; completedAt?: string | null; completionSuggestionDismissedAt?: string | null; completionSuggestionDismissedPlaytime?: number | null },
   emptyNotesDescription = game.description
 ): DemoGame {
   const status = patch.status ?? game.status;
@@ -1104,12 +1269,9 @@ function applyGamePatch(
     completedAt: patch.completedAt !== undefined
       ? patch.completedAt
       : status === "Completed" ? new Date().toISOString() : patch.status ? null : game.completedAt,
-    previousActiveStatus: (status === "Completed" || status === "Slept") && game.status !== "Completed" && game.status !== "Slept"
+    previousActiveStatus: (status === "Completed" || status === "Blacklisted") && game.status !== "Completed" && game.status !== "Blacklisted"
       ? (game.previousActiveStatus ?? (game.status === "In Progress" ? "In Progress" : "Not Started"))
       : game.previousActiveStatus,
-    sleptAt: patch.sleptAt !== undefined
-      ? patch.sleptAt
-      : status === "Slept" ? new Date().toISOString() : patch.status ? null : game.sleptAt,
     completionSuggestionDismissedAt: patch.completionSuggestionDismissedAt ?? game.completionSuggestionDismissedAt,
     completionSuggestionDismissedPlaytime: patch.completionSuggestionDismissedPlaytime ?? game.completionSuggestionDismissedPlaytime
   };
@@ -1125,7 +1287,6 @@ function restoreActiveGame(game: DemoGame): DemoGame {
     ...game,
     status: game.previousActiveStatus ?? (game.hoursPlayed > 0 ? "In Progress" : "Not Started"),
     completedAt: null,
-    sleptAt: null,
     previousActiveStatus: null
   };
 }

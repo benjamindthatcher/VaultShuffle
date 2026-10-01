@@ -10,8 +10,8 @@
   padding: 13px 13px 12px;
   border: 1px solid var(--vault-feature-border);
   border-radius: var(--vault-card-radius);
-  background: linear-gradient(145deg, rgba(25, 22, 58, .98), var(--vault-surface-strong));
-  box-shadow: 0 16px 40px rgba(0, 0, 0, .5), 0 0 24px rgba(126, 69, 255, .1);
+  background: var(--vault-surface);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--vault-shadow-color) 50%, transparent), 0 0 24px color-mix(in srgb, var(--vault-accent) 10%, transparent);
   animation: arrive 180ms ease-out;
 }
 
@@ -24,7 +24,7 @@
   border: 1px solid var(--vault-border-strong);
   border-radius: 50%;
   background: var(--vault-accent-soft);
-  color: #dca0ff;
+  color: var(--vault-text);
 }
 
 .content {
@@ -62,7 +62,7 @@
 }
 
 .timer strong {
-  color: #dca0ff;
+  color: var(--vault-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -75,7 +75,7 @@
   padding: 0;
   border: 1px solid transparent;
   border-radius: 50%;
-  background: rgba(18, 22, 50, .52);
+  background: var(--vault-surface);
   color: var(--vault-text-soft);
 }
 
@@ -83,7 +83,7 @@
 .close:focus-visible {
   border-color: var(--vault-border-strong);
   background: var(--vault-control-hover-bg);
-  color: #e5bdff;
+  color: var(--vault-text);
 }
 
 .screenReaderStatus {

@@ -20,6 +20,7 @@ type ProgressLike = {
   completionPercent?: number | null;
   duration?: GameDurationEstimate | null;
   accessSource?: "owned" | "family";
+  progressKnown?: boolean;
 };
 
 /**
@@ -37,7 +38,7 @@ export function progressLabel(game: ProgressLike): string {
   // Marking it complete is the player stating a fact, and outranks not knowing.
   if (game.status === "Completed") return "100%";
   if (game.duration?.endless) return ENDLESS_PROGRESS_SYMBOL;
-  if (game.accessSource === "family") return UNKNOWN_PROGRESS_SYMBOL;
+  if (game.accessSource === "family" || game.progressKnown === false) return UNKNOWN_PROGRESS_SYMBOL;
   return `${Math.max(0, Math.round(Number(game.completionPercent ?? 0)))}%`;
 }
 

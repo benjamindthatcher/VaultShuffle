@@ -11,7 +11,7 @@
   padding: 10px 14px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: var(--vault-card-radius);
-  background: linear-gradient(110deg, rgba(122, 74, 226, 0.16), var(--vault-sheet-surface) 52%);
+  background: var(--vault-feature-gradient);
 }
 
 .icon {
@@ -22,7 +22,7 @@
   border: 1px solid var(--vault-border-strong);
   border-radius: 10px;
   background: var(--vault-accent-soft);
-  color: #dca0ff;
+  color: var(--vault-text);
 }
 
 .copy {
@@ -57,8 +57,8 @@
   padding: 0 12px;
   border: 1px solid var(--vault-border-strong);
   border-radius: 10px;
-  background: rgba(113, 51, 250, .24);
-  color: #f3e8ff;
+  background: color-mix(in srgb, var(--vault-accent) 24%, transparent);
+  color: var(--vault-text);
   font-size: .78rem;
   font-weight: 750;
   text-decoration: none;
@@ -66,9 +66,9 @@
 }
 
 .actions > .profileAction {
-  background: rgba(15, 157, 112, 0.12);
-  border-color: rgba(96, 222, 174, 0.38);
-  color: #a7f3d0;
+  background: color-mix(in srgb, var(--vault-success) 12%, transparent);
+  border-color: color-mix(in srgb, var(--vault-success) 40%, transparent);
+  color: var(--vault-success);
 }
 
 @media (hover: hover) {
@@ -78,14 +78,15 @@
   }
 
   .actions > .profileAction:hover {
-    border-color: rgba(114, 242, 191, 0.65);
-    background: rgba(21, 181, 126, 0.2);
+    border-color: color-mix(in srgb, var(--vault-success) 65%, transparent);
+    background: color-mix(in srgb, var(--vault-success) 20%, transparent);
   }
 }
 
 @media (max-width: 660px) {
   .notice {
     grid-template-columns: 38px minmax(0, 1fr);
+    background: var(--vault-feature-gradient);
   }
 
   .actions {

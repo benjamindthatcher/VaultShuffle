@@ -13,28 +13,28 @@ export type LandingFaqItem = { question: string; answer: string };
 
 export const LANDING_FAQ: readonly LandingFaqItem[] = [
   {
-    question: "What is a Steam backlog manager?",
+    question: "What is VaultShuffle, and is it free?",
     answer:
-      "A Steam backlog manager helps you organise the games you own and decide what to play next. VaultShuffle imports your public library, lets you track game statuses and collections, and suggests a game based on your available time, mood and goal."
+      "VaultShuffle is a free Steam backlog manager and game picker. It helps you choose what to play from your library, organise your games and keep track of what you finish. There is no paid tier or subscription."
   },
   {
     question: "How does VaultShuffle pick a game?",
     answer:
-      "VaultShuffle applies your filters and game statuses, then ranks eligible games using your session, mood, goal and game data. A guided draw builds a deck of up to 64 matches and makes a weighted choice from the strongest candidates, with reasons shown alongside the result."
+      "Choose your available time, mood and goal, and VaultShuffle picks from games that fit your library filters. A guided draw favours stronger matches and explains the result. For a random pick from eligible games, use Roll the dice."
   },
   {
-    question: "How is this different from hitting shuffle on my Steam library?",
+    question: "Can I try it without signing in through Steam?",
     answer:
-      "A guided draw ranks games before choosing one. Your filters and saved statuses determine what is eligible, while session, mood and goal help decide what fits best. It favours stronger matches without giving you the same result every time."
+      "Yes. Explore guest mode with a sample catalogue, or use a public Steam profile URL to create a VaultShuffle profile for that library. Anyone with that public link can access the same profile. Steam login verifies ownership and uses a separate VaultShuffle profile."
   },
   {
-    question: "Do I have to sign in with Steam?",
+    question: "Does it work with Steam Deck, Mac and Linux?",
     answer:
-      "No. Try guest mode with a sample library, or import a public Steam profile using its URL, custom profile name or SteamID. Public-profile imports save your choices in a separate VaultShuffle profile accessed through this browser's session. Steam sign-in verifies that the Steam account is yours."
+      "Yes. Device filters help you find games for Steam Deck, Mac and Linux. The Deck filter includes Playable and Verified games; Mac and Linux filters use native support. Check Steam for current compatibility with your setup."
   },
   {
     question: "Is it safe to sign in with Steam?",
     answer:
-      "Sign-in happens on Steam's website through OpenID. VaultShuffle receives confirmation of your SteamID and reads public profile and library data. It never receives your Steam password, payment details or permission to change your Steam account."
+      "You sign in on Steam's own website. VaultShuffle receives confirmation of your SteamID and reads public profile and library data. It never receives your Steam password or permission to change your Steam account, games or purchases."
   }
 ] as const;

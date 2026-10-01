@@ -1,4 +1,5 @@
 .vaultPage {
+  overflow-anchor: none;
   position: relative;
   width: var(--vault-list-width);
   margin-inline: auto;
@@ -61,22 +62,22 @@
 .optionalSetup[data-ready="true"] {
   border-color: var(--vault-tile-selected-border);
   background:
-    linear-gradient(140deg, rgba(120, 62, 220, 0.16), var(--vault-card-surface) 58%);
-  box-shadow: 0 0 0 1px rgba(188, 100, 255, 0.12), 0 0 26px rgba(134, 91, 255, 0.14);
+    linear-gradient(140deg, color-mix(in srgb, var(--vault-accent) 16%, transparent), var(--vault-card-surface) 58%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vault-accent) 12%, transparent), 0 0 26px color-mix(in srgb, var(--vault-accent) 14%, transparent);
 }
 
 .optionalSetup[data-ready="true"] .optionalIcon {
-  border-color: rgba(215, 142, 255, 0.68);
-  background: linear-gradient(145deg, rgba(143, 61, 231, 0.5), rgba(75, 61, 185, 0.28));
-  color: #ecd4ff;
+  border-color: var(--vault-border);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--vault-accent) 50%, transparent), color-mix(in srgb, var(--vault-accent) 28%, transparent));
+  color: var(--vault-text);
 }
 
 .optionalSetup[data-ready="true"] .optionalLabel {
-  color: #d392ff;
+  color: var(--vault-accent);
 }
 
 .optionalSetup[data-ready="true"] .optionalCopy small {
-  color: #c6b3e8;
+  color: var(--vault-text);
 }
 
 .optionalChevron {
@@ -98,7 +99,7 @@
   gap: 10px;
   padding: 10px 14px;
   background: transparent;
-  color: #f2effa;
+  color: var(--vault-text);
   text-align: left;
 }
 
@@ -109,14 +110,14 @@
   place-items: center;
   border: 1px solid var(--vault-border);
   border-radius: 10px;
-  background: rgba(69, 38, 132, 0.38);
-  color: #c994f4;
+  background: color-mix(in srgb, var(--vault-surface) 38%, transparent);
+  color: var(--vault-accent);
 }
 
 .optionalCopy { min-width: 0; display: grid; gap: 3px; }
-.optionalCopy strong { color: #f5f2fb; font-size: 0.9rem; line-height: 1.15; }
+.optionalCopy strong { color: var(--vault-text); font-size: 0.9rem; line-height: 1.15; }
 .optionalCopy small { overflow: hidden; color: var(--vault-text-soft); font-size: 0.68rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
-.optionalLabel { color: #a79eb7; font-size: 0.64rem; font-weight: 760; letter-spacing: 0.08em; text-transform: uppercase; }
+.optionalLabel { color: var(--vault-text-muted); font-size: 0.64rem; font-weight: 760; letter-spacing: 0.08em; text-transform: uppercase; }
 
 .optionalContent {
   min-height: 0;
@@ -128,19 +129,11 @@
 .drawActionBar {
   position: relative;
   z-index: 2;
-  /* Where a draw scrolls to. The bar is a fixed height and always sits directly
-     above the pick, so aligning it lands the card in the same place every time -
-     which centring on the card cannot, since its height varies with how much
-     reasoning it has. */
   scroll-margin-top: 30px;
-
   display: grid;
-  /* Mode picker, the deck tools in what was dead space, then the draw on the
-     end. Stacking the toggle took about 140px off the first column, which is
-     what buys the tools enough middle to sit side by side. */
   grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(240px, 272px);
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   padding: 14px;
   border: 1px solid var(--vault-feature-border);
   border-radius: var(--vault-feature-radius);
@@ -189,16 +182,16 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: #9996ac;
+  color: var(--vault-text-muted);
   font-size: 0.72rem;
   font-weight: 760;
   white-space: nowrap;
 }
 
 .drawModeButton:hover,
-.drawModeButton:focus-visible { color: #e7d4f7; }
-.drawModeButton:focus-visible { outline: 2px solid rgba(222, 158, 255, 0.86); outline-offset: 2px; }
-.drawModeButton[data-active="true"] { border-color: var(--vault-tile-selected-border); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); color: #fff; }
+.drawModeButton:focus-visible { color: var(--vault-text); }
+.drawModeButton:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 2px; }
+.drawModeButton[data-active="true"] { border-color: var(--vault-tile-selected-border); background: var(--vault-tile-selected-surface); box-shadow: var(--vault-tile-selected-shadow); color: var(--vault-text); }
 
 /* Capped and centred: the middle column is elastic, and a draw button stretched
    across a third of a wide screen reads as a banner rather than a button. */
@@ -249,6 +242,13 @@
   margin-bottom: -6px;
 }
 
+.poolDescription {
+  margin: 0 0 8px;
+  color: var(--vault-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
 
 /* Measured against the middle the bar gives them, not the window: that middle
    shrinks by the width of the collection picker when Collection Draw is on. */
@@ -282,25 +282,25 @@
   border: 1px solid var(--vault-card-border);
   border-radius: 11px;
   background: var(--vault-well-surface);
-  color: #f4eaff;
+  color: var(--vault-text);
   text-align: left;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 8px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 5%, transparent), 0 8px 24px color-mix(in srgb, var(--vault-shadow-color) 12%, transparent);
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .deckToolButton:hover,
 .deckToolButton:focus-visible,
 .deckToolButton[data-active="true"] {
-  border-color: rgba(215, 142, 255, 0.92);
+  border-color: var(--vault-accent);
   background:
-    linear-gradient(135deg, rgba(135, 62, 238, 0.4), rgba(31, 35, 78, 0.94) 68%),
-    rgba(14, 17, 42, 0.98);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 0 1px rgba(188, 100, 255, 0.12), 0 10px 28px rgba(111, 45, 211, 0.2);
-  transform: translateY(-1px);
+    linear-gradient(135deg, color-mix(in srgb, var(--vault-accent) 40%, transparent), color-mix(in srgb, var(--vault-surface) 94%, transparent) 68%),
+    color-mix(in srgb, var(--vault-well-surface) 98%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 8%, transparent), 0 0 0 1px color-mix(in srgb, var(--vault-accent) 12%, transparent), 0 10px 28px color-mix(in srgb, var(--vault-accent) 20%, transparent);
+  transform: none;
 }
 
 .deckToolButton:focus-visible {
-  outline: 2px solid rgba(222, 158, 255, 0.86);
+  outline: 2px solid var(--vault-accent);
   outline-offset: 3px;
 }
 
@@ -311,9 +311,9 @@
   place-items: center;
   border: 1px solid var(--vault-border);
   border-radius: 10px;
-  background: linear-gradient(145deg, rgba(143, 61, 231, 0.34), rgba(75, 61, 185, 0.18));
-  color: #d78cff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 0 16px rgba(176, 80, 255, 0.12);
+  background: linear-gradient(145deg, color-mix(in srgb, var(--vault-accent) 34%, transparent), color-mix(in srgb, var(--vault-accent) 18%, transparent));
+  color: var(--vault-accent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 6%, transparent), 0 0 16px color-mix(in srgb, var(--vault-accent) 12%, transparent);
 }
 
 .deckToolCopy {
@@ -323,7 +323,7 @@
 }
 
 .deckToolCopy strong {
-  color: #f7f2ff;
+  color: var(--vault-text);
   font-size: 0.82rem;
   line-height: 1.15;
 }
@@ -336,14 +336,14 @@
 }
 
 .deckToolCopy small {
-  color: #9da0b8;
+  color: var(--vault-text-muted);
   font-size: 0.66rem;
   line-height: 1.2;
 }
 
 .deckToolChevron,
 .deckToolArrow {
-  color: #bd82f4;
+  color: var(--vault-accent);
   transition: transform 160ms ease, color 160ms ease;
 }
 
@@ -353,8 +353,8 @@
 
 .deckToolButton:hover .deckToolArrow,
 .deckToolButton:focus-visible .deckToolArrow {
-  color: #e1b2ff;
-  transform: translateX(2px);
+  color: var(--vault-text);
+  transform: none;
 }
 
 /* Collection Draw puts a fourth control on the bar, and the middle loses the
@@ -397,12 +397,12 @@
   gap: 9px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(180deg, #6a2dff 0%, #7c38ff 40%, #5b21f6 100%);
-  color: #fff;
+  background: linear-gradient(180deg, var(--vault-accent) 0%, var(--vault-accent) 40%, var(--vault-accent) 100%);
+  color: var(--vault-text);
   min-height: 48px;
   font-size: 1rem;
   font-weight: 700;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22), 0 0 30px rgba(151, 71, 255, 0.42);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent), 0 0 30px color-mix(in srgb, var(--vault-accent) 15%, transparent);
 }
 
 .resultCard {
@@ -410,12 +410,12 @@
   gap: 0;
   overflow: hidden;
   padding: 0;
-  border-color: rgba(155, 106, 255, 0.3);
-  background: linear-gradient(135deg, rgba(9, 13, 34, 0.98), rgba(6, 10, 27, 0.95));
+  border-color: var(--vault-border);
+  background: var(--vault-surface);
 }
 
-.resultHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: #d17cff; }
-.reasonLabel { margin: 6px 0 -2px; color: #d392ff; font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
+.resultHeading { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; color: var(--vault-accent); }
+.reasonLabel { margin: 6px 0 -2px; color: var(--vault-accent); font-size: 0.72rem; letter-spacing: 0.15em; text-transform: uppercase; }
 /* Content-sized rather than four equal columns. Equal columns gave "Mood
    Intense" the same width as a list of three genres, so the short ones sat in
    space they did not need while the long one truncated. Wraps rather than
@@ -444,7 +444,7 @@
 }
 
 .resultRevealed {
-  box-shadow: 0 0 0 1px rgba(184, 92, 255, 0.16), 0 24px 64px rgba(1, 4, 18, 0.46), 0 0 34px rgba(117, 65, 224, 0.14);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vault-accent) 15%, transparent), 0 24px 64px color-mix(in srgb, var(--vault-shadow-color) 46%, transparent), 0 0 34px color-mix(in srgb, var(--vault-accent) 14%, transparent);
   animation: vaultResultReveal 260ms ease-out both;
 }
 
@@ -497,14 +497,14 @@
    together fit in one. */
 .resultTop {
   display: grid;
-  grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 280px) minmax(0, 1fr);
   /* Centred rather than stretched. Stretching made the artwork as tall as
      whatever the description happened to be, and since the image keeps its own
      proportions the extra height was taken out of the picture - which is why
      Xotic lost the top of its character. */
   align-items: center;
-  gap: 0;
-  padding: 14px 0 4px;
+  gap: 16px;
+  padding: 14px 16px 4px;
 }
 
 .resultIntro {
@@ -512,7 +512,7 @@
   display: grid;
   align-content: center;
   gap: 8px;
-  padding: clamp(16px, 1.6vw, 26px);
+  padding: 12px 0;
 }
 
 .resultArtwork {
@@ -526,7 +526,7 @@
   aspect-ratio: 460 / 215;
   height: auto;
   align-self: center;
-  margin: 0 4px 0 14px;
+  margin: 0;
   border-radius: 12px;
   background: var(--vault-well-surface);
 }
@@ -539,8 +539,8 @@
   padding: 5px 9px;
   border: 1px solid var(--vault-border-strong);
   border-radius: 6px;
-  background: rgba(51, 24, 88, 0.88);
-  color: #e7a4ff;
+  background: var(--vault-surface);
+  color: var(--vault-text);
   font-size: 0.66rem;
   font-weight: 750;
   letter-spacing: 0.12em;
@@ -571,7 +571,7 @@
   display: grid;
   gap: 11px;
   align-content: start;
-  padding: 0 clamp(16px, 1.3vw, 22px) clamp(16px, 1.3vw, 22px);
+  padding: 0 16px 14px;
 }
 
 /* Slightly quieter than full white, which buys the artwork above it more room
@@ -611,12 +611,12 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #bd7cff;
+  color: var(--vault-accent);
 }
 
 .summaryItem span { min-width: 0; display: flex; align-items: baseline; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .summaryItem small { color: var(--vault-text-soft); font-size: 0.62rem; letter-spacing: 0.1em; text-transform: uppercase; }
-.summaryItem strong { overflow: hidden; color: #eef1ff; font-size: 0.88rem; text-overflow: ellipsis; white-space: nowrap; }
+.summaryItem strong { overflow: hidden; color: var(--vault-text); font-size: 0.88rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .resultReasonRow {
   display: flex;
@@ -624,17 +624,16 @@
   gap: 10px;
 }
 
-/* Two now, so each gets half the card rather than a third of it. Both are a
-   yes - play it, or commit to it - and neither is the consolation prize. */
+/* Two rows of two keep the actions compact with room for clear labels. */
 .resultActions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 8px;
 }
 
 .actionsLabel {
   margin: 2px 0 -5px;
-  color: #d392ff;
+  color: var(--vault-accent);
   font-size: 0.7rem;
   letter-spacing: 0.16em;
   text-transform: uppercase;
@@ -651,53 +650,54 @@
   border: 1px solid var(--vault-card-border);
   border-radius: 11px;
   background: var(--vault-well-surface);
-  color: #fff;
+  color: var(--vault-text);
   text-align: left;
   transition: transform 160ms ease, border-color 160ms ease, background-color 160ms ease, box-shadow 160ms ease;
 }
 
-/* Both wear the weight of a real call to action rather than a filled tile.
-   Steam takes the gradient the landing page uses for "Continue with Steam", so
-   the button that leads out of the app looks like the button that led into it. */
+/* A deeper Steam blue keeps the launch action distinct from the surrounding dark surfaces. */
 .resultAction[data-action="steam"] {
-  border-color: rgba(127, 130, 255, 0.56);
-  background: linear-gradient(110deg, #792ee8, #286ef0);
-  box-shadow: 0 12px 30px rgba(58, 66, 219, 0.25);
+  border-color: var(--vault-border);
+  background: var(--vault-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--vault-shadow-color) 50.2%, transparent), 0 12px 30px color-mix(in srgb, var(--vault-shadow-color) 40%, transparent);
 }
 
-/* Pin is the one people did not understand, so it is the one that is hardest to
-   miss: warmer than the Steam button, lifted a little higher, and carrying a
-   line that says what pinning is for. Pinning is how anything started here gets
-   followed afterwards, and "Pin" on its own never said so. */
 .resultAction[data-action="pin"] {
-  border-color: rgba(255, 190, 108, 0.62);
-  background: linear-gradient(110deg, #c8761f, #e8a93c);
-  box-shadow: 0 14px 34px rgba(200, 118, 31, 0.34);
+  border-color: var(--vault-warning);
+  background: linear-gradient(110deg, color-mix(in srgb, var(--vault-warning) 16%, transparent), color-mix(in srgb, var(--vault-warning) 16%, transparent));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-warning) 14.51%, transparent);
 }
 
 /* Already pinned: the job is done, so it stops shouting and reads as a state
    you could undo rather than an offer being made again. */
 .resultAction[data-action="pin"][data-pinned] {
-  border-color: rgba(255, 190, 108, 0.42);
-  background: rgba(200, 118, 31, 0.18);
+  border-color: color-mix(in srgb, var(--vault-warning) 50.2%, transparent);
+  background: color-mix(in srgb, var(--vault-warning) 12.55%, transparent);
   box-shadow: none;
 }
 
 .resultAction[data-action] {
-  color: #fff;
+  color: var(--vault-text);
 }
 
 .resultAction[data-action] .resultActionIcon,
 .resultAction[data-action] strong {
-  color: #fff;
+  color: var(--vault-text);
 }
 
-.resultAction:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(82, 39, 170, 0.24); }
+.resultAction:hover { transform: none; box-shadow: 0 12px 28px color-mix(in srgb, var(--vault-accent) 24%, transparent); }
 .resultAction[data-action]:hover { filter: brightness(1.1); }
-.resultAction[data-action="steam"]:hover { box-shadow: 0 16px 36px rgba(58, 66, 219, 0.36); }
-.resultAction[data-action="pin"]:hover { box-shadow: 0 18px 40px rgba(200, 118, 31, 0.44); }
-.resultAction[data-action="pin"][data-pinned]:hover { box-shadow: 0 12px 28px rgba(200, 118, 31, 0.2); }
-.resultActionPrimary { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 10px 26px rgba(0, 0, 0, 0.24); }
+.resultAction[data-action="steam"]:hover { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 25.88%, transparent), inset 0 -1px 0 color-mix(in srgb, var(--vault-shadow-color) 50.2%, transparent), 0 16px 36px color-mix(in srgb, var(--vault-accent) 30%, transparent); }
+.resultAction[data-action="pin"]:hover { box-shadow: 0 12px 28px color-mix(in srgb, var(--vault-warning) 14.9%, transparent); }
+.resultAction[data-action="pin"][data-pinned]:hover { box-shadow: 0 12px 28px color-mix(in srgb, var(--vault-accent) 20%, transparent); }
+.resultAction[data-action="blacklist"] {
+  border-color: color-mix(in srgb, var(--vault-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-danger) 14.9%, transparent);
+  color: var(--vault-danger);
+}
+.resultAction[data-action="blacklist"] strong { color: var(--vault-danger); }
+.resultAction:disabled { opacity: .5; cursor: default; transform: none; }
+.resultActionPrimary { box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 14%, transparent), 0 10px 26px color-mix(in srgb, var(--vault-shadow-color) 24%, transparent); }
 
 .resultActionIcon {
   flex: 0 0 auto;
@@ -705,7 +705,7 @@
   height: 30px;
   display: grid;
   place-items: center;
-  color: #d19aff;
+  color: var(--vault-text);
 }
 
 .resultActionIcon svg {
@@ -719,14 +719,14 @@
 }
 
 .resultActionCopy strong {
-  color: #f7f5ff;
+  color: var(--vault-text);
   font-size: 0.9rem;
   line-height: 1.2;
 }
 
 .resultActionCopy small {
   display: block;
-  color: #9699b1;
+  color: var(--vault-text-muted);
   font-size: 0.72rem;
   line-height: 1.35;
 }
@@ -736,12 +736,12 @@
    the label above it. */
 .resultAction[data-action] .resultActionCopy small {
   margin-top: 2px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--vault-text-muted);
   font-weight: 600;
 }
 
 .resultAction[data-action="pin"][data-pinned] .resultActionCopy small {
-  color: rgba(255, 224, 184, 0.86);
+  color: var(--vault-text);
 }
 
 .primaryAction {
@@ -749,8 +749,8 @@
   align-items: center;
   justify-content: center;
   padding: 0 20px;
-  background: linear-gradient(90deg, #8a4dff, #3151ff);
-  color: white;
+  background: linear-gradient(90deg, var(--vault-accent), var(--vault-accent-blue));
+  color: var(--vault-text);
 }
 
 .emptyState {
@@ -765,9 +765,10 @@
   line-height: 1.6;
 }
 
-.sleepToast, .pinToast { position: fixed; z-index: 60; right: 24px; bottom: 24px; max-width: min(480px, calc(100vw - 32px)); display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-panel-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5); }
-.sleepToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
-.pinToast button { border: 0; background: transparent; color: #dc8fff; font-weight: 800; }
+.toastStack { position: fixed; z-index: 60; top: 96px; right: 16px; width: min(480px, calc(100vw - 32px)); display: grid; gap: 8px; pointer-events: none; }
+.sleepToast, .pinToast { pointer-events: auto; display: flex; align-items: center; gap: 16px; padding: 14px 18px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-panel-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 40px color-mix(in srgb, var(--vault-shadow-color) 50%, transparent); }
+.sleepToast button { border: 0; background: transparent; color: var(--vault-accent); font-weight: 800; }
+.pinToast button { border: 0; background: transparent; color: var(--vault-accent); font-weight: 800; }
 
 @media (max-width: 720px) {
   .deckTools { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -775,11 +776,11 @@
   .drawModeButton { justify-content: center; }
   .drawModePicker { flex-wrap: wrap; }
   .ctaButton { width: 100%; max-width: none; }
-  .drawActionBar { position: relative; bottom: auto; grid-template-columns: 1fr; gap: 10px; padding: 10px; }
+  .drawActionBar { position: relative; bottom: auto; grid-template-columns: 1fr; gap: 14px; padding: 12px; }
   .drawActionControl { max-width: none; }
-  .resultActions { grid-template-columns: 1fr; }
-  .resultBody { padding: 22px 18px; }
-  .resultContext { padding: 18px; border-top: 1px solid var(--vault-card-border); border-left: 0; }
+  .resultActions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .resultBody { padding: 12px; }
+  .resultContext { padding: 8px 12px; border-top: 1px solid var(--vault-card-border); border-left: 0; }
 
   /* Each item has the whole row to itself down here, so a long value wraps onto
      a second line rather than ellipsing - three genres joined will not fit one
@@ -787,28 +788,32 @@
   .summaryItem span,
   .summaryItem strong { flex-wrap: wrap; white-space: normal; overflow: visible; }
 
-  .resultAction { min-height: 58px; }
+  .resultAction { --control-min-height: 48px; min-height: 48px; gap: 7px; padding: 10px 8px; }
+  .resultActionIcon { width: 22px; height: 22px; }
+  .resultAction > svg { width: 22px; height: 22px; }
+  .resultActionCopy small { display: none; }
 
   /* The card reads top to bottom: artwork across the full width, then the name,
      the description, the reasoning, and the actions.
 
-     Side by side, the 340px artwork track takes essentially the whole card and
+     Side by side, the 280px artwork track takes most of the card and
      the name and description end up in a column narrower than one word - laid
      out past the right edge, where the card's overflow removes them. There is
      no width at which two columns work on a phone. */
   .resultTop {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;
+    gap: 0;
     padding: 12px 0 0;
   }
 
   /* width: auto, not the 100% it inherits - as a grid item it stretches to the
-     track anyway, and 100% plus the margins is 36px wider than the card. */
-  .resultArtwork { width: auto; margin: 0 18px; }
+     track anyway, and 100% plus the margins is 24px wider than the card. */
+  .resultArtwork { width: auto; margin: 0 12px; }
 
   /* Matches .resultBody's horizontal padding below it, so the name lines up
      with the reasoning rather than sitting inset from it. */
-  .resultIntro { padding: 16px 18px 0; }
+  .resultIntro { padding: 12px 12px 0; }
 }
 
 @media (max-width: 440px) {
@@ -822,13 +827,11 @@
 }
 
 @media (min-width: 1080px) {
-  /* One row of three. This used to be two rows filled column-first, from when
-     there were six actions - which put the third button underneath the first
-     instead of beside the second. */
   .resultAction {
+    --control-min-height: 54px;
     min-height: 54px;
-    gap: 10px;
-    padding: 12px 13px;
+    gap: 8px;
+    padding: 10px;
   }
 
   .resultActionIcon {
@@ -840,8 +843,8 @@
 /* Quick Draw sits beside the guided draw: no setup, one click, a game. */
 /* The escape hatch from the three-step setup. It sits beside the instruction to
    fill that setup in, because that is the moment the choice is actually made. */
-.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid rgba(110, 231, 183, 0.45); border-radius: 10px; background: rgba(110, 231, 183, 0.12); color: #a7f3d0; font-size: .86rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
-.quickDrawButton:hover:not(:disabled) { border-color: rgba(110, 231, 183, 0.75); background: rgba(110, 231, 183, 0.2); color: #d1fae5; }
+.quickDrawButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 16px; border: 1px solid color-mix(in srgb, var(--vault-success) 45%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--vault-success) 12%, transparent); color: var(--vault-success); font-size: .86rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.quickDrawButton:hover:not(:disabled) { border-color: color-mix(in srgb, var(--vault-success) 75%, transparent); background: color-mix(in srgb, var(--vault-success) 20%, transparent); color: var(--vault-success); }
 .quickDrawButton:disabled { opacity: .45; }
 
 /* Pick feedback. Deliberately quiet: it is a question, not a call to action. */
@@ -851,27 +854,9 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  margin: 0 0 12px;
+  margin: 0;
 }
-/* The same 24px under whatever it follows - the reasoning panel on a guided
-   draw, the artwork on a Quick Draw, which explains nothing and so has no panel.
-   It is a bare line of text either way and should not sit closer to one than to
-   the other, and at 4px under the picture it read as attached to it.
-
-   The two numbers differ because 11px of the gap is the body's own grid gap,
-   which a first child does not get, and the row above the artwork contributes
-   4px of padding. */
-.resultBody > .feedbackRow,
-.resultBody > .rerollAsk {
-  margin-top: 13px;
-}
-
-.resultBody > .feedbackRow:first-child,
-.resultBody > .rerollAsk:first-child {
-  margin-top: 20px;
-}
-
-.rerollAsk { flex-direction: column; align-items: flex-start; }
+.rerollAsk { flex-direction: row; align-items: center; gap: 8px 12px; }
 .rerollReasons { display: flex; flex-wrap: wrap; gap: 6px; }
 .feedbackLabel { color: var(--vault-text-soft); font-size: 0.78rem; font-weight: 600; }
 .feedbackButton,
@@ -884,7 +869,7 @@
   font-size: 0.76rem;
   font-weight: 700;
 }
-.feedbackOn { border-color: transparent; background: var(--vault-success); color: #06231e; }
+.feedbackOn { border-color: transparent; background: var(--vault-success); color: var(--vault-success); }
 .feedbackButton:disabled { opacity: 0.4; }
 .feedbackThanks { color: var(--vault-success); font-size: 0.76rem; font-weight: 700; }
 
@@ -899,21 +884,30 @@
   font-size: 0.82rem;
   font-weight: 600;
 }
-.resultDuration svg { color: var(--accent-bright, #a855f7); }
+.resultDuration svg { color: var(--accent-bright, var(--vault-accent)); }
 .resultDuration span { font-weight: 500; opacity: 0.8; }
 
 .pickAnother {
-  display: none;
+  display: flex;
   margin: 0;
-  border-color: #cb8fff99;
-  background: linear-gradient(110deg, #7230d8, #a444e8);
-  color: #fff;
+  border-color: var(--vault-border);
+  background: linear-gradient(110deg, var(--vault-accent), var(--vault-accent));
+  color: var(--vault-text);
   cursor: pointer;
-  box-shadow: inset 0 1px 0 #efd5ff33, 0 12px 30px #8434d640;
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 15%, transparent), 0 12px 30px color-mix(in srgb, var(--vault-accent) 15%, transparent);
 }
-.pickAnother:hover:not(:disabled) { border-color: #d9acff; box-shadow: inset 0 1px 0 #efd5ff40, 0 16px 36px #8434d659; }
-.pickAnother:focus-visible { outline: 2px solid #caa4ff; outline-offset: 3px; }
+.pickAnother:hover:not(:disabled) { border-color: var(--vault-accent); box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 25.1%, transparent), 0 16px 36px color-mix(in srgb, var(--vault-accent) 30%, transparent); }
+.pickAnother:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 3px; }
 .pickAnother:disabled { opacity: .5; cursor: default; }
-.pickAnother svg { flex: none; color: #fff; }
+.pickAnother svg { flex: none; color: var(--vault-text); }
 @media (max-width: 720px) { .pickAnother { display: inline-flex; width: 100%; min-width: 0; } }
 @media (prefers-reduced-motion: reduce) { .pickAnother { transition: none; } }
+
+/* Semantic controls share the landing preview's paint and stationary content. */
+.resultActions [data-vault-control] { font-family: inherit; }
+.resultActions [data-vault-control] :is(strong, small, span, svg) { color: inherit !important; }
+.resultActions > [role="status"]:hover { transform: none; filter: none; box-shadow: none; }
+
+/* Result text follows its semantic surface, including dark ink on gold/coral. */
+.resultAction[data-action][data-vault-control] :is(strong, small, svg, .resultActionIcon) { color: inherit; }
+.resultAction[data-vault-control]:disabled { opacity: 1; }

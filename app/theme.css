@@ -1,0 +1,51 @@
+/* VaultShuffle Purple — approved site-wide, 28 September 2026.
+   Canonical palette. Read docs/theme-standard.md before changing any role.
+   Semantic filled-action gradients remain owned by controls.css. */
+:root {
+  color-scheme: dark;
+  --vault-ink: #050716;
+  --vault-bg: var(--vault-ink);
+  --vault-chrome: #080c20;
+  --vault-surface: #221543;
+  --vault-surface-soft: var(--vault-surface);
+  --vault-surface-strong: var(--vault-feature-surface);
+  --vault-feature-surface: #2c1b57;
+  --vault-well-surface: #120a24;
+  --vault-border: #3a2866;
+  --vault-border-strong: #57379a;
+  --vault-text: #f5f1ff;
+  --vault-text-muted: #c4b5dd;
+  --vault-text-soft: var(--vault-text-muted);
+  --vault-accent: #c9a6ff;
+  --vault-accent-blue: #729dff;
+  --vault-accent-strong: #7c3aed;
+  --vault-brand-violet: #a855f7;
+  --vault-accent-soft: color-mix(in srgb, var(--vault-accent) 12%, transparent);
+  --vault-feature-gradient: linear-gradient(115deg, var(--vault-feature-surface), var(--vault-surface));
+  --vault-brand-gradient: linear-gradient(90deg, var(--vault-accent), var(--vault-brand-violet));
+  --vault-control-focus: var(--vault-accent);
+  --vault-control-hover-border: var(--vault-accent);
+  --vault-control-hover-bg: var(--vault-feature-surface);
+  --vault-control-hover-glow: color-mix(in srgb, var(--vault-accent) 15%, transparent);
+  --vault-selection-surface: color-mix(in srgb, var(--vault-accent) 27%, var(--vault-surface));
+  --vault-selection-hover: color-mix(in srgb, var(--vault-accent) 34%, var(--vault-surface));
+
+  /* Status colours express meaning, never structural page themes. */
+  --vault-success: #91e3bc;
+  --vault-warning: #f4c56a;
+  --vault-danger: #ff9aa7;
+  --vault-on-accent: #ffffff;
+  --vault-on-light: #050716;
+  --vault-shadow-color: #000000;
+  --vault-overlay: color-mix(in srgb, var(--vault-ink) 76%, transparent);
+  --vault-elevation-shadow: 0 24px 64px color-mix(in srgb, var(--vault-shadow-color) 40%, transparent);
+  --vault-mask-solid: #000000;
+  --vault-mask-light: #ffffff;
+
+  /* RGB tuples only for existing per-category rgba() decorations. */
+  --vault-accent-rgb: 201, 166, 255;
+  --vault-blue-rgb: 114, 157, 255;
+  --vault-success-rgb: 145, 227, 188;
+  --vault-warning-rgb: 244, 197, 106;
+  --vault-danger-rgb: 255, 154, 167;
+}

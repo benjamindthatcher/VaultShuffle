@@ -80,7 +80,7 @@ export function CooldownProvider({ children }: { children: ReactNode }) {
     <>
       {children}
       {mounted && cooldown ? createPortal(
-        <aside className={styles.toast} aria-label="Cooldown notice">
+        <aside data-vault-controls="standard" className={styles.toast} aria-label="Cooldown notice">
           <span className={styles.icon} aria-hidden="true"><VaultIcon name="clock" size={18} /></span>
           <div className={styles.content}>
             <p className={styles.title}>Please wait a moment</p>
@@ -96,7 +96,7 @@ export function CooldownProvider({ children }: { children: ReactNode }) {
               {cooldown.message} This request was stopped and is not loading in the background.
             </span>
           </div>
-          <button className={styles.close} type="button" aria-label="Dismiss cooldown notice" onClick={() => setCooldown(null)}>
+          <button data-vault-control="tertiary" data-control-size="icon" className={styles.close} type="button" aria-label="Dismiss cooldown notice" onClick={() => setCooldown(null)}>
             <VaultIcon name="close" size={15} />
           </button>
         </aside>,

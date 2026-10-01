@@ -104,7 +104,7 @@ test("Something New admits samples only below both playtime and progress limits"
   games.push(makeGame({ id: "unknown-brief", title: "unknown-brief", hoursPlayed: 0.4, duration: undefined }));
   games.push(makeGame({ id: "unknown-long", title: "unknown-long", hoursPlayed: 1, duration: undefined }));
   games.push(makeGame({ id: "completed", status: "Completed" }));
-  games.push(makeGame({ id: "blacklisted", status: "Slept" }));
+  games.push(makeGame({ id: "blacklisted", status: "Blacklisted" }));
   const pool = buildVaultPool({ games, session: null, mood: null, goal: "new", selectedCollectionId: null, selectedGenres: [], snoozedIds: new Set() });
   const selected = new Set(pool.map((entry) => entry.game.id));
   for (const [id, , , eligible] of cases) assert.equal(selected.has(id), eligible, id);
@@ -432,34 +432,14 @@ test("a partial genre match is credited as partial", () => {
   assert.match(genre.detail, /1 of the 2/);
 });
 
-test("the strongest reasons are read first, and survive the trim", () => {
-  // Build order used to decide both the reading order and what got cut, so a
-  // weak session fit could lead the grid and a perfect reason could be dropped
-  // to keep a merely good one pushed before it.
-  const game = {
-    ...makeGame(),
-    genres: ["Action", "Adventure"],
-    duration: { mainStoryMinutes: 60 * 60 },
-    hoursPlayed: 0
-  };
-  const selected = ["Action", "Adventure"];
-  const pool = buildVaultPool({
-    games: [game], session: "short", mood: "intense", goal: "new",
-    selectedCollectionId: null, selectedGenres: selected, snoozedIds: new Set()
+test("explicit intent survives stronger generic reasons and reads in semantic order", () => {
+  const game = makeGame({
+    genres: ["Action", "Adventure"], duration: { mainStoryMinutes: 60 * 60 },
+    reviewPositive: 95000, reviewTotal: 100000
   });
-  const explanation = buildVaultMatchExplanation({
-    entry: pool[0], pool, session: "short", mood: "intense", goal: "new", selectedGenres: selected
-  });
-
-  const ranks = explanation.insights.map((insight) =>
-    insight.strength === "perfect" ? 2 : insight.strength === "strong" ? 1 : 0);
-  const sorted = [...ranks].sort((a, b) => b - a);
-  assert.deepEqual(ranks, sorted, "reasons should be read strongest first");
-
-  // A 60h game against a short session is the weakest thing here, so it must not
-  // be leading, and the perfect genre match must not have been trimmed away.
-  assert.notEqual(explanation.insights[0]?.kind, "session");
-  assert.ok(explanation.insights.some((insight) => insight.kind === "genre"));
+  const entry = scoreVaultGame(game, "short", "intense", "new", ["action"]);
+  const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session: "short", mood: "intense", goal: "new", selectedGenres: ["Action"] });
+  assert.deepEqual(explanation.insights.map(i => i.kind), ["goal", "session", "mood", "genre"]);
 });
 
 test("an explanation claims nothing the draw did not use", () => {
@@ -521,7 +501,7 @@ test("the lens starts at the whole library and names what was actioned away", ()
   const games = [
     ...Array.from({ length: 228 }, (_, i) => makeGame({ id: `a${i}` })),
     ...Array.from({ length: 2 }, (_, i) => makeGame({ id: `c${i}`, status: "Completed" })),
-    ...Array.from({ length: 4 }, (_, i) => makeGame({ id: `s${i}`, status: "Slept" }))
+    ...Array.from({ length: 4 }, (_, i) => makeGame({ id: `s${i}`, status: "Blacklisted" }))
   ];
 
   const { stages } = getVaultEligibility({
@@ -733,4 +713,90 @@ test("an owned game never claims to be shared", () => {
   const explanation = buildVaultMatchExplanation({ entry: pool[0], pool, session: null, mood: null, goal: "new" });
   assert.equal(explanation.insights.some((insight) => insight.kind === "family"), false);
   assert.ok(explanation.insights.some((insight) => insight.headline === "Never played"));
+});
+
+
+for (const [session, headline, detail] of [
+  ["short", "Easy to dip into", /stop whenever/],
+  ["evening", "Fits an evening nicely", /settle in/],
+  ["weekend", "Easy to sink time into", /this weekend/]
+] as const) {
+  test(`endless session copy explains ${session}`, () => {
+    const entry = scoreVaultGame(makeGame({ duration: { endless: true }, sessionFit: ["short", "evening", "weekend"] }), session, null, null, []);
+    const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session, mood: null, goal: null });
+    const reason = explanation.insights.find(i => i.kind === "session")!;
+    assert.equal(reason.headline, headline);
+    assert.match(reason.detail, detail);
+  });
+}
+
+test("session shape explanations require the matching evidence", () => {
+  for (const [session, sessionability, headline] of [
+    ["short", 1, "Built for a quick session"],
+    ["weekend", -1, "Rewards a longer session"]
+  ] as const) {
+    const entry = scoreVaultGame(makeGame({ sessionability }), session, null, null, []);
+    const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session, mood: null, goal: null });
+    assert.equal(explanation.insights[0].headline, headline);
+  }
+});
+
+test("divisive appeal affects selection but is never a positive reason", () => {
+  const entry = scoreVaultGame(makeGame({ reviewTotal: 10000, reviewPositive: 1000 }), null, null, null, []);
+  assert.ok(entry.appealPoints < 0);
+  assert.ok(!entry.reasons.includes("Divisive"));
+  const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session: null, mood: null, goal: null });
+  assert.ok(!explanation.insights.some(i => i.kind === "appeal"));
+});
+
+test("positive appeal labels are defensible", () => {
+  for (const [total, positive, headline] of [[478000, 454100, "Loved by players"], [10000, 9500, "Highly rated"], [100, 98, "Hidden gem"]] as const) {
+    const entry = scoreVaultGame(makeGame({ reviewTotal: total, reviewPositive: positive }), null, null, null, []);
+    const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session: null, mood: null, goal: null });
+    assert.equal(explanation.insights.find(i => i.kind === "appeal")?.headline, headline);
+  }
+});
+
+test("revisit wording preserves exact, approximate and unknown recency", () => {
+  const now = Date.parse("2026-09-25T12:00:00Z");
+  for (const source of ["steam_exact", "steam_recent_window", null] as const) {
+    const game = makeGame({ lastPlayedAt: source ? "2026-02-25T12:00:00Z" : undefined,
+      recency: { ...UNKNOWN_RECENCY, known: Boolean(source), source } });
+    const entry = scoreVaultGame(game, null, null, null, [], now);
+    const reason = buildVaultMatchExplanation({ entry, pool: [entry], session: null, mood: null, goal: null, now }).insights.find(i => i.kind === "dormancy");
+    if (source === null) assert.equal(reason, undefined);
+    else {
+      assert.equal(reason?.headline, "Worth revisiting");
+      if (source === "steam_exact") assert.match(reason!.detail, /February 2026/);
+      else {
+        assert.match(reason!.detail, /around 7 months ago/);
+        assert.doesNotMatch(reason!.detail, /February|2026/);
+      }
+    }
+  }
+});
+
+test("family provenance survives the trim without personal playtime or recency claims", () => {
+  const game = makeGame({ accessSource: "family", familyOwnerName: "Alex", lastPlayedAt: "2025-01-01", reviewTotal: 100000, reviewPositive: 95000 });
+  const entry = scoreVaultGame(game, "short", "intense", "new", ["action"]);
+  const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session: "short", mood: "intense", goal: "new", selectedGenres: ["Action"] });
+  assert.deepEqual(explanation.insights.map(i => i.kind), ["family", "session", "mood", "genre"]);
+  assert.doesNotMatch(explanation.insights.map(i => i.detail).join(" "), /never been|Last played/);
+});
+
+test("taste explanation uses structured evidence, not display copy or truncated reasons", () => {
+  const entry = { ...scoreVaultGame(makeGame(), null, null, null, []), preferencePoints: 6, preferenceEvidence: { genre: "Action", mood: null }, reasons: [] };
+  const input = { entry, pool: [entry], session: null, mood: null, goal: null };
+  assert.ok(buildVaultMatchExplanation(input).insights.some(i => i.kind === "taste"));
+  assert.ok(!buildVaultMatchExplanation({ ...input, includePersonalTaste: false }).insights.some(i => i.kind === "taste"));
+  assert.ok(!buildVaultMatchExplanation({ ...input, entry: { ...entry, preferenceEvidence: undefined, reasons: ["Action lands well for you"] } }).insights.some(i => i.kind === "taste"));
+});
+
+
+test("family session reasons never infer personal remaining time", () => {
+  const entry = scoreVaultGame(makeGame({ accessSource: "family", completionPercent: 90 }), "short", null, null, []);
+  const explanation = buildVaultMatchExplanation({ entry, pool: [entry], session: "short", mood: null, goal: null });
+  const reason = explanation.insights.find(i => i.kind === "session")!;
+  assert.match(reason.detail, /personal progress is unknown/);
+  assert.doesNotMatch(reason.detail, /left|remaining|tonight/);
 });

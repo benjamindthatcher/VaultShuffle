@@ -1,0 +1,6 @@
+.entry { grid-template-columns: 96px minmax(0, 1fr); }
+.entry small { white-space: normal; overflow: visible; line-height: 1.35; }
+.value { color: var(--vault-success); font-weight: 700; white-space: nowrap; }
+.finished { display: inline-flex; align-items: center; gap: 4px; color: var(--vault-text-muted); font-size: .72rem; }
+.finished svg { color: var(--vault-success); }
+@media (max-width: 700px) { .entry { grid-template-columns: 72px minmax(0, 1fr); } }

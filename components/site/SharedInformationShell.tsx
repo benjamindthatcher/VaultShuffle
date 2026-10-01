@@ -35,7 +35,7 @@ export function SharedInformationShell({ children }: { children: ReactNode }) {
   const signedIn = isSignedInAccount(session);
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-vault-controls="standard">
       {signedIn && session ? <SignedInInformationHeader session={session} /> : <PublicHeader />}
       <div className={styles.content}>{children}</div>
     </div>

@@ -1,0 +1,12 @@
+-- SUPERSEDED REVIEW NOTE. NOT A MIGRATION. DO NOT APPLY.
+--
+-- The earlier draft granted `authenticated` direct access to private v2 app
+-- tables, which violates the established vault_app/operator boundary. The
+-- reviewed replacement is the locally prepared, still-unapplied migration:
+--
+--   database/v2/supabase/migrations/
+--   20260914101424_m3_real_preflight_evidence.sql
+--
+-- That migration uses forced RLS with no runtime/browser policy, revokes all
+-- access from PUBLIC, vault_app, vault_worker and optional anon/authenticated,
+-- and retains the six measured records without reactivating runtime state.

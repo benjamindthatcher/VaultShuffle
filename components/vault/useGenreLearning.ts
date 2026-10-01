@@ -41,8 +41,8 @@ export function useGenreLearning(preferences: GenrePreference[], globals: GenreP
    * the arms differ only where the term could actually change the outcome and the
    * comparison is not diluted by draws that were identical in both.
    */
-  function nextArm(): GenreLearningArm {
-    if (!enabled || !genrePreferences) return "control";
+  function nextArm(serverPreferenceRows?: number): GenreLearningArm {
+    if (!enabled || (serverPreferenceRows === undefined ? !genrePreferences : serverPreferenceRows === 0)) return "control";
     return Math.random() < 0.5 ? "test" : "control";
   }
 

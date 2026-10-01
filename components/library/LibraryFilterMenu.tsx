@@ -87,7 +87,7 @@ export function LibraryFilterMenu({
       <button
         ref={triggerRef}
         type="button"
-        className={count ? styles.triggerActive : styles.trigger}
+        data-vault-control="secondary" className={count ? styles.triggerActive : styles.trigger}
         aria-expanded={open}
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
@@ -102,13 +102,13 @@ export function LibraryFilterMenu({
       {open ? (
         <div ref={panelRef} className={styles.panel} style={{ left: panelLeft, "--notch-left": `${Math.min(480, Math.max(24, -panelLeft + 42))}px` } as React.CSSProperties} id={panelId} role="group" aria-label="Library filters">
           <div className={styles.panelScroll} style={{ maxHeight: panelHeight }}>
-          <header className={styles.header}><div><h2>Filters</h2><p>{count} active {count === 1 ? "filter" : "filters"}</p></div><button type="button" className={styles.clear} disabled={!count} onClick={() => onChange(EMPTY_LIBRARY_FILTERS)}>Clear all</button></header>
+          <header className={styles.header}><div><h2>Filters</h2><p>{count} active {count === 1 ? "filter" : "filters"}</p></div><button type="button" data-vault-control="tertiary" className={styles.clear} disabled={!count} onClick={() => onChange(EMPTY_LIBRARY_FILTERS)}>Clear all</button></header>
           <fieldset className={styles.group}>
             <legend className={styles.legend}>Progress</legend>
             <div className={styles.options}>
               {PROGRESS_OPTIONS.map((option) => (
                 <button
-                  key={option.id}
+                  data-vault-control="selection" data-control-hover="secondary" data-control-indicator="bar" key={option.id}
                   type="button"
                   className={filters.progress === option.id ? styles.optionOn : styles.option}
                   aria-pressed={filters.progress === option.id}
@@ -123,7 +123,7 @@ export function LibraryFilterMenu({
             <div className={styles.options}>
               {LENGTH_OPTIONS.map((option) => (
                 <button
-                  key={option.id}
+                  data-vault-control="selection" data-control-hover="secondary" data-control-indicator="bar" key={option.id}
                   type="button"
                   className={filters.length === option.id ? styles.optionOn : styles.option}
                   aria-pressed={filters.length === option.id}
@@ -140,11 +140,10 @@ export function LibraryFilterMenu({
                 {genres.map((genre) => {
                   const on = filters.genres.some((item) => item.toLowerCase() === genre.toLowerCase());
                   return (
-                    <label key={genre} className={styles.genre} data-selected={on || undefined}>
-                      <input type="checkbox" checked={on} onChange={() => toggleGenre(genre)} />
+                    <button type="button" key={genre} data-vault-control="selection" data-control-hover="secondary" className={styles.genre} aria-pressed={on} onClick={() => toggleGenre(genre)}>
                       <span className={styles.indicator} aria-hidden="true">{on ? <VaultIcon name="check" size={13} /> : null}</span>
                       <span>{genre}</span>
-                    </label>
+                    </button>
                   );
                 })}
               </div>

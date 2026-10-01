@@ -64,9 +64,9 @@ export function CompletionCelebration({ game, games, pin, onDismiss, onUndo }: P
           </div>
         </div>
         <div className={styles.actions}>
-          <Link className={styles.statsLink} href="/dashboard">See dashboard</Link>
-          <button type="button" className={styles.undo} onClick={onUndo}>Undo</button>
-          <button type="button" className={styles.close} onClick={onDismiss} aria-label="Dismiss">
+          <Link data-vault-control="secondary" className={styles.statsLink} href="/dashboard">See dashboard</Link>
+          <button type="button" data-vault-control="tertiary" className={styles.undo} onClick={onUndo}>Undo</button>
+          <button type="button" data-vault-control="tertiary" data-control-size="icon" className={styles.close} onClick={onDismiss} aria-label="Dismiss">
             <VaultIcon name="close" size={16} />
           </button>
         </div>

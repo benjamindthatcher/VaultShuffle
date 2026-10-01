@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { GameDetailsDialog } from "@/components/shared/GameDetailsDialog";
 import { Artwork } from "@/components/shared/Artwork";
 import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
@@ -32,7 +33,7 @@ type LibraryDetailsDrawerProps = {
   onManagePins?: () => void;
   onComplete?: () => Promise<void>;
   onRestore?: () => Promise<void>;
-  onSleep?: () => Promise<void>;
+  onBlacklist?: () => Promise<void>;
   previewMode?: boolean;
 };
 
@@ -48,7 +49,7 @@ export function LibraryDetailsDrawer({
   onManagePins,
   onComplete,
   onRestore,
-  onSleep,
+  onBlacklist,
   previewMode = false,
 }: LibraryDetailsDrawerProps) {
   const steamLink = useSteamPlayLink(game?.steamAppId, { forceStore: previewMode });
@@ -65,7 +66,7 @@ export function LibraryDetailsDrawer({
 
   const openGameId = game?.id ?? null;
   useEffect(() => {
-    if (!mounted || !openGameId) return;
+    if (!mounted || !openGameId || variant !== "pinned") return;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -106,7 +107,7 @@ export function LibraryDetailsDrawer({
       document.body.style.overflow = previousOverflow;
       previousFocus?.focus({ preventScroll: true });
     };
-  }, [mounted, openGameId]);
+  }, [mounted, openGameId, variant]);
 
   if (!mounted || !game) return null;
 
@@ -125,6 +126,7 @@ export function LibraryDetailsDrawer({
 
   const steamAction = (
     <a
+      data-vault-control="steam"
       className={styles.steamButton}
       href={steamLink.href}
       target={steamLink.target}
@@ -141,13 +143,27 @@ export function LibraryDetailsDrawer({
     </a>
   );
 
+  if (!isPinnedSpotlight) return <GameDetailsDialog
+    gameId={game.id} title={game.title} artwork={game.bannerUrl} description={game.description}
+    titleAccessory={familyLine ? <FamilyMark title={familyLine} /> : undefined}
+    notice={familyLine ? <p className={styles.familyNotice}>{familyLine}</p> : undefined}
+    actions={<>{steamAction}<LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onBlacklist ? () => void onBlacklist().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} /></>}
+    stats={[
+      { icon: "play-now", label: "Status", value: game.status === "Blacklisted" ? "Blacklisted" : game.status },
+      { icon: "playtime", label: "Playtime (all time)", value: (isFamilyAccess(game.accessSource) || game.playtimeKnown === false) ? "Not available" : `${game.hoursPlayed}h` },
+      { icon: "clock", label: "Estimated length", value: durationLabel ?? "Not available" },
+      { icon: "collections", label: "Collections", value: `${relatedCollections.length} ${relatedCollections.length === 1 ? "collection" : "collections"}` },
+    ]}
+    genres={game.genres} onClose={onClose}
+  />;
+
   return createPortal(
     <>
       <button type="button" className={styles.overlay} onClick={onClose} aria-label="Close game details" />
       <aside
         ref={drawerRef}
         className={styles.drawer}
-        data-variant={isPinnedSpotlight ? "pinned" : "library"}
+        data-variant="pinned"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
@@ -155,8 +171,6 @@ export function LibraryDetailsDrawer({
         tabIndex={-1}
       >
         <div className={styles.hero}>
-          {isPinnedSpotlight ? (
-            <>
               <Artwork
                 src={game.bannerUrl}
                 className={styles.heroAmbient}
@@ -172,16 +186,9 @@ export function LibraryDetailsDrawer({
                 />
               </span>
               <span className={styles.heroShade} aria-hidden="true" />
-              <button ref={closeButtonRef} type="button" className={styles.heroClose} onClick={onClose} aria-label="Close game details">
+              <button ref={closeButtonRef} type="button" data-vault-control="tertiary" data-control-size="icon" data-control-position="floating" className={styles.heroClose} onClick={onClose} aria-label="Close game details">
                 <VaultIcon name="close" size={20} />
               </button>
-            </>
-          ) : (
-            <>
-              <Artwork src={game.bannerUrl} sizes="(max-width: 600px) 100vw, 560px" priority />
-              <button ref={closeButtonRef} type="button" className={styles.heroClose} onClick={onClose} aria-label="Close game details"><VaultIcon name="close" size={20} /></button>
-            </>
-          )}
         </div>
 
         <div className={styles.body}>
@@ -203,11 +210,11 @@ export function LibraryDetailsDrawer({
                 <dl className={styles.spotlightStats}>
                   <div>
                     <VaultIcon name="play-now" size={18} />
-                    <span><dt>Status</dt><dd>{game.status === "Slept" ? "Blacklisted" : game.status}</dd></span>
+                    <span><dt>Status</dt><dd>{game.status === "Blacklisted" ? "Blacklisted" : game.status}</dd></span>
                   </div>
                   <div>
                     <VaultIcon name="playtime" size={18} />
-                    <span><dt>Playtime (all time)</dt><dd>{isFamilyAccess(game.accessSource) ? "Not available" : `${game.hoursPlayed}h`}</dd></span>
+                    <span><dt>Playtime (all time)</dt><dd>{(isFamilyAccess(game.accessSource) || game.playtimeKnown === false) ? "Not available" : `${game.hoursPlayed}h`}</dd></span>
                   </div>
                   <div>
                     <VaultIcon name="clock" size={18} />
@@ -276,7 +283,7 @@ export function LibraryDetailsDrawer({
                   <p className={styles.openEndedNote}>
                     {pinnedRun.sharedFrom
                       ? `Shared from ${pinnedRun.sharedFrom}'s library, so Steam reports their hours rather than yours. Your choice still holds; the progress bar cannot.`
-                      : "This one has no honest finish-line percentage, so your run is measured in playtime."}
+                      : "This game has no fixed ending, so your progress is measured in playtime."}
                   </p>
                 )}
 
@@ -294,31 +301,11 @@ export function LibraryDetailsDrawer({
 
                 <div className={styles.pinnedActions}>
                   {steamAction}
-                  <LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onSleep ? () => void onSleep().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} />
+                  <LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onBlacklist ? () => void onBlacklist().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} />
                 </div>
               </section>
             </div>
-          ) : (
-            <>
-              <div className={styles.header}>
-                <div>
-                  <p className={styles.eyebrow}>Game details</p>
-                  <h2 className={styles.title} id={titleId}>{game.title}{familyLine ? <FamilyMark title={familyLine} /> : null}</h2>
-                </div>
-              </div>
-              <p className={styles.copy} id={descriptionId}>{game.description}</p>
-              {familyLine ? <p className={styles.familyNotice}>{familyLine}</p> : null}
-              {steamAction}
-              <LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onSleep ? () => void onSleep().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} />
-              <dl className={styles.gameInfo}>
-                <div><VaultIcon name="play-now" size={21} /><span><dt>Status</dt><dd>{game.status === "Slept" ? "Blacklisted" : game.status}</dd></span></div>
-                <div><VaultIcon name="playtime" size={21} /><span><dt>Playtime (all time)</dt><dd>{isFamilyAccess(game.accessSource) ? "Not available" : `${game.hoursPlayed}h`}</dd></span></div>
-                <div><VaultIcon name="clock" size={21} /><span><dt>Estimated length</dt><dd>{durationLabel ?? "Not available"}</dd></span></div>
-                <div><VaultIcon name="collections" size={21} /><span><dt>Collections</dt><dd>{`${relatedCollections.length} ${relatedCollections.length === 1 ? "collection" : "collections"}`}</dd></span></div>
-              </dl>
-              <div className={styles.metadataRow}>{game.genres.map((genre) => <span key={genre}>{genre}</span>)}</div>
-            </>
-          )}
+          ) : null}
         </div>
       </aside>
     </>,

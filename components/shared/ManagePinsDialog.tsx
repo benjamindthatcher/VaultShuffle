@@ -95,19 +95,19 @@ export function ManagePinsDialog({ pinnedGames, candidate = null, shelfName = "L
   return createPortal(<div className={styles.layer}>
     <button type="button" className={styles.backdrop} onClick={onClose} aria-label="Close Playing Next" />
     <div ref={panelRef} className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="pins-title" tabIndex={-1}>
-      <header><div><p>{candidate ? "Playing Next is full" : `${shelfName} shelf`}</p><h2 id="pins-title">Manage Playing Next <span>{pinnedGames.length}/3</span></h2></div><button type="button" onClick={onClose} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
+      <header><div><p>{candidate ? "Playing Next is full" : `${shelfName} shelf`}</p><h2 id="pins-title">Manage Playing Next <span>{pinnedGames.length}/3</span></h2></div><button data-vault-control="tertiary" data-control-size="icon" type="button" onClick={onClose} aria-label="Close"><VaultIcon name="close" size={19} /></button></header>
       {candidate ? <p className={styles.copy}>Select a game to replace it with <strong>{candidate.title}</strong>.</p> : <p className={styles.copy}>{shelfDescription}</p>}
       <div className={styles.slots}>
         {[0, 1, 2].map((index) => {
           const game = pinnedGames[index];
           if (!game) return <div key={index} className={styles.emptySlot}><span>{index + 1}</span>Empty slot</div>;
-          return <button key={game.id} type="button" disabled={saving} className={styles.slot} onClick={() => candidate ? void replacePin(game.id) : void removePin(game.id)} aria-label={candidate ? `Replace ${game.title}` : `Remove ${game.title} from Playing Next`}>
+          return <button data-vault-card="interactive" key={game.id} type="button" disabled={saving} className={styles.slot} onClick={() => candidate ? void replacePin(game.id) : void removePin(game.id)} aria-label={candidate ? `Replace ${game.title}` : `Remove ${game.title} from Playing Next`}>
             <span className={styles.art}><Artwork src={game.bannerUrl} sizes="74px" /><FamilyGameMark game={game} overlay /></span><span><small>Slot {index + 1}</small><strong>{game.title}</strong></span><span className={styles.remove}>{candidate ? "Replace" : "Remove"}</span>
           </button>;
         })}
       </div>
       {error ? <p role="alert" className={styles.error}>{error}</p> : null}
-      <footer><button type="button" disabled={saving} onClick={onClose}>{saving ? "Updating…" : "Not this time"}</button></footer>
+      <footer><button data-vault-control="tertiary" type="button" disabled={saving} onClick={onClose}>{saving ? "Updating…" : "Not this time"}</button></footer>
     </div>
   </div>, document.body);
 }

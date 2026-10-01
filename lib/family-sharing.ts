@@ -179,13 +179,13 @@ export function describeFamilyImport(counts: FamilyImportCounts, displayName: st
  * Callers show nothing rather than substituting a label. "No playtime data" on
  * every card is a worse read than a card that simply does not mention playtime.
  */
-export function canClaimNeverPlayed(game: { accessSource?: AccessSource; hoursPlayed?: number | null }) {
-  return !isFamilyAccess(game.accessSource) && Number(game.hoursPlayed ?? 0) === 0;
+export function canClaimNeverPlayed(game: { accessSource?: AccessSource; hoursPlayed?: number | null; playtimeKnown?: boolean }) {
+  return !playtimeIsUnknown(game) && Number(game.hoursPlayed ?? 0) === 0;
 }
 
 /** True when nothing at all can be said about how much this has been played. */
-export function playtimeIsUnknown(game: { accessSource?: AccessSource }) {
-  return isFamilyAccess(game.accessSource);
+export function playtimeIsUnknown(game: { accessSource?: AccessSource; playtimeKnown?: boolean }) {
+  return isFamilyAccess(game.accessSource) || game.playtimeKnown === false;
 }
 
 /**

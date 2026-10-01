@@ -1,3 +1,4 @@
+import { VAULT_THEME } from "@/lib/theme";
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -20,9 +21,9 @@ export default async function OpenGraphImage() {
           position: "relative",
           overflow: "hidden",
           padding: "68px 76px",
-          color: "#fff",
+          color: VAULT_THEME.text,
           background:
-            "radial-gradient(circle at 80% 20%, #7038d8 0%, #24124f 24%, transparent 49%), linear-gradient(145deg, #080b1f 0%, #0c0f2a 52%, #170c38 100%)"
+            `linear-gradient(145deg, ${VAULT_THEME.ground}, ${VAULT_THEME.surface} 52%, ${VAULT_THEME.feature})`
         }}
       >
         <div
@@ -35,9 +36,9 @@ export default async function OpenGraphImage() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            border: "3px solid rgba(204, 136, 255, 0.34)",
+            border: `3px solid ${VAULT_THEME.border}`,
             borderRadius: "50%",
-            boxShadow: "0 0 90px rgba(151, 71, 255, 0.38), inset 0 0 70px rgba(78, 45, 190, 0.28)"
+            boxShadow: `0 0 90px ${VAULT_THEME.surface}, inset 0 0 70px ${VAULT_THEME.feature}`
           }}
         >
           <div
@@ -64,7 +65,7 @@ export default async function OpenGraphImage() {
             style={{
               display: "flex",
               marginTop: "68px",
-              color: "#d99aff",
+              color: VAULT_THEME.accent,
               fontSize: "20px",
               fontWeight: 800,
               letterSpacing: "4px",
@@ -86,10 +87,10 @@ export default async function OpenGraphImage() {
             }}
           >
             <div style={{ display: "flex" }}>Stop scrolling.</div>
-            <div style={{ display: "flex", color: "#cf83ff" }}>Pick the right game tonight.</div>
+            <div style={{ display: "flex", color: VAULT_THEME.accent }}>Pick the right game tonight.</div>
           </div>
 
-          <div style={{ display: "flex", marginTop: "32px", color: "rgba(238, 232, 255, 0.75)", fontSize: "25px" }}>
+          <div style={{ display: "flex", marginTop: "32px", color: VAULT_THEME.muted, fontSize: "25px" }}>
             Time · Mood · Goal · Your Steam library
           </div>
         </div>

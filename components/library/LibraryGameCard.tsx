@@ -24,12 +24,12 @@ export function LibraryGameCard({ game, layout, onSelect, onBlacklist, onComplet
   const duration = formatGameDuration(game.duration);
   return <article className={styles.card} data-layout={layout} data-selected={selected || undefined} data-game-id={game.id}>
     <div className={styles.detailsWrap}>
-      <button type="button" className={styles.details} onClick={selectable ? onToggleSelect : onSelect} aria-pressed={selectable ? selected : undefined} aria-label={`${selectable ? "Select" : "Details for"} ${game.title}`}>
+      <button type="button" data-vault-card="interactive" className={styles.details} onClick={selectable ? onToggleSelect : onSelect} aria-pressed={selectable ? selected : undefined} aria-label={`${selectable ? "Select" : "Details for"} ${game.title}`}>
         <span className={styles.artwork}><Artwork src={game.bannerUrl} sizes={layout === "list" ? "240px" : "(max-width: 760px) 100vw, 25vw"} /><FamilyGameMark game={game} overlay /></span>
         <span className={styles.body}>
           <span className={styles.title}>{game.title}</span>
-          <span className={styles.status} data-status={game.status}>{game.status === "Slept" ? "Blacklisted" : game.status}</span>
-          <span className={styles.meta}>{game.accessSource === "family" ? "Family library" : game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}{duration ? ` · ${duration}` : ""}</span>
+          <span className={styles.status} data-status={game.status}>{game.status === "Blacklisted" ? "Blacklisted" : game.status}</span>
+          <span className={styles.meta}>{game.accessSource === "family" ? "Family library" : game.playtimeKnown === false ? "Playtime unavailable" : game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}{duration ? ` · ${duration}` : ""}</span>
           <span className={styles.progress}>{progressLabel(game)}<span> progress</span></span>
         </span>
       </button>

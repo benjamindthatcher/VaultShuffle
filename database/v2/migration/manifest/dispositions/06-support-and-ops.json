@@ -1,0 +1,472 @@
+{
+  "domain": "Support records, worker audit, import jobs",
+  "note": "contact_messages and feedback_submissions contain EMAIL ADDRESSES. No row in either relation was read to produce this file, and none may be read to validate it. Their handling is decided from column metadata and constraints only.",
+  "relations": {
+    "contact_messages": {
+      "role": "Support enquiries, including the sender's email address and free-text subject and message.",
+      "summary": "Support enquiries are preserved in the private support schema with source record and account mapping, status and timestamps intact. No browser role and no general runtime SELECT reaches it.",
+      "disposition_class": "migrated",
+      "target": "support.contact_messages",
+      "evidence": [
+        "readiness 3 (support records containing email addresses)",
+        "plan 14.2"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "preserved",
+          "note": "Enquiry identity. Likely quoted in existing support correspondence, so it should be retained rather than renumbered without a public_id.",
+          "target": "support.contact_messages.source_record_id",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "note": "NULLABLE. Would resolve through migration.account_map where present. A null means the enquiry came from someone with no account, which is a real and common case, not a data error.",
+          "target": "support.contact_messages.account_id + support.contact_messages.source_account_public_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map; the legacy uuid is not lost because app.accounts.public_id retains it. NULL stays NULL: an enquiry from someone with no account is a real and common case, not a data error.",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "enquiry_type": {
+          "disposition": "preserved",
+          "note": "smallint code. The code book must be read from live definitions before any target constraint is written; it must not be inferred from ordering, exactly as readiness 5 control 4 requires for the user_game_state codes.",
+          "target": "support.contact_messages.enquiry_type",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1",
+          "snapshot_checks": [
+            "S-SUPPORT-CODEBOOK"
+          ]
+        },
+        "email": {
+          "disposition": "preserved",
+          "note": "PERSONAL DATA. The reply-to address, NOT NULL. It is the entire point of a contact record and cannot be retired, but it must never appear in a report, a log, a count-only probe result, or any artefact leaving the private boundary. Probes touching this relation return counts only.",
+          "target": "support.contact_messages.email",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "subject": {
+          "disposition": "preserved",
+          "note": "varchar(150), NOT NULL. User-authored text; may contain personal detail. Nonempty text must not be truncated or dropped.",
+          "target": "support.contact_messages.subject",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "message": {
+          "disposition": "preserved",
+          "note": "varchar(5000), NOT NULL. User-authored free text, the most likely place for personal detail in the entire database after `email`. Never truncated, never summarised, never sampled into a report.",
+          "target": "support.contact_messages.message",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "dedupe_hash": {
+          "disposition": "preserved",
+          "note": "character(64). A content digest used to suppress duplicate submissions. Derived from the message content, so it is personal-data-adjacent: it is never reported by value and is only useful alongside the rows it deduplicates.",
+          "target": "support.contact_messages.dedupe_hash",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "status": {
+          "disposition": "preserved",
+          "note": "smallint workflow state (new, handled, closed). Same code-book requirement as enquiry_type: read from live definitions, never inferred.",
+          "target": "support.contact_messages.status_code",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1",
+          "snapshot_checks": [
+            "S-SUPPORT-CODEBOOK"
+          ]
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "note": "When the enquiry arrived. Also the key any retention window in D-SUP-2 is measured from.",
+          "target": "support.contact_messages.created_at",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        },
+        "updated_at": {
+          "disposition": "preserved",
+          "note": "When it was last actioned. Ordinarily row bookkeeping, but here it is the workflow's own record of handling and is not recoverable from status alone.",
+          "target": "support.contact_messages.updated_at",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-1"
+        }
+      },
+      "settled_decisions": [
+        "D-SUP-1 SETTLED by ruling 3: support records survive in a private, owner-only domain. The M3 migration creates the `support` schema, which no runtime role can reach (M1:781-782 grant USAGE on app and catalog only), so the requirement is met by a dedicated schema rather than by borrowing ops or migration.",
+        "D-SUP-2 SETTLED by ruling 3, which explicitly DEFERS the retention policy: 'Do not invent a purge deadline that deletes existing support content during rehearsal; record the retention-policy decision separately for M6/M7.' The deferral is itself the decision, and it is recorded durably in support.retention_policy_decisions with review_milestone set for M6/M7; every row carries retention_policy_key. Account deletion and export still cover this content. This is therefore not an M3 load blocker.",
+        "D-SUP-3 SETTLED by ruling 3: an enquiry with no account keeps a NULL account_id and retains source_account_public_id where one existed. The support domain is owner-only rather than tenant-scoped, so a null-account row has a stated home instead of failing tenant scoping."
+      ],
+      "snapshot_checks": [
+        "S-SUPPORT-CODEBOOK"
+      ]
+    },
+    "feedback_submissions": {
+      "role": "In-app feedback, optionally with a contact email and a jsonb client context.",
+      "summary": "Feedback is preserved in the private support schema. The consent flag travels with the contact address and is never defaulted.",
+      "disposition_class": "migrated",
+      "target": "support.feedback_submissions",
+      "evidence": [
+        "readiness 3",
+        "readiness 8.5 (client_context jsonb is opaque)"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "preserved",
+          "note": "Submission identity.",
+          "target": "support.feedback_submissions.source_record_id",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "user_id": {
+          "disposition": "transformed",
+          "note": "NULLABLE; resolves through migration.account_map where present. Anonymous feedback is a real case.",
+          "target": "support.feedback_submissions.account_id + support.feedback_submissions.source_account_public_id",
+          "transform": "legacy uuid -> integer account id through migration.account_map; the legacy uuid is not lost because app.accounts.public_id retains it. NULL stays NULL: anonymous feedback is a real case.",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "feedback_type": {
+          "disposition": "preserved",
+          "note": "smallint code. Code book read from live definitions, never inferred from ordering.",
+          "target": "support.feedback_submissions.feedback_type",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4",
+          "snapshot_checks": [
+            "S-SUPPORT-CODEBOOK"
+          ]
+        },
+        "message": {
+          "disposition": "preserved",
+          "note": "varchar(2000), NOT NULL. User-authored free text; may contain personal detail. Never truncated or sampled into a report.",
+          "target": "support.feedback_submissions.message",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "contact_allowed": {
+          "disposition": "preserved",
+          "note": "CONSENT FLAG, NOT NULL. Must travel with contact_email and must never be defaulted. A migration that loses this flag turns a private note into a mailing list.",
+          "target": "support.feedback_submissions.contact_allowed",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "contact_email": {
+          "disposition": "preserved",
+          "note": "PERSONAL DATA, nullable. Only actionable when contact_allowed is true (D-SUP-4). Never appears in a report, a log or any artefact leaving the private boundary.",
+          "target": "support.feedback_submissions.contact_email",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "route": {
+          "disposition": "preserved",
+          "note": "varchar(300). The app route the feedback was sent from. A route may embed an identifier, so it is treated as potentially identifying rather than as neutral telemetry.",
+          "target": "support.feedback_submissions.route",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "app_area": {
+          "disposition": "preserved",
+          "note": "varchar(80). Coarse area label; the least sensitive column here and the one that makes aggregate feedback reporting possible without touching message text.",
+          "target": "support.feedback_submissions.app_area",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "client_context": {
+          "disposition": "preserved",
+          "note": "jsonb, nullable. UNAUDITED contents. Treated as OPAQUE TEXT and hashed as text, never re-serialised (readiness 8.5). Before any export it must be checked for personal data by KEY DISTRIBUTION ONLY - probe PX-g reads keys, never values.",
+          "target": "support.feedback_submissions.client_context",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4",
+          "snapshot_checks": [
+            "S-JSON-PRIVACY"
+          ]
+        },
+        "dedupe_hash": {
+          "disposition": "preserved",
+          "note": "character(64) content digest. Personal-data-adjacent; never reported by value.",
+          "target": "support.feedback_submissions.dedupe_hash",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        },
+        "status": {
+          "disposition": "preserved",
+          "note": "smallint workflow state; code book read from live definitions.",
+          "target": "support.feedback_submissions.status_code",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4",
+          "snapshot_checks": [
+            "S-SUPPORT-CODEBOOK"
+          ]
+        },
+        "created_at": {
+          "disposition": "preserved",
+          "note": "Submission instant; the key any retention window is measured from. Note this relation has NO updated_at, unlike contact_messages.",
+          "target": "support.feedback_submissions.created_at",
+          "settled_by": [
+            "coordinator ruling 3, docs/v2-m3-b-database-batch.md",
+            "plan 14.2 disposition table, docs/VaultShuffle_v2_architecture_plan.md",
+            "plan 13 retention table, docs/VaultShuffle_v2_architecture_plan.md"
+          ],
+          "decision_ref": "D-SUP-4"
+        }
+      },
+      "settled_decisions": [
+        "D-SUP-4 SETTLED by ruling 3, which requires consent to survive intact. support.feedback_submissions.contact_allowed is NOT NULL and is loaded from the source value, never from a default, and it is written in the same row as contact_email so the two cannot be separated. A row with contact_allowed = false keeps its address and stays uncontactable.",
+        "D-SUP-5 SETTLED: retention follows the same deferred M6/M7 decision as contact_messages, recorded in support.retention_policy_decisions and referenced by retention_policy_key."
+      ],
+      "snapshot_checks": [
+        "S-SUPPORT-CODEBOOK",
+        "S-JSON-PRIVACY"
+      ]
+    },
+    "metadata_worker_runs": {
+      "role": "Audit of nightly metadata worker runs, with jsonb counts and summary documents.",
+      "summary": "Operational audit with a 14/30-day retention already stated in plan section 13 (readiness 3). Bounded archive; nothing here is user data.",
+      "disposition_class": "archive-only",
+      "target": "no v2 destination exists (bounded operational archive)",
+      "archive_purpose": "Retain recent worker-run history across the cutover so a regression in v2 worker behaviour can be compared against the v1 baseline it replaced. Without it the first weeks of v2 have no baseline to be judged against.",
+      "archive_retention": "Operational provenance with no account key: 14 days for routine runs and 30 days for failures, measured from started_at and applied at load rather than inherited indefinitely. Rows older than that are NOT exported at all. Matches plan 13 and the physical default.",
+      "retention": {
+        "class": "operational-provenance",
+        "bound": "14-days-routine-30-days-failure, measured from started_at",
+        "destination": "ops.legacy_worker_runs",
+        "carries_account_identity": false,
+        "review": "reviewed with the v2 worker telemetry, M7",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: shared catalogue evidence and job/worker summaries are bounded operational data with no account key"
+        ],
+        "note": "Operational telemetry with no account key. Rows older than the window are not exported at all, so the bound is applied at load rather than inherited indefinitely."
+      },
+      "evidence": [
+        "readiness 3 (worker audit, 14/30-day retention per plan section 13)",
+        "readiness 8.5"
+      ],
+      "open_decisions": [],
+      "columns": {
+        "id": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.legacy_id",
+          "note": "Run identity, so a specific run can be cited in a comparison."
+        },
+        "worker_name": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.worker_name",
+          "note": "Which worker ran. The grouping key for any v1-versus-v2 comparison."
+        },
+        "status": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.status",
+          "note": "Terminal state. Also selects the 30-day retention branch for failures."
+        },
+        "started_at": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.started_at",
+          "note": "The instant the retention window is measured from, so it governs which rows are exported at all."
+        },
+        "finished_at": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.finished_at",
+          "note": "Null on a run that never finished, which is itself the evidence of a hang."
+        },
+        "duration_ms": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.duration_ms",
+          "note": "Stored duration. Retained rather than recomputed from the timestamps, because a stored value that disagrees with the timestamps is itself a finding."
+        },
+        "counts": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.counts",
+          "note": "jsonb, NOT NULL. The per-run throughput figures - the substance of the baseline. Archived as OPAQUE TEXT and hashed as text, never re-serialised (readiness 8.5)."
+        },
+        "summary": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.summary",
+          "note": "jsonb, NOT NULL. Per-run detail. Same opaque-text treatment; checked for anything credential-shaped before export, since worker summaries can embed provider request detail."
+        },
+        "error_message": {
+          "disposition": "audit-archive",
+          "archive": "+ops.legacy_worker_runs.error_message",
+          "note": "Free text on failure. The reason the 30-day branch exists. Checked for credentials before export."
+        }
+      }
+    },
+    "steam_import_jobs": {
+      "role": "One in-flight Steam import per user, PRIMARY KEY (user_id), storing the ENTIRE owned-games payload in `games jsonb` with a processing_token / processing_started_at lease.",
+      "summary": "Per plan 14.2 and readiness 7, the payload is NEVER migrated: plan section 13 deletes successful import payloads after commit. In-flight rows at freeze (status = 'importing') become an OPERATOR REPORT, not resumed work.",
+      "disposition_class": "archive-only",
+      "target": "not migrated; in-flight imports become an operator report",
+      "archive_purpose": "Produce the freeze-time operator report: which accounts had an import in flight when the source was frozen, and whether their library is therefore incomplete in the migrated data. This is a cutover-correctness record, not a work queue.",
+      "archive_retention": "Bounded migration staging: dropped at M3 signoff, and in no case later than 30 days after validated cutover (plan 13). The `games` payload is never written to it at any point.",
+      "retention": {
+        "class": "bounded-migration-staging",
+        "bound": "30-days-after-validated-cutover",
+        "destination": "migration.legacy_import_freeze_report",
+        "carries_account_identity": true,
+        "account_deletion": "Keyed to app.accounts(id) with ON DELETE CASCADE, so account deletion removes the freeze report row.",
+        "account_export": "In-flight import status at the freeze, as counts and timestamps. The `games` payload is never written to the archive, so it cannot be exported.",
+        "authority": [
+          "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Migration staging/exports - encrypted/private; purge within 30 days of validated cutover unless a recovery incident requires retention'"
+        ],
+        "note": "Cutover evidence about in-flight imports. The physical default 'm3-signoff' is tighter than the 30-day bound and is therefore compliant, not a divergence."
+      },
+      "evidence": [
+        "readiness 7",
+        "readiness 14.5 (processing_token is a lease, not a job identity)",
+        "plan 14.2",
+        "plan section 13"
+      ],
+      "open_decisions": [
+        "D-IMP-1 OPEN (cutover): an account whose import was in flight at the freeze may carry a PARTIAL library into v2. Plan 14.2 settles that in-flight production jobs are not resumed on preview and that work restarts safely, and the M3 migration provides migration.legacy_import_freeze_report for the per-account report. What remains genuinely open is WHICH accounts are affected at the actual freeze and therefore need a re-run, which cannot be known before the freeze: snapshot check S-IMPORT-FREEZE."
+      ],
+      "columns": {
+        "user_id": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.account_id",
+          "note": "Primary key of the source relation, resolved through migration.account_map. The report is per account."
+        },
+        "status": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.status",
+          "note": "status = 'importing' at freeze is exactly what makes an account's library suspect (D-IMP-1)."
+        },
+        "total_games": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.total_games",
+          "note": "How many games the import expected. Compared against imported_games, this quantifies how partial a partial library is."
+        },
+        "imported_games": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.imported_games",
+          "note": "How many were applied before the freeze. The gap against total_games is the report's whole point."
+        },
+        "games": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "The owned-games payload is re-fetchable from Steam by re-running the import, and plan section 13 already deletes successful payloads after commit. Carrying it would migrate the largest column in the source for data that is regenerated at cutover.",
+          "note": "jsonb. NEVER exported and never archived. Explicitly excluded by readiness 7."
+        },
+        "play_history_missing": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.play_history_missing",
+          "note": "The import observed that Steam withheld play history. That is an OBSERVATION about the account's Steam privacy settings, not job state, and it corroborates app.account_capabilities.playtime_visibility."
+        },
+        "last_error": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.last_error",
+          "note": "Why the import last failed. An account whose import was already failing before the freeze needs different handling from one merely interrupted by it. Free text; checked for credentials before export."
+        },
+        "started_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.started_at",
+          "note": "When the import began; distinguishes a fresh in-flight import from a stuck one."
+        },
+        "updated_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.updated_at",
+          "note": "Last progress. Retained here rather than retired because, for an in-flight job, the last progress instant is how a stuck import is identified."
+        },
+        "completed_at": {
+          "disposition": "audit-archive",
+          "archive": "+migration.legacy_import_freeze_report.completed_at",
+          "note": "Null on an incomplete import, which is the report's selection criterion."
+        },
+        "processing_token": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "Nothing, deliberately. readiness 14.5: it is a LEASE TOKEN, not a job identity, so carrying it into app.library_sync_state.in_flight_job_id (M2:295-298, a composite FK to ops.jobs) would produce a DANGLING REFERENCE. That column must be left NULL.",
+          "note": "This is the specific mistake readiness 14.5 exists to prevent. Retiring the token is the correct handling, not a loss."
+        },
+        "processing_started_at": {
+          "disposition": "derived-retirement",
+          "recoverable_from": "The lease acquisition instant, meaningless once the lease is not carried. The report's timing questions are answered by started_at and updated_at, both archived.",
+          "note": "Retired together with the lease token it belongs to."
+        }
+      },
+      "snapshot_checks": [
+        "S-IMPORT-FREEZE"
+      ]
+    }
+  }
+}

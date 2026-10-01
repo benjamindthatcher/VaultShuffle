@@ -1,11 +1,8 @@
 .panel {
-  --reason-row: 50px;
   display: grid;
   gap: 7px;
   margin-top: 6px;
-  /* Sized against this panel's own column, not the window. The result card puts
-     the reasoning beside the artwork, so it can be half the page wide on a
-     desktop viewport - a viewport media query gets that backwards. */
+  /* Respond to the width available inside the result card. */
   container-type: inline-size;
 }
 
@@ -19,7 +16,7 @@
 
 .label {
   margin: 0;
-  color: #d392ff;
+  color: var(--vault-accent);
   font-size: 0.72rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -28,28 +25,20 @@
 .score {
   font-size: 0.78rem;
   font-weight: 600;
-  color: var(--vault-text-muted, rgba(226, 232, 255, 0.72));
+  color: var(--vault-text-muted, var(--vault-text-muted));
 }
 
-.score[data-strength="high"] { color: #7ce7b2; }
-.score[data-strength="mid"] { color: #d392ff; }
+.score[data-strength="high"] { color: var(--vault-success); }
+.score[data-strength="mid"] { color: var(--vault-accent); }
 
-.rank {
-  margin-left: 8px;
-  color: var(--vault-text-muted, rgba(226, 232, 255, 0.6));
-  font-weight: 500;
-}
 
-/* Two across, and always tall enough for two rows - which is as many as a draw
-   realistically fills. The panel used to grow and shrink with the number of
-   reasons, moving the buttons underneath between one draw and the next, so the
-   thing you were reaching for was never twice in the same place. */
+
+/* Let the reasons fill one row when space allows, without reserved empty rows. */
 .list {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   grid-auto-rows: min-content;
   align-content: start;
-  min-height: calc(2 * var(--reason-row) + 6px);
   gap: 6px;
   margin: 0;
   padding: 0;
@@ -57,22 +46,22 @@
 }
 
 .item {
-  min-height: var(--reason-row);
+  min-height: 60px;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   align-items: start;
   padding: 7px 10px;
-  border: 1px solid var(--vault-border, rgba(134, 91, 255, 0.26));
+  border: 1px solid var(--vault-border, var(--vault-border));
   border-left-width: 3px;
   border-radius: 11px;
-  background: var(--vault-surface-soft, rgba(18, 25, 53, 0.72));
+  background: var(--vault-surface-soft, var(--vault-surface));
 }
 
 /* The accent carries how strongly this dimension supports the pick. */
-.item[data-strength="perfect"] { border-left-color: #7ce7b2; }
-.item[data-strength="strong"] { border-left-color: #b57cff; }
-.item[data-strength="good"] { border-left-color: rgba(134, 91, 255, 0.45); }
+.item[data-strength="perfect"] { border-left-color: var(--vault-success); }
+.item[data-strength="strong"] { border-left-color: var(--vault-border); }
+.item[data-strength="good"] { border-left-color: var(--vault-border); }
 
 .icon {
   display: grid;
@@ -80,8 +69,8 @@
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  background: var(--vault-accent-soft, rgba(142, 77, 255, 0.2));
-  color: #e6d6ff;
+  background: var(--vault-accent-soft, color-mix(in srgb, var(--vault-accent) 20%, transparent));
+  color: var(--vault-text);
 }
 
 .copy {
@@ -94,19 +83,19 @@
   font-size: 0.8rem;
   font-weight: 650;
   line-height: 1.25;
-  color: var(--vault-text, #f2f4ff);
+  color: var(--vault-text, var(--vault-text));
 }
 
 /* Clamped so one wordy reason cannot set the height of the row it shares. */
 .detail {
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 1;
-  line-clamp: 1;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
   overflow: hidden;
   font-size: 0.74rem;
   line-height: 1.35;
-  color: var(--vault-text-muted, rgba(226, 232, 255, 0.72));
+  color: var(--vault-text-muted, var(--vault-text-muted));
 }
 
 /* Below the point where two columns would each be too narrow to read. */

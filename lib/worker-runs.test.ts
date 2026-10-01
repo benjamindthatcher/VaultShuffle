@@ -13,6 +13,8 @@ function load(path: string, imports: Record<string, unknown>) {
   new Function("require", "module", "exports", compiled)(
     (name: string) => {
       if (name === "server-only") return {};
+      if (name === "@/lib/database-authority") return {isV2Authority: () => false};
+      if (name === "@/lib/v2/owned-worker" || name === "@/lib/v2/background-workers") return {};
       if (name in imports) return imports[name];
       throw new Error(`Unmocked dependency in isolated test: ${name}`);
     }, loaded, loaded.exports

@@ -20,7 +20,7 @@
 
 .groupLabel {
   margin: 0 0 8px;
-  color: #d0a0ff;
+  color: var(--vault-text);
   font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.1em;
@@ -89,7 +89,7 @@
 .entryCopy strong { font-size: 0.84rem; }
 .entryCopy small,
 .entry time { color: var(--vault-text-muted); font-size: 0.72rem; }
-.entryCopy em { color: #cc83f7; font-size: 0.72rem; font-style: normal; }
+.entryCopy em { color: var(--vault-accent); font-size: 0.72rem; font-style: normal; }
 .entry time { align-self: start; }
 
 .detail {

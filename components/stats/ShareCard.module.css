@@ -27,16 +27,16 @@
 .canvas { display: block; width: 100%; height: auto; }
 
 .body { display: grid; gap: 4px; min-width: 0; }
-.eyebrow { margin: 0; font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: #d392ff; }
+.eyebrow { margin: 0; font-size: 0.68rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--vault-accent); }
 .body h2 { margin: 0; font-size: 1.02rem; }
 .copyNote { margin: 2px 0 0; font-size: 0.79rem; line-height: 1.45; color: var(--vault-text-muted); }
 .actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 10px; }
 .primary, .secondary { display: inline-flex; align-items: center; gap: 7px; min-height: 38px; padding: 0 15px; border-radius: 10px; font-weight: 700; font-size: 0.84rem; }
-.primary { border: 1px solid rgba(124, 231, 178, 0.5); background: rgba(124, 231, 178, 0.16); color: #b6f4d4; }
-.primary:hover { background: rgba(124, 231, 178, 0.26); }
+.primary { border: 1px solid color-mix(in srgb, var(--vault-success) 50%, transparent); background: color-mix(in srgb, var(--vault-success) 16%, transparent); color: var(--vault-success); }
+.primary:hover { background: color-mix(in srgb, var(--vault-success) 26%, transparent); }
 .secondary { border: 1px solid var(--vault-border); background: transparent; color: var(--vault-text); }
 .secondary:hover { border-color: var(--vault-border-strong); }
-.failed { margin: 8px 0 0; font-size: 0.8rem; color: #ffb4c2; }
+.failed { margin: 8px 0 0; font-size: 0.8rem; color: var(--vault-danger); }
 
 @media (max-width: 760px) {
   .panel { grid-template-columns: minmax(0, 1fr); }

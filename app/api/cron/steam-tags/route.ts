@@ -1,3 +1,5 @@
+import {isV2Authority} from "@/lib/database-authority";
+import {runV2TagWorker} from "@/lib/v2/tag-worker";
 import { processSteamTagQueue, queueAllKnownSteamTags } from "@/lib/steam-tags";
 import { processStoreTagQueue } from "@/lib/steam-store-tags";
 import { sweepEndlessVerdicts } from "@/lib/endless-sync";
@@ -11,6 +13,7 @@ export const maxDuration = 300;
 
 export async function GET(request: Request) {
   return runNightlyWorker(request, "steam-tags", async () => {
+    if (isV2Authority()) return runV2TagWorker();
     const startedAt = Date.now();
     const queued = await queueAllKnownSteamTags();
     const tags = await processSteamTagQueue(60, startedAt + 70_000);

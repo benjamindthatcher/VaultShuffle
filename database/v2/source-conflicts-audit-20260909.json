@@ -1,0 +1,53 @@
+{
+  "family": {
+    "largest_family": 4,
+    "over_cap_accounts": 0,
+    "accounts_with_members": 6
+  },
+  "merges": {
+    "merge_rows": 5,
+    "deleted_source_rows": 0,
+    "invalid_promoted_identity": 0,
+    "required_source_tombstones": 0
+  },
+  "identity": {
+    "accounts": 684,
+    "manual_accounts": 223,
+    "both_profile_kinds": 0,
+    "steam_without_profile": 0,
+    "manual_without_profile": 2
+  },
+  "visibility": {
+    "compared_accounts": 461,
+    "library_disagreement": 183,
+    "recency_disagreement": 183,
+    "playtime_disagreement": 183,
+    "checked_time_disagreement": 271
+  },
+  "collections": {
+    "populated_collections": 2,
+    "duplicate_position_collections": 1,
+    "non_dense_position_collections": 0
+  },
+  "completions": {
+    "events": 13157,
+    "undo_before_claim": 0,
+    "library_account_mismatch": 0,
+    "unresolved_game_identity": 0,
+    "deleted_library_reference": 0,
+    "appid_absent_from_catalogue": 0
+  },
+  "evidence_kind": "read-only conflict aggregates; not export or cutover",
+  "family_orphans": {
+    "rows_with_lender": 1563,
+    "rows_without_member": 0
+  },
+  "session_shapes": {
+    "invalid_hex": 0,
+    "invalid_expiry": 0,
+    "steam_sessions": 534
+  },
+  "observed_at_utc": "2026-09-09T21:50:16.977603+00:00",
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "session_decoded_collisions": 0
+}

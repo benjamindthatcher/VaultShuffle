@@ -1,0 +1,106 @@
+/* Follow Dashboard, Library and Collections: the shell owns the outer gutter
+   and top offset; this page uses the shared, centred content column. */
+.page { width: var(--vault-list-width); margin-inline: auto; min-width: 0; display: grid; gap: 18px; overflow-anchor: none; }
+.primaryButton, .shuffleButton, .loadMore { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 16px; border: 1px solid transparent; border-radius: 10px; font: inherit; font-weight: 700; font-size: .84rem; white-space: nowrap; cursor: pointer; }
+.page [data-control-spinner] { flex-shrink: 0; }
+.search { display: flex; gap: 10px; min-width: 0; }
+.searchField { flex: 1; display: flex; align-items: center; gap: 11px; min-width: 0; padding: 0 14px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-well-radius); background: var(--vault-well-surface); color: var(--vault-text-muted); }
+.searchField:focus-within { border-color: var(--vault-control-focus); outline: 2px solid var(--vault-control-focus); outline-offset: 2px; }
+.searchField svg { flex-shrink: 0; }
+.searchField input { width: 100%; min-width: 0; min-height: 46px; padding: 0; border: 0; outline: none; background: transparent; color: var(--vault-text); font: inherit; font-size: .88rem; }
+.searchField input::placeholder { color: var(--vault-text-muted); }
+.search > button { min-width: 134px; }
+.section { display: grid; gap: 12px; min-width: 0; }
+.sectionHeading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sectionHeading > div { min-width: 0; }
+.sectionHeading h2 { margin: 0; color: var(--vault-text); font-size: 1.08rem; font-weight: 800; letter-spacing: -.01em; line-height: 1.3; }
+.sectionHeading p { margin: 5px 0 0; color: var(--vault-text-muted); font-size: .82rem; line-height: 1.5; max-width: 680px; }
+.recommendationControls { display: flex; align-items: center; justify-content: flex-end; gap: 12px; flex: 1 1 auto; }
+.refreshIconButton { flex: 0 0 44px; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 1px solid transparent; cursor: pointer; }
+.filters { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.filters button { --control-radius: 10px; display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 16px; border: 1px solid transparent; font: inherit; font-size: .8rem; font-weight: 650; line-height: 1.2; white-space: nowrap; cursor: pointer; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.card { position: relative; min-width: 0; width: 100%; overflow: hidden; display: flex; flex-direction: column; padding: 6px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); }
+.art { position: relative; display: block; overflow: hidden; width: 100%; aspect-ratio: 460 / 215; flex: 0 0 auto; border-radius: 7px; background: var(--vault-well-surface); }
+.art img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.artFallback { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; padding: 16px; color: var(--vault-text-muted); }
+.source { position: absolute; left: 8px; bottom: 8px; padding: 4px 8px; border: 1px solid var(--vault-card-border); background: var(--vault-well-surface); border-radius: 5px; font-size: .65rem; color: var(--vault-text); }
+/* Every row is reserved, including two title lines and full-height controls.
+   Neither metadata loading nor a different batch can resize a card. */
+.cardBody { display: grid; grid-template-rows: 40px 16px 54px 28px 44px; gap: 3px; padding: 8px; height: 210px; flex: 0 0 210px; min-width: 0; overflow: hidden; }
+.card h3, .reason { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; margin: 0; }
+.card h3 { -webkit-line-clamp: 2; font-size: .92rem; line-height: 20px; height: 40px; }
+.genres { color: var(--vault-text-muted); font-size: .72rem; line-height: 16px; height: 16px; margin: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.reason { -webkit-line-clamp: 3; font-size: .77rem; line-height: 18px; height: 54px; color: var(--vault-text); padding-left: 8px; border-left: 2px solid var(--vault-border-strong); }
+.cardMeta { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; min-width: 0; overflow: hidden; }
+.metrics { margin: 0; display: grid; line-height: 14px; font-size: .7rem; color: var(--vault-text-muted); overflow: hidden; white-space: nowrap; }
+.metrics span { overflow: hidden; text-overflow: ellipsis; }
+.price { display: flex; align-items: center; justify-content: end; gap: 5px; white-space: nowrap; overflow: hidden; font-size: .76rem; margin-left: auto; max-width: 180px; }
+.price strong { font-size: 1rem; }
+.price del { font-size: .72rem; color: var(--vault-text-muted); }
+.discount { font-size: .7rem; color: var(--vault-success); background: var(--vault-well-surface); border-radius: 4px; padding: 3px 5px; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.toolbar > p { margin: 0; color: var(--vault-text-muted); font-size: .84rem; }
+.toolbarActions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.region { display: flex; gap: 8px; align-items: center; font-size: .76rem; color: var(--vault-text-muted); }
+.regionMenu { position: relative; width: min(240px, calc(100vw - 140px)); }
+.regionTrigger { width: 100%; min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 12px; border: 1px solid transparent; font: inherit; color: var(--vault-text); cursor: pointer; }
+.regionTrigger > span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.regionTrigger > svg { flex-shrink: 0; }
+.regionPopover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 45; width: 100%; padding: 6px; border: 1px solid var(--vault-border-strong); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); box-shadow: 0 16px 36px color-mix(in srgb, var(--vault-shadow-color) 40%, transparent); }
+.regionSearch { width: 100%; min-width: 0; min-height: 44px; padding: 0 10px; margin-bottom: 6px; border: 1px solid var(--vault-border); border-radius: 10px; background: var(--vault-well-surface); color: var(--vault-text); font: inherit; }
+.regionSearch::placeholder { color: var(--vault-text-muted); }
+.regionSearch:focus-visible { outline: 2px solid var(--vault-control-focus); outline-offset: -2px; }
+.regionOptions { position: relative; max-height: min(300px, 45dvh); overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 4px; scrollbar-color: var(--vault-border-strong) var(--vault-well-surface); }
+.regionOption { display: flex; justify-content: space-between; gap: 8px; align-items: center; min-height: 44px; padding: 6px 10px; border: 1px solid transparent; font-size: .8rem; cursor: pointer; }
+.regionOption small { flex-shrink: 0; font-size: .7rem; color: inherit; }
+.regionEmpty { margin: 8px; color: var(--vault-text-muted); }
+.regionOptions:focus-visible { outline: 2px solid var(--vault-control-focus); outline-offset: -2px; }
+.regionOptions:focus .regionOption[data-focused] { outline: 2px solid var(--vault-control-focus); outline-offset: -3px; }
+.cardActions { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
+.saveButton, .steamButton { display: inline-flex; align-items: center; justify-content: center; gap: 5px; min-height: 44px; min-width: 0; padding: 0 7px; border: 1px solid transparent; border-radius: 10px; font-size: .72rem; line-height: 1; white-space: nowrap; cursor: pointer; }
+.saveButton { width: 96px; flex: 0 0 96px; }
+.steamButton img { display: block; flex: 0 0 16px; width: 16px; height: 16px; }
+.storeLink { display: inline-flex; justify-self: start; align-items: center; gap: 5px; font-size: .78rem; line-height: 1.4; }
+.moreRow { display: flex; justify-content: center; align-items: center; padding: 2px 0 6px; }
+.shuffleButton { min-width: 170px; }
+.textButton { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 0 12px; border: 1px solid transparent; font-size: .8rem; cursor: pointer; }
+.savedSection { border-top: 1px solid var(--vault-sheet-border); padding-top: 18px; }
+.count { margin-left: 8px; color: var(--vault-text-muted); font-weight: 600; font-size: .84rem; }
+.empty { width: min(440px, 100%); margin-inline: auto; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 24px 16px; }
+.emptyIcon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--vault-card-radius); color: var(--vault-accent); background: var(--vault-accent-soft); }
+.empty h3 { font-size: 1.02rem; margin: 0; }
+.empty p, .emptySmall { color: var(--vault-text-muted); font-size: .84rem; line-height: 1.6; }
+.empty p { margin: 0; }
+.emptySmall { margin: 0; padding: 24px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); }
+.importPanel { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 18px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
+.importPanel h2 { margin: 0; font-size: 1.02rem; }
+.importControls { display: grid; gap: 12px; justify-items: start; max-width: 460px; }
+.importSummary { margin: 0; padding: 14px 18px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); color: var(--vault-success); background: var(--vault-card-surface); font-size: .84rem; line-height: 1.6; }
+.importPanel p { margin: 8px 0 0; font-size: .84rem; line-height: 1.6; color: var(--vault-text-muted); max-width: 680px; }
+.status { position: fixed; z-index: 40; bottom: max(24px, var(--vault-bottom-notice-offset, 0px)); left: 50%; transform: translateX(-50%); max-width: min(600px, calc(100vw - 32px)); width: max-content; margin: 0; padding: 12px 18px; border: 1px solid var(--vault-feature-border); background: var(--vault-surface-strong); box-shadow: 0 16px 40px color-mix(in srgb, var(--vault-shadow-color) 53.33%, transparent); border-radius: var(--vault-card-radius); color: var(--vault-text); font-size: .85rem; pointer-events: none; }
+.status:empty { display: none; }
+.error { display: flex; align-items: center; gap: 16px; justify-content: space-between; padding: 14px 18px; border: 1px solid color-mix(in srgb, var(--vault-danger) 50.2%, transparent); border-radius: var(--vault-card-radius); background: var(--vault-surface-strong); color: var(--vault-danger); font-size: .86rem; line-height: 1.5; }
+.error button { min-height: 44px; padding: 0 12px; border: 1px solid transparent; cursor: pointer; flex-shrink: 0; }
+.loading { padding: 24px; color: var(--vault-text-muted); text-align: center; }
+.skeleton { padding: 6px; border-radius: var(--vault-card-radius); border: 1px solid var(--vault-card-border); background: var(--vault-card-surface); }
+.skeleton::before { content: ""; display: block; aspect-ratio: 460 / 215; border-radius: 7px; background: var(--vault-well-surface); }
+.skeleton::after { content: ""; display: block; height: 210px; }
+.loadMore { justify-self: center; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 900px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .search { gap: 8px; }
+  .searchField { padding: 0 10px; gap: 7px; }
+  .searchField input { font-size: .84rem; }
+  .search > button { min-width: 114px; padding-inline: 10px; }
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  .recommendationControls { width: 100%; align-items: flex-start; gap: 8px; }
+  .filters { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .filters button { padding-inline: 8px; }
+  .toolbarActions { width: 100%; justify-content: space-between; }
+  .importPanel { align-items: flex-start; flex-direction: column; }
+  .error { align-items: flex-start; flex-direction: column; }
+}
+
+.detailsTrigger { position: absolute; z-index: 1; inset: 0; width: 100%; height: 100%; padding: 0; border: 0; border-radius: inherit; cursor: pointer; }

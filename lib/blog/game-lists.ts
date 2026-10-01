@@ -1,3 +1,5 @@
+import { isV2Authority } from "@/lib/database-authority";
+import { getV2Runtime } from "@/lib/v2/runtime";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
 /**
@@ -191,20 +193,21 @@ function hours(minutes: number | null): number | null {
 
 export async function fetchGameList(filter: GameListFilter): Promise<GameListRow[]> {
   const limit = filter.limit ?? 40;
-  const supabase = getSupabaseAdmin();
-  const excluded = await loadExcludedAppIds();
-
-  const query = applyFilters(
-    supabase.from("catalog_games").select(columnsFor(DISPLAY_COLUMNS, filter)) as unknown as CatalogueQuery,
-    filter
-  );
-
-  // Room for what the ratio and the tag remove, without dragging the payload.
   const needsPostFilter = Boolean(filter.minPositive || filter.tag);
   const overFetch = needsPostFilter ? Math.min(limit * 4, 400) : limit;
-
-  const { data, error } = await query.order("review_total", { ascending: false }).limit(overFetch);
-  if (error) throw new Error(`Blog game list query failed: ${error.message}`);
+  let data: unknown[] | null;
+  let excluded: Set<number>;
+  if (isV2Authority()) {
+    data = await (await getV2Runtime()).blog.rows(filter,overFetch,true);
+    excluded = new Set(); // The fixed V2 query already enforces quarantine.
+  } else {
+    const supabase = getSupabaseAdmin();
+    excluded = await loadExcludedAppIds();
+    const query = applyFilters(supabase.from("catalog_games").select(columnsFor(DISPLAY_COLUMNS, filter)) as unknown as CatalogueQuery,filter);
+    const response = await query.order("review_total", { ascending: false }).limit(overFetch);
+    if (response.error) throw new Error(`Blog game list query failed: ${response.error.message}`);
+    data = response.data;
+  }
 
   return ((data ?? []) as unknown as CatalogueRow[])
     .filter((row) => !excluded.has(row.steam_appid) && passesPostFilters(row, filter))
@@ -239,16 +242,19 @@ export async function fetchGameList(filter: GameListFilter): Promise<GameListRow
 export async function countGameList(
   filter: GameListFilter
 ): Promise<{ count: number; capped: boolean }> {
-  const supabase = getSupabaseAdmin();
-  const excluded = await loadExcludedAppIds();
-
-  const query = applyFilters(
-    supabase.from("catalog_games").select(columnsFor(COUNT_COLUMNS, filter)) as unknown as CatalogueQuery,
-    filter
-  );
-
-  const { data, error } = await query.limit(COUNT_CEILING);
-  if (error) throw new Error(`Blog game count query failed: ${error.message}`);
+  let data: unknown[] | null;
+  let excluded: Set<number>;
+  if (isV2Authority()) {
+    data = await (await getV2Runtime()).blog.rows(filter,COUNT_CEILING,false);
+    excluded = new Set();
+  } else {
+    const supabase = getSupabaseAdmin();
+    excluded = await loadExcludedAppIds();
+    const query = applyFilters(supabase.from("catalog_games").select(columnsFor(COUNT_COLUMNS, filter)) as unknown as CatalogueQuery,filter);
+    const response = await query.limit(COUNT_CEILING);
+    if (response.error) throw new Error(`Blog game count query failed: ${response.error.message}`);
+    data = response.data;
+  }
 
   const rows = (data ?? []) as unknown as PostFilterRow[];
 
@@ -275,15 +281,18 @@ export async function fetchPicks(
   appids: readonly number[],
   filter: GameListFilter
 ): Promise<Map<number, GameListRow & { qualifies: boolean }>> {
-  const supabase = getSupabaseAdmin();
-  const excluded = await loadExcludedAppIds();
-
-  const { data, error } = await supabase
-    .from("catalog_games")
-    .select(DISPLAY_COLUMNS)
-    .in("steam_appid", [...appids]);
-
-  if (error) throw new Error(`Blog picks query failed: ${error.message}`);
+  let data: unknown[] | null;
+  let excluded: Set<number>;
+  if (isV2Authority()) {
+    data = await (await getV2Runtime()).blog.rows({},Math.max(1,appids.length),false,appids);
+    excluded = new Set();
+  } else {
+    const supabase = getSupabaseAdmin();
+    excluded = await loadExcludedAppIds();
+    const response = await supabase.from("catalog_games").select(DISPLAY_COLUMNS).in("steam_appid", [...appids]);
+    if (response.error) throw new Error(`Blog picks query failed: ${response.error.message}`);
+    data = response.data;
+  }
 
   const qualifying = new Set(
     (await fetchGameList({ ...filter, limit: 600 })).map((row) => row.appid)

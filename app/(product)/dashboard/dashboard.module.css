@@ -4,11 +4,11 @@
 .page { width: var(--vault-list-width); margin-inline: auto; display: grid; gap: 18px; }
 
 .hero { display: grid; gap: 9px; padding: 20px; border: 1px solid var(--vault-feature-border); border-radius: var(--vault-sheet-radius); background: var(--vault-feature-surface); }
-.heroLabel { margin: 0; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: #d392ff; }
+.heroLabel { margin: 0; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--vault-accent); }
 .heroValue { margin: 0; font-size: clamp(1.9rem, 5vw, 2.9rem); font-weight: 780; line-height: 1.05; color: var(--vault-text); }
 .heroValue span { font-size: 0.44em; font-weight: 600; color: var(--vault-text-muted); }
-.track { height: 11px; border-radius: 999px; background: rgba(134, 91, 255, 0.18); overflow: hidden; }
-.fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, #7ce7b2, #b57cff); transition: width 600ms ease-out; }
+.track { height: 11px; border-radius: 999px; background: color-mix(in srgb, var(--vault-accent) 18%, transparent); overflow: hidden; }
+.fill { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--vault-success), var(--vault-accent)); transition: width 600ms ease-out; }
 .heroHint { margin: 0; color: var(--vault-text-muted); font-size: 0.84rem; }
 
 /* Close to what it titles. At the old gap the heading sat about midway between
@@ -28,26 +28,40 @@
 .cardValue { color: var(--vault-success); font-weight: 720; font-size: 0.92rem; }
 .cardValue small { color: var(--vault-text-muted); font-weight: 600; font-size: 0.7rem; }
 
+.finishedGrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.historyAction { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 4px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--vault-text); font: inherit; font-size: .8rem; font-weight: 600; cursor: pointer; }
+.historyAction[aria-expanded="true"] > svg:last-child { transform: rotate(180deg); }
+.historyAction[aria-expanded="true"], .historyAction:hover { background: color-mix(in srgb, var(--vault-accent) 20%, transparent); }
+.historyAction:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 2px; }
+@media (max-width: 1000px) { .finishedGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 540px) { .finishedGrid { grid-template-columns: 1fr; } }
+
 /* First, second, third — the three games that earned their money back fastest,
    in the same grid area as everything else on the page. */
-.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.podium { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 12px; margin: 0; padding: 0; list-style: none; }
 @media (max-width: 760px) { .podium { grid-template-columns: 1fr; } }
 /* One treatment for all three. Gold, silver and bronze borders made a row of
    the same card look like three different components, and the ordinal already
    says which is which. */
-.podiumCard { position: relative; display: grid; grid-template-rows: auto auto auto auto auto; align-content: start; gap: 4px; padding: 8px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); }
+.podiumCard { position: relative; min-width: 0; display: grid; grid-template-rows: auto auto auto; align-content: start; gap: 3px; padding: 8px; border: 1px solid var(--vault-card-border); border-radius: var(--vault-card-radius); background: var(--vault-card-surface); }
+.podiumHeading { display: flex; align-items: flex-start; gap: 9px; min-width: 0; }
+.podiumHeading .cardTitle { min-width: 0; min-height: 0; margin-top: 0; }
+.podiumMetrics { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 12px; }
+.podiumMetrics .cardValue { font-size: 1.55rem; font-weight: 780; line-height: 1.15; white-space: nowrap; }
+.podiumMetrics .cardValue small { color: inherit; font-size: 0.78rem; }
+.podiumMetrics .cardMeta { padding-left: 12px; border-left: 1px solid var(--vault-card-border); line-height: 1.3; }
 /* The medal colours live on the trophy, not the card. A gold, silver and
    bronze border made a row of the same card look like three different
    components; the trophy is small enough to carry the rank without the row
    coming apart. */
-.place { display: inline-flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
-.podiumCard[data-place="1"] .place { color: #f5c451; }
-.podiumCard[data-place="2"] .place { color: #cdd5e4; }
-.podiumCard[data-place="3"] .place { color: #d08a52; }
+.place { display: inline-flex; flex-shrink: 0; align-items: center; gap: 6px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.podiumCard[data-place="1"] .place { color: var(--vault-warning); }
+.podiumCard[data-place="2"] .place { color: var(--vault-text); }
+.podiumCard[data-place="3"] .place { color: var(--vault-warning); }
 
 .empty { width: min(440px, 100%); margin-inline: auto; display: grid; gap: 12px; justify-items: center; text-align: center; padding: 20px; border: 1px dashed var(--vault-card-border); border-radius: var(--vault-card-radius); }
 .empty p { margin: 0; color: var(--vault-text-muted); }
-.emptyAction { padding: 9px 15px; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
+.emptyAction { padding: 9px 15px; border-radius: 10px; background: var(--vault-accent); color: var(--vault-text); font-weight: 700; font-size: 0.86rem; }
 
 /* Centred and only as wide as its own words. As a block-level link inside the
    section grid it stretched the full width of the page, which made a single
@@ -61,7 +75,7 @@
   padding: 10px 20px;
   border-radius: 999px;
   background: var(--vault-accent);
-  color: #fff;
+  color: var(--vault-text);
   font-weight: 700;
   font-size: 0.88rem;
 }
@@ -101,12 +115,12 @@
 /* The card reacts, not the invisible button on top of it. */
 .gameCard:has(.cardOpen:hover),
 .podiumCard:has(.cardOpen:hover) {
-  border-color: rgba(175, 126, 255, 0.44);
+  border-color: var(--vault-accent);
 }
 
 .gameCard:has(.cardOpen:focus-visible),
 .podiumCard:has(.cardOpen:focus-visible) {
-  outline: 2px solid #c08bff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 2px;
 }
 

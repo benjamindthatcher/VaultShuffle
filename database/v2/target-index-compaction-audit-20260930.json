@@ -1,0 +1,182 @@
+{
+  "project_ref": "vbjtbwelnhbbdfrqczyf",
+  "started_at": "2026-09-30T14:01:54.777775+00:00",
+  "before_database_bytes": 469748883,
+  "indexes": [
+    {
+      "index": "migration.library_row_map_pkey",
+      "before_bytes": 17170432,
+      "after_bytes": 12615680,
+      "valid": true
+    },
+    {
+      "index": "migration.legacy_library_evidence_pkey",
+      "before_bytes": 17145856,
+      "after_bytes": 12615680,
+      "valid": true
+    },
+    {
+      "index": "reco.user_genre_preferences_snapshot_id_source_user_id_genre_moo_key",
+      "before_bytes": 3350528,
+      "after_bytes": 2269184,
+      "valid": true
+    },
+    {
+      "index": "catalog.provider_state_pkey",
+      "before_bytes": 3014656,
+      "after_bytes": 2351104,
+      "valid": true
+    },
+    {
+      "index": "catalog.review_decisions_source_relation_source_record_key_key",
+      "before_bytes": 2170880,
+      "after_bytes": 1474560,
+      "valid": true
+    },
+    {
+      "index": "catalog.review_decisions_game_idx",
+      "before_bytes": 1925120,
+      "after_bytes": 1376256,
+      "valid": true
+    },
+    {
+      "index": "catalog.games_sort_title_idx",
+      "before_bytes": 1744896,
+      "after_bytes": 1318912,
+      "valid": true
+    },
+    {
+      "index": "catalog.review_decisions_appid_idx",
+      "before_bytes": 1572864,
+      "after_bytes": 1089536,
+      "valid": true
+    },
+    {
+      "index": "migration.legacy_ingest_queue_archive_app_idx",
+      "before_bytes": 1187840,
+      "after_bytes": 925696,
+      "valid": true
+    },
+    {
+      "index": "catalog.duration_estimates_steam_app_id_provider_key",
+      "before_bytes": 1122304,
+      "after_bytes": 860160,
+      "valid": true
+    },
+    {
+      "index": "catalog.duration_estimates_game_idx",
+      "before_bytes": 1122304,
+      "after_bytes": 860160,
+      "valid": true
+    }
+  ],
+  "after_database_bytes": 455978131,
+  "completed_at": "2026-09-30T14:02:34.998977+00:00",
+  "temporary_inspection_extension_absent": true,
+  "verification": {
+    "project_ref": "vbjtbwelnhbbdfrqczyf",
+    "verified_at": "2026-09-30T14:10:30.899398+00:00",
+    "relations": 63,
+    "differences": [],
+    "database_bytes": 455978131,
+    "ledger_entries": 11,
+    "inspection_extension_absent": true
+  },
+  "measured_heaps": [
+    {
+      "heap": {
+        "table_len": 17596416,
+        "dead_tuple_len": 0,
+        "scanned_percent": 0.0465549348230912,
+        "approx_tuple_len": 17591268,
+        "dead_tuple_count": 0,
+        "approx_free_space": 3700,
+        "approx_tuple_count": 397295,
+        "dead_tuple_percent": 0,
+        "approx_free_percent": 0.021027009136406,
+        "approx_tuple_percent": 99.9707440424232
+      },
+      "relation": "app.library_games"
+    },
+    {
+      "heap": {
+        "table_len": 4718592,
+        "dead_tuple_len": 0,
+        "scanned_percent": 0.173611111111111,
+        "approx_tuple_len": 4680264,
+        "dead_tuple_count": 0,
+        "approx_free_space": 38076,
+        "approx_tuple_count": 28658,
+        "dead_tuple_percent": 0,
+        "approx_free_percent": 0.806935628255208,
+        "approx_tuple_percent": 99.1877237955729
+      },
+      "relation": "catalog.games"
+    },
+    {
+      "heap": {
+        "table_len": 41156608,
+        "dead_tuple_len": 0,
+        "scanned_percent": 0.0199044585987261,
+        "approx_tuple_len": 39360876,
+        "dead_tuple_count": 0,
+        "approx_free_space": 1795672,
+        "approx_tuple_count": 28658,
+        "dead_tuple_percent": 0,
+        "approx_free_percent": 4.36302233653463,
+        "approx_tuple_percent": 95.6368318788565
+      },
+      "relation": "catalog.game_metadata"
+    },
+    {
+      "heap": {
+        "table_len": 61530112,
+        "dead_tuple_len": 0,
+        "scanned_percent": 0.0133138064172547,
+        "approx_tuple_len": 61084056,
+        "dead_tuple_count": 0,
+        "approx_free_space": 445812,
+        "approx_tuple_count": 399298,
+        "dead_tuple_percent": 0,
+        "approx_free_percent": 0.724542805967914,
+        "approx_tuple_percent": 99.2750606402277
+      },
+      "relation": "app.library_legacy_measurements"
+    },
+    {
+      "heap": {
+        "table_len": 43614208,
+        "dead_tuple_len": 0,
+        "scanned_percent": 0.0187828700225394,
+        "approx_tuple_len": 43272936,
+        "dead_tuple_count": 0,
+        "approx_free_space": 340940,
+        "approx_tuple_count": 399298,
+        "dead_tuple_percent": 0,
+        "approx_free_percent": 0.781717737485913,
+        "approx_tuple_percent": 99.2175210426841
+      },
+      "relation": "migration.library_row_map"
+    },
+    {
+      "heap": {
+        "table_len": 71950336,
+        "dead_tuple_len": 0,
+        "scanned_percent": 0.0113856313332574,
+        "approx_tuple_len": 71347151,
+        "dead_tuple_count": 0,
+        "approx_free_space": 602876,
+        "approx_tuple_count": 399298,
+        "dead_tuple_percent": 0,
+        "approx_free_percent": 0.837905746541615,
+        "approx_tuple_percent": 99.1616647905578
+      },
+      "relation": "migration.legacy_library_evidence"
+    }
+  ],
+  "initial_database_bytes": 473238675,
+  "total_reclaimed_bytes": 17260544,
+  "production_unchanged": true,
+  "full_vacuum": false,
+  "reason": "Library and catalogue heaps have zero dead tuples and less than 1% free space; rebuild only the eleven measured low-density indexes on the inactive rehearsal target."
+}

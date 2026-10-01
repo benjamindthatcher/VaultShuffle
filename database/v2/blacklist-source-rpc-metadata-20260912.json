@@ -1,0 +1,41 @@
+{
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "captured_on": "2026-09-12",
+  "method": "Read-only Supabase connector queries of pg_proc/pg_get_functiondef, pg_depend, pg_get_viewdef, constraints and ACL metadata; no source rows were read.",
+  "purpose": "Freeze the current public runtime surface that the local, unapplied Blacklist compatibility migration replaces.",
+  "transition_rpcs": [
+    "public.set_user_game_status(uuid,uuid,text)",
+    "public.restore_user_game_active(uuid,uuid)",
+    "public.apply_user_purge_decision(uuid,uuid,text,text)",
+    "public.undo_user_purge_decision(uuid,uuid)"
+  ],
+  "other_function_definitions_with_sleep_reference": [
+    "public.complete_manual_profile_security(text,uuid,text,text,text,text,timestamp with time zone,text)",
+    "public.remove_user_family_member_games(uuid,text,bigint[])",
+    "public.request_user_game_review(uuid,uuid[])",
+    "public.upsert_user_steam_games(uuid,jsonb,text)"
+  ],
+  "automatic_restore_function_found": false,
+  "slept_at_catalog_dependencies": [
+    {
+      "dependent": "public.user_games_with_catalog",
+      "kind": "view rewrite"
+    }
+  ],
+  "sleep_check_constraints": [
+    "public.user_games.user_games_status_check",
+    "public.purge_reviews.purge_reviews_action_check",
+    "public.vault_draw_events.vault_draw_events_event_type_check"
+  ],
+  "view": {
+    "name": "public.user_games_with_catalog",
+    "owner": "postgres",
+    "reloptions": null,
+    "table_grants": [
+      "service_role=SELECT"
+    ],
+    "replacement": "supabase/migrations/20260912192336_replace_sleep_with_blacklist.sql recreates the captured projection minus slept_at and restores the captured grant."
+  },
+  "definition_handling": "The migration replaces the four small transition functions explicitly. For the two large security/import functions it obtains the installed pg_get_functiondef inside the migration and performs exact fragment replacements with a drift fence; it aborts if no fragment changes or any slept_at reference remains.",
+  "privacy": "Metadata only. No function arguments, table rows, user identifiers or private payloads were captured."
+}

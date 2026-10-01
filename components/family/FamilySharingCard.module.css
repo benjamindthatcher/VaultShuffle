@@ -1,15 +1,8 @@
-/* Same sheet, radius and type scale as the other dashboard panels, so an
-   experimental feature does not announce itself by looking foreign. The one
-   deliberate difference is the Experimental chip in the heading.
-
-   The card is wide - full dashboard width - and the first version ignored that:
-   a 70ch paragraph on the left, a full-width input under it, and half the card
-   empty. It now works in two columns, with the thing you can do on the left and
-   the small print beside it rather than stacked in front of it. */
+/* Preserve the dashboard sheet styling while keeping its content compact. */
 .card {
   display: grid;
-  gap: 16px;
-  padding: 16px 18px;
+  gap: 6px;
+  padding: 10px 18px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: var(--vault-sheet-radius);
   background: var(--vault-sheet-surface);
@@ -19,10 +12,13 @@
 
 .header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 8px 16px;
 }
+
+.headerActions { display: flex; align-items: center; gap: 14px; margin-left: auto; }
 
 .heading {
   display: flex;
@@ -35,27 +31,27 @@
 }
 
 .heading svg {
-  color: #c08bff;
+  color: var(--vault-accent);
   flex: none;
 }
 
 .experimental {
   padding: 2px 7px;
-  border: 1px solid rgba(192, 139, 255, 0.4);
+  border: 1px solid var(--vault-border);
   border-radius: 999px;
-  color: #c08bff;
+  color: var(--vault-accent);
   font-size: 0.62rem;
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-/* The one number that says the feature is doing something. Right-aligned in the
-   header so it reads as a running total rather than a label on the copy. */
+/* The total and refresh action share one quiet line in the header. */
 .count {
   flex: none;
-  display: grid;
-  gap: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
   margin: 0;
   text-align: right;
   line-height: 1.1;
@@ -63,7 +59,7 @@
 
 .countValue {
   color: var(--vault-text);
-  font-size: 1.45rem;
+  font-size: 0.84rem;
   font-weight: 700;
 }
 
@@ -93,14 +89,14 @@
 }
 
 .okNote {
-  border: 1px solid rgba(120, 220, 160, 0.32);
-  background: rgba(120, 220, 160, 0.09);
+  border: 1px solid color-mix(in srgb, var(--vault-success) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 9%, transparent);
   color: var(--vault-text);
 }
 
 .errorNote {
-  border: 1px solid rgba(255, 132, 132, 0.36);
-  background: rgba(255, 132, 132, 0.09);
+  border: 1px solid color-mix(in srgb, var(--vault-danger) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-danger) 9%, transparent);
   color: var(--vault-text);
 }
 
@@ -108,7 +104,7 @@
 
 .memberBlock {
   display: grid;
-  gap: 9px;
+  gap: 5px;
 }
 
 .memberHead {
@@ -118,14 +114,15 @@
   gap: 12px;
 }
 
-/* Re-check belongs with the people it re-checks, not marooned at the bottom of
-   the card under an unrelated form. */
 .recheck {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 5px 10px;
-  border: 1px solid var(--vault-sheet-border);
+  justify-content: center;
+  gap: 7px;
+  min-width: 108px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--vault-card-border);
   border-radius: 8px;
   background: none;
   color: var(--vault-text-muted);
@@ -136,7 +133,7 @@
 
 .recheck:hover:not(:disabled) {
   color: var(--vault-text);
-  border-color: rgba(192, 139, 255, 0.45);
+  border-color: var(--vault-accent);
 }
 
 .recheck:disabled {
@@ -148,7 +145,7 @@
    stacking full-width - one person should not occupy a whole dashboard row. */
 .members {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 320px));
+  grid-template-columns: repeat(2, minmax(0, 320px));
   gap: 8px;
   margin: 0;
   padding: 0;
@@ -159,10 +156,10 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 9px;
+  padding: 6px 9px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: 10px;
-  background: rgba(0, 0, 0, 0.12);
+  background: color-mix(in srgb, var(--vault-surface) 12%, transparent);
 }
 
 .avatar,
@@ -177,8 +174,8 @@
 .avatarFallback {
   display: grid;
   place-items: center;
-  background: rgba(192, 139, 255, 0.12);
-  color: #c08bff;
+  background: color-mix(in srgb, var(--vault-accent) 12%, transparent);
+  color: var(--vault-accent);
 }
 
 .memberBody {
@@ -234,8 +231,8 @@
 }
 
 .remove:hover:not(:disabled) {
-  border-color: rgba(255, 132, 132, 0.4);
-  color: #ff8484;
+  border-color: color-mix(in srgb, var(--vault-danger) 40%, transparent);
+  color: var(--vault-danger);
 }
 
 .remove:disabled {
@@ -243,23 +240,19 @@
   cursor: default;
 }
 
-/* ------------------------------------------------------- body: two columns */
-
-/* The offer and its control on the left, the small print beside it. Equal
-   columns: the input needs room for a profile URL, and three lines of
-   expectation need room not to wrap into six. */
+/* ------------------------------------------------------- full-width form */
 .body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 26px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
   align-items: start;
-  padding-top: 14px;
+  padding-top: 8px;
   border-top: 1px solid var(--vault-sheet-border);
 }
 
 .addRow {
   display: grid;
-  gap: 7px;
+  gap: 4px;
   align-content: start;
 }
 
@@ -287,17 +280,19 @@
 .input {
   flex: 1 1 200px;
   min-width: 0;
+  min-height: 44px;
   padding: 9px 11px;
   border: 1px solid var(--vault-sheet-border);
   border-radius: 9px;
-  background: rgba(0, 0, 0, 0.22);
+  background: color-mix(in srgb, var(--vault-well-surface) 22%, transparent);
   color: var(--vault-text);
   font-size: 0.82rem;
 }
 
 .input:focus-visible {
-  outline: none;
-  border-color: rgba(192, 139, 255, 0.6);
+  outline: 2px solid var(--vault-accent);
+  outline-offset: 2px;
+  border-color: var(--vault-accent);
 }
 
 .input:disabled {
@@ -309,10 +304,11 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
+  min-height: 40px;
   padding: 9px 16px;
-  border: 1px solid rgba(192, 139, 255, 0.5);
+  border: 1px solid var(--vault-border);
   border-radius: 9px;
-  background: rgba(192, 139, 255, 0.16);
+  background: color-mix(in srgb, var(--vault-accent) 16%, transparent);
   color: var(--vault-text);
   font-size: 0.8rem;
   font-weight: 600;
@@ -320,11 +316,11 @@
 }
 
 .primary:hover:not(:disabled) {
-  background: rgba(192, 139, 255, 0.24);
+  background: color-mix(in srgb, var(--vault-accent) 24%, transparent);
 }
 
 .primary:disabled {
-  opacity: 0.45;
+  opacity: 1;
   cursor: default;
 }
 
@@ -337,21 +333,22 @@
 
 /* ----------------------------------------------------------- expectations */
 
-/* Reference, not a warning. These are the three things that are true about a
-   family game, and they sit beside the control rather than blocking it - a rule
-   in place of a panel, so the aside reads as support and not as an alert. */
 .expect {
-  display: grid;
-  gap: 9px;
-  padding-left: 20px;
-  border-left: 1px solid var(--vault-sheet-border);
+  border: 1px solid var(--vault-sheet-border);
+  border-radius: 9px;
 }
+
+.expectToggle { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 40px; padding: 8px 12px; color: var(--vault-text); font-size: 0.8rem; font-weight: 600; cursor: pointer; list-style: none; }
+.expectToggle::-webkit-details-marker { display: none; }
+.expectToggle > svg { color: var(--vault-text-muted); }
+.expect[open] .expectToggle > svg { transform: rotate(180deg); }
+.expectToggle:focus-visible, .recheck:focus-visible { outline: 2px solid var(--vault-accent); outline-offset: 3px; border-radius: 8px; }
 
 .expectList {
   display: grid;
   gap: 9px;
   margin: 0;
-  padding: 0;
+  padding: 4px 12px 12px;
   list-style: none;
 }
 
@@ -367,7 +364,7 @@
 .expectList svg {
   flex: none;
   margin-top: 1px;
-  color: #c08bff;
+  color: var(--vault-accent);
   opacity: 0.85;
 }
 
@@ -381,6 +378,10 @@
 
 .confirmYes,
 .confirmNo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   padding: 5px 9px;
   border-radius: 7px;
   font-size: 0.72rem;
@@ -389,13 +390,13 @@
 }
 
 .confirmYes {
-  border: 1px solid rgba(255, 132, 132, 0.5);
-  background: rgba(255, 132, 132, 0.14);
-  color: #ffb3b3;
+  border: 1px solid color-mix(in srgb, var(--vault-danger) 50%, transparent);
+  background: color-mix(in srgb, var(--vault-danger) 14%, transparent);
+  color: var(--vault-danger);
 }
 
 .confirmYes:hover:not(:disabled) {
-  background: rgba(255, 132, 132, 0.22);
+  background: color-mix(in srgb, var(--vault-danger) 22%, transparent);
 }
 
 .confirmYes:disabled {
@@ -410,7 +411,7 @@
 }
 
 .confirmCopy {
-  color: #ffb3b3;
+  color: var(--vault-danger);
 }
 
 /* The real badge, inline, so "marked like this" is a demonstration rather than a
@@ -423,22 +424,22 @@
 
 /* -------------------------------------------------------------- narrow */
 
-/* One column, and the aside loses its rule and becomes a plain block under the
-   form. Traffic here is mobile-majority, so this is the layout most people get. */
 @media (max-width: 860px) {
-  .body {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 18px;
-  }
-
-  .expect {
-    padding-left: 0;
-    padding-top: 14px;
-    border-left: none;
-    border-top: 1px solid var(--vault-sheet-border);
-  }
-
   .members {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+@media (max-width: 460px) {
+  .card { padding-inline: 12px; }
+  .heading { flex-wrap: wrap; }
+  .headerActions { margin-left: 0; }
+  .primary { flex-grow: 1; }
+  .member { flex-wrap: wrap; }
+  .confirm { margin-left: auto; }
+}
+
+@media (pointer: coarse) {
+  .recheck, .primary, .input, .expectToggle, .confirmYes, .confirmNo { min-height: 44px; }
+  .remove { width: 44px; height: 44px; }
 }

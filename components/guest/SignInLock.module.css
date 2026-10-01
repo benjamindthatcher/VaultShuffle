@@ -14,11 +14,11 @@
 
 .lock svg {
   flex: 0 0 auto;
-  color: #b98cff;
+  color: var(--vault-accent);
 }
 
 .lock a {
-  color: #d392ff;
+  color: var(--vault-accent);
   font-weight: 650;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -26,5 +26,5 @@
 
 .lock a:hover,
 .lock a:focus-visible {
-  color: #ecd0ff;
+  color: var(--vault-text);
 }

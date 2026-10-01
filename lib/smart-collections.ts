@@ -18,7 +18,7 @@ export const smartCollectionPresets: Array<{ id: SmartCollectionPreset; label: s
   { id: "recently-played", label: "Recently Played", description: "Games played during the last 30 days." },
   { id: "fallen-off", label: "Fallen Off", description: "Started games left untouched for six months." },
   { id: "long-haul", label: "Long Hauls", description: "Active games estimated at 40 hours or more." },
-  { id: "endless-rotation", label: "Endless Rotation", description: "Replayable and live-service games without a finish line." },
+  { id: "endless-rotation", label: "Endless Rotation", description: "Replayable games and games with ongoing updates, without a finish line." },
   { id: "untouched", label: "Untouched", description: "Owned games with no recorded playtime." }
 ];
 
@@ -28,9 +28,12 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
 
   const status = game.status;
   const hours = "hoursPlayed" in game ? game.hoursPlayed : Number(game.hours_played || 0);
-  const active = status !== "Slept" && status !== "Completed";
+  const active = status !== "Blacklisted" && status !== "Completed";
   const progress = "steamAppId" in game ? Number(game.completionPercent || 0) : gameProgress(game);
   const duration = durationDetails(game);
+  const knownTime = !("playtimeKnown" in game && game.playtimeKnown === false)
+    && !("accessSource" in game && game.accessSource === "family")
+    && !("access_source" in game && game.access_source === "family");
   // Both shelves used to read the exact Steam timestamp, which most accounts
   // never receive, so both sat empty for almost everyone. They now read whatever
   // evidence VaultShuffle actually holds - see lib/recency.ts.
@@ -52,7 +55,7 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
 
   if (preset === "nearly-finished") return active && !duration.endless && progress >= NEARLY_FINISHED_PERCENT && progress < 100;
   if (preset === "quick-wins") {
-    if (!active || duration.endless || !duration.hours) return false;
+    if (!active || !knownTime || duration.endless || !duration.hours) return false;
     const remainingHours = Math.max(0, duration.hours - hours);
     return remainingHours > 0 && remainingHours <= 8;
   }
@@ -64,13 +67,13 @@ export function matchesSmartPreset(game: Game | DemoGame, preset: SmartCollectio
     return active && !duration.endless && progress < 65 && Boolean(duration.hours && duration.hours >= 40);
   }
   if (preset === "endless-rotation") return active && duration.endless;
-  if (preset === "untouched") return active && hours === 0;
+  if (preset === "untouched") return active && knownTime && hours === 0;
 
   // Legacy rules remain supported so existing collections do not silently empty.
-  if (preset === "backlog") return status === "Not Started";
-  if (preset === "in-progress") return status === "In Progress" || status === "Sampled";
+  if (preset === "backlog") return knownTime && status === "Not Started";
+  if (preset === "in-progress") return knownTime && (status === "In Progress" || status === "Sampled");
   if (preset === "must-play") return game.priority === "Must Play";
-  if (preset === "unplayed") return hours === 0;
+  if (preset === "unplayed") return knownTime && hours === 0;
   return active && !duration.endless && Boolean(duration.hours && duration.hours <= 10);
 }
 

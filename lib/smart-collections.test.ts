@@ -96,7 +96,21 @@ test("untouched excludes archived games", () => {
   const untouched = makeGame({ status: "Not Started", hours_played: 0 });
 
   assert.equal(matchesSmartPreset(untouched, "untouched"), true);
-  assert.equal(matchesSmartPreset({ ...untouched, status: "Slept" }, "untouched"), false);
+  assert.equal(matchesSmartPreset({ ...untouched, status: "Blacklisted" }, "untouched"), false);
+});
+
+test("unknown and Family playtime cannot imply untouched games or quick wins", () => {
+  const family = makeGame({ hours_played: 0, access_source: "family", main_story_minutes: 300, duration_kind: "finite" });
+  for (const preset of ["untouched", "backlog", "unplayed", "quick-wins"] as const) {
+    assert.equal(matchesSmartPreset(family, preset), false);
+  }
+  const unknown = {
+    ...family, steamAppId: 1, hoursPlayed: 0, playtimeKnown: false,
+    accessSource: "owned", completionPercent: 0, duration: { mainStoryMinutes: 300 }
+  } as unknown as import("./demo-data.ts").DemoGame;
+  for (const preset of ["untouched", "backlog", "unplayed", "quick-wins"] as const) {
+    assert.equal(matchesSmartPreset(unknown, preset), false);
+  }
 });
 
 test("legacy saved rules map to current editable presets", () => {

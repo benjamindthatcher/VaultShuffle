@@ -1,9 +1,9 @@
 .page { width: var(--vault-list-width); margin-inline: auto; display: grid; gap: 18px; }
 
-.claimBar { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 16px; border: 1px solid rgba(110, 231, 183, 0.36); border-radius: var(--vault-sheet-radius); background: rgba(110, 231, 183, 0.08); color: var(--vault-success); font-size: 0.88rem; }
+.claimBar { display: flex; align-items: center; gap: 10px; margin: 0; padding: 12px 16px; border: 1px solid color-mix(in srgb, var(--vault-success) 40%, transparent); border-radius: var(--vault-sheet-radius); background: color-mix(in srgb, var(--vault-success) 8%, transparent); color: var(--vault-success); font-size: 0.88rem; }
 .claimBar strong { color: var(--vault-text); }
 .claimBar span { color: var(--vault-text-muted); }
-.error { margin: 0; padding: 11px 15px; border: 1px solid rgba(255, 120, 140, 0.4); border-radius: 12px; background: rgba(255, 90, 120, 0.1); color: #ffb4c2; font-size: 0.86rem; }
+.error { margin: 0; padding: 11px 15px; border: 1px solid color-mix(in srgb, var(--vault-danger) 40%, transparent); border-radius: 12px; background: color-mix(in srgb, var(--vault-danger) 10%, transparent); color: var(--vault-danger); font-size: 0.86rem; }
 
 /* The Library grid: four across, and a sweep of thirty games is not a
    thirty-row column that buries the bulk actions under a scroll. */
@@ -22,20 +22,21 @@
   border-radius: var(--vault-card-radius);
   background: var(--vault-card-surface);
 }
-.rowSelected { border-color: rgba(110, 231, 183, 0.5); background: rgba(110, 231, 183, 0.06); }
+.rowSelected { border-color: color-mix(in srgb, var(--vault-success) 50%, transparent); background: color-mix(in srgb, var(--vault-success) 6%, transparent); }
 /* Sits over the artwork so the whole card reads as one tappable unit. */
 /* display: contents, so the row's artwork, title and price become the tick's hit
    area without adding a box to the row's own grid. */
 .rowHit { display: contents; cursor: pointer; }
-.row:hover .art, .rowSelected:hover .art { filter: brightness(1.06); }
+.row:has(input:focus-visible), .rowSelected:has(input:focus-visible) { outline: 2px solid var(--vault-accent); outline-offset: 3px; }
 
-.tick { position: absolute; top: 14px; left: 14px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: rgba(8, 11, 28, 0.72); backdrop-filter: blur(4px); }
-.tick input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
+.tick { position: absolute; top: 14px; left: 14px; z-index: 1; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; background: var(--vault-surface); backdrop-filter: blur(4px); }
+.tick input { width: 19px; height: 19px; accent-color: var(--vault-success); cursor: pointer; }
 
-.selectBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: rgba(20, 24, 48, 0.92); backdrop-filter: blur(12px); position: sticky; top: 8px; z-index: 2; }
+.selectBar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-well-surface); backdrop-filter: blur(12px); position: sticky; top: 8px; z-index: 2; }
 .selectAll { display: flex; align-items: center; gap: 9px; font-size: 0.86rem; font-weight: 650; cursor: pointer; }
-.selectAll input { width: 19px; height: 19px; accent-color: #4fd39a; cursor: pointer; }
+.selectAll input { width: 19px; height: 19px; accent-color: var(--vault-success); cursor: pointer; }
 .bulkActions { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+.bulkActions .primary, .bulkActions .secondary { flex: 0 0 auto; min-width: max-content; padding-inline: 14px; }
 .selectedNote { color: var(--vault-text-muted); font-size: 0.82rem; }
 
 .art { position: relative; width: 100%; aspect-ratio: 460 / 215; border-radius: 7px; overflow: hidden; background: var(--vault-well-surface); }
@@ -44,9 +45,9 @@
 .body small { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.8em; color: var(--vault-text-muted); font-size: 0.78rem; line-height: 1.4; }
 .price { font-weight: 700; color: var(--vault-success); white-space: nowrap; font-size: 0.82rem; }
 .actions { display: flex; gap: 7px; }
-.primary, .secondary { flex: 1; min-height: 32px; padding: 0 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; white-space: nowrap; }
-.primary { border: 1px solid rgba(110, 231, 183, 0.42); background: rgba(110, 231, 183, 0.14); color: #b6f4d4; }
-.primary:hover:not(:disabled) { background: rgba(124, 231, 178, 0.26); }
+.primary, .secondary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; flex: 1; min-height: 32px; padding: 0 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; white-space: nowrap; }
+.primary { border: 1px solid color-mix(in srgb, var(--vault-success) 42%, transparent); background: color-mix(in srgb, var(--vault-success) 14%, transparent); color: var(--vault-success); }
+.primary:hover:not(:disabled) { background: color-mix(in srgb, var(--vault-success) 26%, transparent); }
 .secondary { border: 1px solid var(--vault-card-border); background: transparent; color: var(--vault-text-muted); }
 .secondary:hover:not(:disabled) { border-color: var(--vault-border-strong); color: var(--vault-text); }
 .primary:disabled, .secondary:disabled { opacity: 0.55; }
@@ -54,13 +55,14 @@
 .done { width: min(520px, 100%); margin-inline: auto; display: grid; gap: 14px; justify-items: center; text-align: center; padding: 26px; border: 1px solid var(--vault-sheet-border); border-radius: var(--vault-sheet-radius); background: var(--vault-sheet-surface); }
 .done p { margin: 0; color: var(--vault-text-muted); }
 .doneActions { display: flex; flex-wrap: wrap; gap: 10px; }
-.primaryLink { padding: 10px 16px; border-radius: 10px; background: var(--vault-accent); color: #fff; font-weight: 700; font-size: 0.86rem; }
+.primaryLink { padding: 10px 16px; border-radius: 10px; background: var(--vault-accent); color: var(--vault-text); font-weight: 700; font-size: 0.86rem; }
 .secondaryLink { padding: 10px 16px; border: 1px solid var(--vault-border); border-radius: 10px; color: var(--vault-text); font-weight: 700; font-size: 0.86rem; }
 
 @media (max-width: 520px) {
   .selectBar { position: static; }
   .bulkActions { width: 100%; }
-  .bulkActions .primary, .bulkActions .secondary { flex: 1; }
+  .bulkActions .selectedNote { flex-basis: 100%; }
+  .bulkActions .primary, .bulkActions .secondary { flex: 1 0 auto; }
 }
 
 /* A row that has been answered keeps its place in the list.
@@ -77,7 +79,7 @@
   align-items: center;
   gap: 6px;
   padding: 0 10px;
-  min-height: 32px;
+  min-height: 44px;
   border-radius: 8px;
   font-size: 0.78rem;
   font-weight: 700;
@@ -85,9 +87,9 @@
 }
 
 .outcome[data-outcome="finished"] {
-  border: 1px solid rgba(110, 231, 183, 0.34);
-  background: rgba(110, 231, 183, 0.1);
-  color: #b6f4d4;
+  border: 1px solid color-mix(in srgb, var(--vault-success) 40%, transparent);
+  background: color-mix(in srgb, var(--vault-success) 10%, transparent);
+  color: var(--vault-success);
 }
 
 .outcome[data-outcome="not-yet"] {

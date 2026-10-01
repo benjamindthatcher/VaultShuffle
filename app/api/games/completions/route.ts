@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     for (const game of games) {
       try {
         const patch = action === "claimed"
-          ? { status: "Completed" as const, completed_at: now, slept_at: null }
+          ? { status: "Completed" as const, completed_at: now }
           : {
             completion_suggestion_dismissed_at: now,
             completion_suggestion_dismissed_playtime: game.hours_played ?? 0

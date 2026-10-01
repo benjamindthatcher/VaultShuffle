@@ -156,13 +156,13 @@ export function ManualSteamProfileSetup({
   }
 
   return (
-    <main className={styles.page}>
+    <main data-vault-controls="standard" className={styles.page}>
       <header className={styles.topbar}>
         <Link className={styles.brand} href="/" aria-label="VaultShuffle home">
           <Image src="/assets/brand/vaultshuffle-icon.png" alt="" width={42} height={42} priority />
           <span><strong>Vault</strong>Shuffle</span>
         </Link>
-        <Link className={styles.back} href="/"><SiteGlyph name="back" size={18} />Back to the landing page</Link>
+        <Link data-vault-control="text" className={styles.back} href="/"><SiteGlyph name="back" size={18} />Back to the landing page</Link>
       </header>
 
       <div className={styles.shell}>
@@ -192,13 +192,13 @@ export function ManualSteamProfileSetup({
                     You’re already signed in to VaultShuffle{existingVaultName ? <> as <strong>{existingVaultName}</strong></> : null} on this device.
                   </span>
                 </p>
-                <Link className={styles.primaryAction} href="/vault">
+                <Link data-vault-control="primary" className={styles.primaryAction} href="/vault">
                   <SiteGlyph name="open-vault" size={22} />
                   <span>Go to my Vault</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </Link>
                 <button
-                  className={styles.textAction}
+                  data-vault-control="tertiary" className={styles.textAction}
                   type="button"
                   onClick={() => {
                     trackEvent(ANALYTICS_EVENTS.signInStarted, {
@@ -252,8 +252,8 @@ export function ManualSteamProfileSetup({
                     />
                   </label>
                 )}
-                <button className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !vaultName.trim()}>
-                  <SiteGlyph name="open-vault" size={22} />
+                <button data-vault-control="primary" aria-busy={busy === "create"} className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !vaultName.trim()}>
+                  {busy === "create" ? <span data-control-spinner aria-hidden="true" /> : <SiteGlyph name="open-vault" size={22} />}
                   <span>{cooldownSeconds
                     ? `Try again in ${cooldownSeconds}s`
                     : busy === "create"
@@ -261,7 +261,7 @@ export function ManualSteamProfileSetup({
                       : lookup.existing_account ? `Sign in as ${lookup.existing_account.display_name}` : "Create my Vault"}</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </button>
-                <button className={styles.textAction} type="button" onClick={resetLookup} disabled={busy !== null}>
+                <button data-vault-control="tertiary" className={styles.textAction} type="button" onClick={resetLookup} disabled={busy !== null}>
                   Use a different profile
                 </button>
               </form>
@@ -286,8 +286,8 @@ export function ManualSteamProfileSetup({
                   </span>
                 </label>
                 <p className={styles.inputHint}>Profile link, custom profile name, or 17-digit Steam ID</p>
-                <button className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !profileInput.trim()}>
-                  <SiteGlyph name="search" size={21} />
+                <button data-vault-control="steam" aria-busy={busy === "lookup"} className={styles.primaryAction} type="submit" disabled={busy !== null || cooldownSeconds > 0 || !profileInput.trim()}>
+                  {busy === "lookup" ? <span data-control-spinner aria-hidden="true" /> : <SiteGlyph name="search" size={21} />}
                   <span>{cooldownSeconds ? `Try again in ${cooldownSeconds}s` : busy === "lookup" ? "Checking Steam…" : "Find my library"}</span>
                   <SiteGlyph name="chevron-right" size={18} />
                 </button>

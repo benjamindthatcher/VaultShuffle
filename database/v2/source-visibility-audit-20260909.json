@@ -1,0 +1,11 @@
+{
+  "observed_at_utc": "2026-09-09T21:52:42.785948+00:00",
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "visibility_precedence": {
+    "account_newer": 88,
+    "profile_newer": 0,
+    "only_account_dated": 183,
+    "only_profile_dated": 0,
+    "equal_time_value_conflicts": 0
+  }
+}

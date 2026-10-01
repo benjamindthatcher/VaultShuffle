@@ -62,10 +62,10 @@
   white-space: nowrap;
 }
 
-.brandWord { color: rgba(244, 247, 255, 0.94); }
+.brandWord { color: var(--vault-text); }
 
 .brandAccent {
-  background: linear-gradient(90deg, #d66eff, #4e8dff);
+  background: linear-gradient(90deg, var(--vault-accent), var(--vault-accent-blue));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

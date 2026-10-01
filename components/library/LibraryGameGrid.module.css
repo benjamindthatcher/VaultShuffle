@@ -28,6 +28,6 @@
 .more {
   padding: 20px 0 8px;
   text-align: center;
-  color: var(--vault-text-muted, rgba(226, 232, 255, 0.6));
+  color: var(--vault-text-muted, var(--vault-text-muted));
   font-size: 0.82rem;
 }

@@ -63,6 +63,7 @@ export function GamePicks({
 
         return (
           <li
+            data-vault-card="surface"
             key={game.appid}
             className={game.headerUrl ? styles.pick : `${styles.pick} ${styles.pickNoArt}`}
           >

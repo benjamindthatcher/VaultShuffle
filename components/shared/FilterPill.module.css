@@ -6,8 +6,8 @@
   gap: 10px;
   padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(144, 104, 255, 0.26);
-  background: rgba(17, 22, 49, 0.88);
+  border: 1px solid var(--vault-border);
+  background: var(--vault-surface);
   color: var(--vault-text);
   font-size: 0.92rem;
 }

@@ -209,17 +209,11 @@ test("job completion requires a hardened post-trigger catalogue resolution", () 
   assert.match(jobSection, /game\.duration_kind = 'finite'/);
   assert.match(jobSection, /estimate\.evidence @> '\{"identity_validated": true\}'::jsonb/);
   assert.match(jobSection, /estimate\.provider = 'hltb'/);
-  assert.match(jobSection, /estimate\.provider = 'igdb'/);
+  assert.doesNotMatch(jobSection, /igdb/i);
   assert.match(jobSection, /estimate\.match_confidence = 'low'/);
   assert.match(jobSection, /estimate\.evidence ->> 'duration_basis' = 'completion_times'/);
   assert.match(jobSection, /estimate\.evidence -> 'duration_issues' = '\[\]'::jsonb/);
   assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) >= 2/);
-  assert.match(jobSection, /estimate\.provider = 'igdb'[\s\S]*estimate\.match_confidence = 'low'/);
-  assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) between 2 and 4/);
-  assert.match(jobSection, /coalesce\(estimate\.submission_count, 0\) = 1/);
-  assert.match(jobSection, /coalesce\(game\.review_total, 0\) >= 100/);
-  assert.match(jobSection, /'story rich', 'campaign', 'visual novel'/);
-  assert.match(jobSection, /'sandbox', 'open world survival craft', 'colony sim'/);
   assert.doesNotMatch(jobSection, /'igdb-parent'|'igdb-title'/);
   assert.match(jobSection, /game\.duration_manual_override/);
   assert.match(jobSection, /hardened\.steam_app_id is not null/);
@@ -228,7 +222,7 @@ test("job completion requires a hardened post-trigger catalogue resolution", () 
   const finalize = buildHltbWritebackDirectoryArtifacts(document).files.at(-1).content;
   assert.match(finalize, /hardened_finite_catalogue as \(/);
   assert.match(finalize, /unhardened_hltb_projected_ready/);
-  assert.doesNotMatch(finalize, /'igdb-parent'|'igdb-title'|acceptable_estimates/);
+  assert.doesNotMatch(finalize, /igdb|acceptable_estimates/i);
 });
 
 test("rejections demote status while errors and input-only failures cause no action", () => {
@@ -424,4 +418,19 @@ test("directory CLI refuses a non-empty output directory", async () => {
   );
   assert.notEqual(run.status, 0);
   assert.match(run.stderr, /must be empty/);
+});
+
+
+test('V2 writeback uses validated input and bounded standalone batches for the current schema', () => {
+  const report = validatorDocument({ results: [resultRow(), resultRow({ steam_appid: 101, steam_app_id: 101, provider_game_id: 201 })] });
+  const artifacts = buildHltbWritebackDirectoryArtifacts(report, { target: 'v2', batchSize: 1 });
+  assert.equal(artifacts.manifest.target, 'v2');
+  assert.equal(artifacts.manifest.batch_count, 2);
+  assert.equal(artifacts.manifest.staged_app_count, 2);
+  for (const file of artifacts.files) assert.match(file.content, /Wrong HLTB writeback target/);
+  const sql = buildHltbWritebackSql(report, { target: 'v2', batchSize: 1 });
+  assert.match(sql, /catalog\.duration_estimates/);
+  assert.match(sql, /catalog\.reconcile_hltb_duration/);
+  assert.doesNotMatch(sql, /public\.catalog_games|game_duration_jobs|igdb/i);
+  assert.throws(() => buildHltbWritebackSql({ ...report, state: 'running' }, { target: 'v2' }), /not a completed/);
 });

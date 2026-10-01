@@ -10,7 +10,7 @@ type FilterPillProps = {
 export function FilterPill({ label, removable = false, onRemove }: FilterPillProps) {
   if (removable) {
     return (
-      <button type="button" className={styles.pillButton} onClick={onRemove}>
+      <button type="button" data-vault-control="secondary" className={styles.pillButton} onClick={onRemove}>
         <span>{label}</span>
         <span className={styles.closeMark} aria-hidden="true">
           <VaultIcon name="close" size={13} />

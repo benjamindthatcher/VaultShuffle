@@ -35,7 +35,7 @@ export function LandingFaq() {
         <div className={styles.faqMeasure} ref={measureRef} aria-hidden="true" inert>
           {LANDING_FAQ.map((item) => (
             <div key={item.question}>
-              <button className={styles.faqSummary} tabIndex={-1}><span>{item.question}</span><span className={styles.faqChevron} /></button>
+              <button data-vault-control="disclosure" className={styles.faqSummary} tabIndex={-1}><span>{item.question}</span><span className={styles.faqChevron} /></button>
               <p>{item.answer}</p>
             </div>
           ))}
@@ -43,7 +43,7 @@ export function LandingFaq() {
         {LANDING_FAQ.map((item, index) => (
           <div key={item.question} className={styles.faqItem} data-open={active === index}>
             <h3 className={styles.faqHeading}>
-              <button id={`faq-question-${index}`} className={styles.faqSummary}
+              <button id={`faq-question-${index}`} data-vault-control="disclosure" className={styles.faqSummary}
                 aria-expanded={active === index} aria-controls={`faq-answer-${index}`}
                 onClick={() => setActive(index)}>
                 <span>{item.question}</span>
@@ -58,8 +58,8 @@ export function LandingFaq() {
         ))}
       </div>
       <nav className={styles.faqActions} aria-label="More about VaultShuffle">
-        <Link href="/faq"><span>More questions?</span><strong>Read the FAQ →</strong></Link>
-        <Link href="/releases"><span>See what’s new</span><strong>View releases →</strong></Link>
+        <Link data-vault-control="secondary" href="/faq"><span>More questions?</span><strong>Read the FAQ →</strong></Link>
+        <Link data-vault-control="secondary" href="/releases"><span>See what’s new</span><strong>View releases →</strong></Link>
       </nav>
     </section>
   );

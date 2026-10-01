@@ -1,3 +1,4 @@
+import * as tagModel from "./steam-tag-model.ts";
 import assert from "node:assert/strict";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -16,6 +17,9 @@ function load(path: string, imports: Record<string, unknown>, globals: Record<st
   new Function("require", "module", "exports", ...Object.keys(globals), compiled)(
     (name: string) => {
       if (name === "server-only") return {};
+      if (name === "./steam-tag-model.ts") return tagModel;
+      if (name === "@/lib/database-authority") return {isV2Authority: () => false};
+      if (name === "@/lib/v2/owned-worker" || name === "@/lib/v2/background-workers") return {};
       if (name in imports) return imports[name];
       throw new Error(`Unmocked dependency in isolated worker test: ${name}`);
     }, sourceModule, sourceModule.exports, ...Object.values(globals),
@@ -67,7 +71,7 @@ test("Vercel adds a pins-only daily job, retains the existing schedules and excl
   scan(new URL("app/", root));
   assert.doesNotMatch(readFileSync(new URL("lib/nightly-metadata.ts", root), "utf8"), /processDurationQueue|duration-worker/);
   assert.doesNotMatch(readFileSync(new URL("app/api/steam/owned-games/route.ts", root), "utf8"), /processCatalogueQueue|scheduleInitialEnrichment|syncSteamRecentWindow/);
-  assert.doesNotMatch(readFileSync(new URL("scripts/igdb/admin.ts", root), "utf8"), /functions\.invoke/);
+  assert.doesNotMatch(readFileSync(new URL("scripts/durations/admin.ts", root), "utf8"), /functions\.invoke/);
 });
 
 function cronHarness(options: { env?: string; secret?: string; reservationFails?: boolean } = {}) {

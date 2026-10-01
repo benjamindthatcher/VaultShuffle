@@ -51,7 +51,7 @@ export function PinnedPlaytimeRefresh() {
   return <>
     <button
       type="button"
-      className={styles.refreshButton}
+      data-vault-control="secondary" className={styles.refreshButton}
       disabled={isRefreshingPinnedPlaytime || isSyncing || remaining > 0}
       onClick={() => void handleRefresh()}
       title={isSyncing ? "Your Steam library is already syncing" : "Refresh playtime from Steam for your Playing Next games only"}

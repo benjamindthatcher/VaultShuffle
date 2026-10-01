@@ -1,0 +1,84 @@
+{
+  "games": 0,
+  "library": 0,
+  "project": {
+    "marker": true,
+    "created_at": "2026-09-06T09:30:36.922278+00:00",
+    "project_name": "VaultShuffle2",
+    "schema_version": "m1",
+    "expected_project_ref": "vbjtbwelnhbbdfrqczyf"
+  },
+  "accounts": 0,
+  "timezone": "UTC",
+  "migrations": [
+    {
+      "name": "m1_private_foundation",
+      "version": "20260906093036",
+      "statement_sha256": "54fe0a7defd029e91568b78d51393670ac7ca6edcf915919670c7f64c2476389"
+    },
+    {
+      "name": "m2_jobs_quota_publish",
+      "version": "20260907163356",
+      "statement_sha256": "f09d7ca900f3cdaaee81eff0f507adc5869865f16eb7f340eeb1729223bc5aba"
+    },
+    {
+      "name": "m3_preservation_schema",
+      "version": "20260910232654",
+      "statement_sha256": "605b72a3d9df1328ec27033c3420c1813a238f6e15bd8fc28f971cddaf30a24a"
+    },
+    {
+      "name": "m3_legacy_preservation_followup",
+      "version": "20260911234500",
+      "statement_sha256": "b3c4f18000ad5cdaed0b34cb7ec9e3a7f5ad525f5df6cccf72637d27a48ff915"
+    },
+    {
+      "name": "blacklist_semantics",
+      "version": "20260912193000",
+      "statement_sha256": "e00462c5a54c128ea07aa5434a86adf383c0f8a7e9a74aa8f89a4893a7904870"
+    },
+    {
+      "name": "m4_manual_session_touch",
+      "version": "20260913191021",
+      "statement_sha256": "7b993f3e0f7978ea48975cee7c9787de17097f4dcb422a2d2bd07258cd8677bd"
+    },
+    {
+      "name": "m3_reco_game_precision",
+      "version": "20260913220031",
+      "statement_sha256": "177ede8c99144bd840c9c5f33b6314ce13ee9fe628a47775486e1d7238513186"
+    },
+    {
+      "name": "m3_real_preflight_evidence",
+      "version": "20260914101424",
+      "statement_sha256": "69de20f0c72797ba204ba164c0ec42e44de1575a76057e84aeecec9a7906df34"
+    },
+    {
+      "name": "m3_wishlist_preservation",
+      "version": "20260929200758",
+      "statement_sha256": "5f79b9c4aca35387b48d9f2bec53014340f93dca688ae6993dc1ffa4fabc9af0"
+    },
+    {
+      "name": "m3_hltb_only",
+      "version": "20260929204123",
+      "statement_sha256": "34011be01a7a5449d7196f41bb7cc192c982213db6347ac37fb9a585fcdd9a5f"
+    },
+    {
+      "name": "m3_current_catalogue_fields",
+      "version": "20260929210421",
+      "statement_sha256": "e913a0fa00bf60e28294a4824e4314b17e001118735d4fcda24bb94a91235450"
+    }
+  ],
+  "wishlist_rls": {
+    "forced": true,
+    "enabled": true
+  },
+  "database_bytes": 19524755,
+  "schema_fingerprint": "34ea7355f8d2ee4881e6907b310bae88f9d2ab198d99463acfb7a72f0c65e8bc",
+  "user_relation_bytes": 6529024,
+  "wishlist_app_delete": true,
+  "wishlist_app_insert": true,
+  "wishlist_app_select": true,
+  "wishlist_app_update": false,
+  "wishlist_anon_select": false,
+  "verification_date": "2026-09-30",
+  "method": "signed-in-browser-read-only-query-after-approved-guarded-packet"
+}

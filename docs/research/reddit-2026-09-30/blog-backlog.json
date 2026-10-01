@@ -1,0 +1,932 @@
+{
+  "research_date": "2026-09-30",
+  "ranking": "Editorial priority, not measured Google volume or a ranking of all Reddit questions. Primary topic counts are sample counts, not evidence exclusively for each proposed headline.",
+  "ideas": [
+    {
+      "rank": 1,
+      "id": "return-after-break",
+      "priority": "Next",
+      "working_title": "How to get back into a game after a long break",
+      "search_intents": [
+        "how to get back into a game after a long break",
+        "restart or continue a game",
+        "forgot game controls"
+      ],
+      "primary_topic": "returning",
+      "primary_topic_threads": 11,
+      "supporting_threads": [
+        {
+          "id": "z2knzn",
+          "url": "https://www.reddit.com/r/patientgamers/comments/z2knzn/do_you_guys_restart_games_that_you_played_halfway/"
+        },
+        {
+          "id": "10cmfia",
+          "url": "https://www.reddit.com/r/patientgamers/comments/10cmfia/when_you_start_a_game_and_then_dont_go_back_to_it/"
+        },
+        {
+          "id": "14zmb4i",
+          "url": "https://www.reddit.com/r/patientgamers/comments/14zmb4i"
+        },
+        {
+          "id": "qz3s7m",
+          "url": "https://www.reddit.com/r/patientgamers/comments/qz3s7m"
+        },
+        {
+          "id": "cn77n2",
+          "url": "https://www.reddit.com/r/patientgamers/comments/cn77n2"
+        },
+        {
+          "id": "r4mfb8",
+          "url": "https://www.reddit.com/r/patientgamers/comments/r4mfb8"
+        },
+        {
+          "id": "1unjgkp",
+          "url": "https://www.reddit.com/r/Steam/comments/1unjgkp/ever_come_back_to_a_story_game_and_forget/"
+        }
+      ],
+      "answer": "Try your existing save before restarting. Check the controls and current objective, practise somewhere forgiving, then use a recap that stops where you stopped playing. A separate tutorial save can help without sacrificing your progress.",
+      "article_angle": "A practical recovery guide with a short checklist, then examples of different problems: forgotten controls, lost plot and unfinished builds. This answers returning to a particular game, rather than choosing a new one.",
+      "vaultshuffle_connection": "Use Playing Next to keep one returning game in view. Link to the existing choosing guide only when the reader decides to try something else.",
+      "verification_before_drafting": "Verify named games' tutorial, save and recap options. Do not imply every game supports separate saves or replayable tutorials."
+    },
+    {
+      "rank": 2,
+      "id": "pause-anytime",
+      "priority": "Next",
+      "working_title": "10 PC games you can pause whenever life gets in the way",
+      "search_intents": [
+        "PC games you can pause at any time",
+        "games for interrupted sessions",
+        "games you can save anytime"
+      ],
+      "primary_topic": "pause",
+      "primary_topic_threads": 9,
+      "supporting_threads": [
+        {
+          "id": "1vt6hs6",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1vt6hs6/looking_for_engaging_singleplayer_games_that_are/"
+        },
+        {
+          "id": "mm4dsy",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/mm4dsy"
+        },
+        {
+          "id": "1fsafb1",
+          "url": "https://www.reddit.com/r/Games/comments/1fsafb1"
+        },
+        {
+          "id": "1ij6yxb",
+          "url": "https://www.reddit.com/r/CozyGamers/comments/1ij6yxb"
+        },
+        {
+          "id": "1sh6cef",
+          "url": "https://www.reddit.com/r/CozyGamers/comments/1sh6cef/save_anytime/"
+        },
+        {
+          "id": "121y3sr",
+          "url": "https://www.reddit.com/r/gaming/comments/121y3sr"
+        }
+      ],
+      "answer": "Choose games with an actual pause, useful saves and sessions that do not trap you in a long mission. A short main story alone does not tell you whether you can stop when you need to.",
+      "article_angle": "Ten tested picks, with pause behaviour, saving behaviour and a useful session length visible for each. This is about interruptions on PC, not another short Steam Deck list.",
+      "vaultshuffle_connection": "Link to session and mood based choices from an imported library. Do not claim VaultShuffle has a pause or save filter.",
+      "verification_before_drafting": "Test the current PC version and relevant mode of every pick. Distinguish pausing from saving and online from offline modes."
+    },
+    {
+      "rank": 3,
+      "id": "buy-less",
+      "priority": "Next",
+      "working_title": "How to stop buying Steam games you never play",
+      "search_intents": [
+        "buying games but not playing them",
+        "stop buying Steam games",
+        "Steam sale backlog"
+      ],
+      "primary_topic": "buying",
+      "primary_topic_threads": 10,
+      "supporting_threads": [
+        {
+          "id": "1r54bke",
+          "url": "https://www.reddit.com/r/Steam/comments/1r54bke/is_it_normal_to_buy_games_but_to_never_play_them/"
+        },
+        {
+          "id": "1uftb9q",
+          "url": "https://www.reddit.com/r/Steam/comments/1uftb9q/ive_spent_more_on_games_i_havent_played_than/"
+        },
+        {
+          "id": "k57d1y",
+          "url": "https://www.reddit.com/r/patientgamers/comments/k57d1y"
+        },
+        {
+          "id": "1imze9q",
+          "url": "https://www.reddit.com/r/Steam/comments/1imze9q/do_you_buy_games_you_dont_play/"
+        },
+        {
+          "id": "1iii3nj",
+          "url": "https://www.reddit.com/r/Steam/comments/1iii3nj/i_buy_games_to_not_play_why/"
+        },
+        {
+          "id": "rp55s6",
+          "url": "https://www.reddit.com/r/patientgamers/comments/rp55s6"
+        },
+        {
+          "id": "11mwez8",
+          "url": "https://www.reddit.com/r/patientgamers/comments/11mwez8"
+        }
+      ],
+      "answer": "Put possible purchases on a wishlist, decide whether you actually want to start one soon, and compare it with something you already own. A bargain can stay a bargain without becoming tonight's purchase.",
+      "article_angle": "A practical buying pause, not a diagnosis or a lecture. Use a correctly dated VaultShuffle statistic only to illustrate unused library space, not money wasted.",
+      "vaultshuffle_connection": "Show an owned game before sending readers back to a shop. Wishlist features must be verified as live before mentioning them.",
+      "verification_before_drafting": "Do not treat zero recorded playtime as a paid purchase or proof of never playing. No promises that the same discount will return."
+    },
+    {
+      "rank": 4,
+      "id": "beginner-together",
+      "priority": "Next",
+      "working_title": "10 PC games to play with someone new to gaming",
+      "search_intents": [
+        "PC co op games for beginners",
+        "games to play with a non gamer",
+        "easy games to play together"
+      ],
+      "primary_topic": "coop",
+      "primary_topic_threads": 12,
+      "supporting_threads": [
+        {
+          "id": "yikg2r",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/yikg2r"
+        },
+        {
+          "id": "txk2oc",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/txk2oc/easy_coop_game_for_nongamer/"
+        },
+        {
+          "id": "1q19ycb",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1q19ycb/casualfriendly_online_coop_games_that_are_not/"
+        },
+        {
+          "id": "1bevt3o",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1bevt3o"
+        },
+        {
+          "id": "jv92c8",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/jv92c8"
+        },
+        {
+          "id": "18xknns",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/18xknns"
+        }
+      ],
+      "answer": "Start with clear controls and forgiving shared goals. A popular cooperative game can still be stressful for someone learning to move a character and a camera at the same time.",
+      "article_angle": "Ten picks separated by local or online play, required copies, controllers, difficulty and what the less experienced player actually does. Avoid a generic best multiplayer list.",
+      "vaultshuffle_connection": "Use library and genre exploration to find games a reader owns. Do not promise that VaultShuffle calculates games owned in common by friends.",
+      "verification_before_drafting": "Verify Steam versions, player counts, local versus online modes, Remote Play and any Friend Pass terms. Do not call a game beginner friendly on popularity alone."
+    },
+    {
+      "rank": 5,
+      "id": "mouse-only",
+      "priority": "Next",
+      "working_title": "10 great Steam games you can play with just a mouse",
+      "search_intents": [
+        "mouse only games Steam",
+        "PC games that only need a mouse",
+        "games to play with one hand"
+      ],
+      "primary_topic": "mouse",
+      "primary_topic_threads": 10,
+      "supporting_threads": [
+        {
+          "id": "1w0casn",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1w0casn/please_recommend_me_steam_games_i_can_play_with/"
+        },
+        {
+          "id": "1wryvnd",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1wryvnd/looking_for_mouse_only_controlled_advanced_or/"
+        },
+        {
+          "id": "1uplrso",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1uplrso/looking_for_mouseonly_games_while_my_hand_is_in_a/"
+        },
+        {
+          "id": "d1o84c",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/d1o84c"
+        },
+        {
+          "id": "y4wfn7",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/y4wfn7"
+        },
+        {
+          "id": "1b3a7g9",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1b3a7g9"
+        },
+        {
+          "id": "l1wurn",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/l1wurn"
+        }
+      ],
+      "answer": "Mouse play does not have to mean idle clickers. Look for games whose menus, navigation and main interactions all work without required keyboard shortcuts.",
+      "article_angle": "A tested list including strategy, stories and puzzles, with required buttons and any occasional keyboard exceptions stated plainly.",
+      "vaultshuffle_connection": "Help readers explore owned games by genre. Do not invent a mouse only filter in VaultShuffle.",
+      "verification_before_drafting": "Test menus, saving, text entry, launchers and the full game loop. No medical claims or universal accessibility promises."
+    },
+    {
+      "rank": 6,
+      "id": "linear-stories",
+      "priority": "Next",
+      "working_title": "10 linear Steam games for when open worlds feel like work",
+      "search_intents": [
+        "best linear PC games",
+        "games for open world fatigue",
+        "linear story games Steam"
+      ],
+      "primary_topic": "grind",
+      "primary_topic_threads": 15,
+      "supporting_threads": [
+        {
+          "id": "1rif4wg",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1rif4wg/tired_of_open_world_games_give_me_linearish/"
+        },
+        {
+          "id": "1pjet1u",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1pjet1u/looking_for_linear_games_to_combat_open_world/"
+        },
+        {
+          "id": "ukjdub",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/ukjdub"
+        },
+        {
+          "id": "1qaq2zf",
+          "url": "https://www.reddit.com/r/gamesuggestions/comments/1qaq2zf/linear_storyheavy_games_tired_of_the_long_open/"
+        },
+        {
+          "id": "n68in1",
+          "url": "https://www.reddit.com/r/gamesuggestions/comments/n68in1"
+        },
+        {
+          "id": "vi5xhg",
+          "url": "https://www.reddit.com/r/patientgamers/comments/vi5xhg/endlessly_long_openworld_games_sometimes_feel/"
+        }
+      ],
+      "answer": "Try a focused route through a story rather than another map of optional tasks. Linear games can still offer exploration and interesting choices.",
+      "article_angle": "Ten games chosen for direction and pacing, not an under ten hours rule. State whether each game is truly linear or has open hubs.",
+      "vaultshuffle_connection": "Use genres, goals and main story estimates to help readers recognise similar games they own.",
+      "verification_before_drafting": "Check structural claims and editions. Do not promise every recommendation is short or free of optional content."
+    },
+    {
+      "rank": 7,
+      "id": "relax-without-timers",
+      "priority": "Next",
+      "working_title": "10 relaxing Steam games without combat or timers",
+      "search_intents": [
+        "relaxing PC games no combat",
+        "games without time limits",
+        "Steam games to unwind"
+      ],
+      "primary_topic": "energy",
+      "primary_topic_threads": 12,
+      "supporting_threads": [
+        {
+          "id": "1wszk59",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1wszk59/please_suggest_some_truly_relaxing_games_with_no/"
+        },
+        {
+          "id": "16o5xqf",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/16o5xqf"
+        },
+        {
+          "id": "18t0s26",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/18t0s26"
+        },
+        {
+          "id": "1faj0mg",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1faj0mg"
+        },
+        {
+          "id": "1d2xbpl",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1d2xbpl"
+        }
+      ],
+      "answer": "A calm looking game is not necessarily a calm game. Choose games without enforced clocks or combat, and be clear about puzzles, failure states and any optional challenges.",
+      "article_angle": "A practical list that checks the actual sources of pressure. Farming games with deadlines should not slip in just because they look cosy.",
+      "vaultshuffle_connection": "Mood based exploration is a natural closing link; avoid promising relief from mental health symptoms.",
+      "verification_before_drafting": "The strongest exact constraint thread was not directly retrievable. Read it again before drafting, and test each game's timed sections and failure conditions."
+    },
+    {
+      "rank": 8,
+      "id": "owned-by-length",
+      "priority": "Later",
+      "working_title": "How to find the shortest games in your Steam library",
+      "search_intents": [
+        "sort Steam library by time to beat",
+        "shortest games I own",
+        "HowLongToBeat Steam library"
+      ],
+      "primary_topic": "tools",
+      "primary_topic_threads": 10,
+      "supporting_threads": [
+        {
+          "id": "1ajqvmt",
+          "url": "https://www.reddit.com/r/Steam/comments/1ajqvmt/is_there_a_way_to_sort_your_steam_library_by/"
+        },
+        {
+          "id": "17z189v",
+          "url": "https://www.reddit.com/r/Steam/comments/17z189v/sort_steam_games_based_on_howlongtobeat/"
+        },
+        {
+          "id": "xfut6y",
+          "url": "https://www.reddit.com/r/Steam/comments/xfut6y"
+        },
+        {
+          "id": "z2ws11",
+          "url": "https://www.reddit.com/r/Steam/comments/z2ws11"
+        },
+        {
+          "id": "1uneyj1",
+          "url": "https://www.reddit.com/r/Steam/comments/1uneyj1/the_only_feature_that_steam_misses/"
+        }
+      ],
+      "answer": "Compare estimated main story length for games you own. Your accumulated Steam hours tell you how long you played, not how long the credits usually take to reach.",
+      "article_angle": "A worked example using an owned library, with clear separation between launcher sorting, external estimates and choosing a practical next game.",
+      "vaultshuffle_connection": "Show only currently available VaultShuffle length displays and filtering controls; credit HLTB for its estimates.",
+      "verification_before_drafting": "Check the current Steam and VaultShuffle controls. HLTB is not proprietary data and is not an exact promise of completion time."
+    },
+    {
+      "rank": 9,
+      "id": "when-to-stop",
+      "priority": "Later",
+      "working_title": "When should you stop playing a game you are not enjoying?",
+      "search_intents": [
+        "when to quit a game",
+        "guilty not finishing games",
+        "should I finish every game"
+      ],
+      "primary_topic": "completion",
+      "primary_topic_threads": 18,
+      "supporting_threads": [
+        {
+          "id": "vp6h32",
+          "url": "https://www.reddit.com/r/patientgamers/comments/vp6h32"
+        },
+        {
+          "id": "e30l2u",
+          "url": "https://www.reddit.com/r/patientgamers/comments/e30l2u"
+        },
+        {
+          "id": "bymx0g",
+          "url": "https://www.reddit.com/r/patientgamers/comments/bymx0g"
+        },
+        {
+          "id": "l46cf9",
+          "url": "https://www.reddit.com/r/patientgamers/comments/l46cf9"
+        },
+        {
+          "id": "p89rv8",
+          "url": "https://www.reddit.com/r/patientgamers/comments/p89rv8/have_you_ever_felt_guilty_for_not_enjoying_an/"
+        },
+        {
+          "id": "f4rbb8",
+          "url": "https://www.reddit.com/r/patientgamers/comments/f4rbb8"
+        }
+      ],
+      "answer": "Separate a temporary sticking point from disliking the central activity. Try a difficulty or control adjustment if that is the problem, then stop if the game is still not enjoyable.",
+      "article_angle": "A concrete decision guide built around frustrating controls, repetitive tasks and lost interest. Keep it about games and preferences rather than diagnoses.",
+      "vaultshuffle_connection": "Explain excluding an unwanted game from future suggestions, with the current label verified. Do not call it snoozing.",
+      "verification_before_drafting": "Avoid universal time limits, guilt based completion targets or implying a game is bad because a reader dislikes it."
+    },
+    {
+      "rank": 10,
+      "id": "ordinary-laptop",
+      "priority": "Later",
+      "working_title": "10 great Steam games for an ordinary laptop",
+      "search_intents": [
+        "best games for low end laptop",
+        "Steam games integrated graphics",
+        "PC games 4GB RAM"
+      ],
+      "primary_topic": "low_spec",
+      "primary_topic_threads": 11,
+      "supporting_threads": [
+        {
+          "id": "189u3ct",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/189u3ct/suggest_me_games_to_play_on_a_low_end_laptop/"
+        },
+        {
+          "id": "1s1asm2",
+          "url": "https://www.reddit.com/r/gamesuggestions/comments/1s1asm2/looking_for_low_end_pc_games/"
+        },
+        {
+          "id": "1h59mjz",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1h59mjz"
+        },
+        {
+          "id": "sve55y",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/sve55y"
+        },
+        {
+          "id": "13w3lwo",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/13w3lwo"
+        },
+        {
+          "id": "15h3ryq",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/15h3ryq"
+        }
+      ],
+      "answer": "Start with the laptop's actual processor, graphics and memory. Older and modest looking games can be good options, but no single list runs on every laptop.",
+      "article_angle": "Pick a stated hardware baseline, then give tested settings and verified requirements. A useful performance guide needs a budget for testing.",
+      "vaultshuffle_connection": "Explore owned games without claiming VaultShuffle can detect hardware or guarantee frame rates.",
+      "verification_before_drafting": "Direct hardware testing is needed. Minimum requirements alone are insufficient to promise a smooth frame rate."
+    },
+    {
+      "rank": 11,
+      "id": "rpg-without-grind",
+      "priority": "Later",
+      "working_title": "10 RPGs that get going without hours of grinding",
+      "search_intents": [
+        "RPG games without grinding",
+        "story games no grinding",
+        "RPGs for limited time"
+      ],
+      "primary_topic": "grind",
+      "primary_topic_threads": 15,
+      "supporting_threads": [
+        {
+          "id": "1tkraf0",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1tkraf0/rpg_games_that_are_not_grindheavy/"
+        },
+        {
+          "id": "1bbzpn5",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1bbzpn5"
+        },
+        {
+          "id": "tow9tp",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/tow9tp"
+        },
+        {
+          "id": "s608zd",
+          "url": "https://www.reddit.com/r/patientgamers/comments/s608zd/what_games_do_respect_your_time_and_why/"
+        }
+      ],
+      "answer": "Prefer games where following the story provides enough progress, with little need to repeat routine encounters just to unlock the next chapter.",
+      "article_angle": "An RPG specific list focused on required repetition. Story length and optional activities are separate fields.",
+      "vaultshuffle_connection": "Use genre and story estimates to explore similar owned games.",
+      "verification_before_drafting": "Verify pacing through gameplay and trustworthy game specific sources. Do not describe optional grinding as mandatory or assume difficulty settings remove it."
+    },
+    {
+      "rank": 12,
+      "id": "owned-hidden-gems",
+      "priority": "Later",
+      "working_title": "10 overlooked Steam games our players keep coming back to",
+      "search_intents": [
+        "underrated Steam games",
+        "hidden gems on Steam",
+        "overlooked PC games"
+      ],
+      "primary_topic": "discovery",
+      "primary_topic_threads": 10,
+      "supporting_threads": [
+        {
+          "id": "1g16rbp",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1g16rbp"
+        },
+        {
+          "id": "1tlv94g",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1tlv94g/looking_for_your_hidden_gems_on_steam/"
+        },
+        {
+          "id": "1slr5ks",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1slr5ks/steam_games_hidden_gems/"
+        },
+        {
+          "id": "chox32",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/chox32"
+        },
+        {
+          "id": "wujody",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/wujody"
+        }
+      ],
+      "answer": "Choose genuinely less familiar games with strong evidence of engagement, rather than putting famous bestsellers in a hidden gems list.",
+      "article_angle": "An original data article: a defined familiarity threshold, meaningful owner sample, engagement measure and a useful description for each game.",
+      "vaultshuffle_connection": "VaultShuffle's own aggregate library data is the article's added value. Length estimates are supporting facts only.",
+      "verification_before_drafting": "Needs a fresh aggregate analysis. Never interpret high hours as an objective quality score. Show small samples and separate endless games from finite stories."
+    },
+    {
+      "rank": 13,
+      "id": "unplayed-library",
+      "priority": "Later",
+      "working_title": "How to find the Steam games you have never played",
+      "search_intents": [
+        "find unplayed games Steam",
+        "Steam unplayed games filter",
+        "how many Steam games have I not played"
+      ],
+      "primary_topic": "unplayed",
+      "primary_topic_threads": 5,
+      "supporting_threads": [
+        {
+          "id": "1ipsi2l",
+          "url": "https://www.reddit.com/r/Steam/comments/1ipsi2l/how_many_unplayed_games_do_you_have/"
+        },
+        {
+          "id": "1k6y7op",
+          "url": "https://www.reddit.com/r/Steam/comments/1k6y7op"
+        },
+        {
+          "id": "164mrnp",
+          "url": "https://www.reddit.com/r/Steam/comments/164mrnp/ive_noticed_people_referring_to_a_small_number_of/"
+        },
+        {
+          "id": "1n340j4",
+          "url": "https://www.reddit.com/r/Steam/comments/1n340j4"
+        },
+        {
+          "id": "1gezod9",
+          "url": "https://www.reddit.com/r/Steam/comments/1gezod9"
+        }
+      ],
+      "answer": "Use the current unplayed view or recorded playtime to locate untouched looking games, then decide which ones still interest you.",
+      "article_angle": "A short illustrated guide, with optional aggregate data and the difference between unplayed and unwanted kept clear.",
+      "vaultshuffle_connection": "Show the equivalent recorded playtime view in an imported library and link to the choosing guide.",
+      "verification_before_drafting": "Check current Steam filter names and behaviour. Zero recorded hours can reflect offline play, rounding or tracking gaps."
+    },
+    {
+      "rank": 14,
+      "id": "concurrent-games",
+      "priority": "Later",
+      "working_title": "Should you play one game at a time?",
+      "search_intents": [
+        "one game at a time or multiple",
+        "how many games should I play at once",
+        "finish a game before starting another"
+      ],
+      "primary_topic": "concurrent",
+      "primary_topic_threads": 4,
+      "supporting_threads": [
+        {
+          "id": "wpg9ti",
+          "url": "https://www.reddit.com/r/patientgamers/comments/wpg9ti"
+        },
+        {
+          "id": "13o8062",
+          "url": "https://www.reddit.com/r/patientgamers/comments/13o8062"
+        },
+        {
+          "id": "kup2ll",
+          "url": "https://www.reddit.com/r/patientgamers/comments/kup2ll"
+        },
+        {
+          "id": "c8r60r",
+          "url": "https://www.reddit.com/r/patientgamers/comments/c8r60r"
+        }
+      ],
+      "answer": "A story game plus a different kind of casual game can work well, but there is no correct quota. Limit active games only when switching makes it harder to enjoy them.",
+      "article_angle": "Examples of workable combinations and signs your active list is too crowded, without prescribing a productivity rule.",
+      "vaultshuffle_connection": "Playing Next can represent a small active list. Do not claim it forces a fixed number or completion commitment.",
+      "verification_before_drafting": "Keep recommendations preference based. Avoid repeating the choosing article's entire shortlist advice."
+    },
+    {
+      "rank": 15,
+      "id": "backlog-pressure",
+      "priority": "Later",
+      "working_title": "Your Steam backlog is a library, not a to do list",
+      "search_intents": [
+        "gaming backlog guilt",
+        "overwhelmed by game backlog",
+        "do I need to finish my backlog"
+      ],
+      "primary_topic": "backlog",
+      "primary_topic_threads": 9,
+      "supporting_threads": [
+        {
+          "id": "ibfbu6",
+          "url": "https://www.reddit.com/r/patientgamers/comments/ibfbu6/you_dont_have_a_backlog/"
+        },
+        {
+          "id": "xkzxv2",
+          "url": "https://www.reddit.com/r/patientgamers/comments/xkzxv2"
+        },
+        {
+          "id": "14dkvio",
+          "url": "https://www.reddit.com/r/patientgamers/comments/14dkvio/a_backlog_of_100_games_dont_do_it_to_yourself/"
+        },
+        {
+          "id": "yrz16k",
+          "url": "https://www.reddit.com/r/patientgamers/comments/yrz16k"
+        },
+        {
+          "id": "14wixmz",
+          "url": "https://www.reddit.com/r/patientgamers/comments/14wixmz"
+        }
+      ],
+      "answer": "Owning a game creates an option, not an obligation. Keep a small set you actually want to play and let the rest remain available without a completion deadline.",
+      "article_angle": "An editorial piece with practical examples, not a generic ten step productivity guide. Closely related quitting advice should be linked rather than repeated.",
+      "vaultshuffle_connection": "Frame VaultShuffle as help exploring a library, not a way to process every purchase.",
+      "verification_before_drafting": "High overlap with choosing and quitting. Publish only if the piece has a distinctive voice and does not repeat those instructions."
+    },
+    {
+      "rank": 16,
+      "id": "wishlist-cleanup",
+      "priority": "Later",
+      "working_title": "How to trim your Steam wishlist without losing games you want",
+      "search_intents": [
+        "organize Steam wishlist",
+        "too many games on Steam wishlist",
+        "clean up Steam wishlist"
+      ],
+      "primary_topic": "wishlist",
+      "primary_topic_threads": 6,
+      "supporting_threads": [
+        {
+          "id": "16kh3gi",
+          "url": "https://www.reddit.com/r/Steam/comments/16kh3gi/how_big_is_your_guys_wishlists/"
+        },
+        {
+          "id": "1g5won0",
+          "url": "https://www.reddit.com/r/Steam/comments/1g5won0/how_many_games_on_your_wishlist/"
+        },
+        {
+          "id": "1d1pmce",
+          "url": "https://www.reddit.com/r/Steam/comments/1d1pmce"
+        },
+        {
+          "id": "1lgq38j",
+          "url": "https://www.reddit.com/r/Steam/comments/1lgq38j"
+        },
+        {
+          "id": "1iclp0c",
+          "url": "https://www.reddit.com/r/Steam/comments/1iclp0c/how_many_games_do_you_guys_in_your_wishlist/"
+        },
+        {
+          "id": "mm545d",
+          "url": "https://www.reddit.com/r/patientgamers/comments/mm545d"
+        }
+      ],
+      "answer": "Separate something you want to play soon from a game you are merely curious about. Remove entries that no longer interest you instead of treating every sale notification as a plan.",
+      "article_angle": "A Steam client workflow and a few decision examples, distinct from organising games already owned.",
+      "vaultshuffle_connection": "Connect it to exploring owned games. Mention VaultShuffle wishlist tools only after their live availability is verified.",
+      "verification_before_drafting": "Verify current Steam sorting and notification controls. Several corpus threads ask about size rather than expressly request cleanup advice."
+    },
+    {
+      "rank": 17,
+      "id": "bundle-worth",
+      "priority": "Later",
+      "working_title": "Is a Steam bundle worth buying if you only want one game?",
+      "search_intents": [
+        "Steam bundle worth it",
+        "Steam bundle already own game",
+        "buy one game from Steam bundle"
+      ],
+      "primary_topic": "bundles",
+      "primary_topic_threads": 5,
+      "supporting_threads": [
+        {
+          "id": "1sp45bn",
+          "url": "https://www.reddit.com/r/Steam/comments/1sp45bn/very_glad_i_checked_the_bundles_before_i_bought/"
+        },
+        {
+          "id": "1bbdrra",
+          "url": "https://www.reddit.com/r/Steam/comments/1bbdrra/is_there_any_way_to_buy_a_single_item_out_of_a/"
+        },
+        {
+          "id": "1cv4j5g",
+          "url": "https://www.reddit.com/r/Steam/comments/1cv4j5g"
+        },
+        {
+          "id": "1is8eva",
+          "url": "https://www.reddit.com/r/Steam/comments/1is8eva/dosnt_forget_about_bundles_when_buying_games/"
+        },
+        {
+          "id": "1u5kaqi",
+          "url": "https://www.reddit.com/r/Steam/comments/1u5kaqi/steam/"
+        }
+      ],
+      "answer": "Compare the cost of the game you want with the actual bundle price shown for your account. Extra titles have value only if you want them; bundle types can behave differently.",
+      "article_angle": "Worked price examples with an explicit date, then complete the set versus purchase together explained using Valve documentation.",
+      "vaultshuffle_connection": "A light link to exploring existing games is enough. Avoid turning a buying guide into a product advert.",
+      "verification_before_drafting": "Verify Valve's current bundle rules and regional prices. Do not reuse old Reddit prices as current offers."
+    },
+    {
+      "rank": 18,
+      "id": "completion-estimates",
+      "priority": "Later",
+      "working_title": "Beating a game is not the same as completing it",
+      "search_intents": [
+        "HowLongToBeat main story vs completionist",
+        "beat a game vs complete it",
+        "how long to 100 percent a game"
+      ],
+      "primary_topic": "completion",
+      "primary_topic_threads": 18,
+      "supporting_threads": [
+        {
+          "id": "1i0hzl1",
+          "url": "https://www.reddit.com/r/steamachievements/comments/1i0hzl1"
+        },
+        {
+          "id": "18aqntj",
+          "url": "https://www.reddit.com/r/steamachievements/comments/18aqntj"
+        },
+        {
+          "id": "1ndl7nt",
+          "url": "https://www.reddit.com/r/steamachievements/comments/1ndl7nt"
+        },
+        {
+          "id": "podl5j",
+          "url": "https://www.reddit.com/r/patientgamers/comments/podl5j"
+        },
+        {
+          "id": "nxcfbg",
+          "url": "https://www.reddit.com/r/patientgamers/comments/nxcfbg"
+        },
+        {
+          "id": "rpkl40",
+          "url": "https://www.reddit.com/r/patientgamers/comments/rpkl40"
+        }
+      ],
+      "answer": "Choose an estimate matching your goal. Reaching credits, doing optional content and earning every achievement can mean very different amounts of time.",
+      "article_angle": "Use a few verified contrasting games, with estimates and achievement caveats. Also explain how a dropped game differs from a finished one in tracking.",
+      "vaultshuffle_connection": "Explain only the completion states and duration labels currently used by VaultShuffle.",
+      "verification_before_drafting": "Confirm HLTB's definitions and each game's achievement constraints. Avoid presenting Steam hours or achievements as proof of story completion."
+    },
+    {
+      "rank": 19,
+      "id": "hide-game",
+      "priority": "Later",
+      "working_title": "How to hide a Steam game without removing it from your account",
+      "search_intents": [
+        "hide games Steam library",
+        "Steam hide vs remove game",
+        "find hidden Steam games"
+      ],
+      "primary_topic": "hide",
+      "primary_topic_threads": 3,
+      "supporting_threads": [
+        {
+          "id": "1vy94td",
+          "url": "https://www.reddit.com/r/Steam/comments/1vy94td/what_types_of_games_do_you_hide/"
+        },
+        {
+          "id": "1jh2ze7",
+          "url": "https://www.reddit.com/r/Steam/comments/1jh2ze7/the_library_looks_so_good_like_that_i_wish_steam/"
+        },
+        {
+          "id": "1je9fo6",
+          "url": "https://www.reddit.com/r/SteamDeck/comments/1je9fo6"
+        }
+      ],
+      "answer": "Hide an unwanted entry when you want a tidier view; account removal is a separate action. Explain where hidden games can be found again.",
+      "article_angle": "A focused illustrated task guide. Privacy settings are a separate concern and should be explained only if verified.",
+      "vaultshuffle_connection": "Distinguish hiding a game in Steam from excluding it in VaultShuffle; neither should be said to synchronise automatically.",
+      "verification_before_drafting": "Verify current Valve support steps. Do not repeat Reddit claims about reversibility or private game behaviour without primary confirmation."
+    },
+    {
+      "rank": 20,
+      "id": "offline-readiness",
+      "priority": "Later",
+      "working_title": "Steam games to play without internet: what to check before travelling",
+      "search_intents": [
+        "Steam games offline",
+        "can I play Steam games without internet",
+        "single player games offline"
+      ],
+      "primary_topic": "offline",
+      "primary_topic_threads": 12,
+      "supporting_threads": [
+        {
+          "id": "1w0aviz",
+          "url": "https://www.reddit.com/r/SteamDeck/comments/1w0aviz/i_took_my_steam_deck_on_a_plane_trip_without_wifi/"
+        },
+        {
+          "id": "1qx0xn4",
+          "url": "https://www.reddit.com/r/SteamDeck/comments/1qx0xn4/using_the_steam_deck_on_a_cruisewithout_internet/"
+        },
+        {
+          "id": "1ofizzt",
+          "url": "https://www.reddit.com/r/SteamDeck/comments/1ofizzt/can_i_steam_deck_completely_offline/"
+        },
+        {
+          "id": "1sv4lvr",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/1sv4lvr/i_need_a_new_singleplayer_100_offline_forever/"
+        },
+        {
+          "id": "ei5ngz",
+          "url": "https://www.reddit.com/r/gamingsuggestions/comments/ei5ngz"
+        },
+        {
+          "id": "1p64ef4",
+          "url": "https://www.reddit.com/r/SteamDeck/comments/1p64ef4/steam_deck_offline_games_recommendation_long/"
+        }
+      ],
+      "answer": "Prepare and test the exact games offline before leaving. A single player label or Deck Verified badge does not guarantee a launcher will work without internet.",
+      "article_angle": "A practical preparation guide followed by a few verified PC examples. This is an offline readiness problem, not a second Deck roundup.",
+      "vaultshuffle_connection": "Suggest choosing from owned games before downloading, while stating that VaultShuffle's web app itself needs connectivity.",
+      "verification_before_drafting": "Test first launch, restarts, third party accounts and any DRM requirements. Do not claim an offline filter exists in VaultShuffle."
+    },
+    {
+      "rank": 21,
+      "id": "family-draft",
+      "priority": "Published",
+      "working_title": "Your Steam family might already own your next favourite game",
+      "search_intents": [
+        "Steam family sharing",
+        "how to see Steam family games",
+        "find games in Steam family library"
+      ],
+      "primary_topic": "family",
+      "primary_topic_threads": 12,
+      "supporting_threads": [
+        {
+          "id": "1mdyshe",
+          "url": "https://www.reddit.com/r/Steam/comments/1mdyshe/can_2_people_play_the_same_game_simultaneously_in/"
+        },
+        {
+          "id": "1fhgchs",
+          "url": "https://www.reddit.com/r/Steam/comments/1fhgchs/are_multiple_people_allowed_to_play_the_same_game/"
+        },
+        {
+          "id": "jsiqvl",
+          "url": "https://www.reddit.com/r/Steam/comments/jsiqvl"
+        },
+        {
+          "id": "eohuub",
+          "url": "https://www.reddit.com/r/Steam/comments/eohuub/how_to_play_family_shared_games_at_the_same_time/"
+        },
+        {
+          "id": "1bk0nil",
+          "url": "https://www.reddit.com/r/Steam/comments/1bk0nil/how_does_family_sharing_work/"
+        },
+        {
+          "id": "udr524",
+          "url": "https://www.reddit.com/r/Steam/comments/udr524"
+        }
+      ],
+      "answer": "Set up Steam Families for eligible household members and share eligible games across separate accounts. Explain copy availability, personal saves and why some games cannot be shared using current Valve guidance.",
+      "article_angle": "Published at https://vaultshuffle.com/blog/steam-family-library-next-game in commit 9aba1b7. The earlier simultaneous play draft was deleted at the user's request.",
+      "vaultshuffle_connection": "After answering the Steam questions, show how VaultShuffle can help browse imported household libraries and find something to play. Its family library features do not create a Steam Family, verify membership or guarantee that a shared copy is currently available.",
+      "verification_before_drafting": "Follow the current Valve Steam Families guide and verify setup in the current client. Explain household eligibility, account roles, exclusions, copy counts, saves and applicable cooldowns. Avoid advice based on retired Family Sharing, password sharing or workarounds.",
+      "primary_sources": [
+        "https://help.steampowered.com/en/faqs/view/054C-3167-DD7F-49D4",
+        "https://partner.steamgames.com/doc/features/families"
+      ],
+      "draft_slug": "steam-family-library-next-game"
+    },
+    {
+      "rank": 22,
+      "id": "installed-count",
+      "priority": "Research more",
+      "working_title": "How many games should you keep installed?",
+      "search_intents": [
+        "how many games keep installed",
+        "too many installed games",
+        "Steam library installed games"
+      ],
+      "primary_topic": "installed",
+      "primary_topic_threads": 1,
+      "supporting_threads": [
+        {
+          "id": "1usj3aa",
+          "url": "https://www.reddit.com/r/Steam/comments/1usj3aa/how_many_games_do_yall_keep_installed_at_once/"
+        },
+        {
+          "id": "1rn8tyc",
+          "url": "https://www.reddit.com/r/Steam/comments/1rn8tyc/how_do_you_guys_organize_your_library/"
+        }
+      ],
+      "answer": "Keep current games and anything you regularly return to; available storage and download speed matter more than a universal number.",
+      "article_angle": "Potential small practical guide, but the corpus contains only one directly focused original question. Keep it off the publishing queue for now.",
+      "vaultshuffle_connection": "A natural distinction between owned library and active playing list, with no invented storage management feature.",
+      "verification_before_drafting": "Needs several more independent focused threads and a useful angle beyond personal preference. Combine with organisation if it stays thin."
+    },
+    {
+      "rank": 23,
+      "id": "playtime-meaning",
+      "priority": "Research more",
+      "working_title": "Why your Steam hours are not a game's completion time",
+      "search_intents": [
+        "Steam playtime vs time to beat",
+        "Steam hours wrong",
+        "game length estimates"
+      ],
+      "primary_topic": "playtime",
+      "primary_topic_threads": 1,
+      "supporting_threads": [
+        {
+          "id": "1ptuipg",
+          "url": "https://www.reddit.com/r/Steam/comments/1ptuipg/played_time_is_wrong/"
+        },
+        {
+          "id": "1ajqvmt",
+          "url": "https://www.reddit.com/r/Steam/comments/1ajqvmt/is_there_a_way_to_sort_your_steam_library_by/"
+        },
+        {
+          "id": "xfut6y",
+          "url": "https://www.reddit.com/r/Steam/comments/xfut6y"
+        }
+      ],
+      "answer": "Recorded playing time and an estimated story duration measure different things. Technical discrepancies need their own verified explanation.",
+      "article_angle": "A useful supporting explainer for data articles, but wrong Steam hours is not automatically a good fit for a full standalone post.",
+      "vaultshuffle_connection": "Clarify the figures readers see in VaultShuffle without calling either an exact progress measure.",
+      "verification_before_drafting": "Only one corpus thread directly concerns inaccurate hours. Verify Valve tracking behaviour before making technical claims; fold into duration guide if no deeper demand emerges."
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildV2Artifacts } from "./build-hltb-v2-sql.mjs";
 
 const VALIDATOR_SOURCE =
   "HLTB candidates verified against detail-page identity evidence";
@@ -22,6 +23,9 @@ const SAFE_TIERS = new Set(["exact_title", "mixed_script_title"]);
 const INPUT_ONLY_REJECTION_REASONS = new Set(["no_authoritative_source_title"]);
 
 export function buildHltbWritebackSql(document, options = {}) {
+  if (options.target === "v2") {
+    return buildHltbWritebackDirectoryArtifacts(document, options).files.map(file => file.content).join("\n");
+  }
   const batchSize = parseBatchSize(options.batchSize ?? DEFAULT_BATCH_SIZE);
   const sourceName = cleanComment(options.sourceName ?? "validator-report.json");
   const normalized = normalizeValidatorDocument(document, sourceName);
@@ -87,6 +91,9 @@ export function buildHltbWritebackDirectoryArtifacts(document, options = {}) {
     .sort((left, right) => left - right);
   const width = Math.max(4, String(Math.max(1, batches.length)).length);
   const files = [];
+  if (options.target === "v2") return buildV2Artifacts(normalized, {
+    batchSize, sourceName, sourceSha256: cleanSha256(options.sourceSha256) ?? sha256(JSON.stringify(document)),
+  });
 
   files.push(artifactFile("setup.sql", "setup", buildStandaloneSetupSql(), 0, 0));
   for (const [index, rows] of batches.entries()) {
@@ -485,88 +492,6 @@ function hardenedFiniteCatalogueCte() {
           ) >= 2
         )
       )
-      or (
-        estimate.provider = 'igdb'
-        and estimate.match_confidence = 'low'
-        and coalesce(estimate.submission_count, 0) between 2 and 4
-        and (
-          (estimate.main_story_minutes is not null)::int
-          + (estimate.main_extra_minutes is not null)::int
-          + (estimate.completionist_minutes is not null)::int
-        ) >= 2
-        and (
-          estimate.main_story_minutes is null
-          or estimate.main_extra_minutes is null
-          or estimate.main_extra_minutes::bigint
-            < estimate.main_story_minutes::bigint * 12
-        )
-        and (
-          coalesce(
-            estimate.main_story_minutes,
-            estimate.main_extra_minutes
-          ) is null
-          or estimate.completionist_minutes is null
-          or estimate.completionist_minutes::bigint < coalesce(
-            estimate.main_story_minutes,
-            estimate.main_extra_minutes
-          )::bigint * 12
-        )
-      )
-      or (
-        estimate.provider = 'igdb'
-        and estimate.match_confidence = 'low'
-        and coalesce(estimate.submission_count, 0) = 1
-        and estimate.main_story_minutes between 30 and 30000
-        and estimate.main_extra_minutes
-          between estimate.main_story_minutes and 30000
-        and estimate.completionist_minutes
-          between estimate.main_extra_minutes and 30000
-        and estimate.main_extra_minutes::bigint
-          <= estimate.main_story_minutes::bigint * 4
-        and estimate.completionist_minutes::bigint
-          <= estimate.main_extra_minutes::bigint * 3
-        and estimate.completionist_minutes::bigint
-          <= estimate.main_story_minutes::bigint * 6
-        and lower(btrim(coalesce(game.steam_type, ''))) = 'game'
-        and coalesce(game.review_total, 0) >= 100
-        and exists (
-          select 1
-          from unnest(coalesce(game.categories, array[]::text[]))
-            as category(value)
-          where lower(btrim(category.value)) in (
-            'single-player', 'single player'
-          )
-        )
-        and not exists (
-          select 1
-          from unnest(coalesce(game.categories, array[]::text[]))
-            as category(value)
-          where lower(btrim(category.value)) in (
-            'multi-player', 'multiplayer', 'online co-op', 'co-op',
-            'mmo', 'pvp', 'online pvp'
-          )
-        )
-        and exists (
-          select 1
-          from pg_catalog.jsonb_object_keys(
-            coalesce(game.tags, '{}'::jsonb)
-          ) as tag(value)
-          where lower(btrim(tag.value)) in (
-            'story rich', 'campaign', 'visual novel', 'multiple endings',
-            'choices matter', 'narrative', 'linear'
-          )
-        )
-        and not exists (
-          select 1
-          from pg_catalog.jsonb_object_keys(
-            coalesce(game.tags, '{}'::jsonb)
-          ) as tag(value)
-          where lower(btrim(tag.value)) in (
-            'sandbox', 'open world survival craft', 'colony sim',
-            'life sim', 'city builder', 'god game', 'automation'
-          )
-        )
-      )
     )
     and estimate.provider_game_id is not null
     and (estimate.main_story_minutes > 0 or estimate.main_extra_minutes > 0 or estimate.completionist_minutes > 0)
@@ -592,31 +517,6 @@ function hardenedFiniteCatalogueCte() {
           or (
             estimate.evidence ->> 'verification_method' in ('safe_exact_title', 'safe_exact_alias')
             and estimate.evidence ->> 'verification_tier' in ('exact_title', 'mixed_script_title')
-          )
-        )
-      )
-      or (
-        estimate.provider = 'igdb'
-        and (
-          coalesce(estimate.submission_count, 0) >= 5
-          or estimate.match_confidence = 'low'
-        )
-        and (
-          (estimate.main_story_minutes is not null)::int
-          + (estimate.main_extra_minutes is not null)::int
-          + (estimate.completionist_minutes is not null)::int
-        ) >= 2
-        and lower(game.name) !~
-          '(^|[^a-z0-9])(demo|playtest|prologue|alpha|beta|soundtrack|server|content[ -]?pack)([^a-z0-9]|$)'
-        and (
-          estimate.evidence @> '{"duplicate_provider_id_validated": true}'::jsonb
-          or not exists (
-            select 1
-            from public.game_duration_estimates as sibling_estimate
-            where sibling_estimate.provider = 'igdb'
-              and sibling_estimate.match_status = 'matched'
-              and sibling_estimate.provider_game_id = estimate.provider_game_id
-              and sibling_estimate.steam_app_id <> estimate.steam_app_id
           )
         )
       )
@@ -1418,6 +1318,9 @@ async function main() {
     );
   }
   const inputPath = path.resolve(args[0]);
+  const targetIndex = args.indexOf("--target");
+  const target = targetIndex < 0 ? "legacy" : args[targetIndex + 1];
+  if (target !== "legacy" && target !== "v2") throw new Error("--target must be legacy or v2.");
   const batchIndex = args.indexOf("--batch-size");
   const batchSize = batchIndex === -1 ? DEFAULT_BATCH_SIZE : args[batchIndex + 1];
   const inputContent = await readFile(inputPath, "utf8");
@@ -1426,7 +1329,7 @@ async function main() {
 
   if (hasOutput) {
     const outputPath = path.resolve(args[outputIndex + 1]);
-    const sql = buildHltbWritebackSql(document, { batchSize, sourceName: inputPath });
+    const sql = buildHltbWritebackSql(document, { batchSize, sourceName: inputPath, target });
     await writeFile(outputPath, sql, "utf8");
     console.log(JSON.stringify({
       stage: "hltb_writeback_sql_built",
@@ -1451,6 +1354,7 @@ async function main() {
     batchSize,
     sourceName: path.basename(inputPath),
     sourceSha256: sha256(inputContent),
+    target,
   });
   for (const file of artifacts.files) {
     await writeFile(path.join(outputDirectory, file.name), file.content, "utf8");

@@ -7,20 +7,19 @@
     "dev": "next dev -p 8766",
     "build": "next build",
     "start": "next start -p 8766",
-    "lint": "eslint .",
+    "lint": "npm run theme:check && eslint .",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm run lint && npm test && npm run build",
     "test": "node --experimental-strip-types --test lib/*.test.ts scripts/catalogue/*.test.mjs scripts/durations/*.test.mjs",
     "catalogue:fetch-top": "node scripts/catalogue/fetch-steamspy-top.mjs",
     "catalogue:fetch-steamspy-owners": "node scripts/catalogue/fetch-steamspy-owners.mjs",
-    "catalogue:fetch-igdb-popular": "node scripts/catalogue/fetch-igdb-popular.mjs",
-    "catalogue:merge-popular": "node scripts/catalogue/merge-popular-catalogues.mjs",
     "catalogue:build-seed": "node scripts/catalogue/build-seed-sql.mjs",
-    "catalogue:import-durations": "node scripts/catalogue/import-duration-estimates.mjs",
     "catalogue:reclassify-endless": "node --experimental-strip-types scripts/catalogue/reclassify-endless.mjs",
-    "duration:admin": "node --experimental-strip-types scripts/igdb/admin.ts",
+    "duration:admin": "node --experimental-strip-types scripts/durations/admin.ts",
     "duration:hltb": "python3 scripts/durations/enrich-hltb.py",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "theme:check": "node --experimental-strip-types scripts/check-theme.mjs",
+    "test:v2": "node --experimental-strip-types --test lib/v2/**/*.test.ts lib/v2/migration/**/*.test.ts scripts/migration/*.test.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -31,7 +30,8 @@
     "posthog-js": "^1.416.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "zod": "^4.1.11"
+    "zod": "^4.1.11",
+    "postgres": "3.4.9"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.6",

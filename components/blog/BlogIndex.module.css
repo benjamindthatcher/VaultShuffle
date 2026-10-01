@@ -9,7 +9,7 @@
   align-items: center;
   gap: 12px;
   margin: 0;
-  color: #d392ff;
+  color: var(--vault-accent);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -20,7 +20,7 @@
   content: "";
   width: 68px;
   height: 1px;
-  background: linear-gradient(90deg, #a855f7, transparent);
+  background: linear-gradient(90deg, var(--vault-accent), transparent);
 }
 
 .page h1 {
@@ -51,12 +51,12 @@
   position: relative;
   display: grid;
   overflow: hidden;
-  border: 1px solid rgba(168, 125, 224, 0.38);
+  border: 1px solid var(--vault-border);
   border-radius: 20px;
   background:
-    radial-gradient(ellipse at 0% 100%, rgba(168, 85, 247, 0.14), transparent 65%),
-    linear-gradient(125deg, #15162e, #0d132a);
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
+    radial-gradient(ellipse at 0% 100%, color-mix(in srgb, var(--vault-accent) 14%, transparent), transparent 65%),
+    linear-gradient(125deg, var(--vault-surface), var(--vault-well-surface));
+  box-shadow: 0 18px 50px color-mix(in srgb, var(--vault-shadow-color) 20%, transparent);
   color: var(--vault-text);
   text-decoration: none;
   transition: border-color 160ms ease, box-shadow 160ms ease;
@@ -68,17 +68,17 @@
   z-index: 1;
   inset: 0 0 auto;
   height: 2px;
-  background: linear-gradient(90deg, #a855f7, #4e8dff, transparent);
+  background: linear-gradient(90deg, var(--vault-accent), var(--vault-accent), transparent);
   pointer-events: none;
 }
 
 .post:hover {
-  border-color: rgba(194, 122, 255, 0.75);
-  box-shadow: 0 20px 54px rgba(0, 0, 0, 0.3);
+  border-color: var(--vault-accent);
+  box-shadow: 0 20px 54px color-mix(in srgb, var(--vault-shadow-color) 30%, transparent);
 }
 
 .post:focus-visible {
-  outline: 2px solid #d392ff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 5px;
 }
 
@@ -101,7 +101,7 @@
 
 .postDek {
   max-width: 72ch;
-  color: #c7c2da;
+  color: var(--vault-text);
   font-size: 1rem;
   line-height: 1.65;
 }
@@ -111,12 +111,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  color: #b5b0c9;
+  color: var(--vault-text-muted);
   font-size: 0.78rem;
 }
 
 .topic {
-  color: #d392ff;
+  color: var(--vault-accent);
   font-weight: 750;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -138,8 +138,8 @@
   gap: 12px;
   margin-top: 6px;
   padding-top: 18px;
-  border-top: 1px solid rgba(168, 125, 224, 0.2);
-  color: #dcc1ff;
+  border-top: 1px solid var(--vault-border);
+  color: var(--vault-text);
   font-size: 0.88rem;
   font-weight: 700;
 }
@@ -147,14 +147,14 @@
 .read svg {
   box-sizing: content-box;
   padding: 8px;
-  border: 1px solid rgba(194, 122, 255, 0.35);
+  border: 1px solid var(--vault-border);
   border-radius: 50%;
-  background: rgba(168, 85, 247, 0.1);
+  background: color-mix(in srgb, var(--vault-accent) 10%, transparent);
   transition: background 160ms ease;
 }
 
 .post:hover .read svg {
-  background: rgba(168, 85, 247, 0.25);
+  background: color-mix(in srgb, var(--vault-accent) 25%, transparent);
 }
 
 @media (max-width: 640px) {

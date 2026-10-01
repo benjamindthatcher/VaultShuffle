@@ -249,7 +249,7 @@ function displayPreferenceGenre(value: string) {
 }
 
 function moodLabel(mood: VaultMoodId) {
-  if (mood === "brain-off") return "Brain-Off";
+  if (mood === "brain-off") return "Brain Off";
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }
 
@@ -364,7 +364,8 @@ function sigmoid(value: number) {
   return 1 / (1 + Math.exp(-value));
 }
 
-export type GenrePreferenceAdjustment = { points: number; reason: string | null };
+export type GenrePreferenceEvidence = { genre: string; mood: VaultMoodId | null };
+export type GenrePreferenceAdjustment = { points: number; reason: string | null; evidence?: GenrePreferenceEvidence };
 
 const NO_ADJUSTMENT: GenrePreferenceAdjustment = { points: 0, reason: null };
 
@@ -415,7 +416,14 @@ export function genrePreferenceAdjustment(
   if (!weightTotal || !strongest) return NO_ADJUSTMENT;
 
   const points = weightedPoints / weightTotal;
-  return { points, reason: preferenceReason(points, strongest, mood) };
+  const personal = rowFor(index, strongest.genre, ANY_MOOD_CONTEXT)
+    || (mood && rowFor(index, strongest.genre, mood));
+  const reason = personal && personal.total > 0 && strongest.points > 0 ? preferenceReason(points, strongest, mood) : null;
+  return {
+    points,
+    reason,
+    ...(reason ? { evidence: { genre: displayPreferenceGenre(strongest.genre), mood: strongest.moodScoped ? mood : null } } : {})
+  };
 }
 
 /**

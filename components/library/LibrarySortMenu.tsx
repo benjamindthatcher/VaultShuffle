@@ -32,7 +32,7 @@ export function LibrarySortMenu({ value, onChange, showDuration }: { value: stri
     trigger.current?.focus({ preventScroll: true });
   }
   return <div className={styles.sortMenu} ref={root} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
-    <button ref={trigger} type="button" className={styles.sortTrigger} id="library-sort" aria-label={`Sort: ${options[selected][1]}`} aria-haspopup="listbox" aria-controls={open ? id : undefined} aria-expanded={open}
+    <button ref={trigger} type="button" data-vault-control="secondary" className={styles.sortTrigger} id="library-sort" aria-label={`Sort: ${options[selected][1]}`} aria-haspopup="listbox" aria-controls={open ? id : undefined} aria-expanded={open}
       onClick={() => { setFocused(selected); setOpen(!open); }}
       onKeyDown={(event) => { if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); setFocused(event.key === "Home" ? 0 : event.key === "End" ? options.length - 1 : selected); setOpen(true); } }}>
       <span>{options[selected][1]}</span><VaultIcon name="chevron-down" size={16} />
@@ -49,7 +49,7 @@ export function LibrarySortMenu({ value, onChange, showDuration }: { value: stri
           if (match >= 0) setFocused(match);
         }
       }}>
-      {options.map(([key, label], index) => <div key={key} id={`${id}-${index}`} role="option" aria-selected={key === value} data-focused={focused === index || undefined} className={styles.sortOption} onPointerMove={() => setFocused(index)} onClick={() => choose(index)}>
+      {options.map(([key, label], index) => <div key={key} id={`${id}-${index}`} data-vault-control="selection" data-control-hover="secondary" role="option" aria-selected={key === value} data-focused={focused === index || undefined} className={styles.sortOption} onPointerMove={() => setFocused(index)} onClick={() => choose(index)}>
         <span className={styles.sortCheck}>{key === value ? <VaultIcon name="check" size={17} /> : null}</span><span>{label}</span>
       </div>)}
     </div> : null}

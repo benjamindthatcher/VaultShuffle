@@ -51,9 +51,11 @@ type Props = {
    */
   emptySlotLabel?: string;
   showEmpty?: boolean;
+  /** Dashboard-only compact invitation when all three slots are empty. */
+  compactEmpty?: boolean;
 };
 
-export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnpin, compact = false, emptySlotLabel = "Let Vault find something worth playing.", showEmpty = false }: Props) {
+export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnpin, compact = false, emptySlotLabel = "Let Vault find something worth playing.", showEmpty = false, compactEmpty = false }: Props) {
   // A pin outranks the global filters. Someone said "this is what I am playing
   // next", and a filter set afterwards - five years or newer, single-player only
   // - would otherwise retire that decision without saying so: the shelf would
@@ -81,7 +83,28 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
         </span>
         {pinned.length ? <PinnedPlaytimeRefresh /> : null}
       </header>
-      <ul className={styles.list}>
+      {compactEmpty && pinned.length === 0 ? (
+        <div className={styles.emptyPanel}>
+          <div className={styles.emptyIntro}>
+            <span className={styles.emptyIcon} aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="m7 6-2 1c-2 2-4 10-2 12 2 1 4-4 5-4h8c1 0 3 5 5 4 2-2 0-10-2-12l-2-1H7Z" />
+                <path d="M6 10v4m-2-2h4" /><circle cx="16" cy="10" r=".7" /><circle cx="18" cy="13" r=".7" />
+              </svg>
+            </span>
+            <div className={styles.emptyCopy}>
+              <h3>Nothing lined up yet</h3>
+              <p>Let the Vault find something worth playing.</p>
+            </div>
+          </div>
+          <div className={styles.emptyActions}>
+            <Link data-vault-control="primary" className={styles.emptyCta} href="/vault" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.playingNextEmptySlotClicked, { slot_count: 0, slot: 1 })}>
+              Find your first game <VaultIcon name="chevron-right" size={18} />
+            </Link>
+            <small>3 spots available</small>
+          </div>
+        </div>
+      ) : <ul className={styles.list}>
         {pinned.map((game) => {
           const label = pinProgressLabel(game, pinFor(game.id));
           const progress = pinProgress(game, pinFor(game.id));
@@ -127,13 +150,13 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
               {onUnpin ? (
                 <button
                   type="button"
-                  className={styles.unpin}
+                  data-vault-control="tertiary" data-control-size="icon" data-control-position="floating" className={styles.unpin}
                   aria-label={`Remove ${game.title} from Playing Next`}
                   title="Remove from Playing Next"
                   onClick={() => onUnpin(game.id)}
                 ><VaultIcon name="close" size={14} /></button>
               ) : null}
-              <button type="button" className={styles.card} onClick={() => onSelect?.(game.id)} disabled={!onSelect}>
+              <button type="button" className={styles.card} data-vault-card="interactive" onClick={() => onSelect?.(game.id)} disabled={!onSelect}>
                 <span className={styles.art}><Artwork src={game.bannerUrl} sizes="180px" /><FamilyGameMark game={game} overlay /></span>
                 <span className={styles.body}>
                   <strong>{game.title}</strong>
@@ -188,17 +211,17 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
         {Array.from({ length: Math.max(0, 3 - pinned.length) }, (_, index) => (
           <li key={`empty-${index}`} className={styles.emptySlot}>
             <span>{pinned.length ? "Empty spot" : index === 0 ? "No games yet" : "Room for your next choice"}</span>
-            {index === 0 ? <><small>{emptySlotLabel}</small><Link href="/vault" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.playingNextEmptySlotClicked, { slot_count: pinned.length, slot: pinned.length + index + 1 })}>{pinned.length ? "Find another game" : "Find your first game"}<VaultIcon name="chevron-right" size={16} /></Link></> : <Link href="/vault" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.playingNextEmptySlotClicked, { slot_count: pinned.length, slot: pinned.length + index + 1 })}>Find another game<VaultIcon name="chevron-right" size={16} /></Link>}
+            {index === 0 ? <><small>{emptySlotLabel}</small><Link data-vault-control="tertiary" href="/vault" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.playingNextEmptySlotClicked, { slot_count: pinned.length, slot: pinned.length + index + 1 })}>{pinned.length ? "Find another game" : "Find your first game"}<VaultIcon name="chevron-right" size={16} /></Link></> : <Link data-vault-control="tertiary" href="/vault" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.playingNextEmptySlotClicked, { slot_count: pinned.length, slot: pinned.length + index + 1 })}>Find another game<VaultIcon name="chevron-right" size={16} /></Link>}
           </li>
         ))}
-      </ul>
+      </ul>}
     </section>
   );
 }
 
 function CommitmentPlayLink({ game, isLive }: { game: DemoGame; isLive: boolean }) {
   const link = useSteamPlayLink(game.steamAppId, { forceStore: !isLive });
-  return <a className={styles.play} href={link.href} target={link.target} rel={link.rel} onClick={() => {
+  return <a data-vault-control="steam" className={styles.play} href={link.href} target={link.target} rel={link.rel} onClick={() => {
     if (link.launching) trackNavigationEvent(ANALYTICS_EVENTS.playingNextGameLaunched, {
       game_id: game.id, steam_app_id: game.steamAppId, source: "playing_next_shelf", launch_target: "steam_client"
     });

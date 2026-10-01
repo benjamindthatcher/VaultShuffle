@@ -1,6 +1,6 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
 import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
-import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
+import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceEvidence, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
 import { hoursFor, popularityPoints, verdictBaseline, verdictFor, verdictPoints, type GameVerdicts } from "./game-verdict.ts";
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
 import { appealDetail, appealLabel, gameAppeal } from "./game-appeal.ts";
@@ -37,8 +37,8 @@ export const vaultSessionOptions = [
 ] satisfies ReadonlyArray<{ id: VaultSessionId; label: string; shortLabel: string; caption: string }>;
 
 export const vaultMoodOptions = [
-  { id: "brain-off", label: "Brain-Off", caption: "Easy to drop into and play." },
-  { id: "chill", label: "Chill", caption: "Low-friction, softer energy." },
+  { id: "brain-off", label: "Brain Off", caption: "Easy to drop into and play." },
+  { id: "chill", label: "Chill", caption: "Relaxed play with softer energy." },
   { id: "intense", label: "Intense", caption: "Momentum, combat, or pressure." }
 ] satisfies ReadonlyArray<{ id: VaultMoodId; label: string; caption: string }>;
 
@@ -59,6 +59,7 @@ export type VaultPoolEntry = {
    * are. This is applied at selection time instead, where it can only reweight.
    */
   preferencePoints: number;
+  preferenceEvidence?: GenrePreferenceEvidence;
   /**
    * How much the game stands out on its own merits — hype and hidden-gem — rather
    * than how well it fits the setup. Applied in both experiment arms, because it
@@ -121,8 +122,8 @@ export function getVaultEligibility({
   const collectionDraw = isCollectionDraw(selectedCollectionId);
   const owned = games.filter((game) => game.ownership === "Owned");
   const completedCount = owned.filter((game) => game.status === "Completed").length;
-  const sleptCount = owned.filter((game) => game.status === "Slept").length;
-  const active = owned.filter((game) => game.status !== "Completed" && game.status !== "Slept");
+  const sleptCount = owned.filter((game) => game.status === "Blacklisted").length;
+  const active = owned.filter((game) => game.status !== "Completed" && game.status !== "Blacklisted");
   const inCollection = !collectionDraw
     ? active
     : active.filter((game) => game.collectionIds.includes(selectedCollectionId!));
@@ -167,7 +168,7 @@ export function getVaultEligibility({
   }
   stages.push({ id: "available", label: "Available", count: available.length });
   if (available.length > MAX_VAULT_DECK_SIZE) {
-    stages.push({ id: "shortlist", label: "Best-fit Deck", count: MAX_VAULT_DECK_SIZE });
+    stages.push({ id: "shortlist", label: "Best Matches", count: MAX_VAULT_DECK_SIZE });
   }
 
   return { stages, games: available };
@@ -479,7 +480,7 @@ export function scoreVaultGame(
 
   const appeal = gameAppeal(game);
   const appealName = appealLabel(appeal.kind);
-  if (appealName) reasons.push(appealName);
+  if (appealName && appeal.points > 0) reasons.push(appealName);
 
   // Folded into appeal rather than into taste: this is what everybody did with
   // this game, not what you like, so it applies to every player and in both arms
@@ -493,7 +494,7 @@ export function scoreVaultGame(
   const verdict = verdictPoints(verdictFor(verdicts, game.steamAppId), verdictReference)
     + popularityPoints(hoursFor(verdicts, game.steamAppId));
 
-  return { game, score, preferencePoints: preference.points, appealPoints: appeal.points + verdict, finishQuality, reasons: reasons.slice(0, 4) };
+  return { game, score, preferencePoints: preference.points, preferenceEvidence: preference.evidence, appealPoints: appeal.points + verdict, finishQuality, reasons: reasons.slice(0, 4) };
 }
 
 export function vaultMatchLabel(score: number) {
@@ -711,6 +712,7 @@ function recencyEvidenceOf(game: DemoGame): RecencyEvidence | null {
 }
 
 function lastPlayedReason(game: DemoGame, now: number) {
+  if (playtimeIsUnknown(game)) return null;
   // Only claimed where there is evidence. Most accounts never get an exact Steam
   // timestamp, so reading one was both usually silent and, where the app filled
   // the gap itself, sometimes wrong.
@@ -726,7 +728,7 @@ function lastPlayedReason(game: DemoGame, now: number) {
 }
 
 function labelForMood(mood: VaultMoodId) {
-  if (mood === "brain-off") return "Brain-Off";
+  if (mood === "brain-off") return "Brain Off";
   return mood.charAt(0).toUpperCase() + mood.slice(1);
 }
 
@@ -778,10 +780,12 @@ export function buildVaultMatchExplanation({
   mood,
   goal,
   selectedGenres = [],
+  includePersonalTaste = true,
   now = Date.now()
 }: {
   entry: VaultPoolEntry;
   pool: VaultPoolEntry[];
+  includePersonalTaste?: boolean;
   session: VaultSessionId | null;
   mood: VaultMoodId | null;
   goal: VaultGoalId | null;
@@ -797,8 +801,7 @@ export function buildVaultMatchExplanation({
 
   // Where the game came from, before anything about why it suits tonight.
   //
-  // Built first and given the top strength so it always survives the trim to
-  // four. Being handed somebody else's game is the single most surprising thing
+  // Given first semantic priority so it always survives the trim to four. Being handed somebody else's game is the single most surprising thing
   // a draw can do - the player does not own it, may not remember they can play
   // it, and will lose it if that person leaves the family. That is not small
   // print to be discovered in a details panel.
@@ -808,15 +811,11 @@ export function buildVaultMatchExplanation({
       kind: "family",
       strength: "perfect",
       headline: owner ? `From ${owner}'s library` : "From the family shelf",
-      // One line. Every detail here is clamped to a single line, so a sentence
-      // that runs long is a sentence nobody reads the end of.
-      detail: "Shared with you, so it has never been in your own backlog."
+      detail: "Available through Steam Families. Your personal playtime is unknown."
     });
   }
 
-  // Rank is not a tile. It says the same thing as the score in the header
-  // beside it, and it was taking one of the few slots that could have carried a
-  // reason the player did not already know.
+  // Technical score and pool position are exposed in Vault Lens, not as reasons.
 
   if (session) {
     const label = sessionLabel(session).toLowerCase();
@@ -825,12 +824,7 @@ export function buildVaultMatchExplanation({
     insights.push({
       kind: "session",
       strength: ratio >= 0.93 ? "perfect" : ratio >= 0.8 ? "strong" : "good",
-      headline: game.duration?.endless ? "Plays to any length" : `${ratio >= 0.93 ? "Ideal" : ratio >= 0.8 ? "Good" : "Workable"} ${label} length`,
-      detail: game.duration?.endless
-        ? "No fixed ending, so you can stop whenever you like."
-        : remaining === null
-          ? "No length estimate yet, so this is neither helped nor penalised."
-          : sessionDetail(session, remaining)
+      ...sessionInsightCopy(game, session, ratio, label, remaining)
     });
   }
 
@@ -847,7 +841,7 @@ export function buildVaultMatchExplanation({
         // "nothing pulls against it" under a "Perfect" headline would undersell the
         // very claim it is meant to support.
         detail: drivers.length
-          ? `Tagged ${drivers.join(", ")} — that is what gives it the ${labelForMood(mood)} feel.`
+          ? `Its ${drivers.join(", ")} tags give it the ${labelForMood(mood)} feel.`
           : strength >= 5
             ? `Its overall tag mix reads strongly ${labelForMood(mood)}.`
             : `Nothing about it pulls against a ${labelForMood(mood)} night.`
@@ -916,7 +910,7 @@ export function buildVaultMatchExplanation({
   const appeal = gameAppeal(game);
   const appealName = appealLabel(appeal.kind);
   const appealWhy = appealDetail(appeal);
-  if (appealName && appealWhy) {
+  if (appealName && appealWhy && appeal.points > 0 && appeal.kind !== "divisive") {
     insights.push({
       kind: "appeal",
       strength: appeal.points >= 3 ? "perfect" : appeal.points > 0 ? "strong" : "good",
@@ -925,29 +919,22 @@ export function buildVaultMatchExplanation({
     });
   }
 
-  // The learned term, when it had something to say about this game.
-  const taste = entry.reasons.find((reason) => reason.includes("lands well for you"));
-  if (taste) {
+  // Structured scorer evidence survives copy changes and the legacy reason trim.
+  const taste = includePersonalTaste ? entry.preferenceEvidence : undefined;
+  if (taste && entry.preferencePoints > 0) {
     insights.push({
       kind: "taste",
       strength: entry.preferencePoints >= 5 ? "perfect" : "strong",
-      headline: taste,
-      detail: "Drawn from what you have actually launched and liked before, not what you told us."
+      headline: `${taste.genre} suits your taste${taste.mood ? ` when ${labelForMood(taste.mood)}` : ""}`,
+      detail: "Based on your previous choices and library activity."
     });
   }
 
-  // Strongest first, so the grid is read in the order that matters rather than
-  // the order the reasons happened to be built in. Two things were wrong with
-  // build order: a "Workable short length" could sit above a perfect genre
-  // match, and the trim took whatever came last - so a perfect reason could be
-  // cut to keep a merely good one that had been pushed earlier.
-  //
-  // Sorted before the trim for that second reason, and stable, so reasons of
-  // equal strength keep the order they were built in: what you asked for, then
-  // what the game brings to it.
+  // Preserve the user's explicit intent before adding supporting context.
   const shown = insights
     .map((insight, order) => ({ insight, order }))
-    .sort((a, b) => insightRank(b.insight) - insightRank(a.insight) || a.order - b.order)
+    .sort((a, b) => INSIGHT_PRIORITY[a.insight.kind] - INSIGHT_PRIORITY[b.insight.kind]
+      || insightRank(b.insight) - insightRank(a.insight) || a.order - b.order)
     .slice(0, MAX_MATCH_INSIGHTS)
     .map((entry) => entry.insight);
 
@@ -957,6 +944,36 @@ export function buildVaultMatchExplanation({
     rank,
     poolSize: pool.length,
     insights: shown
+  };
+}
+
+const INSIGHT_PRIORITY: Record<VaultMatchInsightKind, number> = {
+  family: 0, goal: 1, session: 2, mood: 3, genre: 4,
+  dormancy: 5, taste: 6, appeal: 7, selection: 8
+};
+
+function sessionInsightCopy(game: DemoGame, session: VaultSessionId, ratio: number, label: string, remaining: number | null) {
+  if (game.duration?.endless) {
+    if (session === "short") return { headline: "Easy to dip into", detail: "No fixed ending, so you can stop whenever you're ready." };
+    if (session === "evening") return { headline: "Fits an evening nicely", detail: "No fixed ending, so you can settle in without committing to a finish." };
+    return { headline: "Easy to sink time into", detail: "No fixed ending, so there's plenty to get stuck into this weekend." };
+  }
+  const lean = sessionLean(game.sessionability ?? 0);
+  if (session === "weekend" && lean === "sit-down") {
+    return { headline: "Rewards a longer session", detail: "Its structure suits having a proper block of uninterrupted time." };
+  }
+  if (session === "short" && lean === "pick-up") {
+    return { headline: "Built for a quick session", detail: "Its sessions stand on their own, so even a short sitting feels worthwhile." };
+  }
+  if (playtimeIsUnknown(game)) {
+    const total = totalPlaythroughHours(game);
+    return { headline: `${sessionLabel(session)} fit`, detail: total
+      ? `About ${Math.round(total)}h for a full playthrough. Your personal progress is unknown.`
+      : "Your personal progress and this game's length are unknown." };
+  }
+  return {
+    headline: remaining === null ? "Session length is uncertain" : `${ratio >= 0.93 ? "Ideal" : ratio >= 0.8 ? "Good" : "Workable"} ${label} length`,
+    detail: remaining === null ? "There isn't a reliable length estimate for this game yet." : sessionDetail(session, remaining)
   };
 }
 
@@ -982,42 +999,29 @@ function sessionDetail(session: VaultSessionId, remaining: number) {
   const left = remaining < 1 ? "Under an hour left" : `Roughly ${Math.round(remaining)}h left`;
   if (session === "short") {
     return remaining <= 3
-      ? `${left} — you could see the end of it tonight.`
+      ? `${left}. You could see the end of it tonight.`
       : `${left}, so one sitting makes real progress.`;
   }
   if (session === "evening") {
     return remaining >= 10 && remaining <= 30
-      ? `${left} — a few evenings, which is exactly the shape you asked for.`
+      ? `${left}, spread over a few evenings.`
       : `${left}, so an evening covers a good chunk of it.`;
   }
   return remaining > 30
-    ? `${left} — enough to properly sink into over a weekend.`
+    ? `${left}, with plenty to get into over a weekend.`
     : `${left}, so a weekend could bring you close to the end.`;
 }
 
 function dormancyDetail(game: DemoGame, now: number) {
+  if (playtimeIsUnknown(game)) return null;
   const recency = describeRecency(recencyEvidenceOf(game), new Date(now));
   if (!recency.known || recency.daysSince === null) return null;
   const days = Math.floor(recency.daysSince);
   if (days < 21) return null;
 
-  // Only name a month when the evidence can support naming one.
   if (!recency.precise) {
-    return {
-      headline: `Not played in about ${approximateAge(days)}`,
-      detail: "Steam last showed it as active around then, which is as precise as Steam gets."
-    };
+    return { headline: "Worth revisiting", detail: `Steam last showed activity around ${approximateAge(days)} ago.` };
   }
-  const when = new Date(now - days * 86_400_000).toLocaleDateString("en-GB", { month: "long", year: "numeric" });
-  if (days >= 365) {
-    const years = Math.floor(days / 365);
-    return {
-      headline: years >= 2 ? `Untouched for ${years} years` : "Untouched for over a year",
-      detail: `Last played ${when}.`
-    };
-  }
-  if (days >= 60) {
-    return { headline: `Not played in ${Math.round(days / 30)} months`, detail: `Last played ${when}, so it is well overdue another look.` };
-  }
-  return { headline: `Not played in ${days} days`, detail: `Last played ${when}.` };
+  const when = new Date(now - recency.daysSince * 86_400_000).toLocaleDateString("en-GB", { month: "long", year: "numeric", timeZone: "UTC" });
+  return { headline: "Worth revisiting", detail: `Last played ${when}. It's been ${approximateAge(days)}.` };
 }

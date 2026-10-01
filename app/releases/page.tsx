@@ -35,6 +35,101 @@ const TAG_CLASS: Record<Tag, string> = {
   fixed: styles.tagFixed
 };
 
+const RELEASE_1_2_HIGHLIGHTS: Highlight[] = [
+  {
+    icon: "heart",
+    title: "Wishlist",
+    text: "Save games you want to buy and discover suggestions based on what you enjoy playing."
+  },
+  {
+    icon: "all-games",
+    title: "Redesigned Dashboard",
+    text: "See your library at a glance, keep Playing Next in view and look back at the games you have finished."
+  },
+  {
+    icon: "grid",
+    title: "Refreshed design",
+    text: "Purple panels and consistent controls bring the app together on desktop and mobile."
+  }
+];
+
+const RELEASE_1_2_GROUPS: Group[] = [
+  {
+    icon: "heart",
+    title: "Wishlist",
+    summary: "A new place to discover games and keep track of what you want to buy, separate from the games you already own.",
+    items: [
+      { tag: "new", text: "Search for games, save them to your Wishlist or import your public Steam wishlist. Your saved list in VaultShuffle does not change your wishlist on Steam." },
+      { tag: "new", text: "Discover suggestions based on games you have finished or spent time playing, with For you, Short & sweet, Budget picks and Highly rated views." },
+      { tag: "new", text: "View game details, Steam prices and discounts for your chosen store region, then open the game on Steam. Final prices and availability are confirmed on Steam." }
+    ]
+  },
+  {
+    icon: "all-games",
+    title: "Dashboard and Library",
+    summary: "The redesigned Dashboard brings your library overview, Playing Next and finished games together. Library controls help you manage what stays in your backlog.",
+    items: [
+      { tag: "new", text: "The Dashboard’s library overview shows your game counts, progress and library value together." },
+      { tag: "new", text: "View recently finished games and open your completion history from the Dashboard." },
+      { tag: "changed", text: "Blacklisted games stay out of your active library and recommendations until you choose to restore them." },
+      { tag: "improved", text: "Playing Next stays visible on the Dashboard and in the Vault, including when saved games do not match your global filters." },
+      { tag: "improved", text: "Library browsing and game actions have been reorganised, with clearer search, sorting, filters and grid or list views." }
+    ]
+  },
+  {
+    icon: "shuffle",
+    title: "Vault draws",
+    summary: "Simpler setup and updated recommendation goals help you find something to start or something to finish.",
+    items: [
+      { tag: "improved", text: "Session, mood and goal choices guide you through setup, with genre filters linked to your global library filters." },
+      { tag: "improved", text: "Something New includes games you have barely sampled. Finish Something focuses on games you have started that are closest to an ending." },
+      { tag: "improved", text: "Recommendations make better use of your playing activity and feedback when choosing between matching games." },
+      { tag: "fixed", text: "Rerolling on mobile keeps the result at the current scroll position." },
+      { tag: "fixed", text: "Launch a recommended game directly in Steam from desktop Vault results." }
+    ]
+  },
+  {
+    icon: "grid",
+    title: "Appearance and controls",
+    summary: "A shared purple design gives product pages and information pages a more consistent appearance.",
+    items: [
+      { tag: "changed", text: "Dark navy backgrounds and purple panels now carry through the app and shared information pages." },
+      { tag: "improved", text: "Buttons, game cards and details panels use consistent controls, with clearer focus, selection and loading states on desktop and mobile." }
+    ]
+  },
+  {
+    icon: "id",
+    title: "Access and guides",
+    summary: "Explore the Vault before connecting Steam, read the new guides or return to an existing public profile on another device.",
+    items: [
+      { tag: "new", text: "Try an interactive Vault draw on the landing page, using sample games and the same recommendation process as the app." },
+      { tag: "new", text: "The Blog adds guides covering Steam backlogs, Steam Deck, choosing your next game and finding games through Steam family libraries." },
+      { tag: "improved", text: "Return to an existing public profile from another browser by entering its Steam profile details." }
+    ]
+  }
+];
+
+function LatestReleaseBody() {
+  return (
+    <>
+      <section className={styles.releaseOverview} aria-labelledby="release-1-2-overview">
+        <div className={styles.overviewInner}>
+          <div className={styles.overviewHead}>
+            <VaultIcon name="new" size={17} />
+            <h3 id="release-1-2-overview" className={styles.overviewTitle}>Release overview</h3>
+          </div>
+          <p>
+            VaultShuffle 1.2 introduces Wishlist, redesigns the Dashboard and refreshes the app’s appearance.
+            Vault setup and recommendations have also been refined to help you choose what to play.
+          </p>
+        </div>
+      </section>
+      <ReleaseHighlights items={RELEASE_1_2_HIGHLIGHTS} />
+      <ReleaseGroups groups={RELEASE_1_2_GROUPS} />
+    </>
+  );
+}
+
 const RELEASE_1_1_HIGHLIGHTS: Highlight[] = [
   {
     "icon": "family",
@@ -437,11 +532,12 @@ export default function ReleasesPage() {
   return (
     <SharedInformationShell>
       <InfoPage
-        eyebrow="Product · Updated 4 September 2026"
+        eyebrow="Product · Updated 1 October 2026"
         title="Releases"
         variant="release"
         sections={[
-          { title: "1.1 — 4 September 2026", open: true, body: <ReleaseBody /> },
+          { title: "1.2 · 1 October 2026", open: true, body: <LatestReleaseBody /> },
+          { title: "1.1 — 4 September 2026", body: <ReleaseBody /> },
           {
             title: "1.0 — 29 August 2026",
             body: <LaunchReleaseBody />

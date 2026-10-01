@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { diagnosticRoute } from "@/lib/diagnostics";
 import { isUnpublishedArticle } from "@/lib/blog/schedule";
+import { timingSafeEqual } from "node:crypto";
 
 const UNSAFE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 const MAX_API_BODY_BYTES = 64 * 1024;
@@ -32,6 +33,19 @@ function allowedOrigins(request: NextRequest) {
 }
 
 export function proxy(request: NextRequest) {
+  // Stop routes before session touches, GET cron handlers or queued work run.
+  // Source database write guards are still required to fence older deployments.
+  if (process.env.VAULT_MAINTENANCE === "1" && !isCutoverRecoveryRequest(request)) {
+    const headers = {
+      "Cache-Control": "private, no-store, max-age=0",
+      "Retry-After": "60",
+      "X-Robots-Tag": "noindex",
+    };
+    const message = "VaultShuffle is undergoing a brief database upgrade. Please try again shortly.";
+    return request.nextUrl.pathname.startsWith("/api/")
+      ? NextResponse.json({ error: message, code: "maintenance" }, { status: 503, headers })
+      : new NextResponse(message, { status: 503, headers: { ...headers, "Content-Type": "text/plain; charset=utf-8" } });
+  }
   if (request.nextUrl.pathname.startsWith("/blog/")) {
     // Gate future articles before the route cache. Caching an early notFound()
     // can carry its noindex tag into the first successful ISR regeneration.
@@ -116,16 +130,20 @@ export function proxy(request: NextRequest) {
   return response;
 }
 
+// The pre-launch repair uses the existing bounded hosted worker/key.
+// No browser session, other route or unverified cron can bypass maintenance.
+function isCutoverRecoveryRequest(request: NextRequest) {
+  if (process.env.VAULT_CUTOVER_WORKERS !== "1" || process.env.VAULT_DATABASE_AUTHORITY !== "v2"
+    || request.method !== "GET" || request.nextUrl.pathname !== "/api/v2/workers/owned-games") return false;
+  const secret = process.env.CRON_SECRET;
+  if (!secret) return false;
+  const supplied = Buffer.from(request.headers.get("authorization") ?? "");
+  const expected = Buffer.from(`Bearer ${secret}`);
+  return supplied.length === expected.length && timingSafeEqual(supplied, expected);
+}
+
 export const config = {
   matcher: [
-    "/",
-    "/blog/:path*",
-    "/api/:path*",
-    "/dashboard",
-    "/stats",
-    "/vault",
-    "/library",
-    "/purge",
-    "/collections"
+    "/((?!_next/static|_next/image|favicon\\.ico$|icon\\.svg$).*)",
   ]
 };

@@ -1,4 +1,4 @@
 .controls { display: inline-flex; align-items: center; gap: 8px; }
-.controls button { width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 1px solid rgba(187, 108, 255, .48); border-radius: 999px; background: rgba(18, 20, 48, .94); color: #e0b1ff; box-shadow: 0 6px 18px rgba(0,0,0,.2); }
-.controls button:hover:not(:disabled), .controls button:focus-visible { border-color: #d27aff; background: rgba(118, 53, 203, .34); color: #fff; outline: none; }
+.controls button { --control-radius: 999px; width: 40px; height: 40px; display: grid; place-items: center; padding: 0; border: 1px solid var(--vault-border); border-radius: 999px; background: var(--vault-surface); color: var(--vault-text); box-shadow: 0 6px 18px color-mix(in srgb, var(--vault-shadow-color) 20%, transparent); }
+.controls button:hover:not(:disabled), .controls button:focus-visible { border-color: var(--vault-accent); background: color-mix(in srgb, var(--vault-accent) 34%, transparent); color: var(--vault-text); outline: none; }
 .controls button:disabled { opacity: .32; cursor: default; }

@@ -3,18 +3,18 @@
   box-sizing: border-box;
   margin-top: 0;
   padding: 24px max(24px, calc((100% - 1540px) / 2));
-  border-top: 1px solid rgba(132, 117, 196, 0.12);
-  background: #050716;
-  color: #f3f1fb;
+  border-top: 1px solid var(--vault-border);
+  background: var(--vault-chrome);
+  color: var(--vault-text);
 }
 
 .footerPanel {
   padding: 18px 24px 14px;
-  background: #050716;
+  background: var(--vault-chrome);
 }
 
 .footerApp {
-  border-top-color: rgba(134, 91, 255, 0.18);
+  border-top-color: var(--vault-border);
   /* The same bar colour as the header, so a page is closed at the bottom by the
      same thing that opens it at the top. */
   background: var(--vault-chrome);
@@ -33,7 +33,7 @@
 .footerApp .footerLink:focus-visible {
   color: var(--vault-text);
   background: var(--vault-accent-soft);
-  box-shadow: 0 0 22px rgba(91, 79, 232, 0.16);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--vault-accent) 16%, transparent);
   outline-color: var(--vault-border-strong);
 }
 
@@ -79,7 +79,7 @@
   min-height: 48px;
   box-sizing: border-box;
   border-radius: 12px;
-  color: #fff;
+  color: var(--vault-text);
   font: inherit;
   text-decoration: none;
 }
@@ -87,25 +87,25 @@
 .xLink {
   width: 48px;
   flex-shrink: 0;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: #000;
+  border: 1px solid var(--vault-border);
+  background: var(--vault-surface);
 }
 
 .xLink:hover {
-  background: #191919;
+  background: var(--vault-feature-surface);
 }
 
 .coffeeButton {
   gap: 8px;
   padding: 0 16px;
-  background: #bd5fff;
+  background: var(--vault-accent);
   font-size: 1rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .coffeeButton:hover {
-  background: #ca7aff;
+  background: var(--vault-accent);
 }
 
 .coffeeEmoji {
@@ -115,7 +115,7 @@
 
 .xLink:focus-visible,
 .coffeeButton:focus-visible {
-  outline: 2px solid #fff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 4px;
 }
 
@@ -132,7 +132,7 @@
   border: 0;
   border-radius: 10px;
   background: transparent;
-  color: rgba(243, 241, 251, 0.82);
+  color: var(--vault-text-muted);
   font: inherit;
   font-size: 0.84rem;
   line-height: 1;
@@ -150,27 +150,27 @@
 
 .footerLink:hover,
 .footerLink:focus-visible {
-  color: #fff;
-  background: rgba(171, 92, 255, 0.08);
-  box-shadow: 0 0 22px rgba(156, 77, 255, 0.2);
-  outline: 1px solid rgba(215, 117, 255, 0.5);
+  color: var(--vault-text);
+  background: color-mix(in srgb, var(--vault-accent) 8%, transparent);
+  box-shadow: 0 0 22px color-mix(in srgb, var(--vault-accent) 20%, transparent);
+  outline: 1px solid var(--vault-accent);
   outline-offset: 2px;
 }
 
 .footerDivider {
   height: 1px;
   margin: 14px 0 12px;
-  background: linear-gradient(90deg, transparent, rgba(171, 92, 255, 0.2), transparent);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--vault-accent) 20%, transparent), transparent);
 }
 
 .footerCopyright {
   margin: 0;
-  color: rgba(243, 241, 251, 0.58);
+  color: var(--vault-text-muted);
   font-size: 0.78rem;
   text-align: center;
 }
-.consentActions button { min-height: 40px; padding: 7px 13px; border: 1px solid rgba(151,105,255,.3); border-radius: 999px; background: rgba(22, 25, 56, .9); font-weight: 700; line-height: 1.2; }.consentActions button.primaryConsent { background: linear-gradient(90deg,#7438ff,#a64cff); }
-.consentLayer { position: fixed; z-index: 1150; inset: 0; display: grid; place-items: center; padding: 18px; }.consentBackdrop { position: absolute; inset: 0; border: 0; background: rgba(2,4,15,.76); backdrop-filter: blur(5px); }.consentDialog { position: relative; width: min(560px,100%); max-height: calc(100dvh - 36px); overflow-y: auto; padding: 24px; border: 1px solid rgba(187,112,255,.48); border-radius: 20px; background: linear-gradient(150deg,rgba(16,20,49,.99),rgba(6,9,26,.99)); box-shadow: 0 30px 100px rgba(0,0,0,.65); }.close { position: absolute; top: 18px; right: 18px; width: 38px; height: 38px; border: 1px solid rgba(151,105,255,.3); border-radius: 50%; background: rgba(19,23,53,.9); font-size: 1.3rem; }.eyebrow { margin: 0 0 5px; color: #d58cff; font-size: .7rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }.consentDialog h2 { margin: 0; }.consentDialog > p:not(.eyebrow) { color: var(--vault-text-muted); line-height: 1.55; }.consentChoice { display: flex; justify-content: space-between; gap: 20px; margin-top: 10px; padding: 13px; border: 1px solid var(--vault-card-border); border-radius: 12px; background: rgba(9,13,34,.82); }.consentChoice span { display: grid; gap: 3px; }.consentChoice small { color: var(--vault-text-soft); }.consentChoice b { color: #d58cff; }.consentActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 18px; }
+.consentActions button { min-height: 40px; padding: 7px 13px; border: 1px solid var(--vault-border); border-radius: 999px; background: var(--vault-surface); font-weight: 700; line-height: 1.2; }.consentActions button.primaryConsent { background: linear-gradient(90deg,var(--vault-accent),var(--vault-accent)); }
+.consentLayer { position: fixed; z-index: 1150; inset: 0; display: grid; place-items: center; padding: 18px; }.consentBackdrop { position: absolute; inset: 0; border: 0; background: var(--vault-overlay); backdrop-filter: blur(5px); }.consentDialog { position: relative; width: min(560px,100%); max-height: calc(100dvh - 36px); overflow-y: auto; padding: 24px; border: 1px solid var(--vault-border); border-radius: 20px; background: var(--vault-surface); box-shadow: 0 30px 100px color-mix(in srgb, var(--vault-shadow-color) 65%, transparent); }.close { position: absolute; top: 18px; right: 18px; width: 38px; height: 38px; border: 1px solid var(--vault-border); border-radius: 50%; background: var(--vault-surface); font-size: 1.3rem; }.eyebrow { margin: 0 0 5px; color: var(--vault-accent); font-size: .7rem; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }.consentDialog h2 { margin: 0; }.consentDialog > p:not(.eyebrow) { color: var(--vault-text-muted); line-height: 1.55; }.consentChoice { display: flex; justify-content: space-between; gap: 20px; margin-top: 10px; padding: 13px; border: 1px solid var(--vault-card-border); border-radius: 12px; background: var(--vault-surface); }.consentChoice span { display: grid; gap: 3px; }.consentChoice small { color: var(--vault-text-soft); }.consentChoice b { color: var(--vault-accent); }.consentActions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 18px; }
 @media (max-width: 1199px) {
   .footerLinks { grid-template-columns: repeat(3, minmax(0, max-content)); gap: 14px 40px; }
 }
@@ -190,24 +190,25 @@
     font-size: 0.72rem;
     line-height: 1.25;
     text-align: center;
+    white-space: normal;
   }
   .consentActions { grid-template-columns: 1fr; }
   .consentActions button { width: 100%; }
 }
 
-.consentBanner { position: fixed; z-index: 1140; inset: auto 0 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; padding: 15px 20px; border-top: 1px solid rgba(187,112,255,.42); background: linear-gradient(150deg,rgba(16,20,49,.985),rgba(6,9,26,.985)); box-shadow: 0 -18px 60px rgba(0,0,0,.55); }
+.consentBanner { position: fixed; z-index: 1140; inset: auto 0 0; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px 22px; padding: 15px 20px; border-top: 1px solid var(--vault-border); background: var(--vault-chrome); box-shadow: 0 -18px 60px color-mix(in srgb, var(--vault-shadow-color) 55%, transparent); }
 .consentBannerCopy { flex: 1 1 420px; display: grid; gap: 4px; }
 .consentBannerCopy strong { font-size: .95rem; }
 .consentBannerCopy p { margin: 0; color: var(--vault-text-muted); font-size: .82rem; line-height: 1.5; }
-.consentBannerCopy a { color: #d58cff; text-decoration: underline; }
+.consentBannerCopy a { color: var(--vault-accent); text-decoration: underline; }
 .consentBannerActions { display: flex; flex: 0 0 auto; gap: 9px; }
-.consentBannerActions button { min-height: 40px; padding: 7px 17px; border: 1px solid rgba(151,105,255,.3); border-radius: 999px; background: rgba(22,25,56,.9); font-weight: 700; line-height: 1.2; }
-.consentBannerActions button.primaryConsent { border-color: transparent; background: linear-gradient(90deg,#7438ff,#a64cff); }
+.consentBannerActions button { min-height: 40px; padding: 7px 17px; border: 1px solid var(--vault-border); border-radius: 999px; background: var(--vault-feature-surface); font-weight: 700; line-height: 1.2; }
+.consentBannerActions button.primaryConsent { border-color: transparent; background: linear-gradient(90deg,var(--vault-accent),var(--vault-accent)); }
 
 /* The notice must not eat the first screen on mobile, where most link traffic
    lands: it is an FYI, not a decision the visitor has to make before scrolling. */
 @media (max-width: 560px) {
-  .consentBanner { gap: 9px; padding: 11px 14px; }
+  .consentBanner { gap: 9px; padding: 11px 14px; background: var(--vault-chrome); }
   .consentBannerCopy strong { font-size: .85rem; line-height: 1.3; }
   .consentBannerCopy p { font-size: .73rem; line-height: 1.42; }
   .consentBannerActions { width: 100%; }

@@ -22,7 +22,7 @@ export function LandingCtas({ location, compact = false }: { location: "hero" | 
           trackNavigationEvent - a plain trackEvent can lose the request to the
           navigation that follows it. */}
       <a
-        className={styles.primaryCta}
+        data-vault-control="steam" className={styles.primaryCta}
         href="/api/auth/steam"
         onClick={() => {
           trackNavigationEvent(ANALYTICS_EVENTS.landingChoiceMade, { choice: "steam", location });
@@ -33,23 +33,29 @@ export function LandingCtas({ location, compact = false }: { location: "hero" | 
         <span>Continue with Steam</span>
         <SiteGlyph name="chevron-right" size={18} />
       </a>
+      {!compact && <p className={`${styles.entryHint} ${styles.entryPrivacy}`}><SiteGlyph name="shield" size={18} /><span>VaultShuffle never sees your password. We only read your public library info.</span></p>}
+      {!compact && <div className={styles.entryDivider}>OR</div>}
       <Link
-        className={styles.manualCta}
+        data-vault-control="steam" className={styles.manualCta}
         href="/setup/steam-profile"
         onClick={() => trackEvent(ANALYTICS_EVENTS.landingChoiceMade, { choice: "manual_profile", location })}
       >
-        <SiteGlyph name="id" size={22} />
+        <span className={styles.ctaIcon}><SiteGlyph name="id" size={24} /></span>
         <span>Use profile URL</span>
-        <SiteGlyph name="chevron-right" size={16} />
+        <SiteGlyph name="chevron-right" size={18} />
       </Link>
+      {!compact && <p className={styles.entryHint}>Profile link, custom profile name, or 17-digit Steam ID</p>}
+      {!compact && <p className={styles.guestHeading}>Want to look around first?</p>}
       <Link
-        className={styles.secondaryCta}
+        data-vault-control="primary" className={compact ? styles.secondaryCta : `${styles.secondaryCta} ${styles.guestCta}`}
         href="/vault"
         onClick={() => trackEvent(ANALYTICS_EVENTS.landingChoiceMade, { choice: "guest", location })}
       >
         <SiteGlyph name="guest" size={22} />
         <span>Try guest mode</span>
+        <SiteGlyph name="chevron-right" size={16} />
       </Link>
+      {!compact && <p className={`${styles.entryHint} ${styles.guestHint}`}>Explore VaultShuffle with a sample library. No sign-in needed.</p>}
     </div>
   );
 }

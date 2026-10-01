@@ -22,7 +22,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #9f79ff;
+  color: var(--vault-accent);
 }
 
 .headingEmbedded {
@@ -35,7 +35,7 @@
 }
 
 .heading p strong {
-  color: #d89aff;
+  color: var(--vault-text);
   font-weight: 700;
 }
 
@@ -67,7 +67,7 @@
   padding: 7px 10px;
   border-radius: 8px;
   border: 1px solid var(--vault-card-border);
-  background: rgba(14, 18, 44, 0.62);
+  background: var(--vault-surface);
   color: var(--vault-text-muted);
   text-align: left;
 }
@@ -84,7 +84,7 @@
   background: var(--vault-tile-selected-surface);
   box-shadow: var(--vault-tile-selected-shadow);
   color: var(--vault-text);
-  box-shadow: 0 0 18px rgba(122, 68, 255, 0.16);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--vault-accent) 16%, transparent);
 }
 
 .panel[data-disabled="true"] .grid {
@@ -117,21 +117,21 @@
   gap: 10px;
   margin-top: 4px;
   padding: 12px;
-  border: 1px solid rgba(192, 139, 255, 0.2);
+  border: 1px solid var(--vault-border);
   border-radius: 8px;
-  background: rgba(159, 121, 255, 0.06);
-  color: #d89aff;
+  background: color-mix(in srgb, var(--vault-accent) 6%, transparent);
+  color: var(--vault-text);
   text-decoration: none;
   transition: background 150ms ease, border-color 150ms ease;
 }
 
 .moreFilters:hover {
-  border-color: rgba(192, 139, 255, 0.45);
-  background: rgba(159, 121, 255, 0.12);
+  border-color: var(--vault-accent);
+  background: color-mix(in srgb, var(--vault-accent) 12%, transparent);
 }
 
 .moreFilters:focus-visible {
-  outline: 2px solid #d89aff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 3px;
 }
 

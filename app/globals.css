@@ -1,84 +1,24 @@
+@import "./theme.css";
+
 :root {
-  /* The ground is the landing page's near-black blue, so the app is the same
-     colour as the site you walked in from. What sits on it is a purple ramp,
-     not a grey one with a purple lamp pointed at it: every step is the same hue
-     at a different lightness, so a sheet reads as purple rather than as a lit
-     patch of slate.
-
-     ink      #050716  the ground, on every page, marketing and app alike
-     chrome   #080C20  the header and footer bars that frame the ground
-     piece    #221543  a block that holds something: a stat, a game, a panel
-     feature  #2c1b57  the one piece on a page that leads
-     well     #120a24  a recess inside a piece
-
-     The ground once carried a purple wash across the top of the viewport, so a
-     page whose content filled the width looked purple and a page whose content
-     did not looked black around the edges. Whatever the app paints on the
-     ground now covers the whole of it.
-
-     Sections do not have a surface of their own. A section is a heading and the
-     pieces under it; painting a slab behind them turned a row of blocks into
-     one solid rectangle with content printed on it. */
-  --vault-ink: #050716;
-  --vault-bg: var(--vault-ink);
-  /* The bars that frame a page rather than sit on it: the header at the top and
-     the footer at the bottom. A shade up from the ground so they read as chrome,
-     and one value so the two ends of a page agree. */
-  --vault-chrome: #080c20;
-  --vault-surface: #221543;
-  --vault-surface-strong: #1c1039;
-  --vault-surface-soft: #221543;
-  --vault-border: #3a2866;
-  --vault-border-strong: #57379a;
-  --vault-text: #f5f1ff;
-  --vault-text-muted: rgba(226, 215, 255, 0.7);
-  --vault-text-soft: rgba(203, 189, 236, 0.5);
-  --vault-accent: #a855f7;
-  --vault-accent-strong: #7c3aed;
-  --vault-accent-soft: rgba(168, 85, 247, 0.18);
-  --vault-control-hover-border: rgba(201, 166, 255, 0.9);
-  --vault-control-hover-bg: rgba(168, 85, 247, 0.18);
-  --vault-control-hover-glow: rgba(168, 85, 247, 0.34);
-  --vault-control-focus: #c9a6ff;
-  --vault-success: #6ee7b7;
-  /* Kept as a name because components still ask for it; these surfaces do not
-     cast shadows, so it resolves to none. */
+  /* Geometry and compatibility aliases; colours live in theme.css. */
   --vault-shadow: none;
-  --vault-radius-xl: 28px;
-  --vault-radius-lg: 22px;
-  --vault-radius-md: 16px;
-  --vault-radius-sm: 12px;
+  --vault-radius-xl: 24px;
+  --vault-radius-lg: 20px;
+  --vault-radius-md: 14px;
+  --vault-radius-sm: 10px;
   --vault-content-width: min(1480px, calc(100vw - 48px));
-  /* A list of single-line rows, a form, or a block of prose does not get wider
-     just because the window does. Grids of cards still use the full width; a
-     row of "thumbnail, title, one number" does not. */
   --vault-list-width: min(1040px, 100%);
   --vault-prose-width: min(680px, 100%);
-  /* One surface treatment for the whole app. The ground is dark; the sheet that
-     holds a section is the lighter thing on it; what sits inside a sheet does
-     not carry a fill of its own. Getting that the wrong way round — lifting
-     every tile off the ground individually — is what made the pages read as a
-     scatter of boxes rather than as panels of content.
-
-     sheet — the container a section's content lives in. Lighter than the ground.
-     card  — an item inside a sheet: a stat, a game, a row. No fill, a hairline
-             edge, and nothing else.
-     well  — a recess inside a sheet, for artwork and inputs. Darker than the
-             sheet, never lighter. */
-  --vault-sheet-radius: 16px;
-  --vault-sheet-border: #33235c;
-  --vault-sheet-surface: #221543;
+  --vault-sheet-radius: 14px;
+  --vault-sheet-border: var(--vault-border);
+  --vault-sheet-surface: var(--vault-surface);
   --vault-card-radius: 12px;
-  --vault-card-border: #3a2866;
-  --vault-card-surface: #221543;
+  --vault-card-border: var(--vault-border);
+  --vault-card-surface: var(--vault-surface);
   --vault-feature-radius: var(--vault-sheet-radius);
-  --vault-feature-border: #6b40bd;
-  --vault-feature-surface: #2c1b57;
-  --vault-well-radius: 9px;
-  --vault-well-surface: #120a24;
-
-  /* The older panel and tile names now resolve to the same two surfaces, so the
-     pages still written in terms of them come along without being rewritten. */
+  --vault-feature-border: var(--vault-border);
+  --vault-well-radius: 8px;
   --vault-panel-radius: var(--vault-sheet-radius);
   --vault-panel-border: var(--vault-sheet-border);
   --vault-panel-surface: var(--vault-sheet-surface);
@@ -89,16 +29,10 @@
   --vault-tile-radius: var(--vault-card-radius);
   --vault-tile-border: var(--vault-card-border);
   --vault-tile-surface: var(--vault-card-surface);
-  /* Selected has to be obvious at a glance: the accent on the edge, the accent
-     in the fill, and a second inner line so it holds up against artwork. A
-     stronger border alone was invisible next to an unselected card. */
   --vault-tile-selected-border: var(--vault-accent);
-  --vault-tile-selected-surface: rgba(168, 85, 247, 0.2);
-  --vault-tile-selected-shadow: inset 0 0 0 1px rgba(168, 85, 247, 0.45);
+  --vault-tile-selected-surface: var(--vault-selection-surface);
+  --vault-tile-selected-shadow: inset 0 0 0 1px var(--vault-accent-soft);
   --vault-header-height: 70px;
-  /* Height and gap of the tiles in the Library and Collections top panels.
-     88px/10px is the Purge setup tile, so all four pages open at the same
-     panel height. */
   --vault-top-card-height: 88px;
   --vault-top-card-gap: 10px;
 }
@@ -121,8 +55,7 @@
 
 html {
   min-height: 100%;
-  /* The one place the ground colour is decided. The app shell paints its own
-     wash on top of this; the marketing and information pages take it as it is. */
+  /* The same VaultShuffle Purple ground on public and product pages. */
   background: var(--vault-ink);
   color: var(--vault-text);
   scroll-behavior: smooth;
@@ -174,13 +107,13 @@ button {
 :where(
   button:not(:disabled):not([class*="overlay" i]):not([class*="backdrop" i]):not([class*="menuTrigger" i])
 ):hover {
-  transform: translateY(-1px);
-  filter: brightness(1.18) saturate(1.14) drop-shadow(0 0 5px rgba(191, 111, 255, 0.24)) !important;
+  transform: none;
+  filter: none;
   border-color: var(--vault-control-hover-border) !important;
   background-color: var(--vault-control-hover-bg) !important;
   box-shadow:
-    inset 0 0 0 1px rgba(235, 194, 255, 0.2),
-    0 0 0 1px rgba(190, 107, 255, 0.12),
+    inset 0 0 0 1px color-mix(in srgb, var(--vault-accent) 20%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--vault-accent) 12%, transparent),
     0 8px 26px var(--vault-control-hover-glow) !important;
 }
 
@@ -191,8 +124,8 @@ button {
   outline: 2px solid var(--vault-control-focus);
   outline-offset: 2px;
   box-shadow:
-    inset 0 0 0 1px rgba(235, 194, 255, 0.16),
-    0 0 0 3px rgba(147, 78, 255, 0.2),
+    inset 0 0 0 1px color-mix(in srgb, var(--vault-accent) 16%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--vault-accent) 20%, transparent),
     0 0 22px var(--vault-control-hover-glow) !important;
 }
 
@@ -220,11 +153,11 @@ img {
 }
 
 ::selection {
-  background: rgba(138, 95, 255, 0.34);
-  color: #ffffff;
+  background: color-mix(in srgb, var(--vault-accent) 34%, transparent);
+  color: var(--vault-text);
 }
 
 :focus-visible {
-  outline: 2px solid rgba(156, 119, 255, 0.9);
+  outline: 2px solid var(--vault-accent);
   outline-offset: 2px;
 }

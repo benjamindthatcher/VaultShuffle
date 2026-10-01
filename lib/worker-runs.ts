@@ -1,6 +1,8 @@
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
+import {isV2Authority} from "@/lib/database-authority";
+import {workerDatabase} from "@/lib/v2/owned-worker";
 
 type WorkerRunStatus = "succeeded" | "partial" | "failed";
 
@@ -10,6 +12,25 @@ type WorkerRunStatus = "succeeded" | "partial" | "failed";
  * observability problem cannot prevent metadata from being refreshed.
  */
 export async function withMetadataWorkerRun<T>(workerName: string, task: () => Promise<T>): Promise<T> {
+  if (isV2Authority()) {
+    const started = new Date().toISOString();
+    const record = async (summary: Record<string, number | boolean>, failed: boolean) => {
+      try {
+        const database = await workerDatabase();
+        await database.sql.begin(async sql => {
+          await sql`select set_config('statement_timeout','5000',true),set_config('lock_timeout','2000',true)`;
+          await sql`select ops.record_worker_run(${workerName},${started}::text::timestamptz,${sql.json(summary)},${failed})`;
+        });
+      } catch { console.warn(`Could not finish ${workerName} worker run record.`); }
+    };
+    try {
+      const result = await task();
+      const summary = Object.fromEntries(Object.entries(serialisableRecord(result)).filter(([,value]) =>
+        typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value))) as Record<string, number | boolean>;
+      await record(summary, containsPartialResult(result));
+      return result;
+    } catch (error) { await record({}, true); throw error; }
+  }
   const supabase = getSupabaseAdmin();
   const startedAt = Date.now();
   let runId: string | null = null;

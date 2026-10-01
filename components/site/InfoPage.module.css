@@ -10,7 +10,7 @@
 
 .eyebrow {
   margin: 0;
-  color: #d392ff;
+  color: var(--vault-accent);
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.16em;
@@ -41,15 +41,15 @@
   overflow: hidden;
   margin-top: 18px;
   padding: 25px 22px 23px;
-  border: 1px solid rgba(168, 85, 247, 0.52);
+  border: 1px solid var(--vault-border);
   border-radius: 14px;
   background:
-    radial-gradient(circle at 8% -25%, rgba(168, 85, 247, 0.3), transparent 46%),
-    radial-gradient(circle at 96% 0%, rgba(78, 141, 255, 0.14), transparent 38%),
-    linear-gradient(135deg, #21143f, #121735 62%, #0e122b);
+    radial-gradient(circle at 8% -25%, color-mix(in srgb, var(--vault-accent) 30%, transparent), transparent 46%),
+    radial-gradient(circle at 96% 0%, color-mix(in srgb, var(--vault-accent) 14%, transparent), transparent 38%),
+    linear-gradient(135deg, var(--vault-surface), var(--vault-surface) 62%, var(--vault-well-surface));
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.055),
-    0 12px 30px rgba(4, 5, 20, 0.16);
+    inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 5.5%, transparent),
+    0 12px 30px color-mix(in srgb, var(--vault-shadow-color) 16%, transparent);
 }
 
 .overview::before {
@@ -57,7 +57,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--vault-accent) 95%, transparent), color-mix(in srgb, var(--vault-accent) 72%, transparent), transparent 82%);
 }
 
 .overviewInner {
@@ -70,7 +70,7 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
-  color: #c27aff;
+  color: var(--vault-accent);
 }
 
 .overviewHead h2 {
@@ -83,7 +83,7 @@
 }
 
 .overviewBody {
-  color: rgba(245, 241, 255, 0.9);
+  color: var(--vault-text);
   font-size: 0.9rem;
   line-height: 1.65;
 }
@@ -99,56 +99,51 @@
 
 .overview + .sections { margin-top: 14px; }
 
-/* Built the way the app's question rows are: the purple sits on the header
-   strip and the content below it sits on the near-black ground. The app never
-   uses #221543 as a large surface, and the reason is visible here - the same
-   colour that reads as calm across an 88px row reads as a slab across a
-   full-width panel. overflow keeps the square-cornered children inside the
-   rounded border. */
+/* Shared surface hierarchy; clip section children to the rounded border. */
 .section {
   overflow: hidden;
   border: 1px solid var(--vault-card-border);
   border-radius: var(--vault-sheet-radius);
 }
 
-.sectionRelease { background: rgba(7, 11, 29, 0.68); }
+.sectionRelease { background: var(--vault-surface); }
 
 .releasePage { gap: 9px; }
 .releasePage .sections { gap: 24px; margin-top: 26px; }
-.releasePage .sectionRelease { border-color: rgba(163, 112, 228, 0.3); border-radius: 20px; }
-.releasePage .sectionRelease[open] { box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12); }
+.releasePage .sectionRelease { border-color: var(--vault-border); border-radius: 20px; }
+.releasePage .sectionRelease[open] { box-shadow: 0 18px 50px color-mix(in srgb, var(--vault-shadow-color) 12%, transparent); }
 .releasePage .sectionRelease .summary {
   padding: 23px 26px;
-  background: linear-gradient(110deg, #23173e, #17152f 80%);
+  background: var(--vault-surface);
 }
 .releasePage .sectionRelease .summary h2 { font-size: 1.2rem; letter-spacing: -0.025em; }
-.releasePage .sectionRelease .summary:hover { background: linear-gradient(110deg, #2a1b48, #1b1836 80%); }
-.releasePage .sectionRelease .body { padding: 24px; border-top-color: rgba(163, 112, 228, 0.2); }
+.releasePage .sectionRelease .summary:hover { background: var(--vault-feature-gradient); }
+.releasePage .sectionRelease .body { padding: 24px; border-top-color: var(--vault-border); }
 
 /* Documents share the release palette, with quieter surfaces and a single
    consistent reading column from the overview through every answer. */
 .documentPage { gap: 9px; }
 .documentPage .overview {
   padding: 28px 30px;
-  border-color: rgba(157, 116, 214, 0.3);
-  background: linear-gradient(120deg, #211739, #12172e 75%);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  border-color: var(--vault-border);
+  background: var(--vault-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 3.5%, transparent);
 }
 .documentPage .overviewInner,
 .documentPage .summaryInner,
 .documentPage .bodyInner { width: 88%; }
 .documentPage .overviewBody { color: var(--vault-text); font-size: 0.95rem; line-height: 1.75; }
 .documentPage .overviewHead { margin-bottom: 14px; }
-.documentPage .overview a { color: #d392ff; text-decoration: underline; text-underline-offset: 3px; }
+.documentPage .overview a { color: var(--vault-accent); text-decoration: underline; text-underline-offset: 3px; }
 .documentPage .sections { gap: 12px; margin-top: 22px; }
 .documentPage .sectionDocument {
-  --section-rgb: 168, 125, 224;
-  border-color: rgba(148, 119, 199, 0.24);
+  --section-rgb: var(--vault-accent-rgb);
+  border-color: var(--vault-border);
   border-radius: 14px;
-  background: linear-gradient(125deg, #10132a, #0d1023);
+  background: var(--vault-surface);
 }
 .documentPage .sectionDocument::before { opacity: 0; }
-.documentPage .sectionDocument[open] { border-color: rgba(168, 125, 224, 0.46); }
+.documentPage .sectionDocument[open] { border-color: var(--vault-accent); }
 .documentPage .sectionDocument[open]::before { opacity: 0.75; }
 .documentPage .sectionDocument .summary { padding-inline: 30px; }
 .documentPage .summaryInner { min-height: 68px; gap: 14px; }
@@ -158,20 +153,20 @@
 .documentPage .bodyInner > p,
 .documentPage .bodyInner > ul,
 .documentPage .bodyInner > ol { max-width: none; }
-.documentPage .bodyInner > :first-child { padding-top: 18px; border-top: 1px solid rgba(168, 125, 224, 0.16); }
+.documentPage .bodyInner > :first-child { padding-top: 18px; border-top: 1px solid var(--vault-border); }
 
 .sectionDocument {
-  --section-rgb: 168, 85, 247;
+  --section-rgb: var(--vault-accent-rgb);
   position: relative;
   background:
     linear-gradient(90deg, rgba(var(--section-rgb), 0.045), transparent 32%),
-    linear-gradient(180deg, #10132f, #0d1028);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+    linear-gradient(180deg, var(--vault-surface), var(--vault-well-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 2.5%, transparent);
 }
 
-.sectionDocument:nth-child(4n + 2) { --section-rgb: 78, 141, 255; }
-.sectionDocument:nth-child(4n + 3) { --section-rgb: 110, 231, 183; }
-.sectionDocument:nth-child(4n) { --section-rgb: 194, 122, 255; }
+.sectionDocument:nth-child(4n + 2) { --section-rgb: var(--vault-accent-rgb); }
+.sectionDocument:nth-child(4n + 3) { --section-rgb: var(--vault-success-rgb); }
+.sectionDocument:nth-child(4n) { --section-rgb: var(--vault-accent-rgb); }
 
 .sectionDocument::before {
   content: "";
@@ -194,7 +189,7 @@
 }
 
 .sectionRelease .summary { background: var(--vault-card-surface); }
-.sectionRelease .summary:hover { background: #281a4f; }
+.sectionRelease .summary:hover { background: var(--vault-feature-surface); }
 .sectionDocument .summary { padding: 0 22px; }
 .sectionDocument .summary:hover { background: rgba(var(--section-rgb), 0.055); }
 
@@ -213,11 +208,11 @@
 /* Safari still paints its own triangle without this. */
 .summary::-webkit-details-marker { display: none; }
 
-.summary:hover h2 { color: #fff; }
+.summary:hover h2 { color: var(--vault-text); }
 
 .summary:focus-visible {
   border-radius: var(--vault-sheet-radius);
-  outline: 2px solid #b06bff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 2px;
 }
 
@@ -236,8 +231,8 @@
   flex: none;
   width: 9px;
   height: 9px;
-  border-right: 2px solid rgba(226, 214, 255, 0.6);
-  border-bottom: 2px solid rgba(226, 214, 255, 0.6);
+  border-right: 2px solid var(--vault-border);
+  border-bottom: 2px solid var(--vault-border);
   transform: translateY(-2px) rotate(45deg);
   transition: transform 160ms ease;
 }
@@ -314,13 +309,13 @@
 }
 
 .body a {
-  color: #d392ff;
+  color: var(--vault-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .body a:hover {
-  color: #eab6ff;
+  color: var(--vault-text);
 }
 
 /* A control that reads as part of the sentence it sits in - the analytics dialog
@@ -329,7 +324,7 @@
 .inlineAction {
   padding: 0;
   border: 0;
-  color: #d392ff;
+  color: var(--vault-accent);
   background: none;
   font: inherit;
   text-decoration: underline;
@@ -337,11 +332,11 @@
   cursor: pointer;
 }
 
-.inlineAction:hover { color: #eab6ff; }
+.inlineAction:hover { color: var(--vault-text); }
 
 .inlineAction:focus-visible {
   border-radius: 3px;
-  outline: 2px solid #b06bff;
+  outline: 2px solid var(--vault-accent);
   outline-offset: 2px;
 }
 
@@ -383,9 +378,9 @@
   position: relative;
   overflow: hidden;
   margin-top: 18px;
-  border: 1px solid rgba(163, 112, 228, 0.2);
+  border: 1px solid var(--vault-border);
   border-radius: 20px;
-  background: rgba(7, 11, 29, 0.5);
+  background: var(--vault-surface);
 }
 
 .articleBar {
@@ -396,10 +391,10 @@
   padding: 24px 32px;
   text-align: center;
   text-wrap: wrap;
-  border-bottom: 1px solid rgba(163, 112, 228, 0.2);
+  border-bottom: 1px solid var(--vault-border);
   background:
-    radial-gradient(ellipse at 0% 0%, rgba(168, 85, 247, 0.14), transparent 70%),
-    linear-gradient(110deg, #211735, #13172e);
+    radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--vault-accent) 14%, transparent), transparent 70%),
+    linear-gradient(110deg, var(--vault-surface), var(--vault-surface));
   color: var(--vault-text);
   font-size: 1.2rem;
   font-weight: 650;
@@ -419,12 +414,12 @@
   overflow: hidden;
   margin: 0;
   padding: 30px 24px 32px;
-  border: 1px solid rgba(168, 125, 224, 0.28);
+  border: 1px solid var(--vault-border);
   border-radius: 16px;
   background:
-    radial-gradient(ellipse at 0% 0%, rgba(168, 85, 247, 0.09), transparent 65%),
-    linear-gradient(125deg, #13152f, #0e142b);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--vault-accent) 9%, transparent), transparent 65%),
+    linear-gradient(125deg, var(--vault-surface), var(--vault-well-surface));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--vault-accent) 3.5%, transparent);
 }
 
 .articleLede::before {
@@ -432,7 +427,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 2px;
-  background: linear-gradient(90deg, rgba(168, 85, 247, 0.95), rgba(78, 141, 255, 0.72), transparent 82%);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--vault-accent) 95%, transparent), color-mix(in srgb, var(--vault-accent) 72%, transparent), transparent 82%);
   pointer-events: none;
 }
 
@@ -466,7 +461,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  color: #c27aff;
+  color: var(--vault-accent);
 }
 
 .articleLede .articleHeading h2 {

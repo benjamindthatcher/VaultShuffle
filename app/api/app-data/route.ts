@@ -7,6 +7,8 @@ import { listGamePreferenceGlobals, listGenrePreferences, listGenrePreferenceGlo
 import { getPlaytimeSummary } from "@/lib/playtime-snapshots";
 import { refreshCurrentManualSessionCookie } from "@/lib/auth";
 import { requestDiagnostics } from "@/lib/diagnostics-server";
+import { isV2Authority } from "@/lib/database-authority";
+import { v2Read } from "@/lib/v2/http/request";
 
 async function jsonWithSessionRefresh(body: unknown, init?: ResponseInit) {
   return refreshCurrentManualSessionCookie(NextResponse.json(body, init));
@@ -24,6 +26,16 @@ export async function GET(request: Request) {
   // publicly cached. It now lives at /guest-catalogue, which the CDN serves.
   if (!session.logged_in || !session.user_id) {
     return jsonWithSessionRefresh({ session });
+  }
+
+  if (isV2Authority()) {
+    return v2Read(async (services, principal) => {
+      if (principal.accountPublicId !== session.user_id) throw Error("Session changed");
+      const bootstrap = await services.bootstrap.read(principal);
+      const ids = [...new Set([...bootstrap.pins.map(pin => pin.gameId), ...(bootstrap.currentPick ? [bootstrap.currentPick.gameId] : [])])];
+      const pinGames = await Promise.all(ids.map(id => services.library.detail(principal, id)));
+      return { session, dataAuthority: "v2", bootstrap, collectionMetadata: await services.collections.list(principal), pinGames: pinGames.filter(game => game !== null) };
+    });
   }
 
   try {

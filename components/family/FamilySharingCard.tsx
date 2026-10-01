@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useAppData } from "@/components/app-shell/AppDataProvider";
+import { useAppData, type FamilyMember } from "@/components/app-shell/AppDataProvider";
+import { LOCAL_DASHBOARD_PREVIEW } from "@/lib/dashboard-preview";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { SiteGlyph } from "@/components/shared/SiteGlyph";
 import { FamilyMark } from "@/components/shared/FamilyMark";
 import { isFamilyAccess, MAX_FAMILY_MEMBERS } from "@/lib/family-sharing";
 import styles from "./FamilySharingCard.module.css";
@@ -20,12 +22,6 @@ import styles from "./FamilySharingCard.module.css";
  * browser, so the only shape available was talking somebody through fetching a
  * credential by hand. Dropped: the accuracy did not cover teaching several
  * hundred people that habit.
- *
- * The layout earns its own note. The first version put the caveats - estimate,
- * no playtime - in a paragraph above the input, so the card opened by explaining
- * what it would not do to somebody who had not yet done anything. They are the
- * same three facts, but they belong beside the control as reference rather than
- * in front of it as a preamble: the offer leads, the small print sits alongside.
  */
 
 /**
@@ -53,7 +49,32 @@ const EXPECTATIONS = [
   }
 ];
 
-export function FamilySharingCard() {
+const PREVIEW_MEMBERS: FamilyMember[] = [
+  { id: "preview-1", steamId: "", displayName: "Alex (sample)", avatarUrl: null, profileUrl: "https://steamcommunity.com/", librarySeen: 179, gamesImported: 105, lastSyncedAt: null, lastError: null },
+  { id: "preview-2", steamId: "", displayName: "Sam (sample)", avatarUrl: null, profileUrl: "https://steamcommunity.com/", librarySeen: 27, gamesImported: 12, lastSyncedAt: null, lastError: null }
+];
+
+export function FamilySharingCard({ preview = false }: { preview?: boolean }) {
+  const data = useAppData();
+  const localPreview = preview && LOCAL_DASHBOARD_PREVIEW && !data.isLive;
+  const [previewMembers, setPreviewMembers] = useState(PREVIEW_MEMBERS);
+  const counts = { seen: 206, importable: 113, excluded: 0, pending: 0, alreadyOwned: 0 };
+  const previewData = {
+    ...data,
+    familyEnabled: true,
+    familyMembers: previewMembers,
+    familyBusy: false,
+    addFamilyMember: async (_profile: string) => {
+      const member = { ...PREVIEW_MEMBERS[0], id: `preview-${crypto.randomUUID()}`, displayName: "New person (sample)", librarySeen: 0, gamesImported: 0 };
+      setPreviewMembers((current) => current.length < MAX_FAMILY_MEMBERS ? [...current, member] : current);
+      return { member, counts, summary: "Sample person added locally. Sign in to connect a real Steam family." };
+    },
+    removeFamilyMember: async (id: string) => {
+      setPreviewMembers((current) => current.filter((member) => member.id !== id));
+      return { removed: 0, retained: 0, displayName: previewMembers.find((member) => member.id === id)?.displayName ?? "Sample person" };
+    },
+    recheckFamilyLibrary: async () => counts
+  };
   const {
     familyEnabled,
     familyMembers,
@@ -63,31 +84,35 @@ export function FamilySharingCard() {
     recheckFamilyLibrary,
     isLive,
     allGames
-  } = useAppData();
+  } = localPreview ? previewData : data;
 
   const [profileInput, setProfileInput] = useState("");
-  // Which member is asking "are you sure". Removing one deletes every game only
-  // they provide, and the database cascades that to those games' pins, snoozes
-  // and collection memberships - none of which come back if the member is added
-  // again. That is too much to hang on one unlabelled X.
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const busy = familyBusy || busyAction !== null;
+  // Confirm losing playable access to a lender's games before removing them.
+  // Personal decisions and notes survive independently in V2.
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
   const familyGameCount = useMemo(
-    () => allGames.filter((game) => isFamilyAccess(game.accessSource)).length,
-    [allGames]
+    () => localPreview ? (previewMembers.length ? 113 : 0) : data.dataAuthority === "v2" ? data.unfilteredFamilyCount : allGames.filter((game) => isFamilyAccess(game.accessSource)).length,
+    [allGames, localPreview, previewMembers.length, data.dataAuthority, data.unfilteredFamilyCount]
   );
 
-  if (!familyEnabled || !isLive) return null;
+  if (!familyEnabled || (!isLive && !localPreview)) return null;
 
   const atLimit = familyMembers.length >= MAX_FAMILY_MEMBERS;
 
-  async function run(work: () => Promise<string>) {
+  async function run(action: string, work: () => Promise<string>) {
+    if (busy) return;
+    setBusyAction(action);
     setMessage(null);
     try {
       setMessage({ tone: "ok", text: await work() });
     } catch (error) {
       setMessage({ tone: "error", text: error instanceof Error ? error.message : "That did not work. Please try again." });
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -99,12 +124,32 @@ export function FamilySharingCard() {
           Family library
           <span className={styles.experimental}>Experimental</span>
         </h2>
-        {familyGameCount > 0 ? (
-          <p className={styles.count} aria-live="polite">
-            <span className={styles.countValue}>{familyGameCount}</span>
-            <span className={styles.countLabel}>family {familyGameCount === 1 ? "game" : "games"}</span>
-          </p>
-        ) : null}
+        <div className={styles.headerActions}>
+          {familyGameCount > 0 ? (
+            <p className={styles.count} aria-live="polite">
+              <span className={styles.countValue}>{familyGameCount}</span>
+              <span className={styles.countLabel}>family {familyGameCount === 1 ? "game" : "games"}</span>
+            </p>
+          ) : null}
+          {familyMembers.length ? (
+            <button
+              type="button"
+              data-vault-control="secondary" aria-busy={busyAction === "refresh"} className={styles.recheck}
+              aria-label="Re-check family library"
+              title="Re-check family library"
+              disabled={busy}
+              onClick={() => run("refresh", async () => {
+                const counts = await recheckFamilyLibrary();
+                return counts.pending
+                  ? `${counts.importable} shareable, ${counts.pending} still waiting on Steam store details.`
+                  : `${counts.importable} shareable games across your family. Everything has been checked.`;
+              })}
+            >
+              {busyAction === "refresh" ? <span data-control-spinner aria-hidden="true" /> : <SiteGlyph name="refresh-data" size={18} />}
+              {busyAction === "refresh" ? "Checking…" : "Re-check"}
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {message ? (
@@ -119,20 +164,6 @@ export function FamilySharingCard() {
         <div className={styles.memberBlock}>
           <div className={styles.memberHead}>
             <span className={styles.sectionLabel}>Sharing with you</span>
-            <button
-              type="button"
-              className={styles.recheck}
-              disabled={familyBusy}
-              onClick={() => run(async () => {
-                const counts = await recheckFamilyLibrary();
-                return counts.pending
-                  ? `${counts.importable} shareable, ${counts.pending} still waiting on Steam store details.`
-                  : `${counts.importable} shareable games across your family. Everything has been checked.`;
-              })}
-            >
-              <VaultIcon name="refresh-prices" size={14} />
-              Re-check
-            </button>
           </div>
           <ul className={styles.members}>
             {familyMembers.map((member) => (
@@ -146,7 +177,7 @@ export function FamilySharingCard() {
                   </span>
                 )}
                 <span className={styles.memberBody}>
-                  <a className={styles.memberName} href={member.profileUrl} target="_blank" rel="noreferrer noopener">
+                  <a data-vault-control="text" className={styles.memberName} href={member.profileUrl} target="_blank" rel="noreferrer noopener">
                     {member.displayName}
                     <VaultIcon name="external-link" size={13} />
                   </a>
@@ -160,12 +191,12 @@ export function FamilySharingCard() {
                   <span className={styles.confirm}>
                     <button
                       type="button"
-                      className={styles.confirmYes}
-                      disabled={familyBusy}
+                      data-vault-control="blacklist" aria-busy={busyAction === member.id} className={styles.confirmYes}
+                      disabled={busy}
                       onClick={() => {
-                        setConfirmingId(null);
-                        void run(async () => {
+                        void run(member.id, async () => {
                           const result = await removeFamilyMember(member.id);
+                          setConfirmingId(null);
                           const kept = result.retained
                             ? ` ${result.retained} stayed, shared by someone else too.`
                             : "";
@@ -173,17 +204,18 @@ export function FamilySharingCard() {
                         });
                       }}
                     >
-                      Remove
+                      {busyAction === member.id ? <span data-control-spinner aria-hidden="true" /> : null}
+                      {busyAction === member.id ? "Removing…" : "Remove"}
                     </button>
-                    <button type="button" className={styles.confirmNo} onClick={() => setConfirmingId(null)}>
+                    <button type="button" data-vault-control="tertiary" className={styles.confirmNo} disabled={busy} onClick={() => setConfirmingId(null)}>
                       Cancel
                     </button>
                   </span>
                 ) : (
                   <button
                     type="button"
-                    className={styles.remove}
-                    disabled={familyBusy}
+                    data-vault-control="tertiary" data-control-size="icon" data-control-tone="danger" className={styles.remove}
+                    disabled={busy}
                     aria-label={`Remove ${member.displayName}`}
                     title={`Remove ${member.displayName}`}
                     onClick={() => setConfirmingId(member.id)}
@@ -197,28 +229,24 @@ export function FamilySharingCard() {
         </div>
       ) : null}
 
-      {/* The offer and the control on the left, the small print beside it. On a
-          phone this collapses to one column and the order still reads: what this
-          is, the box you type in, then what to expect from it. */}
+      {/* Keep the form full width; supporting information is available on demand. */}
       <div className={styles.body}>
         <form
           className={styles.addRow}
           onSubmit={(event) => {
             event.preventDefault();
             const value = profileInput.trim();
-            if (!value || familyBusy) return;
-            void run(async () => {
+            if (!value || busy || atLimit) return;
+            void run("add", async () => {
               const outcome = await addFamilyMember(value);
               setProfileInput("");
               return outcome.summary;
             });
           }}
         >
-          <p className={styles.pitch}>
-            {familyMembers.length
-              ? "Add another person you share a Steam family with."
-              : "Share a Steam family? Add the people in it and their games become yours to draw from."}
-          </p>
+          {!familyMembers.length ? (
+            <p className={styles.pitch}>Share a Steam family? Add the people in it and their games become yours to draw from.</p>
+          ) : null}
 
           <label className={styles.addLabel} htmlFor="family-profile-input">
             Steam profile URL or 17-digit Steam ID
@@ -230,13 +258,13 @@ export function FamilySharingCard() {
               value={profileInput}
               onChange={(event) => setProfileInput(event.target.value)}
               placeholder="https://steamcommunity.com/id/theirname"
-              disabled={familyBusy || atLimit}
+              disabled={busy || atLimit}
               autoComplete="off"
               spellCheck={false}
             />
-            <button type="submit" className={styles.primary} disabled={familyBusy || atLimit || !profileInput.trim()}>
-              <VaultIcon name="add" size={16} />
-              {familyBusy ? "Checking…" : "Add"}
+            <button type="submit" data-vault-control="primary" aria-busy={busyAction === "add"} className={styles.primary} disabled={busy || atLimit || !profileInput.trim()}>
+              {busyAction === "add" ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="add" size={16} />}
+              {busyAction === "add" ? "Checking…" : "Add person"}
             </button>
           </div>
           <p className={styles.hint}>
@@ -246,8 +274,11 @@ export function FamilySharingCard() {
           </p>
         </form>
 
-        <aside className={styles.expect} aria-label="What to expect">
-          <span className={styles.sectionLabel}>What to expect</span>
+        <details className={styles.expect}>
+          <summary data-vault-control="disclosure" className={styles.expectToggle}>
+            <span>How Family Library works</span>
+            <VaultIcon name="chevron-down" size={16} />
+          </summary>
           <ul className={styles.expectList}>
             {EXPECTATIONS.map((item) => (
               <li key={item.icon}>
@@ -259,7 +290,7 @@ export function FamilySharingCard() {
               </li>
             ))}
           </ul>
-        </aside>
+        </details>
       </div>
     </section>
   );

@@ -24,7 +24,7 @@ export function useCompletionClaimNotice() {
   const value = completionCandidateValue(candidates);
 
   return (
-    <Link className={styles.banner} href="/finished">
+    <Link data-vault-card="interactive" className={styles.banner} href="/finished">
       <span className={styles.icon}><VaultIcon name="completed" size={20} /></span>
       <span className={styles.copy}>
         <strong>{candidates.length} {candidates.length === 1 ? "game looks" : "games look"} finished</strong>

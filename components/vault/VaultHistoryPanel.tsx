@@ -12,6 +12,7 @@ type Props = {
   draws: VaultDraw[];
   games: DemoGame[];
   isLive: boolean;
+  loading?: boolean;
   onClear: () => Promise<void>;
   onViewDetails: (game: DemoGame) => void;
 };
@@ -24,7 +25,17 @@ type Props = {
  * a wall between the history and the deck it describes - the two things you are
  * comparing could never be on screen together.
  */
-export function VaultHistoryPanel({ draws, games, isLive, onClear, onViewDetails }: Props) {
+export function VaultHistoryPanel({ draws, games, isLive, loading = false, onClear, onViewDetails }: Props) {
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState("");
+  async function clearHistory() {
+    if (clearing) return;
+    setClearing(true);
+    setClearError("");
+    try { await onClear(); }
+    catch { setClearError("Could not clear draw history. Please try again."); }
+    finally { setClearing(false); }
+  }
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selected = selectedId ? draws.find((draw) => draw.id === selectedId) ?? null : null;
   const game = selected ? games.find((item) => item.steamAppId === selected.steamAppId) ?? null : null;
@@ -42,7 +53,7 @@ export function VaultHistoryPanel({ draws, games, isLive, onClear, onViewDetails
         </span>
       </div>
 
-      {selected && game ? (
+      {loading ? <p className={styles.empty} role="status">Loading Draw History…</p> : selected && game ? (
         <div className={styles.detail}>
           <div className={styles.detailArtwork}>
             <Artwork src={game.bannerUrl} sizes="(max-width: 700px) 100vw, 320px" />
@@ -65,7 +76,7 @@ export function VaultHistoryPanel({ draws, games, isLive, onClear, onViewDetails
                   const entryGame = games.find((item) => item.steamAppId === draw.steamAppId);
                   return (
                     <li key={draw.id}>
-                      <button type="button" className={styles.entry} onClick={() => setSelectedId(draw.id)}>
+                      <button type="button" data-vault-card="interactive" className={styles.entry} onClick={() => setSelectedId(draw.id)}>
                         {entryGame ? <span className={styles.thumb}><Artwork src={entryGame.bannerUrl} sizes="96px" /><FamilyGameMark game={entryGame} overlay /></span> : null}
                         <span className={styles.entryCopy}>
                           <strong>{entryGame?.title ?? `Steam App ${draw.steamAppId}`}</strong>
@@ -85,15 +96,16 @@ export function VaultHistoryPanel({ draws, games, isLive, onClear, onViewDetails
         <p className={styles.empty}>Games you draw from the Vault will show up here, with what you did about each one.</p>
       )}
 
+      {clearError ? <p role="alert">{clearError}</p> : null}
       <div className={shell.actions}>
         {selected ? (
-          <button type="button" onClick={() => setSelectedId(null)}><VaultIcon name="back" size={17} />Back to history</button>
+          <button type="button" data-vault-control="secondary" onClick={() => setSelectedId(null)}><VaultIcon name="back" size={17} />Back to history</button>
         ) : null}
         {selected && game ? (
-          <button type="button" onClick={() => onViewDetails(game)}><VaultIcon name="details" size={17} />View details</button>
+          <button type="button" data-vault-control="secondary" onClick={() => onViewDetails(game)}><VaultIcon name="details" size={17} />View details</button>
         ) : null}
         {draws.length && !selected ? (
-          <button type="button" className={shell.trailing} onClick={() => void onClear()}>Clear draw history</button>
+          <button type="button" data-vault-control="tertiary" className={shell.trailing} disabled={clearing || loading} aria-busy={clearing} onClick={() => void clearHistory()}>{clearing ? <span data-control-spinner aria-hidden="true" /> : null}{clearing ? "Clearing…" : "Clear draw history"}</button>
         ) : null}
       </div>
     </div>
@@ -106,7 +118,7 @@ function drawTime(drawnAt: string) {
 
 function setupLabel(draw: VaultDraw) {
   if (draw.collectionId) return "Collection draw";
-  const labels = { short: "Short", evening: "Evening", weekend: "Weekend", "brain-off": "Brain-Off", chill: "Chill", intense: "Intense", new: "Something New", finish: "Finish Something", surprise: "Surprise Me" };
+  const labels = { short: "Short", evening: "Evening", weekend: "Weekend", "brain-off": "Brain Off", chill: "Chill", intense: "Intense", new: "Something New", finish: "Finish Something", surprise: "Surprise Me" };
   return draw.session && draw.mood && draw.goal
     ? `${labels[draw.session]} · ${labels[draw.mood]} · ${labels[draw.goal]}`
     : "Vault draw";
@@ -114,6 +126,7 @@ function setupLabel(draw: VaultDraw) {
 
 function eventLabel(type?: string) {
   if (!type) return "Drawn";
+  if (type === "slept") return "Blacklisted";
   return type.split("_").map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
 }
 

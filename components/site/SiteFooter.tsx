@@ -64,13 +64,13 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
             {FOOTER_ROWS.flat().map((item) => (
               <li key={item.kind === "link" ? item.href : item.action}>
                 {item.kind === "link" ? (
-                  <Link className={styles.footerLink} href={item.href}>
+                  <Link data-vault-control="tertiary" className={styles.footerLink} href={item.href}>
                     <FooterIcon name={item.icon} />
                     <span>{item.label}</span>
                   </Link>
                 ) : (
                   <button
-                    className={styles.footerLink}
+                    data-vault-control="tertiary" className={styles.footerLink}
                     type="button"
                     onClick={handlers[item.action]}
                   >
@@ -84,7 +84,7 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
         </nav>
         <nav className={styles.socialNav} aria-label="Follow and support VaultShuffle">
           <a
-            className={styles.xLink}
+            data-vault-control="tertiary" data-control-size="icon" className={styles.xLink}
             href="https://x.com/Vault_Shuffle"
             target="_blank"
             rel="noopener noreferrer"
@@ -95,7 +95,7 @@ export function SiteFooter({ onFeedback, onCookieSettings, variant = "site" }: S
               <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.64 7.584H.47l8.6-9.835L0 1.154h7.594l5.243 6.932 6.064-6.933Zm-1.29 19.49h2.039L6.487 3.24H4.3l13.31 17.403Z" />
             </svg>
           </a>
-          <a className={styles.coffeeButton} href="https://buymeacoffee.com/vaultshuffle" target="_blank" rel="noopener noreferrer">
+          <a data-vault-control="secondary" className={styles.coffeeButton} href="https://buymeacoffee.com/vaultshuffle" target="_blank" rel="noopener noreferrer">
             <span className={styles.coffeeEmoji} aria-hidden="true">☕</span>
             <span>Buy me a coffee</span>
           </a>

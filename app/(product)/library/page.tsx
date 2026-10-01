@@ -10,6 +10,7 @@ import { trackCompletionClaim, trackCompletionUndone } from "@/lib/completion-tr
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { LibraryGameGrid } from "@/components/library/LibraryGameGrid";
 import { ActionIcon } from "@/components/library/LibraryGameActions";
+import { useV2Library } from "@/components/library/useV2Library";
 import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { EMPTY_LIBRARY_FILTERS, availableGenres, matchesLibraryFilters, type LibraryFilters } from "@/lib/library-filters";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
@@ -18,6 +19,7 @@ import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { recencySortKey } from "@/lib/recency";
 import type { DemoGame } from "@/lib/demo-data";
+import type { GameMutationReceipt } from "@/lib/v2/game-mutation";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import styles from "./library.module.css";
 
@@ -28,17 +30,18 @@ type UndoAction = {
   wasPinned: boolean;
   replacedGame?: DemoGame;
   batchGames?: DemoGame[];
+  writes: Map<string, Promise<GameMutationReceipt | void>>;
 };
 
 const STATUS_SORT_RANK: Record<DemoGame["status"], number> = {
   Completed: 4,
   "In Progress": 3,
   "Not Started": 2,
-  Slept: 1
+  Blacklisted: 1
 };
 
 export default function LibraryPage() {
-  const { games, allGames, collections, vaultState, isLive, updateGame, restoreGame, recordVaultAction } = useAppData();
+  const { games: providerGames, allGames: providerAllGames, dataAuthority, libraryDataVersion, rememberLibraryGames, globalFilters, collections, vaultState, isLive, updateGame, restoreGame, recordVaultAction } = useAppData();
   const [query, setQuery] = useState("");
   const [filters, setFilters] = useState<LibraryFilters>(EMPTY_LIBRARY_FILTERS);
   const [sort, setSort] = useState("hours");
@@ -54,6 +57,25 @@ export default function LibraryPage() {
   // Selection is explicitly enabled; normal card clicks open game details.
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [bulkBusy, setBulkBusy] = useState(false);
+
+  const v2 = isLive && dataAuthority === "v2";
+  const remoteParams = useMemo(() => {
+    const serverSort = sort === "recent" && statusTab === "blacklisted" ? "title" : sort;
+    const ascending = serverSort === "title" || serverSort === "duration";
+    const params = new URLSearchParams({limit:"60",section:statusTab,sort:serverSort,
+      direction:(ascending !== sortReversed) ? "asc" : "desc",search:query,
+      progress:filters.progress,length:filters.length,exclude_pins:"1",
+      access:globalFilters.access,device:globalFilters.device,players:globalFilters.players,
+      release_age:globalFilters.releaseAge,game_type:globalFilters.gameType,
+      hide_poorly_reviewed:globalFilters.hidePoorlyReviewed ? "1" : "0"});
+    for (const genre of filters.genres) params.append("genre",genre);
+    for (const excluded of globalFilters.excluded) params.append("excluded",excluded);
+    return params.toString();
+  }, [query,filters,sort,sortReversed,statusTab,globalFilters]);
+  const remote = useV2Library(v2, remoteParams, String(libraryDataVersion));
+  useEffect(() => { if (v2 && remote.games.length) rememberLibraryGames(remote.games); }, [v2,remote.games,rememberLibraryGames]);
+  const allGames = v2 ? [...new Map([...providerAllGames,...remote.games,...(remote.detail ? [remote.detail] : [])].map(game=>[game.id,game])).values()] : providerAllGames;
+  const games = v2 ? allGames : providerGames;
 
   const pinScrollRef = useRef<{ x: number; y: number } | null>(null);
   useLayoutEffect(() => {
@@ -76,8 +98,8 @@ export default function LibraryPage() {
 
   const libraryGames = useMemo(() => games.filter((game) => game.ownership === "Owned"), [games]);
   const hasDurationSort = useMemo(
-    () => libraryGames.some((game) => estimatedTimeToBeatMinutes(game.duration) !== null),
-    [libraryGames]
+    () => v2 ? remote.page?.hasDuration ?? false : libraryGames.some((game) => estimatedTimeToBeatMinutes(game.duration) !== null),
+    [libraryGames,v2,remote.page]
   );
 
   function clearUndo() {
@@ -89,7 +111,7 @@ export default function LibraryPage() {
   function offerUndo(game: DemoGame, action: UndoAction["action"], message: string, replacedGame?: DemoGame, batchGames?: DemoGame[]) {
     clearUndo();
     setCelebratingId(null);
-    const next = { game, action, message, replacedGame, batchGames, wasPinned: vaultState.pinnedIds.includes(game.id) };
+    const next = { game, action, message, replacedGame, batchGames, wasPinned: vaultState.pinnedIds.includes(game.id), writes: new Map<string,Promise<GameMutationReceipt | void>>() };
     undoRef.current = next;
     setUndoAction(next);
     undoTimerRef.current = window.setTimeout(() => {
@@ -111,10 +133,12 @@ export default function LibraryPage() {
     const undo = offerUndo(game, action, action === "blacklist" ? `${game.title} blacklisted` : action === "complete" ? `${game.title} marked complete` : `${game.title} reactivated`);
     if (action === "complete") setCelebratingId(gameId);
     try {
-      if (action === "reactivate") await restoreGame(gameId, { context });
-      else await updateGame(gameId, { status: action === "blacklist" ? "Slept" : "Completed" }, context);
-      if (action === "complete") trackCompletionClaim(game, "library", isLive);
-      if (action === "reactivate" && game.status === "Completed") trackCompletionUndone(game, "library", isLive);
+      const write=action === "reactivate" ? restoreGame(gameId, { context })
+        : updateGame(gameId, { status: action === "blacklist" ? "Blacklisted" : "Completed" }, context);
+      undo.writes.set(gameId,write);
+      await write;
+      if (action === "complete") trackCompletionClaim(game, "library", isLive && !v2);
+      if (action === "reactivate" && game.status === "Completed") trackCompletionUndone(game, "library", isLive && !v2);
     } catch {
       if (undoRef.current === undo) { clearUndo(); setCelebratingId(null); }
       // The provider displays the failure and reconciles the queued writes.
@@ -129,14 +153,16 @@ export default function LibraryPage() {
     const { game, action, replacedGame } = undo;
     const context = { ...actionContext("undo"), ...(undo.batchGames ? { bulk: true, batch_size: undo.batchGames.length } : {}) };
     trackLibraryInteraction("undo", { ...context, game_id: game.id, original_action: action });
+    async function restorePrevious(previous:DemoGame) {
+      const receipt=await undo!.writes.get(previous.id);
+      await updateGame(previous.id,{status:previous.status,completedAt:previous.completedAt ?? null,completionPercent:previous.completionPercent},
+        {...context,...(v2?{expected_version:receipt?.mutationVersion}:{})});
+    }
     try {
       if (undo.batchGames) {
         await Promise.allSettled(undo.batchGames.map(async (previous) => {
-          await updateGame(previous.id, {
-            status: previous.status, completionPercent: previous.completionPercent,
-            completedAt: previous.completedAt ?? null, sleptAt: previous.sleptAt ?? null,
-          }, context);
-          if (action === "complete") trackCompletionUndone(previous, "library", isLive);
+          await restorePrevious(previous);
+          if (action === "complete") trackCompletionUndone(previous, "library", isLive && !v2);
         }));
       } else if (action === "playing_next_add") await recordVaultAction("unpinned", game.id, context);
       else if (action === "playing_next_replace" && replacedGame) {
@@ -146,25 +172,22 @@ export default function LibraryPage() {
       } else {
         // Restore the actual prior decision, including inferred progress; don't
         // turn a previously Blacklisted game into Active when undoing Complete.
-        const statusWrite = updateGame(game.id, {
-          status: game.status, completionPercent: game.completionPercent,
-          completedAt: game.completedAt ?? null, sleptAt: game.sleptAt ?? null,
-        }, context);
-        const pinWrite = undo.wasPinned && !vaultState.pinnedIds.includes(game.id) && vaultState.pinnedIds.length < 3
-          ? recordVaultAction("pinned", game.id, context) : Promise.resolve();
-        await Promise.all([statusWrite, pinWrite]);
-        if (action === "complete") trackCompletionUndone(game, "library", isLive);
+        await restorePrevious(game);
+        if (undo.wasPinned && !vaultState.pinnedIds.includes(game.id) && vaultState.pinnedIds.length < 3)
+          await recordVaultAction("pinned", game.id, context);
+        if (action === "complete") trackCompletionUndone(game, "library", isLive && !v2);
       }
     } catch { /* Provider owns recovery and the error announcement. */ }
   }
 
-  const statusCounts = useMemo(() => ({
-    active: libraryGames.filter((game) => game.status !== "Slept" && game.status !== "Completed" && !vaultState.pinnedIds.includes(game.id)).length,
-    blacklisted: libraryGames.filter((game) => game.status === "Slept").length,
+  const statusCounts = useMemo(() => v2 ? remote.page?.sectionCounts ?? {active:0,blacklisted:0,completed:0} : ({
+    active: libraryGames.filter((game) => game.status !== "Blacklisted" && game.status !== "Completed" && !vaultState.pinnedIds.includes(game.id)).length,
+    blacklisted: libraryGames.filter((game) => game.status === "Blacklisted").length,
     completed: libraryGames.filter((game) => game.status === "Completed").length
-  }), [libraryGames, vaultState.pinnedIds]);
+  }), [libraryGames, vaultState.pinnedIds,v2,remote.page]);
 
   const filteredGames = useMemo(() => {
+    if (v2) return remote.games;
     const queryText = query.trim().toLowerCase();
 
     return [...libraryGames]
@@ -175,8 +198,8 @@ export default function LibraryPage() {
           game.genres.join(" ").toLowerCase().includes(queryText);
 
         const matchesStatus = statusTab === "active"
-          ? game.status !== "Slept" && game.status !== "Completed" && !vaultState.pinnedIds.includes(game.id)
-          : statusTab === "blacklisted" ? game.status === "Slept" : game.status === "Completed";
+          ? game.status !== "Blacklisted" && game.status !== "Completed" && !vaultState.pinnedIds.includes(game.id)
+          : statusTab === "blacklisted" ? game.status === "Blacklisted" : game.status === "Completed";
 
         return matchesQuery && matchesStatus && matchesLibraryFilters(game, filters);
       })
@@ -188,7 +211,7 @@ export default function LibraryPage() {
         else if (sort === "added") comparison = sortableAddedDate(right) - sortableAddedDate(left);
         else if (sort === "duration") comparison = sortableDuration(left) - sortableDuration(right);
         else if (sort === "status") comparison = STATUS_SORT_RANK[right.status] - STATUS_SORT_RANK[left.status];
-        else if (statusTab === "blacklisted") comparison = Date.parse(right.sleptAt || "") - Date.parse(left.sleptAt || "");
+        else if (statusTab === "blacklisted") comparison = left.title.localeCompare(right.title);
         else if (statusTab === "completed") comparison = Date.parse(right.completedAt || "") - Date.parse(left.completedAt || "");
         else comparison = sortableLastPlayed(right) - sortableLastPlayed(left);
 
@@ -196,13 +219,13 @@ export default function LibraryPage() {
 
         return sortReversed ? -comparison : comparison;
       });
-  }, [filters, libraryGames, query, sort, sortReversed, statusTab, vaultState.pinnedIds]);
+  }, [filters, libraryGames, query, sort, sortReversed, statusTab, vaultState.pinnedIds,v2,remote.games]);
 
   // Offered from the whole library rather than the current tab, so the list of
   // genres does not shuffle every time the tab changes.
-  const filterGenres = useMemo(() => availableGenres(libraryGames), [libraryGames]);
+  const filterGenres = useMemo(() => v2 ? [...(remote.page?.filterGenres ?? [])] : availableGenres(libraryGames), [libraryGames,v2,remote.page]);
 
-  const selectedGame = filteredGames.find((game) => game.id === selectedGameId)
+  const selectedGame = v2 && remote.detailPending ? null : (v2 && remote.detail?.id === selectedGameId ? remote.detail : null) ?? filteredGames.find((game) => game.id === selectedGameId)
     ?? libraryGames.find((game) => game.id === selectedGameId)
     ?? allGames.find((game) => game.id === selectedGameId)
     ?? null;
@@ -213,7 +236,7 @@ export default function LibraryPage() {
   const pinnedGames = vaultState.pinnedIds
     .map((id) => libraryGames.find((game) => game.id === id) ?? allGames.find((game) => game.id === id))
     .filter((game): game is DemoGame => Boolean(game))
-    .filter((game) => game.status !== "Slept" && game.status !== "Completed");
+    .filter((game) => game.status !== "Blacklisted" && game.status !== "Completed");
   const ordinaryGames = filteredGames;
 
   // Every shelf offers explicit selection alongside details.
@@ -238,8 +261,10 @@ export default function LibraryPage() {
     setSelectedIds((current) => current.filter((id) => !selected.has(id)));
     // Start every optimistic update together; the provider queues the writes.
     const results = await Promise.allSettled(targets.map(async (game) => {
-      await updateGame(game.id, { status: action === "blacklist" ? "Slept" : "Completed" }, context);
-      if (action === "complete") trackCompletionClaim(game, "library", isLive);
+      const write=updateGame(game.id, { status: action === "blacklist" ? "Blacklisted" : "Completed" }, context);
+      undo.writes.set(game.id,write);
+      await write;
+      if (action === "complete") trackCompletionClaim(game, "library", isLive && !v2);
     }));
     if (undoRef.current !== undo) return;
     const saved = targets.filter((_, index) => results[index].status === "fulfilled");
@@ -302,16 +327,18 @@ export default function LibraryPage() {
   function openGame(gameId: string, surface: "catalogue" | "pinned") {
     trackLibraryInteraction("details_opened", { source: "library", surface, view_mode: viewMode, game_id: gameId, shelf: statusTab });
     setSelectedGameId(gameId);
+    if (v2) void remote.openDetail(gameId);
     setSelectedSurface(surface);
   }
 
   function closeGameDetails() {
     setSelectedGameId(null);
+    if (v2) remote.closeDetail();
     setSelectedSurface(null);
   }
 
   return (
-    <section className={styles.libraryPage}>
+    <section className={styles.libraryPage} data-vault-controls="standard">
       <h1 className="visually-hidden">Library</h1>
 
       {!isLive ? (
@@ -351,8 +378,8 @@ export default function LibraryPage() {
 
       <div className={styles.statusTabs} role="tablist" aria-label={isLive ? "Library status" : "Preview status"}>
         {(["active", "blacklisted", "completed"] as const).map((tab) => (
-          <button key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setSelectedIds([]); setStatusTab(tab); }}>
-            <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{statusCounts[tab]}</strong>
+          <button data-vault-control="selection" data-control-hover="secondary" data-control-indicator="bar" key={tab} type="button" role="tab" aria-selected={statusTab === tab} className={statusTab === tab ? styles.statusTabActive : styles.statusTab} onClick={() => { setSelectedIds([]); setStatusTab(tab); }}>
+            <span>{tab[0].toUpperCase() + tab.slice(1)}</span><strong>{v2 && !remote.page ? "…" : statusCounts[tab]}</strong>
           </button>
         ))}
       </div>
@@ -409,22 +436,23 @@ export default function LibraryPage() {
             {selected.size ? (
               <div className={styles.bulkActions}>
                 <span className={styles.bulkCount}>{selected.size} selected</span>
-                <button type="button" className={styles.bulkClear} onClick={() => setSelectedIds([])}>Clear</button>
+                <button type="button" data-vault-control="tertiary" className={styles.bulkClear} onClick={() => setSelectedIds([])}>Clear</button>
                 {statusTab === "active" ? <>
-                  <button type="button" className={styles.bulkBlacklist} onClick={() => void changeSelectedStatus("blacklist")}>
+                  <button type="button" data-vault-control="blacklist" className={styles.bulkBlacklist} onClick={() => void changeSelectedStatus("blacklist")}>
                     <ActionIcon kind="blacklist" />Blacklist {selected.size}
                   </button>
-                  <button type="button" className={styles.bulkComplete} onClick={() => void changeSelectedStatus("complete")}>
+                  <button type="button" data-vault-control="success" className={styles.bulkComplete} onClick={() => void changeSelectedStatus("complete")}>
                     <ActionIcon kind="complete" />Complete {selected.size}
                   </button>
                 </> : null}
                 {statusTab !== "active" ? <button
                   type="button"
-                  className={styles.bulkRestore}
+                  data-vault-control="secondary" className={styles.bulkRestore}
                   disabled={bulkBusy}
+                  aria-busy={bulkBusy}
                   onClick={() => void restoreSelected()}
                 >
-                  <VaultIcon name="restore-active" size={15} />
+                  {bulkBusy ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="restore-active" size={15} />}
                   {bulkBusy
                     ? "Working…"
                     : statusTab === "blacklisted"
@@ -436,8 +464,8 @@ export default function LibraryPage() {
           </div>
         ) : null}
 
-        <div className={styles.gamesScroller} aria-label={`${filteredGames.length} games`}>
-          {ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} resetKey={JSON.stringify([query, filters, sort, sortReversed, statusTab, viewMode])} onComplete={(id) => void changeStatus(id, "complete")} onRestore={(id) => void changeStatus(id, "reactivate")} onBlacklist={(id) => void changeStatus(id, "blacklist")} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
+        <div className={styles.gamesScroller} aria-label={`${v2 ? remote.page?.total ?? 0 : filteredGames.length} games`} aria-busy={v2 && remote.pending}>
+          {v2 && remote.pending && !remote.page ? <p role="status">Loading your Library…</p> : ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} resetKey={JSON.stringify([query, filters, sort, sortReversed, statusTab, viewMode])} onComplete={(id) => void changeStatus(id, "complete")} onRestore={(id) => void changeStatus(id, "reactivate")} onBlacklist={(id) => void changeStatus(id, "blacklist")} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} loadMore={v2 && remote.page?.nextCursor ? () => void remote.loadMore() : undefined} total={v2 ? remote.page?.total : undefined} loadingMore={v2 && remote.pending} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
             <div className={styles.placeholderGrid}>
               <PlaceholderSlots
                 count={4}
@@ -447,11 +475,13 @@ export default function LibraryPage() {
                     ? "Games you mark as finished collect here."
                     : "No games match this search."}
                 action={statusTab !== "active"
-                  ? <button type="button" className={styles.placeholderAction} onClick={() => setStatusTab("active")}>Browse active games</button>
+                  ? <button type="button" data-vault-control="secondary" className={styles.placeholderAction} onClick={() => setStatusTab("active")}>Browse active games</button>
                   : undefined}
               />
             </div>
           )}
+          {v2 && remote.error ? <p role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p> : null}
+          {v2 && remote.detailPending ? <p role="status">Loading game details…</p> : null}
         </div>
       </section>
 
@@ -468,9 +498,9 @@ export default function LibraryPage() {
         onManagePins={() => { if (selectedGame) void togglePin(selectedGame); }}
         onComplete={() => selectedGame ? changeStatus(selectedGame.id, "complete") : Promise.resolve()}
         onRestore={() => selectedGame ? changeStatus(selectedGame.id, "reactivate") : Promise.resolve()}
-        onSleep={() => selectedGame ? changeStatus(selectedGame.id, "blacklist") : Promise.resolve()}
+        onBlacklist={() => selectedGame ? changeStatus(selectedGame.id, "blacklist") : Promise.resolve()}
       />
-      {undoAction && !celebratingGame ? <div key={`${undoAction.game.id}-${undoAction.action}`} className={styles.undoToast} role="status" data-library-undo>{undoAction.message}<button type="button" onClick={() => void undoLastAction()}>Undo</button><button type="button" aria-label="Dismiss action feedback" onClick={clearUndo}>×</button></div> : null}
+      {undoAction && !celebratingGame ? <div key={`${undoAction.game.id}-${undoAction.action}`} className={styles.undoToast} role="status" data-library-undo>{undoAction.message}<button type="button" data-vault-control="tertiary" onClick={() => void undoLastAction()}>Undo</button><button type="button" data-vault-control="tertiary" data-control-size="icon" aria-label="Dismiss action feedback" onClick={clearUndo}>×</button></div> : null}
       {pinCandidate && !vaultState.pinnedIds.includes(pinCandidate.id) ? <ManagePinsDialog pinnedGames={pinnedGames} candidate={pinCandidate} onRemove={async (id) => { const game = allGames.find((entry) => entry.id === id); if (game) await togglePin(game); }} onReplace={async (replaceId) => { if (pinCandidate) await togglePin(pinCandidate, replaceId); }} onClose={() => setPinCandidate(null)} /> : null}
     </section>
   );

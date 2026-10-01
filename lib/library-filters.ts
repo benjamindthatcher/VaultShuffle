@@ -9,7 +9,7 @@ import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
  * toolbar could not express: show me things I have started, show me something
  * under ten hours, show me the RPGs.
  *
- * Status is deliberately absent - the Active/Slept/Completed tabs already own
+ * Status is deliberately absent - the Active/Blacklisted/Completed tabs already own
  * that - and so is platform, which the account menu's device mode covers
  * globally.
  */
@@ -58,6 +58,7 @@ export function hasActiveFilters(filters: LibraryFilters): boolean {
 
 function matchesProgress(game: DemoGame, progress: ProgressFilter) {
   if (progress === "any") return true;
+  if (game.playtimeKnown === false) return false;
   // Judged on playtime rather than the status label, which can lag behind and
   // which the tabs already filter on.
   const started = game.hoursPlayed > 0;

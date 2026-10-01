@@ -15,7 +15,7 @@ async function openVault(page: Page) {
   await page.goto("/vault");
   await dismissAnalyticsBanner(page);
   // The draw controls only exist once the guest catalogue has resolved.
-  await expect(page.getByRole("button", { name: /just pick something/i })).toBeEnabled({ timeout: 30_000 });
+  await expect(page.getByRole("button", { name: /skip it, just pick something/i })).toBeEnabled({ timeout: 30_000 });
 }
 
 /**
@@ -32,12 +32,11 @@ function pickTitle(page: Page) {
 test("a guest can set a session, mood and goal and get a pick", async ({ page }) => {
   await openVault(page);
 
-  await page.getByRole("button", { name: /^Session/ }).click();
   await page.getByRole("button", { name: /Short Session/i }).first().click();
   await page.getByRole("button", { name: /Chill/i }).first().click();
   await page.getByRole("button", { name: /Surprise Me/i }).first().click();
 
-  await page.getByRole("button", { name: "Draw from the Vault", exact: true }).click();
+  await page.getByRole("button", { name: "Draw from Vault", exact: true }).click();
 
   await expect(pickTitle(page)).toBeVisible({ timeout: 30_000 });
   await expect(pickTitle(page)).not.toBeEmpty();
@@ -46,7 +45,7 @@ test("a guest can set a session, mood and goal and get a pick", async ({ page })
 test("a guest can skip the setup entirely and still get a pick", async ({ page }) => {
   await openVault(page);
 
-  await page.getByRole("button", { name: /just pick something/i }).click();
+  await page.getByRole("button", { name: /skip it, just pick something/i }).click();
 
   await expect(pickTitle(page)).toBeVisible({ timeout: 30_000 });
   await expect(pickTitle(page)).not.toBeEmpty();
@@ -55,12 +54,12 @@ test("a guest can skip the setup entirely and still get a pick", async ({ page }
 test("a pick can be rerolled, and the result is openable on Steam", async ({ page }) => {
   await openVault(page);
 
-  await page.getByRole("button", { name: /just pick something/i }).click();
+  await page.getByRole("button", { name: /skip it, just pick something/i }).click();
   await expect(pickTitle(page)).toBeVisible({ timeout: 30_000 });
   const first = await pickTitle(page).innerText();
 
   // Rerolling lives in the draw bar above the card, not in the card's actions.
-  await page.getByRole("button", { name: /just pick something/i }).click();
+  await page.getByRole("button", { name: /skip it, just pick something/i }).click();
   await expect(pickTitle(page)).toBeVisible({ timeout: 30_000 });
   await expect(pickTitle(page)).not.toHaveText(first, { timeout: 30_000 });
 

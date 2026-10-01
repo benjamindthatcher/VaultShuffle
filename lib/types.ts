@@ -1,5 +1,5 @@
 export type Ownership = "Owned";
-export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Slept" | "Completed";
+export type GameStatus = "Not Started" | "Sampled" | "In Progress" | "Blacklisted" | "Completed";
 export type Priority = "Low" | "Medium" | "High" | "Must Play";
 
 export type Game = {
@@ -40,7 +40,6 @@ export type Game = {
   release_date?: string | null;
   completed_at?: string | null;
   previous_active_status?: "Not Started" | "Sampled" | "In Progress" | null;
-  slept_at?: string | null;
   completion_suggestion_dismissed_at?: string | null;
   completion_suggestion_dismissed_playtime?: number | null;
   main_story_minutes?: number | null;

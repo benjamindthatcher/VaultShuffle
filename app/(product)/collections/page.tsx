@@ -1,21 +1,33 @@
 "use client";
 
 import { featureAvailable } from "@/lib/steam-capabilities";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { CollectionCard } from "@/components/collections/CollectionCard";
 import { GameCard } from "@/components/shared/GameCard";
+import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
+import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
+import type { DemoGame } from "@/lib/demo-data";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
+import { useV2Collections } from "@/components/collections/useV2Collections";
+import { useV2Library } from "@/components/library/useV2Library";
+import { globalFilterParams } from "@/lib/v2/filter-query";
 import { AddGamesDialog } from "@/components/collections/AddGamesDialog";
 import type { SmartCollectionPreset } from "@/lib/types";
 import styles from "./collections.module.css";
 
 export default function CollectionsPage() {
-  const { collections, games, isLive, createCollection, updateCollection, removeCollection, addGamesToCollection, capabilities } = useAppData();
+  const { collections: providerCollections, games, allGames, isLive, createCollection, updateCollection, removeCollection, addGamesToCollection, capabilities, vaultState, recordVaultAction, updateGame:saveGame, restoreGame:reactivateGame, dataAuthority, globalFilters, libraryDataVersion, rememberLibraryGames } = useAppData();
+  const v2=isLive&&dataAuthority==='v2';
+  const [selectedCollectionId,setSelectedCollectionId]=useState<string|null>(null);
+  const remote=useV2Collections(v2,globalFilterParams(globalFilters),libraryDataVersion,selectedCollectionId);
+  const remoteDetail=useV2Library(false,"",String(libraryDataVersion));
+  const collections=v2?remote.collections:providerCollections;
+  useEffect(()=>{if(v2&&remote.games.length)rememberLibraryGames(remote.games);},[v2,remote.games,rememberLibraryGames]);
   const baseCollections = useMemo(() => collections.filter((collection) => collection.id !== "all"), [collections]);
   const suggestedPresets = useMemo(() => {
     const taken = new Set(baseCollections.map((collection) => collection.smartPreset).filter(Boolean));
@@ -27,7 +39,6 @@ export default function CollectionsPage() {
     return smartCollectionPresets.filter((preset) =>
       !taken.has(preset.id) && (hasRecency || !recencyShelves.has(preset.id)));
   }, [baseCollections, capabilities]);
-  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(baseCollections[0]?.id ?? null);
   const [composerOpen, setComposerOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [descriptionDraft, setDescriptionDraft] = useState("");
@@ -35,9 +46,24 @@ export default function CollectionsPage() {
   const [presetDraft, setPresetDraft] = useState<SmartCollectionPreset>("nearly-finished");
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [savingPreset, setSavingPreset] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState("");
   const [addingGames, setAddingGames] = useState(false);
   const [addingSaving, setAddingSaving] = useState(false);
+  const [detailsGameId, setDetailsGameId] = useState<string | null>(null);
+  const [pinCandidateId, setPinCandidateId] = useState<string | null>(null);
+  // Resolve against the full library so a smart shelf changing after an action
+  // doesn't close the preview or leave it showing stale game information.
+  const detailsGame = v2 ? remoteDetail.detail?.id===detailsGameId?remoteDetail.detail:null : allGames.find((game) => game.id === detailsGameId) ?? null;
+  function openDetails(id:string) {setDetailsGameId(id);if(v2)void remoteDetail.openDetail(id);}
+  function closeDetails() {setDetailsGameId(null);remoteDetail.closeDetail();}
+  async function updateGame(id:string,patch:Parameters<typeof saveGame>[1],context?:Record<string,unknown>) {
+    await saveGame(id,patch,context);if(v2&&id===detailsGameId)await remoteDetail.openDetail(id);
+  }
+  async function restoreGame(id:string,options?:Parameters<typeof reactivateGame>[1]) {
+    await reactivateGame(id,options);if(v2&&id===detailsGameId)await remoteDetail.openDetail(id);
+  }
+  const pinCandidate = remoteDetail.detail?.id===pinCandidateId?remoteDetail.detail:allGames.find((game) => game.id === pinCandidateId) ?? null;
   const composerRef = useRef<HTMLElement>(null);
   const collectionRailRef = useRef<HTMLDivElement>(null);
 
@@ -65,7 +91,7 @@ export default function CollectionsPage() {
   );
 
   const selectedCollection = baseCollections.find((collection) => collection.id === selectedCollectionId) ?? null;
-  const selectedGames = selectedCollection ? collectionGameMap.get(selectedCollection.id) ?? [] : [];
+  const selectedGames = v2 ? remote.games : selectedCollection ? collectionGameMap.get(selectedCollection.id) ?? [] : [];
 
   /**
    * Create a smart shelf from a preset in one press.
@@ -76,6 +102,7 @@ export default function CollectionsPage() {
    */
   async function createPresetShelf(preset: typeof smartCollectionPresets[number]) {
     if (saving) return;
+    setSavingPreset(preset.id);
     setMutationError("");
     setSaving(true);
     try {
@@ -91,6 +118,7 @@ export default function CollectionsPage() {
       setMutationError(collectionMutationMessage(error));
     } finally {
       setSaving(false);
+      setSavingPreset(null);
     }
   }
 
@@ -194,7 +222,7 @@ export default function CollectionsPage() {
   }
 
   return (
-    <section className={styles.collectionsPage}>
+    <section className={styles.collectionsPage} data-vault-controls="standard">
       <h1 className="visually-hidden">Collections</h1>
 
       {!isLive ? (
@@ -247,11 +275,11 @@ export default function CollectionsPage() {
               />
             </label>
             <div className={styles.composerActions}>
-              <button type="button" className={styles.secondaryAction} onClick={closeComposer}>
+              <button type="button" data-vault-control="tertiary" className={styles.secondaryAction} disabled={saving} onClick={closeComposer}>
                 Cancel
               </button>
-              <button type="button" className={styles.primaryAction} disabled={saving || !nameDraft.trim()} onClick={() => void (editing ? handleUpdateCollection() : handleCreateCollection())}>
-                {saving ? "Saving…" : editing ? "Save Collection" : "Create Collection"}
+              <button type="button" data-vault-control="primary" className={styles.primaryAction} aria-busy={saving} disabled={saving || !nameDraft.trim()} onClick={() => void (editing ? handleUpdateCollection() : handleCreateCollection())}>
+                {saving ? <span data-control-spinner aria-hidden="true" /> : null}{saving ? "Saving…" : editing ? "Save Collection" : "Create Collection"}
               </button>
             </div>
             {mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
@@ -261,7 +289,7 @@ export default function CollectionsPage() {
 
       {/* Only the shelves this library does not already have. A row of buttons
           that mostly say "already made that" is not a shortcut. */}
-      {suggestedPresets.length ? (
+      {suggestedPresets.length && !(v2 && (remote.metadataPending || remote.metadataError)) ? (
         <section className={styles.suggestedPanel} aria-label="Ready-made shelves">
           <SectionHeading title="Ready-made shelves" meta="One click each" />
           <div className={styles.suggestedGrid}>
@@ -269,8 +297,8 @@ export default function CollectionsPage() {
               <div key={preset.id} className={styles.suggestedCard}>
                 <strong>{preset.label}</strong>
                 <small>{preset.description}</small>
-                <button type="button" disabled={saving} onClick={() => void createPresetShelf(preset)}>
-                  <VaultIcon name="add" size={15} />Create shelf
+                <button type="button" data-vault-control="secondary" aria-busy={savingPreset === preset.id} disabled={saving} onClick={() => void createPresetShelf(preset)}>
+                  {savingPreset === preset.id ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="add" size={15} />}{savingPreset === preset.id ? "Creating…" : "Create shelf"}
                 </button>
               </div>
             ))}
@@ -284,12 +312,12 @@ export default function CollectionsPage() {
           meta={`${baseCollections.length}`}
           action={<>
             <div className={styles.railActions} role="group" aria-label="Browse collections">
-              <button type="button" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
-              <button type="button" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
+              <button type="button" data-vault-control="secondary" data-control-size="icon" onClick={() => scrollCollections(-1)} aria-label="Previous collections"><VaultIcon name="chevron-left" /></button>
+              <button type="button" data-vault-control="secondary" data-control-size="icon" onClick={() => scrollCollections(1)} aria-label="Next collections"><VaultIcon name="chevron-right" /></button>
             </div>
             <button
               type="button"
-              className={styles.primaryAction}
+              data-vault-control="primary" className={styles.primaryAction}
               aria-expanded={composerOpen}
               onClick={composerOpen ? closeComposer : openNewComposer}
             >
@@ -298,13 +326,15 @@ export default function CollectionsPage() {
             </button>
           </>}
         />
+        {v2&&remote.metadataPending?<p role="status">Loading your collections…</p>:null}
+        {v2&&remote.metadataError?<p role="alert">{remote.metadataError} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p>:null}
         <div ref={collectionRailRef} className={styles.collectionGrid} role="region" tabIndex={0} aria-label="Your collections">
-          {baseCollections.length ? null : (
+          {baseCollections.length || v2 && (remote.metadataPending || remote.metadataError) ? null : (
             <PlaceholderSlots
               count={3}
               size="wide"
               label="No shelves yet. A collection is any group of your games — by mood, by series, by whatever you like."
-              action={<button type="button" className={styles.placeholderAction} onClick={openNewComposer}>New collection</button>}
+              action={<button type="button" data-vault-control="primary" className={styles.placeholderAction} onClick={openNewComposer}>New collection</button>}
             />
           )}
           {baseCollections.map((collection) => (
@@ -330,19 +360,21 @@ export default function CollectionsPage() {
           meta={selectedCollection ? selectedCollection.name : undefined}
           action={selectedCollection ? <div className={styles.selectedActions}>
             {selectedCollection.kind === "smart" ? null : (
-              <button type="button" className={styles.primaryAction} onClick={() => setAddingGames(true)}>
+              <button type="button" data-vault-control="primary" className={styles.primaryAction} onClick={() => setAddingGames(true)}>
                 <VaultIcon name="add-game" size={18} />Add games
               </button>
             )}
-            <button type="button" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
-            <button type="button" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
+            <button type="button" data-vault-control="secondary" className={styles.secondaryAction} onClick={beginEdit}>Edit</button>
+            <button type="button" data-vault-control="secondary" data-control-tone="danger" className={`${styles.secondaryAction} ${styles.dangerAction}`} disabled={saving} onClick={() => void handleDeleteCollection()}>Delete</button>
           </div> : undefined}
         />
         {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
+        {v2&&remote.error?<p role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retryMembers}>Retry</button></p>:null}
+        {v2&&remote.pending&&!selectedGames.length?<p role="status">Loading collection games…</p>:null}
         <div className={styles.selectedGames}>
           {selectedCollection && selectedGames.length ? (
-            selectedGames.map((game) => <GameCard key={game.id} game={game} />)
-          ) : (
+            selectedGames.map((game) => <GameCard key={game.id} game={game} onClick={() => openDetails(game.id)} />)
+          ) : v2 && (remote.pending || remote.error || remote.metadataPending || remote.metadataError) ? null : (
             <PlaceholderSlots
               count={4}
               label={!selectedCollection
@@ -353,18 +385,60 @@ export default function CollectionsPage() {
                   ? (isLive ? "Nothing matches this rule yet." : "No preview games match this rule yet.")
                   : "Nothing on this shelf yet. Add games works from here."}
               action={selectedCollection && selectedCollection.kind !== "smart"
-                ? <button type="button" className={styles.placeholderAction} onClick={() => setAddingGames(true)}>Add games</button>
+                ? <button type="button" data-vault-control="primary" className={styles.placeholderAction} onClick={() => setAddingGames(true)}>Add games</button>
                 : !selectedCollection && !baseCollections.length
-                  ? <button type="button" className={styles.placeholderAction} onClick={openNewComposer}>New collection</button>
+                  ? <button type="button" data-vault-control="primary" className={styles.placeholderAction} onClick={openNewComposer}>New collection</button>
                   : undefined}
             />
           )}
         </div>
+        {v2&&remote.page?<p>Showing {selectedGames.length} of {remote.page.total}</p>:null}
+        {v2&&remote.page?.nextCursor?<button type="button" data-vault-control="secondary" disabled={remote.pending} aria-busy={remote.pending} onClick={()=>{void remote.loadMore();}}>{remote.pending?<><span data-control-spinner aria-hidden="true" />Loading…</>:"Load more games"}</button>:null}
       </section>
+
+      {v2&&remoteDetail.detailPending?<p role="status">Loading game details…</p>:null}
+      {v2&&remoteDetail.error?<p role="alert">{remoteDetail.error}</p>:null}
+      <LibraryDetailsDrawer
+        game={pinCandidate ? null : detailsGame}
+        collections={collections}
+        previewMode={!isLive}
+        onClose={closeDetails}
+        pinSlot={detailsGame ? vaultState.pinnedIds.indexOf(detailsGame.id) + 1 || null : null}
+        pinCount={vaultState.pinnedIds.length}
+        onTogglePin={() => {
+          if (!detailsGame) return;
+          const pinned = vaultState.pinnedIds.includes(detailsGame.id);
+          if (!pinned && vaultState.pinnedIds.length >= 3) {
+            setPinCandidateId(detailsGame.id);
+            return;
+          }
+          void recordVaultAction(pinned ? "unpinned" : "pinned", detailsGame.id, { source: "collections" }).catch(() => {});
+        }}
+        onManagePins={() => { if (detailsGame) setPinCandidateId(detailsGame.id); }}
+        onComplete={async () => {
+          if (detailsGame) await updateGame(detailsGame.id, { status: "Completed", completedAt: new Date().toISOString() }, { source: "collections" });
+        }}
+        onRestore={async () => {
+          if (detailsGame) await restoreGame(detailsGame.id, { context: { source: "collections" } });
+        }}
+        onBlacklist={async () => {
+          if (detailsGame) await updateGame(detailsGame.id, { status: "Blacklisted", completedAt: null }, { source: "collections" });
+        }}
+      />
+      {pinCandidate ? (
+        <ManagePinsDialog
+          candidate={pinCandidate}
+          pinnedGames={vaultState.pinnedIds.map((id) => allGames.find((game) => game.id === id)).filter((game): game is DemoGame => Boolean(game))}
+          onRemove={async (id) => { await recordVaultAction("unpinned", id, { source: "collections" }); }}
+          onReplace={async (id) => { await recordVaultAction("pinned", pinCandidate.id, { source: "collections", replace_game_id: id }); }}
+          onClose={() => setPinCandidateId(null)}
+        />
+      ) : null}
 
       {addingGames && selectedCollection ? (
         <AddGamesDialog
           collectionName={selectedCollection.name}
+          v2={v2} collectionId={selectedCollection.id} globalFilters={globalFilters} revision={libraryDataVersion}
           games={ownedGames}
           alreadyIn={new Set(selectedGames.map((game) => game.id))}
           saving={addingSaving}

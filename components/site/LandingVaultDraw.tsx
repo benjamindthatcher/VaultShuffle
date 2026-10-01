@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Artwork } from "@/components/shared/Artwork";
+import { ActionIcon } from "@/components/library/LibraryGameActions";
 import { VaultIcon } from "@/components/shared/VaultIcon";
-import { GuestSignInPrompt } from "@/components/vault/GuestSignInPrompt";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { guestFallbackGames, mapGuestGames } from "@/lib/app-view-model";
@@ -39,6 +39,7 @@ type DrawState = "idle" | "focusing" | "revealing" | "revealed";
  */
 type DrawSnapshot = {
   pickId: string;
+  quick: boolean;
   explanation: VaultMatchExplanation | null;
   session: VaultSessionId | null;
   mood: VaultMoodId | null;
@@ -49,23 +50,12 @@ const NO_SNOOZES: Set<string> = new Set();
 const NO_GENRES: string[] = [];
 const NO_DEFERRALS: string[] = [];
 /**
- * Finish Something asks how far into a game you already are, and a guest pool
- * carries no playtime at all - every game in it reads as untouched. The Vault
- * locks this option for guests for exactly that reason; unlocked here it would
- * be the one answer that silently returns nothing.
- */
-const LOCKED_GOALS = ["finish"] as const;
-
-/**
  * The Vault's draw, running on the landing page against the bundled sample
  * library.
  *
- * Everything the visitor touches here is the product: the same accordion, the
- * same scoring, the same weighted draw from the same shortlist, and the same
- * card explaining why the game won. Only the library is different - the same
- * thousand-game guest catalogue /vault previews with, rather than theirs - and
- * the page says so. Nothing is recorded, because there is no account to record
- * it against.
+ * The accordion and weighted draw use the Vault's components and scoring. The
+ * sample library has no playtime, so Finish Something uses session and mood
+ * scoring on this page. Nothing is recorded against an account.
  */
 export function LandingVaultDraw() {
   const [session, setSession] = useState<VaultSessionId | null>(null);
@@ -86,9 +76,15 @@ export function LandingVaultDraw() {
   // once the live catalogue lands, and an id looked up in the new pool is an id
   // that is no longer there - which would take the card off the screen.
   const [revealedPick, setRevealedPick] = useState<DemoGame | null>(null);
+  const [isLaunching, setIsLaunching] = useState(false);
+  const [savedIds, setSavedIds] = useState<string[]>([]);
+  const [blacklistedIds, setBlacklistedIds] = useState<string[]>([]);
+  const [blacklistUndo, setBlacklistUndo] = useState<{ id: string; title: string; wasSaved: boolean } | null>(null);
+  const [emptyMessage, setEmptyMessage] = useState("");
+  // Immediate exclusions also cover draws started before React commits the state.
+  const blacklistedIdsRef = useRef(new Set<string>());
   const [snapshot, setSnapshot] = useState<DrawSnapshot | null>(null);
   const [drawMessage, setDrawMessage] = useState("");
-  const [signInPromptOpen, setSignInPromptOpen] = useState(false);
   /**
    * The preview library: the bundled pool until the live catalogue arrives.
    *
@@ -103,6 +99,7 @@ export function LandingVaultDraw() {
   const drawnCycleRef = useRef<Set<string>>(new Set());
   const resultRef = useRef<HTMLElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
+  const drawButtonRef = useRef<HTMLButtonElement>(null);
   /** The one in-flight request, so every trigger after the first joins it. */
   const poolRequestRef = useRef<Promise<DemoGame[] | null> | null>(null);
 
@@ -160,9 +157,10 @@ export function LandingVaultDraw() {
   // spent-cycle id it does not contain excludes nothing.
   const setupKey = previewSetupKey(session, mood, goal);
 
-  const pool = useMemo(() => buildPreviewPool(games, session, mood, goal), [games, goal, mood, session]);
-  // No setup at all, which is what "Skip it" draws from.
-  const quickPool = useMemo(() => buildPreviewPool(games, null, null, null), [games]);
+  const eligibleGames = useMemo(() => games.filter((game) => !blacklistedIds.includes(game.id)), [games, blacklistedIds]);
+  const pool = useMemo(() => buildPreviewPool(eligibleGames, session, mood, goal), [eligibleGames, goal, mood, session]);
+  // No setup at all, which is what "Roll the dice" draws from.
+  const quickPool = useMemo(() => buildPreviewPool(eligibleGames, null, null, null), [eligibleGames]);
   const deferredIds = run.setupKey === setupKey ? run.deferredIds : NO_DEFERRALS;
   const deck = useMemo(() => buildVaultDeck(pool, deferredIds), [deferredIds, pool]);
   // A draw that has landed stays on screen whatever the setup does next; one
@@ -198,19 +196,7 @@ export function LandingVaultDraw() {
           ? "Choose your goal"
           : !deck.length
             ? "No matching games"
-            : "Draw from the Vault";
-  const statusMessage = nextStep === "session"
-    ? "Start by choosing how much time you have."
-    : nextStep === "mood"
-      ? "Great. Now choose the kind of mood you are in."
-      : nextStep === "goal"
-        ? "One final choice: what should tonight achieve?"
-        : !deck.length
-          ? "No games in the preview library match this setup."
-          // The pool, not the deck: the deck is capped at 64 and would report the
-          // cap rather than how much the answers actually left in play.
-          : `All three choices are ready. ${pool.length} ${pool.length === 1 ? "game is" : "games are"} eligible.`;
-
+            : "Draw from Vault";
   function focusStep(step: SetupStep) {
     void primePool();
     setOpenStep(step);
@@ -248,6 +234,7 @@ export function LandingVaultDraw() {
     // All three answered, so the questions fold away and the draw is the only
     // thing left on the page to press.
     setOpenStep(null);
+    window.requestAnimationFrame(() => drawButtonRef.current?.focus({ preventScroll: true }));
   }
 
   function openNextUnanswered() {
@@ -256,8 +243,11 @@ export function LandingVaultDraw() {
 
   async function runDraw({ quick = false }: { quick?: boolean } = {}) {
     if (drawingRef.current) return;
-    if (quick ? !quickPool.length : !canDraw) return;
+    if (!quick && (!session || !mood || !goal)) return;
     drawingRef.current = true;
+    setEmptyMessage("");
+    setDrawMessage("Opening the Vault.");
+    setRun({ setupKey, state: "focusing", deferredIds });
 
     const activeDraw = activeDrawRef.current + 1;
     activeDrawRef.current = activeDraw;
@@ -267,12 +257,12 @@ export function LandingVaultDraw() {
     // scroll straight to the draw it is the difference between previewing a
     // thousand games and previewing fourteen.
     const loaded = await primePool();
-    if (activeDraw !== activeDrawRef.current) { drawingRef.current = false; return; }
+    if (activeDraw !== activeDrawRef.current) return;
     // The pools this render closed over describe the library it was rendered
     // with, so a load that has just landed has to be scored here instead.
-    const arrived = Boolean(loaded?.length) && loaded !== games;
-    const drawPool = arrived ? buildPreviewPool(loaded!, session, mood, goal) : pool;
-    const drawQuickPool = arrived ? buildPreviewPool(loaded!, null, null, null) : quickPool;
+    const drawGames = (loaded?.length ? loaded : games).filter((game) => !blacklistedIdsRef.current.has(game.id));
+    const drawPool = buildPreviewPool(drawGames, session, mood, goal);
+    const drawQuickPool = buildPreviewPool(drawGames, null, null, null);
 
     // Drawing over a pick is a reroll, and a rerolled pick goes to the back of the
     // whole pool rather than staying in the deck. Without that the same handful
@@ -295,7 +285,14 @@ export function LandingVaultDraw() {
     const nextPick = quick
       ? drawQuickVaultGame(available, currentPick?.id)
       : drawVaultGame(available, currentPick?.id);
-    if (!nextPick) { drawingRef.current = false; return; }
+    if (!nextPick) {
+      drawingRef.current = false;
+      setRevealedPick(null);
+      setSnapshot(null);
+      setRun({ setupKey, state: "idle", deferredIds: nextDeferred });
+      setEmptyMessage("No more eligible games in this preview. Undo the Blacklist or change your choices.");
+      return;
+    }
     drawnCycleRef.current.add(nextPick.id);
 
     // Built from what this draw ran with, not read again once it lands.
@@ -303,10 +300,11 @@ export function LandingVaultDraw() {
     const entry = explanationPool.find((candidate) => candidate.game.id === nextPick.id) ?? null;
     const drawSnapshot: DrawSnapshot = {
       pickId: nextPick.id,
+      quick,
       // A quick draw ignores the setup entirely, so there is no match to explain
       // and the card says nothing rather than inventing reasoning for it.
       explanation: !quick && entry
-        ? buildVaultMatchExplanation({ entry, pool: explanationPool, session, mood, goal, selectedGenres: NO_GENRES })
+        ? buildVaultMatchExplanation({ entry, pool: explanationPool, session, mood, goal, selectedGenres: NO_GENRES, includePersonalTaste: false })
         : null,
       session: quick ? null : session,
       mood: quick ? null : mood,
@@ -314,7 +312,6 @@ export function LandingVaultDraw() {
     };
 
     const reducedMotion = prefersReducedMotion();
-    setDrawMessage("Opening the Vault.");
     setRun({ setupKey, state: "focusing", deferredIds: nextDeferred });
 
     await wait(reducedMotion ? 80 : 480);
@@ -324,23 +321,57 @@ export function LandingVaultDraw() {
     if (activeDraw !== activeDrawRef.current) return;
 
     setRevealedPick(nextPick);
+    setIsLaunching(false);
     setSnapshot(drawSnapshot);
     setRun({ setupKey, state: "revealed", deferredIds: nextDeferred });
     setDrawMessage(`Vault opened. ${nextPick.title} selected.`);
     drawingRef.current = false;
   }
 
-  // The card arrives below the bar, which on a phone is below the fold. Brought
-  // into view only when it is not already there, so a draw made from the right
-  // spot does not move the page.
+  function blacklistPick() {
+    if (!currentPick || drawingRef.current) return;
+    blacklistedIdsRef.current.add(currentPick.id);
+    setBlacklistedIds([...blacklistedIdsRef.current]);
+    setBlacklistUndo({ id: currentPick.id, title: currentPick.title, wasSaved: savedIds.includes(currentPick.id) });
+    setSavedIds((ids) => ids.filter((id) => id !== currentPick.id));
+    setRevealedPick(null);
+    void runDraw({ quick: pickDraw?.quick ?? !canDraw });
+  }
+
+  function undoBlacklist() {
+    if (!blacklistUndo) return;
+    blacklistedIdsRef.current.delete(blacklistUndo.id);
+    setBlacklistedIds([...blacklistedIdsRef.current]);
+    if (blacklistUndo.wasSaved) setSavedIds((ids) => [...new Set([...ids, blacklistUndo.id])]);
+    drawnCycleRef.current.delete(blacklistUndo.id);
+    setDrawMessage(`${blacklistUndo.title} restored to the preview.`);
+    setBlacklistUndo(null);
+    setEmptyMessage("");
+  }
+
+  // Each completed draw takes the visitor to the result, even when just the
+  // top of the card was already visible beneath the questions.
   useEffect(() => {
     if (drawState !== "revealed") return;
     const target = resultRef.current;
     if (!target) return;
     const frame = requestAnimationFrame(() => {
-      const bounds = target.getBoundingClientRect();
-      if (bounds.top >= 72 && bounds.top < window.innerHeight - 160) return;
-      target.scrollIntoView({ block: "center", behavior: prefersReducedMotion() ? "auto" : "smooth" });
+      target.focus({ preventScroll: true });
+      // Centre the match rating, ignoring the reveal animation. Quick picks
+      // have no rating, so keep their Play now button as the fallback.
+      const scrollTarget = target.querySelector<HTMLElement>('section[aria-label="Why this is a good match"] header [data-strength]')
+        ?? target.querySelector<HTMLButtonElement>('[data-vault-control="steam"]');
+      if (!scrollTarget) return;
+      let targetTop = 0;
+      let element: HTMLElement | null = scrollTarget;
+      while (element) {
+        targetTop += element.offsetTop;
+        element = element.offsetParent as HTMLElement | null;
+      }
+      window.scrollTo({
+        top: Math.max(0, targetTop + scrollTarget.offsetHeight / 2 - window.innerHeight / 2),
+        behavior: prefersReducedMotion() ? "instant" : "smooth"
+      });
     });
     return () => cancelAnimationFrame(frame);
   }, [drawState, revealedPick]);
@@ -352,6 +383,7 @@ export function LandingVaultDraw() {
       <section className={vaultStyles.setupLayout} aria-label="Vault draw setup">
         <div className={vaultStyles.optionStack}>
           <VaultOptionGroup
+            variant="landing"
             title="Session"
             stepNumber={1}
             options={vaultSessionOptions}
@@ -359,10 +391,11 @@ export function LandingVaultDraw() {
             selectedLabel={sessionLabel}
             expanded={openStep === "session"}
             state={session ? "complete" : openStep === "session" ? "active" : "pending"}
-            onToggle={() => focusStep("session")}
+            onToggle={() => openStep === "session" ? setOpenStep(null) : focusStep("session")}
             onSelect={(id) => selectOption("session", id)}
           />
           <VaultOptionGroup
+            variant="landing"
             title="Mood"
             stepNumber={2}
             options={vaultMoodOptions}
@@ -370,10 +403,11 @@ export function LandingVaultDraw() {
             selectedLabel={moodLabel}
             expanded={openStep === "mood"}
             state={mood ? "complete" : openStep === "mood" ? "active" : "pending"}
-            onToggle={() => focusStep("mood")}
+            onToggle={() => openStep === "mood" ? setOpenStep(null) : focusStep("mood")}
             onSelect={(id) => selectOption("mood", id)}
           />
           <VaultOptionGroup
+            variant="landing"
             title="Goal"
             stepNumber={3}
             options={vaultGoalOptions}
@@ -381,10 +415,8 @@ export function LandingVaultDraw() {
             selectedLabel={goalLabel}
             expanded={openStep === "goal"}
             state={goal ? "complete" : openStep === "goal" ? "active" : "pending"}
-            onToggle={() => focusStep("goal")}
+            onToggle={() => openStep === "goal" ? setOpenStep(null) : focusStep("goal")}
             onSelect={(id) => selectOption("goal", id)}
-            lockedOptionIds={LOCKED_GOALS}
-            onLockedSelect={() => setSignInPromptOpen(true)}
           />
         </div>
       </section>
@@ -393,27 +425,34 @@ export function LandingVaultDraw() {
         <div className={vaultStyles.drawActionControl}>
           <button
             type="button"
-            className={vaultStyles.ctaButton}
+            data-vault-control="primary" className={vaultStyles.ctaButton}
+            ref={drawButtonRef}
             onClick={() => (canDraw ? void runDraw() : openNextUnanswered())}
             disabled={isDrawing || (!nextStep && !deck.length)}
             aria-busy={isDrawing}
-            aria-describedby="landing-setup-status"
           >
             <VaultIcon name="draw-from-vault" size={22} />{drawButtonLabel}
           </button>
           <button
             type="button"
-            className={vaultStyles.quickDrawButton}
+            data-vault-control="secondary" className={vaultStyles.quickDrawButton}
             onClick={() => void runDraw({ quick: true })}
             disabled={isDrawing || !quickPool.length}
           >
-            <VaultIcon name="shuffle" size={16} />Skip it, just pick something
+            <VaultIcon name="shuffle" size={16} />Roll the dice
           </button>
         </div>
-        <p className={styles.status} id="landing-setup-status">{statusMessage}</p>
       </section>
 
       <p className="visually-hidden" aria-live="polite">{drawMessage}</p>
+      {emptyMessage ? <p className={styles.emptyMessage} role="status">{emptyMessage}</p> : null}
+      {blacklistUndo ? <div className={vaultStyles.toastStack}>
+        <div className={styles.previewNotice} role="status">
+          <span>{blacklistUndo.title} is blacklisted in this preview.</span>
+          <button type="button" data-vault-control="tertiary" onClick={undoBlacklist}>Undo</button>
+          <button type="button" data-vault-control="tertiary" aria-label="Dismiss blacklist notice" onClick={() => setBlacklistUndo(null)}>Dismiss</button>
+        </div>
+      </div> : null}
 
       {currentPick ? (
         // Keyed on the pick, so a redraw replaces the card rather than editing it
@@ -423,11 +462,12 @@ export function LandingVaultDraw() {
           key={currentPick.id}
           ref={resultRef}
           className={`${vaultStyles.resultCard} ${drawState === "revealed" ? vaultStyles.resultRevealed : ""}`}
+          tabIndex={-1}
           data-drawing={isDrawing || undefined}
           aria-label={`Your pick: ${currentPick.title}`}
         >
           <div className={vaultStyles.resultTop}>
-            <div className={vaultStyles.resultArtwork}>
+            <div data-vault-card="surface" className={vaultStyles.resultArtwork}>
               <Artwork src={currentPick.bannerUrl} alt={currentPick.title} sizes="(max-width: 820px) 100vw, 340px" fit="cover" />
             </div>
             <div className={vaultStyles.resultIntro}>
@@ -449,49 +489,55 @@ export function LandingVaultDraw() {
 
           <div className={vaultStyles.resultBody}>
             {pickDraw?.explanation ? <VaultMatchReasons explanation={pickDraw.explanation} /> : null}
-            {/* The Vault's two actions, shown rather than offered. Both are
-                spans: leaving Steam or pinning a game are things an account
-                does, and a demo that half-performs them is worse than one that
-                plainly shows what the real card puts here. */}
-            <div className={vaultStyles.resultActions} aria-label="What the real card offers">
-              <span className={`${vaultStyles.resultAction} ${vaultStyles.resultActionPrimary}`} data-action="steam">
-                <span className={vaultStyles.resultActionIcon} aria-hidden="true"><VaultIcon name="open-steam" size={48} /></span>
+            <div className={`${vaultStyles.resultActions} ${styles.previewActions}`} role="group" aria-label="Preview recommendation actions">
+              <button type="button" className={`${vaultStyles.resultAction} ${vaultStyles.resultActionPrimary}`} data-vault-control="steam" data-action="steam" aria-busy={isLaunching} disabled={isLaunching || isDrawing} onClick={() => { setIsLaunching(true); setSavedIds((ids) => [...new Set([...ids, currentPick.id])]); }}>
+                <span className={vaultStyles.resultActionIcon} aria-hidden="true">{isLaunching ? <span data-control-spinner /> : <VaultIcon name="open-steam" size={48} />}</span>
                 <span className={vaultStyles.resultActionCopy}>
-                  <strong>Open on Steam</strong>
-                  <small>Play it tonight</small>
+                  <strong aria-live="polite">{isLaunching ? "Launching steam" : "Play now"}</strong>
+                  <small>Steam launch preview</small>
                 </span>
-              </span>
-              <span className={vaultStyles.resultAction} data-action="pin">
-                <span className={vaultStyles.resultActionIcon} aria-hidden="true"><VaultIcon name="pin" size={48} /></span>
+              </button>
+              {savedIds.includes(currentPick.id) ? <div className={vaultStyles.resultAction} data-action="pin" data-pinned="true" role="status">
+                <VaultIcon name="check" size={24} />
+                <span className={vaultStyles.resultActionCopy}><strong>Playing Next</strong><small>Saved in this preview</small></span>
+              </div> : <button type="button" className={vaultStyles.resultAction} data-vault-control="play-later" data-action="pin" disabled={isDrawing} onClick={() => setSavedIds((ids) => [...new Set([...ids, currentPick.id])])}>
+                <span className={vaultStyles.resultActionIcon} aria-hidden="true"><ActionIcon kind="next" /></span>
                 <span className={vaultStyles.resultActionCopy}>
-                  <strong>Pin this pick</strong>
-                  <small>Track your progress on it</small>
+                  <strong>Save for later</strong>
+                  <small>Add to Playing Next</small>
                 </span>
-              </span>
+              </button>}
+              <button type="button" className={vaultStyles.resultAction} data-vault-control="primary" data-action="draw" disabled={isDrawing || (pickDraw?.quick ? !quickPool.length : !canDraw)} aria-busy={isDrawing} onClick={() => void runDraw({ quick: pickDraw?.quick ?? !canDraw })}>
+                <span className={vaultStyles.resultActionIcon} aria-hidden="true">{isDrawing ? <span data-control-spinner /> : <VaultIcon name="draw-from-vault" size={28} />}</span>
+                <span className={vaultStyles.resultActionCopy}><strong>{isDrawing ? "Drawing…" : "Reroll"}</strong><small>Pick another game</small></span>
+              </button>
+              <button type="button" className={vaultStyles.resultAction} data-vault-control="blacklist" data-action="blacklist" disabled={isDrawing} onClick={blacklistPick}>
+                <span className={vaultStyles.resultActionIcon} aria-hidden="true"><ActionIcon kind="blacklist" /></span>
+                <span className={vaultStyles.resultActionCopy}>
+                  <strong>Blacklist</strong>
+                  <small>Stop offering this game</small>
+                </span>
+              </button>
             </div>
           </div>
 
           <aside className={vaultStyles.resultContext} aria-label="Selected setup">
+            {pickDraw?.quick ? <>
+              <ResultSummary icon="goal" label="Quick Draw" value="Any eligible game" />
+              <ResultSummary icon="goal" label="Setup" value="Not used" />
+            </> : <>
             <ResultSummary icon="clock" label="Session" value={vaultSessionOptions.find((option) => option.id === pickDraw?.session)?.shortLabel ?? "Not selected"} />
             <ResultSummary icon="mood" label="Mood" value={vaultMoodOptions.find((option) => option.id === pickDraw?.mood)?.label ?? "Not selected"} />
             <ResultSummary icon="goal" label="Goal" value={vaultGoalOptions.find((option) => option.id === pickDraw?.goal)?.label ?? "Not selected"} />
+            </>}
           </aside>
         </section>
       ) : null}
 
       <p className={styles.poolNote}>
         Drawing from a preview library of {games.length} popular Steam games.{" "}
-        <Link href="/vault">Try guest mode</Link> for the full preview, or connect Steam to draw from your own.
+        <Link data-vault-control="text" data-control-emphasis="strong" href="/vault">Try guest mode<span aria-hidden="true"> →</span></Link> for the full preview, or connect Steam to draw from your own.
       </p>
-
-      {/* The Vault's own answer to Finish Something on a pool with no playtime
-          behind it, shown here for the same reason and with the same wording. */}
-      <GuestSignInPrompt
-        open={signInPromptOpen}
-        onClose={() => setSignInPromptOpen(false)}
-        catalogueSize={games.length}
-        reason="finish_goal"
-      />
     </div>
   );
 }
@@ -511,11 +557,14 @@ function buildPreviewPool(
   mood: VaultMoodId | null,
   goal: VaultGoalId | null
 ) {
+  // The homepage is a sample draw with no playtime. Let visitors try Finish
+  // Something using the session and mood scores instead of returning no games.
+  // The guest Vault keeps its own sign-in requirement.
   return buildVaultPool({
     games,
     session,
     mood,
-    goal,
+    goal: goal === "finish" ? null : goal,
     selectedCollectionId: null,
     selectedGenres: NO_GENRES,
     snoozedIds: NO_SNOOZES

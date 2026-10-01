@@ -12,9 +12,12 @@ type CollectionCardProps = {
 };
 
 export function CollectionCard({ collection, previewGames, selected = false, onSelect }: CollectionCardProps) {
+  const previews = collection.preview ? collection.preview.map(item=>({id:String(item.gameId),title:item.title,
+    bannerUrl:item.imageUrl??gameArtworkFallback(item.title),accessSource:item.access,familyOwnerName:null})) : previewGames;
   return (
     <button
       type="button"
+      data-vault-card="interactive"
       className={`${styles.card} ${selected ? styles.cardSelected : ""}`}
       aria-pressed={selected}
       onClick={onSelect}
@@ -32,13 +35,14 @@ export function CollectionCard({ collection, previewGames, selected = false, onS
 
       <div className={styles.footer}>
         <div className={styles.thumbRow}>
-          {previewGames.slice(0, 4).map((game) => (
+          {previews.slice(0, 4).map((game) => (
             <span key={game.id} className={styles.thumb}>
               <Artwork src={game.bannerUrl} fallbackSrc={gameArtworkFallback(game.title)} sizes="52px" /><FamilyGameMark game={game} overlay />
             </span>
           ))}
         </div>
-        <span className={styles.countLabel}>{previewGames.length} games</span>
+        <span className={styles.selectedLabel} aria-hidden="true">{selected ? "Selected" : ""}</span>
+        <span className={styles.countLabel}>{collection.count ?? previewGames.length} games</span>
       </div>
     </button>
   );

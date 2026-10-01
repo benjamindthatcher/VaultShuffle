@@ -1,3 +1,5 @@
+import {isV2Authority} from "@/lib/database-authority";
+import {runV2ScheduledPins} from "@/lib/v2/background-workers";
 import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -11,6 +13,7 @@ const CONCURRENCY = 4;
 
 /** Pins only. No imports, catalogue enrichment, library reconciliation or whole-library snapshots. */
 export async function refreshPinnedPlaytime() {
+  if (isV2Authority()) return runV2ScheduledPins();
   const key = process.env.STEAM_WEB_API_KEY;
   if (!key) throw new Error("STEAM_WEB_API_KEY is required for playtime refresh.");
   const deadline = Date.now() + 90_000;

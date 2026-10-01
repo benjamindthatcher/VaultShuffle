@@ -1,0 +1,106 @@
+{
+  "probe_1": [
+    {
+      "rows_total": 1563,
+      "minutes_null": 1563,
+      "access_source": "family",
+      "minutes_present": 0,
+      "hours_without_minutes": 0,
+      "observed_zero_minutes": 0,
+      "hours_not_reproducible": 0,
+      "zero_hours_unknown_minutes": 1563
+    },
+    {
+      "rows_total": 365610,
+      "minutes_null": 0,
+      "access_source": "owned",
+      "minutes_present": 365610,
+      "hours_without_minutes": 0,
+      "observed_zero_minutes": 191218,
+      "hours_not_reproducible": 0,
+      "zero_hours_unknown_minutes": 0
+    }
+  ],
+  "probe_2": [],
+  "probe_3": [
+    {
+      "accounts_with_any_divergent_row": 0
+    }
+  ],
+  "probe_4": [
+    {
+      "pin_rows": 62,
+      "baseline_null": 0,
+      "conversion_loses_precision": 0,
+      "negative_baseline_conflicts": 0
+    }
+  ],
+  "probe_5": [
+    {
+      "hours_null": 401,
+      "price_cents_null": 401,
+      "completion_events": 13157,
+      "estimate_minutes_null": 768,
+      "hours_not_whole_minutes": 0
+    }
+  ],
+  "probe_6": [
+    {
+      "staging_rows": 24428,
+      "slept_at_differs": 0,
+      "last_played_differs": 1,
+      "completed_at_differs": 3,
+      "dismissed_at_differs": 0,
+      "family_owner_differs": 0,
+      "last_observed_differs": 284,
+      "family_verified_differs": 0,
+      "recency_evidence_differs": 343,
+      "review_requested_differs": 0,
+      "dismissed_playtime_differs": 0,
+      "staging_rows_with_live_parent": 24428,
+      "live_sleep_absent_from_staging": 0,
+      "staging_asserts_unrecorded_sleep": 0,
+      "live_completion_absent_from_staging": 2,
+      "staging_asserts_unrecorded_completion": 0
+    }
+  ],
+  "probe_7": [
+    {
+      "accounts_affected": 3,
+      "accounts_with_one": 3,
+      "divergent_rows_total": 3,
+      "max_rows_per_account": 1,
+      "min_rows_per_account": 1,
+      "accounts_with_2_to_10": 0,
+      "accounts_with_over_10": 0,
+      "mean_rows_per_account": 1
+    }
+  ],
+  "probe_8": [
+    {
+      "staging_rows": 24428,
+      "most_recent_staging_activity": "2026-09-03T14:08:18.429011+00:00",
+      "rows_touched_in_last_30_days": 24213
+    }
+  ],
+  "probe_9": [
+    {
+      "staging_rows_without_parent": 0
+    }
+  ],
+  "evidence_kind": "read-only playtime/staging aggregate audit; not export or freeze",
+  "observed_at_utc": "2026-09-09T21:40:52.388028+00:00",
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "probe_file": "database/v2/migration/probes/p05-p06-playtime-and-staging.sql",
+  "probe_order": [
+    "P05a",
+    "P05b",
+    "P05c",
+    "P05d",
+    "P05e",
+    "P06a",
+    "P06b",
+    "P06c",
+    "P06d"
+  ]
+}
