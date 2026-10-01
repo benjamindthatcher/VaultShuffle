@@ -892,6 +892,14 @@ test("the duration and tag lifecycle vocabularies are checked against the target
  * Text bounds
  * ---------------------------------------------------------------------- */
 
+test("an empty legacy sort key is rebuilt without changing the display title", () => {
+  const title = "  ☃ Steam Game  ";
+  const game = run([sourceRow({ name: title, normalized_name: "" })]).games[0];
+  assert.equal(game.title, title);
+  assert.equal(game.normalized_sort_title, "☃ steam game");
+  assert.equal(failureCode(() => run([sourceRow({ name: "   ", normalized_name: "" })])), "catalogue_text_bounds");
+});
+
 test("over-length text is a reported conflict, never truncated", () => {
   assert.equal(failureCode(() => run([sourceRow({ name: "x".repeat(501) })])), "catalogue_text_bounds");
   assert.equal(failureCode(() => run([sourceRow({ normalized_name: "x".repeat(501) })])), "catalogue_text_bounds");

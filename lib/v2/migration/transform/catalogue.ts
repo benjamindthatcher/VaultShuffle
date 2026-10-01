@@ -1242,12 +1242,18 @@ export function transformCatalogue(
       maxLength: 500,
       requireTrimmedContent: true,
     }) as string;
-    const normalizedSortTitle = boundedText(cell(row, "normalized_name"), "normalized_name", {
+    const sourceSortTitle = boundedText(cell(row, "normalized_name"), "normalized_name", {
       nullable: false,
       maxLength: 500,
       requireTrimmedContent: false,
     }) as string;
-    if (pgLength(normalizedSortTitle) < 1) catalogueFailure("catalogue_text_bounds", SOURCE_RELATION, "normalized_name");
+    // Legacy normalisation can yield an empty derived key. Rebuild it with
+    // the existing runtime rule while preserving the original display title.
+    const normalizedSortTitle = sourceSortTitle || boundedText(pgBtrim(title).toLowerCase(), "normalized_name", {
+      nullable: false,
+      maxLength: 500,
+      requireTrimmedContent: false,
+    }) as string;
 
     const firstSeenAt = timestamp(cell(row, "first_seen_at"), "first_seen_at", true) as PgTimestamp;
     const lastSeenAt = timestamp(cell(row, "last_seen_at"), "last_seen_at", true) as PgTimestamp;

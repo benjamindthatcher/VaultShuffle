@@ -21,7 +21,7 @@ test('Source fence blocks every write and truncate, keeps reads and restores onl
     check('initdb',['-D',join(root,'data'),'-A','trust','-U','postgres','--no-locale']);
     check('pg_ctl',['-D',join(root,'data'),'-l',join(root,'pg.log'),'-o',`-k ${socket} -p 54989 -h ''`,'-w','start']);started=true;
     check('psql',args,tables.map(table=>`create table public.${table.name}(id integer);insert into public.${table.name} values(1);`).join('\n')+
-      'create schema cron;create table cron.job(jobid bigint primary key,active boolean);insert into cron.job values(1,true),(2,false);create role service_role;grant select,insert,update,delete,truncate on all tables in schema public to service_role;');
+      'create schema cron;create table cron.job(jobid bigint primary key,active boolean);insert into cron.job values(1,true),(2,false);create function cron.alter_job(job_id bigint,active boolean) returns void language sql as $$update cron.job j set active=$2 where j.jobid=$1$$;create role service_role;grant select,insert,update,delete,truncate on all tables in schema public to service_role;');
     const packet=prepareSourceFreeze(inventory);check('psql',args,packet.enableSql);
     assert.equal(check('psql',args,"select count(*) from pg_trigger where tgname='vault_cutover_write_fence';select count(*) from public.fixture_00;select count(*) from cron.job where active;"),'44\n1\n0');
     for(const sql of ['insert into public.fixture_00 values(2)','update public.fixture_00 set id=3','delete from public.fixture_00','truncate public.fixture_00']) {

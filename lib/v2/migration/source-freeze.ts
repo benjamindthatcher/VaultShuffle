@@ -23,9 +23,9 @@ create function vault_cutover.block_source_write() returns trigger language plpg
 begin raise exception using errcode='55000',message='SOURCE_WRITE_FROZEN'; end $$;
 revoke all on function vault_cutover.block_source_write() from public;
 `+names.map(name=>`create trigger vault_cutover_write_fence before insert or update or delete or truncate on public."${name}" for each statement execute function vault_cutover.block_source_write();`).join('\n')+
-    (jobs.length?`\nupdate cron.job set active=false where jobid in(${jobs.join(',')});`:'')+'\ncommit;\n';
+    (jobs.length?`\nselect cron.alter_job(job_id:=jobid,active:=false) from cron.job where jobid in(${jobs.join(',')});`:'')+'\ncommit;\n';
   const disableSql=header+names.map(name=>`drop trigger vault_cutover_write_fence on public."${name}";`).join('\n')+
     '\ndrop function vault_cutover.block_source_write();\ndrop schema vault_cutover;'+
-    (jobs.length?`\nupdate cron.job set active=true where jobid in(${jobs.join(',')});`:'')+'\ncommit;\n';
+    (jobs.length?`\nselect cron.alter_job(job_id:=jobid,active:=true) from cron.job where jobid in(${jobs.join(',')});`:'')+'\ncommit;\n';
   return Object.freeze({enableSql,disableSql,tables:names.length,pausedCronJobIds:Object.freeze(jobs)});
 }
