@@ -10,7 +10,7 @@ import { useIsMounted } from "@/components/shared/useIsMounted";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import type { DemoCollection, DemoGame } from "@/lib/demo-data";
-import { formatGameDuration } from "@/lib/game-duration";
+import { formatGameDuration, formatPlaytimeHours } from "@/lib/game-duration";
 import { buildPinnedRunSummary } from "@/lib/pinned-run";
 import type { VaultPin } from "@/lib/vault-state";
 import { familyProvenance, isFamilyAccess } from "@/lib/family-sharing";
@@ -151,7 +151,7 @@ export function LibraryDetailsDrawer({
     actions={<>{steamAction}<LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onBlacklist ? () => void onBlacklist().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} /></>}
     stats={[
       { icon: "play-now", label: "Status", value: game.status === "Blacklisted" ? "Blacklisted" : game.status },
-      { icon: "playtime", label: "Playtime (all time)", value: (isFamilyAccess(game.accessSource) || game.playtimeKnown === false) ? "Not available" : `${game.hoursPlayed}h` },
+      { icon: "playtime", label: "Playtime (all time)", value: (isFamilyAccess(game.accessSource) || game.playtimeKnown === false) ? "Not available" : formatPlaytimeHours(game.hoursPlayed) },
       { icon: "clock", label: "Estimated length", value: durationLabel ?? "Not available" },
       { icon: "collections", label: "Collections", value: `${relatedCollections.length} ${relatedCollections.length === 1 ? "collection" : "collections"}` },
     ]}
@@ -216,7 +216,7 @@ export function LibraryDetailsDrawer({
                   </div>
                   <div>
                     <VaultIcon name="playtime" size={18} />
-                    <span><dt>Playtime (all time)</dt><dd>{(isFamilyAccess(game.accessSource) || game.playtimeKnown === false) ? "Not available" : `${game.hoursPlayed}h`}</dd></span>
+                    <span><dt>Playtime (all time)</dt><dd>{(isFamilyAccess(game.accessSource) || game.playtimeKnown === false) ? "Not available" : formatPlaytimeHours(game.hoursPlayed)}</dd></span>
                   </div>
                   <div>
                     <VaultIcon name="clock" size={18} />

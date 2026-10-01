@@ -7,7 +7,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import { FilteredSteamDeckBadge } from "@/components/shared/SteamDeckCompatibility";
 import { Artwork } from "@/components/shared/Artwork";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
-import { formatGameDuration } from "@/lib/game-duration";
+import { formatGameDuration, formatPlaytimeHours } from "@/lib/game-duration";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { isFamilyAccess } from "@/lib/family-sharing";
 import { FamilyGameMark } from "@/components/shared/FamilyMark";
@@ -113,7 +113,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
               carries the length instead. */}
           <span>{isFamily
             ? durationLabel || "Family library"
-            : `${game.playtimeKnown === false ? "Playtime unavailable" : game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}${durationLabel ? ` · ${durationLabel}` : ""}`}</span>
+            : `${game.playtimeKnown === false ? "Playtime unavailable" : game.hoursPlayed > 0 ? `${formatPlaytimeHours(game.hoursPlayed)} played` : "Fresh pick"}${durationLabel ? ` · ${durationLabel}` : ""}`}</span>
           {isList ? (
             <span className={styles.listState}>
               <span className={styles.status}>{game.status}</span>

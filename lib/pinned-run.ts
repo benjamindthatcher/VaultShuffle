@@ -1,6 +1,6 @@
 import { pinProgressBar, pinProgressHours } from "./completion-celebration.ts";
 import type { DemoGame } from "./demo-data.ts";
-import { formatRemainingDuration } from "./game-duration.ts";
+import { formatPlaytimeHours, formatRemainingDuration } from "./game-duration.ts";
 import { playtimeIsUnknown } from "./family-sharing.ts";
 import type { VaultPin } from "./vault-state.ts";
 
@@ -20,11 +20,9 @@ export type PinnedRunSummary = {
   sharedFrom: string | null;
 };
 
-/** A compact hour label for the celebratory pin UI, without pretending 0.4h is 0h. */
+/** Tracked playtime uses the same single decimal as Library cards. */
 export function formatTrackedHours(hours: number) {
-  if (hours < 1) return `${hours.toFixed(1).replace(/\.0$/, "")}h`;
-  if (hours < 10) return `${hours.toFixed(1).replace(/\.0$/, "")}h`;
-  return `${Math.round(hours)}h`;
+  return formatPlaytimeHours(hours);
 }
 
 /**

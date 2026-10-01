@@ -40,6 +40,10 @@ export function completionFromDuration(hoursPlayed: number, duration?: GameDurat
   return Math.min(100, Math.max(0, Math.round((hoursPlayed * 60 * 100) / estimate)));
 }
 
+export function formatPlaytimeHours(hours: number) {
+  return `${hours.toFixed(1)}h`;
+}
+
 export function formatDurationEstimate(minutes: number | null) {
   if (!minutes) return "Not available";
   const hours = minutes / 60;

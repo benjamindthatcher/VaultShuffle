@@ -1,5 +1,5 @@
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "./demo-data.ts";
-import { estimatedTimeToBeatMinutes } from "./game-duration.ts";
+import { estimatedTimeToBeatMinutes, formatPlaytimeHours } from "./game-duration.ts";
 import { buildGenreWeightIndex, genrePreferenceAdjustment, type GenrePreferenceEvidence, type GenrePreferenceContextData, type GenrePreferenceIndex } from "./genre-preferences.ts";
 import { hoursFor, popularityPoints, verdictBaseline, verdictFor, verdictPoints, type GameVerdicts } from "./game-verdict.ts";
 import { moodContributors, type VaultMoodScores } from "./vault-matching.ts";
@@ -856,7 +856,7 @@ export function buildVaultMatchExplanation({
       strength: finish.quality >= 85 ? "perfect" : finish.quality >= 65 ? "strong" : "good",
       headline: `About ${left}h estimated remaining`,
       detail: totalHours
-        ? `Based on ${game.hoursPlayed}h played and a roughly ${Math.round(totalHours)}h playthrough. Your actual story progress may differ.`
+        ? `Based on ${formatPlaytimeHours(game.hoursPlayed)} played and a roughly ${Math.round(totalHours)}h playthrough. Your actual story progress may differ.`
         : "One of your nearer estimated finishes. Your actual story progress may differ."
     });
   }
@@ -871,7 +871,7 @@ export function buildVaultMatchExplanation({
       headline: canClaimNeverPlayed(game) ? "Never played" : "Barely sampled",
       detail: canClaimNeverPlayed(game)
         ? "It has been sitting in your library waiting for exactly this."
-        : `Only ${game.hoursPlayed}h in, so there is still a whole game here.`
+        : `Only ${formatPlaytimeHours(game.hoursPlayed)} in, so there is still a whole game here.`
     });
   }
 

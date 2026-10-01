@@ -1,0 +1,35 @@
+{
+  "production": {
+    "kind": "runtime_quarantine",
+    "state_rows": 20490,
+    "recorded_at": "2026-10-01T17:39:11.405245+00:00",
+    "review_rows": 34163,
+    "excluded_games": 2859,
+    "ownership_rows": 408519,
+    "excluded_app_ids": 2859,
+    "migration_applied": true,
+    "restrictive_app_policy": true,
+    "worker_helper_not_granted": true,
+    "private_reviews_not_granted": true
+  },
+  "restore_validation": {
+    "baseline_games": 29488,
+    "excluded_games": 2859,
+    "app_visible_games": 26629,
+    "worker_visible_games": 29488,
+    "pending_or_allowed_candidates": 213,
+    "core_fingerprints_unchanged": true,
+    "private_evidence_not_granted": true,
+    "beta_hidden": true,
+    "query_execution_ms": 10.55,
+    "migration_sha256": "24af3a1023b8f9245df475771951285099c1fd70b71896904e4f4d4cc5a226f9"
+  },
+  "checks": {
+    "v2_and_playtime_tests_passed": 205,
+    "vault_tests_passed": 53,
+    "typecheck": true,
+    "theme_check": true,
+    "targeted_lint": true
+  },
+  "playtime": "One decimal place in displayed hours; stored integer minutes and progress calculations unchanged."
+}

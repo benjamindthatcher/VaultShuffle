@@ -12,13 +12,27 @@ deciding this question.
 
 | Verdict | `review_status` | Effect |
 | --- | --- | --- |
-| excluded | `excluded` | Hidden everywhere. `user_games_with_catalog.is_quarantined` is true. |
+| excluded | `excluded` | Hidden from the app catalogue, Library, Collections and Vault. |
 | review | `pending` | **Still visible.** A flag for a person, not a decision. |
-| accepted | no row | Nothing to answer for. |
+| accepted | `allowed` or no row | Visible. |
 
 `pending` deliberately does not hide anything. Hiding a game somebody owns is
 worse than briefly showing an oddity, so an uncertain signal fails open and
 waits for a human.
+
+## V2 runtime enforcement
+
+Quarantine decisions remain in `catalog.review_decisions`. The restrictive
+`catalogue_quarantine_read` policy on `catalog.games` applies existing excluded
+Steam AppIDs to all ordinary app reads, including owned and family libraries,
+counts, details, pins and Vault pools. The app receives only the excluded AppID
+projection, not private review evidence. Pending and manually allowed entries
+remain visible. Workers retain catalogue access to maintain their evidence.
+
+Exclusion does not delete catalogue identity, ownership, notes, completion,
+Blacklist or collection membership. Allowing the game again reveals its existing
+facts. Migration `20261001173003` repairs the V2 read omission; it does not
+reclassify games or change the rules below.
 
 ## What Steam's `type` field is worth
 

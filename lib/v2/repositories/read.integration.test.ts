@@ -1171,6 +1171,55 @@ test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acce
   });
 });
 
+test("quarantine hides excluded games across app reads without losing ownership or private evidence", async (t) => {
+    const fixture = createFixture();
+    t.after(async () => disposeFixture(fixture));
+    const setup: VaultSetup = {session:null,mood:null,goal:null,collectionId:null,genres:[],globalFilters:DEFAULT_GLOBAL_FILTERS,deferredIds:[]};
+    const vault = new VaultRepository(fixture.database);
+    const beforeVault = await vault.preview(ACCOUNT_A, setup);
+    const beforePage = await fixture.library.list(ACCOUNT_A, {section:"all",limit:2});
+    const preserved = psql(fixture, "select md5(string_agg(row_to_json(s)::text, ',' order by game_id)) from app.game_state s where account_id=1", true);
+    psql(fixture, `insert into catalog.review_decisions
+      (game_id,steam_app_id,decision_kind,source_relation,source_record_key,source,precedence_rank,decision_status,created_at,updated_at)
+      values (1,100001,'quarantine','catalog_game_quarantine','runtime-test-1','manual',100,'excluded',now(),now()),
+             (5,100005,'quarantine','catalog_game_quarantine','runtime-test-5','automatic',10,'excluded',now(),now()),
+             (1006,101006,'quarantine','catalog_game_quarantine','runtime-test-family','manual',100,'excluded',now(),now()),
+             (2,100002,'quarantine','catalog_game_quarantine','runtime-test-pending','automatic',10,'pending',now(),now()),
+             (3,100003,'quarantine','catalog_game_quarantine','runtime-test-allowed','manual',100,'allowed',now(),now())`);
+    try {
+      const page = await collect(fixture.library, ACCOUNT_A, {section:"all"});
+      assert.equal(page.total, 1101);
+      assert.ok(page.items.every(game => ![1,5,1006].includes(game.gameId)));
+      assert.ok(page.items.some(game => game.gameId===2));
+      assert.ok(page.items.some(game => game.gameId===3));
+      assert.equal(await fixture.library.detail(ACCOUNT_A, 5), null);
+      assert.equal((await fixture.library.list(ACCOUNT_A, {search:"Game 0001",section:"all"})).items.some(game=>game.gameId===5), false);
+      await assert.rejects(()=>fixture.library.list(ACCOUNT_A,{section:"all",limit:2,cursor:beforePage.nextCursor!}),PageCursorRestartRequiredError);
+      const bootstrap = await fixture.bootstrap.read(ACCOUNT_A);
+      assert.equal(bootstrap.ownedTotal, 1003);
+      assert.equal(bootstrap.familyTotal, 98);
+      assert.equal(bootstrap.currentPick, null);
+      assert.ok(bootstrap.pins.every(pin=>pin.gameId!==1));
+      const dashboard = await fixture.dashboard.read(ACCOUNT_A).catch(error => { throw error.cause ?? error; });
+      assert.equal(dashboard.aggregates.ownedGames, 1003);
+      assert.equal(dashboard.aggregates.familyGames, 98);
+      const collection = await fixture.collections.members(ACCOUNT_A,"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",{limit:10});
+      assert.equal(collection?.total, 999);
+      assert.ok(collection?.items.every(game=>![1,5].includes(game.gameId)));
+      assert.equal((await vault.preview(ACCOUNT_A,setup)).poolTotal,beforeVault.poolTotal-3);
+      const blocked = await fixture.database.withPrincipal(ACCOUNT_A,tx=>tx`select id from catalog.games where id in (1,5,1006)`);
+      assert.equal(blocked.length,0);
+      await assert.rejects(()=>fixture.database.withPrincipal(ACCOUNT_A,tx=>tx`select reason from catalog.review_decisions`),/permission denied/);
+      assert.equal(psql(fixture,"set role vault_worker; select count(*) from catalog.games where id in (1,5,1006)",true),"3");
+      assert.equal(psql(fixture,"select count(*) from app.library_games where account_id=1",true),"1005");
+      assert.equal(psql(fixture,"select md5(string_agg(row_to_json(s)::text, ',' order by game_id)) from app.game_state s where account_id=1",true),preserved);
+      psql(fixture,"update catalog.review_decisions set decision_status='allowed',source='manual' where source_record_key='runtime-test-5'");
+      assert.equal((await fixture.library.detail(ACCOUNT_A,5))?.notes,"A retained private note");
+    } finally {
+      psql(fixture,"delete from catalog.review_decisions where source_record_key like 'runtime-test-%'");
+    }
+  });
+
 test('V2 Family current-app access is atomic, owner-protected and preserves authored data',async t=>{
   const fixture=createFixture();t.after(()=>disposeFixture(fixture));
   const family=new FamilyRepository(fixture.database);

@@ -392,7 +392,7 @@ test("the finish goal explains progress instead of contradicting the estimate", 
   const goal = explanation.insights.find((insight) => insight.kind === "goal");
 
   assert.ok(goal, "a finish draw should explain how close the ending is");
-  assert.match(goal.detail, /16h played/);
+  assert.match(goal.detail, /16\.0h played/);
   assert.match(goal.detail, /17h/);
 });
 

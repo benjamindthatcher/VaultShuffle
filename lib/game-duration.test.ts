@@ -4,6 +4,7 @@ import {
   completionFromDuration,
   estimatedTimeToBeatMinutes,
   formatGameDuration,
+  formatPlaytimeHours,
   getPreferredDurationMinutes, formatRemainingDuration } from "./game-duration.ts";
 
 test("uses the average of every available estimate rounded to an hour", () => {
@@ -87,4 +88,14 @@ test("a percentage outside 0-100 cannot invent time", () => {
   assert.equal(formatRemainingDuration(tenHours, -50), "~10h left");
   assert.equal(formatRemainingDuration(tenHours, 150), null);
   assert.equal(formatRemainingDuration(tenHours, Number.NaN), "~10h left");
+});
+
+test("played-hour labels round minute-derived values to one decimal without changing progress", () => {
+  assert.equal(formatPlaytimeHours(379 / 60), "6.3h");
+  assert.equal(formatPlaytimeHours(350 / 60), "5.8h");
+  assert.equal(formatPlaytimeHours(337 / 60), "5.6h");
+  assert.equal(formatPlaytimeHours(700 / 60), "11.7h");
+  assert.equal(formatPlaytimeHours(7), "7.0h");
+  assert.equal(formatPlaytimeHours(0), "0.0h");
+  assert.equal(completionFromDuration(1 / 60, { mainStoryMinutes: 60 }), 2);
 });

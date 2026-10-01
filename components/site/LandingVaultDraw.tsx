@@ -9,7 +9,7 @@ import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { guestFallbackGames, mapGuestGames } from "@/lib/app-view-model";
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
-import { formatGameDuration } from "@/lib/game-duration";
+import { formatGameDuration, formatPlaytimeHours } from "@/lib/game-duration";
 import type { Game } from "@/lib/types";
 import {
   buildVaultDeck,
@@ -481,7 +481,7 @@ export function LandingVaultDraw() {
                 <p className={vaultStyles.resultDuration}>
                   <VaultIcon name="clock" size={15} />
                   {duration}
-                  {currentPick.hoursPlayed > 0 ? <span>· {currentPick.hoursPlayed}h played</span> : null}
+                  {currentPick.hoursPlayed > 0 ? <span>· {formatPlaytimeHours(currentPick.hoursPlayed)} played</span> : null}
                 </p>
               ) : null}
             </div>

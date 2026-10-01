@@ -135,7 +135,7 @@ export function PinnedCommitments({ games, pins = [], pinnedIds, onSelect, onUnp
           const sharedCue = game.familyOwnerName ? `From ${game.familyOwnerName}` : "From the family shelf";
           const totalHours = Math.max(0, Number(game.hoursPlayed) || 0);
           const isRun = bar.kind === "run";
-          const gaugeHours = totalHours >= 10 ? Math.round(totalHours) : Number(totalHours.toFixed(1));
+          const gaugeHours = totalHours.toFixed(1);
           const readoutLabel = isShared
             ? "Playtime not tracked"
             : isRun

@@ -49,10 +49,10 @@ test("celebrates only the progress earned after the pin baseline", () => {
     hoursAtPin: 5,
   });
 
-  assert.equal(summary.headline, "3h played since choosing");
+  assert.equal(summary.headline, "3.0h played since choosing");
   assert.equal(summary.beforePercent, 25);
   assert.equal(summary.earnedPercent, 15);
-  assert.equal(summary.trackedHoursLabel, "3h since choosing");
+  assert.equal(summary.trackedHoursLabel, "3.0h since choosing");
 });
 
 test("never attributes progress when the pin baseline is missing", () => {

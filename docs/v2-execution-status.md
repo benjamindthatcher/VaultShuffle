@@ -42,3 +42,20 @@ Storage fell **291,384,467 → 249,466,003 bytes**, reclaiming another **41,918,
 Archive restore, byte-exact date preservation, dependency refusal, rollback, core fingerprints and access checks passed. The V2 suite passed 189/189 before the final heap rebuild; all 101 repository integration tests passed with the final chain, and typecheck passed. Public routes and the existing signed-in Library worked after cleanup. An unintended browser completion during verification was reactivated; original section counts were verified (320 active, 2 Blacklisted, 36 completed), with the temporary claim undone and no Vault current-game clear. [Library cleanup acceptance](../database/v2/final-library-storage-cleanup-20261001.json) records the exact hashes and measurements.
 
 See [database architecture](database-architecture.md) and [operations/recovery](v2-cutover-runbook.md). No migration milestone remains open.
+
+## Quarantine and playtime repair
+
+On 1 October, the V2 catalogue read omission was corrected by additive migration
+`20261001173003`: all 2,859 existing excluded AppIDs are hidden from ordinary app
+reads, including Library, Dashboard, Collections, pins and Vault. Pending and
+allowed entries remain visible; workers retain access. Catalogue identity,
+ownership, personal state and private review evidence were preserved. A verified
+local backup restore confirmed exact ownership/state/review fingerprints and a
+single evaluation of the exclusion list per catalogue query. Production retained
+408,519 ownership rows, 20,490 state rows and 34,163 review rows at application.
+
+Played-hour labels now use exactly one decimal across cards, details, Playing
+Next and Vault explanations, while stored minutes and progress calculations keep
+their original precision. The isolated release passed 205 V2/playtime tests, 53
+Vault tests, typecheck, theme checks and targeted lint. Unrelated in-progress
+changes were excluded from this release. [Quarantine acceptance](../database/v2/runtime-quarantine-acceptance-20261001.json).
