@@ -8,7 +8,9 @@ V2 is live on Supabase project `vbjtbwelnhbbdfrqczyf` in Virginia. V1 was delete
 - `supabase/config.toml`: private-schema project configuration. Application schemas are not exposed through the browser Data API.
 - `tests/`: SQL and concurrency regression fixtures for constraints, tenant access, session handling, atomic publication, HLTB and Blacklist. Use disposable databases; phase-specific fixtures require the corresponding point in the migration chain.
 - `final-cutover-acceptance-20261001.json`: complete transfer, recovery, backup/restore and live acceptance receipt. Counts are snapshots at acceptance, not current totals.
-- `final-compaction-audit-20261001.json`: measured storage reclamation.
+- `final-compaction-audit-20261001.json`: measured initial index reclamation.
+- `final-staging-cleanup-20261001.json`: restore-verified local archival and early removal of the 18 unused transfer tables' rows, reducing hosted storage to about 291 MB.
+- `maintenance/20261001_archive_transfer_staging.sql`: the exact tested one-off operator procedure; requires archive fingerprints and refuses drift or live dependencies. It is completed, not a schema migration or a recurring job.
 
 Production repositories, workers and their tests live in `lib/v2`. Run `npm run test:v2` for their tests. PostgreSQL integration tests create disposable local clusters using the existing PG17 test runtime; they must not target production.
 

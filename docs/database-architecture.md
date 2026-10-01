@@ -24,6 +24,6 @@ Production uses the transaction pooler on port 6543 with prepared statements dis
 
 `ops` holds bounded jobs, publication generations, leases, quota/cooldown state and shared enrichment work. Complete owned-library publication is atomic and supports up to 20,000 games within the existing byte bound. Invalid or partial imports preserve the previous complete library. Five existing Vercel schedules perform bounded Steam/Store/SteamSpy and recommendation work; there is no target database cron job or hosted duration worker.
 
-`reco` contains recommendation state. The `migration` schema retains required identity mappings, preservation evidence, cutover validation and retention controls. Completed setup code has been removed; this does not authorize deleting preserved production rows or their security boundaries.
+`reco` contains recommendation state. The `migration` schema retains small cutover/retention bookkeeping. Its 18 temporary transfer tables are now empty: their unused ID mappings and source-copy evidence were archived locally, restore-verified and cleared on 1 October at the user's request. Live authored history and personal measurements remain in the application domains. See [cleanup acceptance](../database/v2/final-staging-cleanup-20261001.json).
 
 See [operating and recovery notes](v2-cutover-runbook.md), [HLTB workflow](../supabase/README.md), [worker policy](nightly-workers.md), and [the final acceptance receipt](../database/v2/final-cutover-acceptance-20261001.json).

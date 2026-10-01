@@ -1,0 +1,84 @@
+{
+  "status": "complete",
+  "project_ref": "vbjtbwelnhbbdfrqczyf",
+  "completed_at": "2026-10-01T14:54:12.620717+00:00",
+  "authority": "User explicitly requested local archival and early removal of unused migration data; supersedes the original 30-day staging wait for these relations.",
+  "operation": "Explicit TRUNCATE of 18 migration-staging tables; no CASCADE, identity reset, schema change or live-domain data removal.",
+  "relations": [
+    "migration.account_map",
+    "migration.collection_map",
+    "migration.game_map",
+    "migration.legacy_account_merge_audit",
+    "migration.legacy_account_preferences_evidence",
+    "migration.legacy_auth_intent_audit",
+    "migration.legacy_collection_membership_evidence",
+    "migration.legacy_duration_job_archive",
+    "migration.legacy_family_access_orphans",
+    "migration.legacy_family_member_evidence",
+    "migration.legacy_import_freeze_report",
+    "migration.legacy_ingest_queue_archive",
+    "migration.legacy_library_evidence",
+    "migration.legacy_manual_session_audit",
+    "migration.legacy_purge_review_archive",
+    "migration.legacy_user_game_state_audit",
+    "migration.library_row_map",
+    "migration.session_map"
+  ],
+  "archived_rows": 864425,
+  "archive": {
+    "local_directory": "data/private/v2-cleanup/20261001/staging-archive",
+    "dump_bytes": 26437467,
+    "dump_sha256": "0182190e40bbe770b70a84f2c237aa9873ea68aa5e8a62a31ae452ea6b43096e",
+    "restore_verified": true,
+    "rows_and_fingerprints_verified": true
+  },
+  "validation": {
+    "changed_archive_refused": true,
+    "live_dependency_refused": true,
+    "late_failure_rollback_passed": true,
+    "local_live_domain_fingerprints_unchanged": true,
+    "production_staging_rows_after": 0,
+    "core_counts_before": {
+      "accounts": 743,
+      "sessions": 813,
+      "library": 408519,
+      "state": 20490,
+      "games": 29488
+    },
+    "core_counts_after": {
+      "accounts": 743,
+      "sessions": 813,
+      "library": 408519,
+      "state": 20490,
+      "games": 29488
+    }
+  },
+  "database_bytes_before": 469257363,
+  "database_bytes_after": 291384467,
+  "database_bytes_reclaimed": 177872896,
+  "maintenance_sql_sha256": "1b2336127a819ceac7052e13eda1f6f9e24894fd9c3192ccd5f685213fc75087",
+  "applied_migrations_modified": 0,
+  "live_health": {
+    "checked_at": "2026-10-01T14:55:04.416585+00:00",
+    "checks": [
+      {
+        "path": "/",
+        "status": 200,
+        "bytes": 69336,
+        "cache_control": "public, max-age=0, must-revalidate"
+      },
+      {
+        "path": "/releases",
+        "status": 200,
+        "bytes": 113756,
+        "cache_control": "public, max-age=0, must-revalidate"
+      },
+      {
+        "path": "/api/app-data",
+        "status": 200,
+        "bytes": 216,
+        "cache_control": "private, no-store, max-age=0"
+      }
+    ]
+  }
+}

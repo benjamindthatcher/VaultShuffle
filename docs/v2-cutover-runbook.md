@@ -22,7 +22,11 @@ After recovery, verify public routes, unauthorized worker denial, existing-sessi
 
 ## Retention and storage
 
-The accepted cutover set staging retention to 30 days: **31 October 2026 at 11:08:02.828928 UTC**. Review existing retention eligibility and holds before removing due staging rows. Do not treat durable account mappings, authored state or preservation evidence as temporary files.
+After the successful cutover, the user explicitly requested immediate local archival and removal of unused transfer data. On **1 October 2026**, all 18 temporary migration-staging relations were archived locally and cleared after an actual restore/fingerprint check, active-hold checks and runtime/dependency review. This supersedes the original 31 October wait for those existing rows. The tables remain empty; no live account, session, Library, game-state or catalogue rows were removed. Required application history and personal measurements remain in their live domains.
+
+The protected archive is `data/private/v2-cleanup/20261001/staging-archive/`: `staging-data-schema-acl.dump`, `COMPLETE.json` and `RESTORE-ACCEPTED.json`. Its SHA-256 is `0182190e40bbe770b70a84f2c237aa9873ea68aa5e8a62a31ae452ea6b43096e`. It contains private historical transfer data; keep it out of Git and public uploads. The older launch backup includes these rows and is historical: do not accidentally restore them into live production during an unrelated recovery.
+
+Measured database storage fell from **469,257,363 to 291,384,467 bytes**, reclaiming **177,872,896 bytes**. See [cleanup acceptance](../database/v2/final-staging-cleanup-20261001.json). No further purge of these launch staging rows is pending. Any future staging writes need their own archive and retention review.
 
 Use the existing measured storage audit as the baseline. Routine statistics/maintenance may be useful after substantial churn; repeat index rebuilds or heap rewrites only with a measured reason. Repository cleanup does not reclaim live database storage.
 

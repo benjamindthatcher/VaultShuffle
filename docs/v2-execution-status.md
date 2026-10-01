@@ -27,6 +27,8 @@ Protected backups and final proof remain local and untracked. The accepted V2 ba
 
 Keep `VAULT_DATABASE_AUTHORITY=v2`, `VAULT_MAINTENANCE=0` and `VAULT_CUTOVER_WORKERS=0`. Preserve existing session, cron and Steam secrets. Use V2 backups for recovery.
 
-The existing 30-day staging deadline is **31 October 2026 at 11:08:02.828928 UTC**. Check retention eligibility and active holds before any later database purge; durable identity/preservation evidence and live user data are not disposable setup files. No production table or data was removed by this repository cleanup.
+The user subsequently approved immediate local archival and removal of unused migration data. On 1 October, **864,425 temporary rows in 18 staging tables** were downloaded to protected `data/private/v2-cleanup/20261001/staging-archive/`, restored locally and verified by exact fingerprints, then cleared from production in the tested guarded transaction. No CASCADE, identity reset, schema change or live-domain deletion was used. Staging rows are now zero; all core live counts were unchanged (743 accounts, 813 sessions, 408,519 Library rows, 20,490 game-state rows and 29,488 games).
+
+This supersedes the original 31 October wait for those archived rows. Storage dropped **469,257,363 → 291,384,467 bytes**, reclaiming **177,872,896 bytes** (~178 MB). Home, releases and guest API health checks passed. The applied migration files remain unchanged. [Cleanup acceptance](../database/v2/final-staging-cleanup-20261001.json) records the exact allowlist, archive hash and actual validation. Required user history and personal measurements remain live.
 
 See [database architecture](database-architecture.md) and [operations/recovery](v2-cutover-runbook.md). No migration milestone remains open.
