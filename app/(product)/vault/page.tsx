@@ -10,6 +10,7 @@ import { ActionIcon } from "@/components/library/LibraryGameActions";
 import { FilteredSteamDeckBadge } from "@/components/shared/SteamDeckCompatibility";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { VaultCollectionCard } from "@/components/vault/VaultCollectionCard";
 import { VaultGenrePanel } from "@/components/vault/VaultGenrePanel";
@@ -1301,7 +1302,7 @@ export default function VaultPage() {
           {collectionMode && !selectedCollection ? <span className={styles.noFilters}>Choose a collection to build this deck.</span> : null}
         </div>
 
-        {v2 && (remoteVault.pending || remoteVault.error) ? <p role="status">{remoteVault.pending ? "Loading your Vault…" : "Your Vault is temporarily unavailable."}</p> : deck.length ? (
+        {v2 && remoteVault.pending ? <VaultShuffleLoader active inline label="Loading your Vault" /> : v2 && remoteVault.error ? <p role="status">Your Vault is temporarily unavailable.</p> : deck.length ? (
           <VaultPoolPreview
             entries={deck}
             drawState={drawState}

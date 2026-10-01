@@ -12,5 +12,5 @@ export async function verifyWorkerDatabase(database:DatabaseClient,expectedProje
         and (pg_has_role(current_user,r.oid,'USAGE') or pg_has_role(current_user,r.oid,'SET')))
       and exists(select 1 from app.read_project_marker() where expected_project_ref=${expectedProjectRef})) safe`;
     if(rows.length!==1||!rows[0].safe)throw new DatabaseUnavailableError();
-  }catch{throw new DatabaseUnavailableError();}
+  }catch (error){throw new DatabaseUnavailableError(error);}
 }

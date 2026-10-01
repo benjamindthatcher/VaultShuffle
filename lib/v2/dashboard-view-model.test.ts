@@ -4,7 +4,7 @@ import { dashboardStats } from "./dashboard-view-model.ts";
 import { formatMoney } from "../backlog-stats.ts";
 import type { DashboardPayload } from "./repositories/dashboard-core.ts";
 
-const payload:DashboardPayload={revision:{library:'1',state:'1'},aggregates:{ownedGames:10000,familyGames:500,completedGames:125,completedPercent:1,totalMinutes:600000,knownPlaytimeGames:10000,unplayedGames:1000,pricedGames:0,libraryValueCents:null,completedValueCents:null,unplayedValueCents:null},trend:{daysTracked:0,minutesLast7Days:0,minutesLast30Days:0,dailyGains:[]},currency:'USD',bestValueGames:[],mostPlayed:[],recentCompletions:[],completionSuggestions:[],cards:[],availableExclusions:[]};
+const payload:DashboardPayload={revision:{library:'1',state:'1'},aggregates:{ownedGames:10000,familyGames:500,completedGames:125,completedPercent:1,totalMinutes:600000,knownPlaytimeGames:10000,unplayedGames:1000,pricedGames:0,libraryValueCents:null,completedValueCents:null,unplayedValueCents:null},completionSummary:{count:0,valueCents:0},completionActivity:[],trend:{streakDays:0,daysTracked:0,minutesLast7Days:0,minutesLast30Days:0,dailyGains:[]},currency:'USD',bestValueGames:[],mostPlayed:[],recentCompletions:[],completionSuggestions:[],cards:[],availableExclusions:[]};
 test("Dashboard reports whole SQL totals and distinguishes unknown money from zero",()=>{
   const stats=dashboardStats(payload);
   assert.equal(stats.totalGames,10000);assert.equal(stats.totalHours,10000);assert.equal(stats.completedGames,125);

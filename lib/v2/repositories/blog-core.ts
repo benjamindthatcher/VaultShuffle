@@ -19,6 +19,6 @@ export class BlogRepository {
           ${filter.playerMode??null},${limit},${sortReviews},${Boolean(filter.tag)})`;
       return rows.map(row=>({...row,steam_appid:Number(row.steam_appid),release_date:row.release_date instanceof Date?row.release_date.toISOString().slice(0,10):row.release_date,
         review_total:row.review_total===null?null:Number(row.review_total),review_positive:row.review_positive===null?null:Number(row.review_positive),tags:filter.tag?tags(row.tags):undefined}));
-    }catch(error){if(error instanceof InvalidPageQueryError)throw error;throw new DatabaseUnavailableError();}
+    }catch(error){if(error instanceof InvalidPageQueryError)throw error;throw new DatabaseUnavailableError(error);}
   }
 }

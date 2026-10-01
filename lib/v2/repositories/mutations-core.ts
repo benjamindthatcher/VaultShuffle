@@ -199,7 +199,7 @@ export class MutationsRepository {
       const message = error instanceof Error ? error.message : "";
       if (message === "GAME_NOT_FOUND") throw new GameNotFoundError();
       if (message === "REQUEST_KEY_REUSED") throw new StaleMutationError();
-      throw new DatabaseUnavailableError();
+      throw new DatabaseUnavailableError(error);
     }
   }
 }

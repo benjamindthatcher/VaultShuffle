@@ -5,6 +5,7 @@ import { readLibraryCards, type LibraryCard } from "./library-core.ts";
 import { type GlobalFilters } from "../../global-filters.ts";
 import { EXCLUSION_CATEGORIES, EXCLUSION_TAG_SHARE } from "../../exclusion-categories.ts";
 import { InvalidPageQueryError } from "./page-errors.ts";
+import { playtimeStreak } from "../../playtime-summary.ts";
 
 export type DashboardGame = Readonly<{ gameId:number; title:string; appId:string|null; playtimeMinutes:number|null; completedAt:string|null; imageUrl:string|null }>;
 export type CompletionSuggestion = Readonly<{ game:DashboardGame; estimatedMinutes:number; progressPercent:number; confidence:number }>;
@@ -12,7 +13,9 @@ export type DashboardValueGame = Readonly<{game:DashboardGame; cents:number; cen
 export type DashboardPayload = Readonly<{
   revision:Readonly<{library:string;state:string}>;
   aggregates:Readonly<{ownedGames:number;familyGames:number;completedGames:number;completedPercent:number;totalMinutes:number;knownPlaytimeGames:number;unplayedGames:number;pricedGames:number;libraryValueCents:number|null;completedValueCents:number|null;unplayedValueCents:number|null}>;
-  trend:Readonly<{daysTracked:number;minutesLast7Days:number;minutesLast30Days:number;dailyGains:readonly {day:string;minutes:number}[]}>;
+  trend:Readonly<{streakDays:number;daysTracked:number;minutesLast7Days:number;minutesLast30Days:number;dailyGains:readonly {day:string;minutes:number}[]}>;
+  completionSummary:Readonly<{count:number;valueCents:number}>;
+  completionActivity:readonly {day:string;count:number;games:readonly {gameId:number;title:string}[]}[];
   currency:"USD"; bestValueGames:readonly DashboardValueGame[];
   mostPlayed:readonly DashboardGame[];recentCompletions:readonly DashboardGame[];completionSuggestions:readonly CompletionSuggestion[];
   cards:readonly LibraryCard[]; availableExclusions:readonly string[];
@@ -38,31 +41,41 @@ export class DashboardRepository {
       const value=await libraryValue(tx,base);
       const highlights=await tx<GameRow[]>`${base} select * from base where access='owned' order by playtime_minutes desc nulls last,normalized_sort_title,game_id limit 5`;
       const completions=await tx<GameRow[]>`${base} select * from base where access='owned' and completed_at is not null order by completed_at desc,game_id desc limit 8`;
-      const suggestions=await tx<GameRow[]>`${base} select *,least(100,round(playtime_minutes*100.0/estimated_minutes))::integer progress_percent,
-        case when playtime_minutes<=estimated_minutes*1.5 then 1 when playtime_minutes<=estimated_minutes*2.5 then .8 when playtime_minutes<=estimated_minutes*4 then .6 else .4 end confidence
-        from base where access='owned' and completed_at is null and duration_kind<>'endless' and estimated_minutes>=120
+      const candidates=tx`${base}, candidates as (select * from base where access='owned' and completed_at is null and coalesce(duration_kind,'unknown')<>'endless' and estimated_minutes>=120
           and playtime_minutes>=estimated_minutes*.75
-          and (completion_dismissed_at is null or playtime_minutes>=coalesce(completion_dismissed_playtime,0)+greatest(180,coalesce(completion_dismissed_playtime,0)*.25))
+          and (completion_dismissed_at is null or playtime_minutes>=coalesce(completion_dismissed_playtime,0)+greatest(180,coalesce(completion_dismissed_playtime,0)*.25)))`;
+      const summary=await tx<{count:number;value_cents:string}[]>`${candidates} select count(*)::integer count,coalesce(sum(completion_cents),0) value_cents from candidates`;
+      const suggestions=await tx<GameRow[]>`${candidates} select *,least(100,round(playtime_minutes*100.0/estimated_minutes))::integer progress_percent,
+        case when playtime_minutes<=estimated_minutes*1.5 then 1 when playtime_minutes<=estimated_minutes*2.5 then .8 when playtime_minutes<=estimated_minutes*4 then .6 else .4 end confidence
+        from candidates
         order by confidence desc,progress_percent desc,game_id limit 50`;
+      const activity=await tx<{day:string;count:number;games:{gameId:number;title:string}[]}[]>`${base}, finished as (
+        select game_id,title,to_char(completed_at at time zone 'UTC','YYYY-MM-DD') as "day",
+          row_number() over(partition by (completed_at at time zone 'UTC')::date order by completed_at desc,game_id desc) rank
+        from base where access='owned' and completed_at >= ((current_timestamp at time zone 'UTC')::date - interval '30 days') at time zone 'UTC'
+          and completed_at < ((current_timestamp at time zone 'UTC')::date + interval '1 day') at time zone 'UTC'
+      ) select "day",count(*)::integer count,jsonb_agg(jsonb_build_object('gameId',game_id,'title',title) order by rank) filter(where rank<=2) games
+        from finished group by "day" order by "day" desc limit 31`;
       // Only displayed highlights carry product DTOs, independent of total Library size.
       const ids=[...new Set([...highlights,...completions,...value.games.map(item=>({game_id:item.game.gameId}))].map(row=>row.game_id))];
       const cards=await readLibraryCards(tx,principal.accountId,ids);
       const availableExclusions=await exclusionOptions(tx,principal.accountId);
       // Unknown-coverage observations cannot prove a daily gain.
       const daily=await tx<{day:string|Date;minutes:string|number|null}[]>`
-        with snapshots as(select activity_day,observed_minutes,coverage,lag(coverage) over(order by activity_day) previous_coverage,
+        with snapshots as(select activity_day,observed_minutes,coverage,lag(activity_day) over(order by activity_day) previous_day,lag(coverage) over(order by activity_day) previous_coverage,
           lag(observed_minutes) over(order by activity_day) previous from app.playtime_daily where account_id=${principal.accountId} order by activity_day desc limit 31)
-        select activity_day as "day",case when coverage='complete' and previous_coverage='complete' then greatest(0,observed_minutes-previous) else null end as minutes
+        select activity_day as "day",case when coverage='complete' and previous_coverage='complete' and activity_day=previous_day+1 then greatest(0,observed_minutes-previous) else null end as minutes
         from snapshots where previous is not null order by activity_day desc`;
       const row=aggregates[0];const owned=Number(row?.owned_games??0),completed=Number(row?.completed_games??0);
       const gains=daily.filter(x=>x.minutes!==null).map(x=>({day:x.day instanceof Date?x.day.toISOString().slice(0,10):String(x.day),minutes:Number(x.minutes)}));
       return Object.freeze({revision:Object.freeze({library:String(row?.library_revision??0),state:String(row?.state_revision??0)}),
         aggregates:Object.freeze({ownedGames:owned,familyGames:Number(row?.family_games??0),completedGames:completed,completedPercent:owned?Math.round(completed*100/owned):0,totalMinutes:Number(row?.total_minutes??0),knownPlaytimeGames:Number(row?.known_playtime_games??0),unplayedGames:Number(row?.unplayed_games??0),...value.aggregates}),
         currency:"USD",bestValueGames:Object.freeze(value.games),cards:Object.freeze(cards),availableExclusions:Object.freeze(availableExclusions),
-        trend:Object.freeze({daysTracked:daily.length?daily.length+1:0,minutesLast7Days:sumWithin(gains,7),minutesLast30Days:sumWithin(gains,30),dailyGains:Object.freeze(gains)}),
+        trend:Object.freeze({streakDays:playtimeStreak(gains),daysTracked:daily.length?daily.length+1:0,minutesLast7Days:sumWithin(gains,7),minutesLast30Days:sumWithin(gains,30),dailyGains:Object.freeze(gains)}),
+        completionSummary:Object.freeze({count:summary[0].count,valueCents:Number(summary[0].value_cents)}),completionActivity:Object.freeze(activity),
         mostPlayed:Object.freeze(highlights.map(game)),recentCompletions:Object.freeze(completions.map(game)),
         completionSuggestions:Object.freeze(suggestions.map(x=>Object.freeze({game:game(x),estimatedMinutes:Number(x.estimated_minutes),progressPercent:Number(x.progress_percent),confidence:Number(x.confidence)})))});
-    });}catch(error){if(error instanceof DatabaseUnavailableError || error instanceof InvalidPageQueryError)throw error;throw new DatabaseUnavailableError();}
+    });}catch(error){if(error instanceof DatabaseUnavailableError || error instanceof InvalidPageQueryError)throw error;throw new DatabaseUnavailableError(error);}
   }
 }
 
@@ -79,6 +92,7 @@ function dashboardBase(tx:TenantTransaction,accountId:number,f:GlobalFilters) {
       gs.completion_dismissed_at,gs.completion_dismissed_playtime,gf.duration_kind,
       greatest(60,round((coalesce(gf.main_duration_minutes,0)+coalesce(gf.extras_duration_minutes,0)+coalesce(gf.completion_duration_minutes,0))::numeric/
         nullif((case when gf.main_duration_minutes>0 then 1 else 0 end)+(case when gf.extras_duration_minutes>0 then 1 else 0 end)+(case when gf.completion_duration_minutes>0 then 1 else 0 end),0)/60)*60)::integer estimated_minutes,
+      case when price.is_free then 0 else price.price_initial_cents end completion_cents,
       case when price.is_free then 0 else coalesce(nullif(price.price_initial_cents,0),nullif(price.price_final_cents,0)) end cents
     from accessible a join catalog.games g on g.id=a.game_id
     left join app.game_state gs on gs.account_id=${accountId} and gs.game_id=a.game_id

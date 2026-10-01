@@ -8,6 +8,7 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import { VaultMatchReasons } from "@/components/vault/VaultMatchReasons";
 import { VaultOptionGroup } from "@/components/vault/VaultOptionGroup";
 import { guestFallbackGames, mapGuestGames } from "@/lib/app-view-model";
+import { decodeCatalogue, type CataloguePayload } from "@/lib/catalogue-wire";
 import type { DemoGame, VaultGoalId, VaultMoodId, VaultSessionId } from "@/lib/demo-data";
 import { formatGameDuration, formatPlaytimeHours } from "@/lib/game-duration";
 import type { Game } from "@/lib/types";
@@ -120,10 +121,10 @@ export function LandingVaultDraw() {
   const primePool = useCallback(() => {
     poolRequestRef.current ??= (async () => {
       try {
-        const response = await fetch("/guest-catalogue");
+        const response = await fetch("/guest-catalogue?format=compact-v1");
         if (!response.ok) return null;
-        const payload = (await response.json()) as { games?: Game[] };
-        const mapped = mapGuestGames(payload.games ?? []);
+        const payload = (await response.json()) as CataloguePayload<Game>;
+        const mapped = mapGuestGames(decodeCatalogue(payload));
         if (!mapped.length) return null;
         setGames(mapped);
         return mapped;

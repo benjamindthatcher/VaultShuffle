@@ -1,6 +1,7 @@
 "use client";
 
 import { playingNextProgress } from "@/lib/playing-next-progress";
+import { decodeCatalogue, type CataloguePayload } from "@/lib/catalogue-wire";
 import { isProductAnalyticsEnabled } from "@/lib/posthog-client";
 import { MutationQueue } from "@/lib/mutation-queue";
 import { useImmediateState } from "@/components/shared/useImmediateState";
@@ -72,8 +73,7 @@ type AppBootstrapPayload = {
 };
 
 /** Served by /guest-catalogue rather than the bootstrap, so that the CDN can cache it. */
-type GuestCataloguePayload = {
-  games?: Game[];
+type GuestCataloguePayload = CataloguePayload<Game> & {
   guest_pool_source?: "live_catalogue" | "fallback";
 };
 
@@ -313,8 +313,8 @@ export function AppDataProvider({ children, initialSession = guestSession }: { c
         // the bundled fallback pool is already on screen - so it must not take
         // the rest of the guest boot down with it.
         try {
-          const catalogue = await api<GuestCataloguePayload>("/guest-catalogue");
-          const mappedGuestGames = mapGuestGames(catalogue.games ?? []);
+          const catalogue = await api<GuestCataloguePayload>("/guest-catalogue?format=compact-v1");
+          const mappedGuestGames = mapGuestGames(decodeCatalogue(catalogue));
           if (!mappedGuestGames.length) throw new Error("Guest catalogue was empty.");
           setGuestGames(seedDashboardPreview(mappedGuestGames));
           setGuestCollections(guestPreviewCollection(mappedGuestGames.length));

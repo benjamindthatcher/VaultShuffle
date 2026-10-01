@@ -5,7 +5,8 @@ export type VisitRecap = {
   /** ISO day the recap is measured from. */
   since: string;
   minutesPlayed: number;
-  gamesFinished: DemoGame[];
+  gamesFinished: Pick<DemoGame, "id" | "title">[];
+  finishedCount: number;
   /** True when we fell back to a week because there is no usable last visit. */
   windowed: boolean;
 };
@@ -24,11 +25,14 @@ export function buildVisitRecap({
   games,
   playtime,
   lastVisitISO,
+  completionActivity,
   now = new Date()
 }: {
   games: DemoGame[];
   playtime: PlaytimeSummary;
   lastVisitISO: string | null;
+  /** Whole counts by day, with at most two display titles per day. */
+  completionActivity?: readonly {day:string;count:number;games:readonly {gameId:number;title:string}[]}[];
   now?: Date;
 }): VisitRecap | null {
   const today = now.toISOString().slice(0, 10);
@@ -49,14 +53,16 @@ export function buildVisitRecap({
     .filter((entry) => entry.day > since && entry.day <= today)
     .reduce((total, entry) => total + entry.minutes, 0);
 
-  const gamesFinished = games.filter((game) => {
+  const days = completionActivity?.filter(entry => entry.day > since && entry.day <= today);
+  const gamesFinished = days ? days.flatMap(entry => entry.games.map(game => ({id:String(game.gameId),title:game.title}))) : games.filter((game) => {
     if (game.status !== "Completed" || !game.completedAt) return false;
     const day = String(game.completedAt).slice(0, 10);
     return day > since && day <= today;
   });
 
-  if (minutesPlayed < MIN_MINUTES && !gamesFinished.length) return null;
-  return { since, minutesPlayed, gamesFinished, windowed };
+  const finishedCount = days ? days.reduce((total, entry) => total + entry.count, 0) : gamesFinished.length;
+  if (minutesPlayed < MIN_MINUTES && !finishedCount) return null;
+  return { since, minutesPlayed, gamesFinished, finishedCount, windowed };
 }
 
 function daysBetween(from: string, to: string) {
@@ -74,8 +80,8 @@ export function recapSentence(recap: VisitRecap) {
     ? `${hours < 10 ? Number(hours.toFixed(1)) : Math.round(hours)}h played`
     : `${Math.round(recap.minutesPlayed)} minutes played`;
 
-  const finished = recap.gamesFinished.length
-    ? `${recap.gamesFinished.length} ${recap.gamesFinished.length === 1 ? "game" : "games"} finished`
+  const finished = recap.finishedCount
+    ? `${recap.finishedCount} ${recap.finishedCount === 1 ? "game" : "games"} finished`
     : null;
 
   const parts = [recap.minutesPlayed >= MIN_MINUTES ? played : null, finished].filter(Boolean);

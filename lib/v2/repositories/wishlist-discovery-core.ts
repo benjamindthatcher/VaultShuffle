@@ -42,6 +42,6 @@ export class WishlistDiscoveryRepository {
         ])) as Record<WishlistCatalogueLane, WishlistDiscoveryRow[]>;
         return selectWishlistCatalogue(hydrated, new Set());
       });
-    } catch { throw new DatabaseUnavailableError(); }
+    } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 }

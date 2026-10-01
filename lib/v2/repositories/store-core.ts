@@ -36,7 +36,7 @@ export class StoreRepository implements WishlistStoreCache {
       return rows.map(row=>({steam_appid:Number(row.steam_app_id),name:row.title,header_url:row.image,
         genres:labels(row.genres),tags:tags(row.tags),main_story_minutes:row.main_duration_minutes,
         duration_kind:row.duration_kind,review_positive:nullableNumber(row.review_positive),review_total:nullableNumber(row.review_total)}));
-    } catch { throw new DatabaseUnavailableError(); }
+    } catch (error) { throw new DatabaseUnavailableError(error); }
   }
   async claim(appId:number,country:string,token:string):Promise<StoreCacheEntry> {
     valid(appId,country); validToken(token);
@@ -68,7 +68,7 @@ export class StoreRepository implements WishlistStoreCache {
       where steam_app_id=${String(appId)} and country=${country} and lease_token=${token}::uuid`);
   }
   private async run<T>(operation:()=>Promise<T>):Promise<T> {
-    try { return await operation(); } catch { throw new DatabaseUnavailableError(); }
+    try { return await operation(); } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 }
 function valid(id:number,country:string) {

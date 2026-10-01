@@ -81,7 +81,7 @@ async function collectionRows(tx:TenantTransaction,accountId:number,f:GlobalFilt
 function summary(row:CollectionRow):CollectionSummary{return Object.freeze({publicId:row.public_id,kind:row.collection_kind,name:row.name,description:row.description,
   rules:row.collection_kind==='smart'?parseSmartRule(row.rules):null,revision:String(row.revision),count:Number(row.count),
   updatedAt:row.updated_at instanceof Date?row.updated_at.toISOString():row.updated_at,preview:Object.freeze(row.preview)});}
-function failed(error:unknown):never {if(error instanceof InvalidPageQueryError||error instanceof PageCursorRestartRequiredError||error instanceof DatabaseUnavailableError)throw error;throw new DatabaseUnavailableError();}
+function failed(error:unknown):never {if(error instanceof InvalidPageQueryError||error instanceof PageCursorRestartRequiredError||error instanceof DatabaseUnavailableError)throw error;throw new DatabaseUnavailableError(error);}
 const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 function encode(cursor:MemberCursor){return Buffer.from(JSON.stringify(cursor)).toString('base64url');}
 function decode(value:string|undefined):MemberCursor|null {

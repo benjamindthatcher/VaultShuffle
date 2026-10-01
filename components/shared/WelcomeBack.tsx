@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { buildVisitRecap, recapSentence } from "@/lib/since-last-visit";
 import styles from "./WelcomeBack.module.css";
+import type { DashboardPayload } from "@/lib/v2/repositories/dashboard-core";
 
 const LAST_VISIT_KEY = "vaultshuffle:last-visit";
 
@@ -19,11 +20,16 @@ const LAST_VISIT_KEY = "vaultshuffle:last-visit";
  * It shows nothing at all rather than reporting a quiet week. A strip that says
  * "0h played" every time is worse than no strip.
  */
-export function useWelcomeBackNotice() {
-  const { games, playtime, isLive } = useAppData();
+export function useWelcomeBackNotice(dashboard?: DashboardPayload | null) {
+  const { games, playtime, isLive, dataAuthority } = useAppData();
+  const v2 = dataAuthority === "v2";
   const [lastVisit, setLastVisit] = useState<string | null | undefined>(undefined);
+  const visitRead = useRef(false);
 
   useEffect(() => {
+    // Strict Mode replays effects; never read our own arrival stamp as the prior visit.
+    if (visitRead.current) return;
+    visitRead.current = true;
     try {
       setLastVisit(window.localStorage.getItem(LAST_VISIT_KEY));
       // Stamped on arrival, so the next visit measures from now.
@@ -35,10 +41,11 @@ export function useWelcomeBackNotice() {
 
   const recap = useMemo(() => {
     if (!isLive || lastVisit === undefined) return null;
+    if (v2) return dashboard ? buildVisitRecap({games:[],playtime:{...dashboard.trend,dailyGains:[...dashboard.trend.dailyGains]},completionActivity:dashboard.completionActivity,lastVisitISO:lastVisit}) : null;
     return buildVisitRecap({ games, playtime, lastVisitISO: lastVisit });
-  }, [games, isLive, lastVisit, playtime]);
+  }, [games, isLive, lastVisit, playtime, v2, dashboard]);
 
-  const streak = playtime.streakDays;
+  const streak = isLive ? v2 ? dashboard?.trend.streakDays ?? 0 : playtime.streakDays : 0;
   if (!recap && streak < 2) return null;
 
   return (
@@ -60,10 +67,10 @@ export function useWelcomeBackNotice() {
         </span>
       ) : null}
 
-      {recap?.gamesFinished.length ? (
+      {recap?.finishedCount ? (
         <span className={styles.finished}>
           {recap.gamesFinished.slice(0, 2).map((game) => game.title).join(", ")}
-          {recap.gamesFinished.length > 2 ? ` +${recap.gamesFinished.length - 2}` : ""}
+          {recap.finishedCount > 2 ? ` +${recap.finishedCount - 2}` : ""}
         </span>
       ) : null}
     </section>

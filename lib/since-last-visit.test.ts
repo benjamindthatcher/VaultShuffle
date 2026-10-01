@@ -73,3 +73,13 @@ test("the sentence reads naturally at both scales", () => {
   assert.equal(recapSentence(short!), "45 minutes played");
   assert.equal(recapSentence(long!), "8h played");
 });
+
+test("V2 recap uses whole completion counts even when only display titles are returned",()=>{
+  const recap=buildVisitRecap({games:[],playtime:playtime([["2026-08-20",90]]),lastVisitISO:"2026-08-18T20:00:00Z",now,
+    completionActivity:[{day:"2026-08-19",count:12,games:[{gameId:1,title:"Recent one"},{gameId:2,title:"Recent two"}]},
+      {day:"2026-08-17",count:20,games:[{gameId:3,title:"Before visit"}]}]});
+  assert.ok(recap);
+  assert.equal(recap.finishedCount,12);
+  assert.equal(recap.gamesFinished.length,2);
+  assert.equal(recapSentence(recap),"1.5h played · 12 games finished");
+});

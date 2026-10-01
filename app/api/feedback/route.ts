@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     // Only used to attach the sender to their account. If the lookup is having
     // a bad moment the message is still worth keeping, unattributed.
     const session = await getCurrentSession().catch(() => null);
-    await saveFeedback(session?.user.id ?? null, fingerprint, input);
+    await saveFeedback(session?.user.id ?? null, fingerprint, input, session && "principal" in session ? session.principal : null);
     return NextResponse.json({ ok: true }, { status: 201 });
   } catch (error) {
     const status = error instanceof SubmissionStorageError ? 503

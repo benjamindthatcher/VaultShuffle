@@ -3,9 +3,14 @@ import {steamDetailPayload} from '../../steam-store-details.ts';
 import {classifyCatalogueEntry} from '../../catalogue-classification.ts';
 import {setTimeout as delay} from 'node:timers/promises';
 
-export type CatalogueClaim={outbox_id:string;lease_token:string;steam_app_id:string;provider_mode:'fixture'|'live';known_deck?:number|null};
-export type CatalogueResult={appId:string;status:'complete';details:ReturnType<typeof normalizeDetails>}|
-  {appId:string;status:'unavailable'|'retryable'|'invalid';rateLimited?:boolean};
+export type CatalogueClaim={outbox_id:string;lease_token:string;steam_app_id:string;provider_mode:'fixture'|'live';known_deck?:number|null;
+  needs_details?:boolean;needs_reviews?:boolean;needs_deck?:boolean};
+type OptionalSignals={reviewTotal:number|null;reviewPositive:number|null;deckCategory:number|null};
+type RetrySignals={rateLimited?:boolean;optionalIncomplete?:boolean};
+export type CatalogueResult=({appId:string;status:'complete';details:ReturnType<typeof normalizeDetails>}|
+  {appId:string;status:'signals';signals:OptionalSignals}|{appId:string;status:'current'}|
+  {appId:string;status:'unavailable'|'retryable'|'invalid'}) & RetrySignals;
+type RefreshPlan={details:boolean;reviews:boolean;deck:boolean};
 
 function normalizeDetails(appId:string,data:Record<string,unknown>) {
   const detail=steamDetailPayload(appId,data);
@@ -56,9 +61,14 @@ export async function fetchCatalogueMetadata(appId:string,transport:typeof fetch
 }
 
 /** Keep optional Store signals separate from the authoritative app-details body. */
-export async function fetchCatalogueSignals(appId:string,transport:typeof fetch,signal:AbortSignal):Promise<CatalogueResult> {
-  const result=await fetchCatalogueMetadata(appId,transport,signal);
-  if(result.status!=='complete')return result;
+export async function fetchCatalogueSignals(appId:string,transport:typeof fetch,signal:AbortSignal,
+  plan:RefreshPlan={details:true,reviews:true,deck:true}):Promise<CatalogueResult> {
+  if(!/^[1-9][0-9]*$/.test(appId)||Number(appId)>4294967295)throw new Error('invalid_appid');
+  if(!plan.details&&!plan.reviews&&!plan.deck)return {appId,status:'current'};
+  const result:CatalogueResult=plan.details?await fetchCatalogueMetadata(appId,transport,signal):
+    {appId,status:'signals',signals:{reviewTotal:null,reviewPositive:null,deckCategory:null}};
+  if(result.status!=='complete'&&result.status!=='signals')return result;
+  const facts=result.status==='complete'?result.details:result.signals;
   async function optionalJson(url:string):Promise<{payload:unknown;rateLimited:boolean}> {
     try {
       await delay(650,undefined,{signal});
@@ -75,24 +85,28 @@ export async function fetchCatalogueSignals(appId:string,transport:typeof fetch,
       return {payload:JSON.parse(text+decoder.decode()),rateLimited:false};
     }catch{return {payload:null,rateLimited:false};}
   }
+  if(plan.reviews) {
   const reviews=await optionalJson(`https://store.steampowered.com/appreviews/${appId}?${new URLSearchParams({json:'1',language:'all',purchase_type:'all',num_per_page:'0'})}`);
-  if(reviews.rateLimited)return {appId,status:'retryable',rateLimited:true};
+  // Publish authoritative details even when an optional signal is rate limited.
+  // The database retains a bounded retry and the shared Store cooldown.
+  if(reviews.rateLimited)return {...result,rateLimited:true,optionalIncomplete:true};
   const reviewPayload=reviews.payload as {success?:number;query_summary?:{total_reviews?:number;total_positive?:number}}|null;
   const summary=reviewPayload?.success===1?reviewPayload.query_summary:null;
   if(summary&&Number.isInteger(summary.total_reviews)&&Number.isInteger(summary.total_positive)&&
     summary.total_reviews!>=0&&summary.total_reviews!<=2147483647&&summary.total_positive!>=0&&summary.total_positive!<=summary.total_reviews!) {
-    result.details.reviewTotal=summary.total_reviews!;result.details.reviewPositive=summary.total_positive!;
+    facts.reviewTotal=summary.total_reviews!;facts.reviewPositive=summary.total_positive!;
+  } else result.optionalIncomplete=true;
   }
-  // Jobs are queued when metadata is at least 30 days old. Recheck known
-  // ratings too: Valve may upgrade or downgrade compatibility. A failed lookup
-  // stays null here so finish_catalogue_metadata preserves the stored rating.
-  if(!signal.aborted) {
+  // Each signal has its own freshness clock. A recent description cannot hide
+  // a due Deck update, and a failed lookup cannot erase the stored rating.
+  if(plan.deck&&!signal.aborted) {
     const deck=await optionalJson(`https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID=${appId}&l=english`);
-    if(deck.rateLimited)return {appId,status:'retryable',rateLimited:true};
+    if(deck.rateLimited)return {...result,rateLimited:true,optionalIncomplete:true};
     const payload=deck.payload as {success?:number;results?:{resolved_category?:number}}|null;
     const category=payload?.success===1?payload.results?.resolved_category:null;
-    if(Number.isInteger(category)&&category!>=0&&category!<=3)result.details.deckCategory=category!;
-  }
+    if(Number.isInteger(category)&&category!>=0&&category!<=3)facts.deckCategory=category!;
+    else result.optionalIncomplete=true;
+  } else if(plan.deck)result.optionalIncomplete=true;
   return result;
 }
 
@@ -109,7 +123,8 @@ export class CatalogueWorkerRepository {
     }) as Promise<T>;
   }
   queue(limit=40){return this.run(async sql=>Number((await sql`select ops.queue_catalogue_metadata(${limit}) n`)[0].n));}
-  claim(){return this.run(async sql=>(await sql<CatalogueClaim[]>`select outbox_id::text,lease_token,steam_app_id::text,provider_mode,known_deck from ops.claim_catalogue_metadata()`)[0]??null);}
+  claim():Promise<CatalogueClaim|null>{return this.run(async sql=>(await sql<CatalogueClaim[]>`select outbox_id::text,lease_token,steam_app_id::text,provider_mode,known_deck,
+    needs_details,needs_reviews,needs_deck from ops.claim_catalogue_refresh()`)[0]??null);}
   finish(claim:CatalogueClaim,result:CatalogueResult){return this.run(async sql=>String((await sql`select ops.finish_catalogue_metadata(
     ${claim.outbox_id}::bigint,${claim.lease_token}::uuid,${sql.json(result)}) outcome`)[0].outcome));}
 }
@@ -117,19 +132,22 @@ export class CatalogueWorkerRepository {
 export async function runCatalogueWorker(repository:Pick<CatalogueWorkerRepository,'queue'|'claim'|'finish'>,
   options:{fetch:typeof fetch;deadlineAt:number;maxJobs:number}) {
   if(!Number.isInteger(options.maxJobs)||options.maxJobs<1||options.maxJobs>100)throw new Error('Invalid catalogue batch');
-  const totals={queued:await repository.queue(40),claimed:0,published:0,failed:0,stale:0,rateLimited:false};
+  const totals={queued:await repository.queue(40),claimed:0,published:0,skipped:0,failed:0,stale:0,rateLimited:false};
   for(let index=0;index<options.maxJobs&&Date.now()+17000<options.deadlineAt;index++) {
     const claim=await repository.claim();if(!claim)break;
     // Fixtures may be tested through the core but are never sent to live Steam.
     if(claim.provider_mode!=='live')break;
     totals.claimed++;
-    const result=await fetchCatalogueSignals(claim.steam_app_id,options.fetch,AbortSignal.timeout(Math.min(15000,options.deadlineAt-Date.now()-2000)));
+    const result=await fetchCatalogueSignals(claim.steam_app_id,options.fetch,AbortSignal.timeout(Math.min(15000,options.deadlineAt-Date.now()-2000)),
+      {details:claim.needs_details??true,reviews:claim.needs_reviews??true,deck:claim.needs_deck??true});
     let outcome:string;
     try {outcome=await repository.finish(claim,result);}
     catch {outcome=await repository.finish(claim,result);} // response-loss replay of the same record
-    if(outcome==='published'||outcome==='replayed')totals.published++;
+    if(outcome==='current'||(outcome==='replayed'&&result.status==='current'))totals.skipped++;
+    else if(outcome==='published'||outcome==='replayed')totals.published++;
     else if(outcome==='stale')totals.stale++;else totals.failed++;
-    if(result.status!=='complete'&&result.rateLimited){totals.rateLimited=true;break;}
+    if(result.rateLimited){totals.rateLimited=true;break;}
+    if(result.status==='current')continue;
     // One leased request at a time, using the existing Store interval.
     await new Promise(resolve=>setTimeout(resolve,650));
   }

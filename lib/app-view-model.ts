@@ -89,7 +89,8 @@ export function mapLiveCollections(details: CollectionDetailPayload[]): DemoColl
   const mapped = details.map(({ collection, games }) => {
     const firstGame = games[0]?.game;
     const artworkUrl = collectionBanner(collection.name) ||
-      (firstGame?.steam_appid ? steamHeaderImage(firstGame.steam_appid) : firstGame?.header_url) ||
+      firstGame?.header_url || firstGame?.capsule_url ||
+      (firstGame?.steam_appid ? steamHeaderImage(firstGame.steam_appid) : "") ||
       "/assets/vault/vault-stage-open.png";
 
     return {
@@ -152,12 +153,12 @@ export function mapLiveGames(games: Game[], details: CollectionDetailPayload[]):
         decodeHtmlEntities(game.short_description?.trim() ?? "") ||
         `${genres.slice(0, 2).join(" / ")} pick from your live VaultShuffle library.`,
       notes: game.notes || "",
-      artworkUrl: game.steam_appid
+      artworkUrl: game.capsule_url || game.header_url || (game.steam_appid
         ? steamCapsuleLargeImage(game.steam_appid)
-        : game.capsule_url || "/assets/vault/vault-stage-open.png",
-      bannerUrl: game.steam_appid
+        : "/assets/vault/vault-stage-open.png"),
+      bannerUrl: game.header_url || game.capsule_url || (game.steam_appid
         ? steamHeaderImage(game.steam_appid)
-        : game.header_url || "/assets/vault/vault-stage-open.png",
+        : "/assets/vault/vault-stage-open.png"),
       // "Not played recently" used to be printed whenever Steam withheld a
       // timestamp, which is most accounts - stating as fact something we had no
       // evidence for. An unknown game now says nothing at all.

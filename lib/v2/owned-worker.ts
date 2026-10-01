@@ -12,7 +12,7 @@ export async function workerDatabase() {
     try {
       database=createDatabaseClient(parseDatabaseConfig({connectionString:process.env.V2_WORKER_DATABASE_URL,maxConnections:1,tlsCaPem:process.env.V2_DATABASE_CA_PEM}));
       await verifyWorkerDatabase(database,process.env.V2_PROJECT_REF??'');return database;
-    }catch{await database?.close().catch(()=>{});worker=undefined;throw new DatabaseUnavailableError();}
+    }catch (error){await database?.close().catch(()=>{});worker=undefined;throw new DatabaseUnavailableError(error);}
   })();
   return worker;
 }

@@ -5,8 +5,11 @@ const session={logged_in:true,account_type:"manual",identity_verified:false,user
 function card(id:number) {
   return {gameId:id,title:`Finished Game ${String(id).padStart(3,"0")}`,appId:String(id+620),playtimeMinutes:null,access:"owned",completed:true,blacklisted:false,lastPlayedAt:null,product:{...product,completedAt:"2026-09-29T19:00:00Z"}};
 }
-async function fixture(page:Page,fail=false) {
+async function fixture(page:Page,fail=false,notices=false) {
   const requests:URL[]=[];
+  const today=new Date().toISOString().slice(0,10);
+  const visit=new Date();visit.setUTCDate(visit.getUTCDate()-3);
+  if(notices) await page.addInitScript(iso=>localStorage.setItem("vaultshuffle:last-visit",iso),visit.toISOString());
   const history=Array.from({length:125},(_,index)=>card(index+1));
   await page.addInitScript(()=>localStorage.setItem("vault-cookie-consent","disabled"));
   await page.route("**/api/**",async route=>{
@@ -16,7 +19,7 @@ async function fixture(page:Page,fail=false) {
       requests.push(url);
       if(fail){return route.fulfill({status:503,json:{error:"database_unavailable"}});}
       const filtered=url.searchParams.get("device")==="mac";
-      return route.fulfill({json:{revision:{library:"1",state:"1"},aggregates:{ownedGames:filtered?42:1234,familyGames:filtered?1:6,completedGames:filtered?2:50,completedPercent:filtered?5:4,totalMinutes:6000,knownPlaytimeGames:filtered?20:1000,unplayedGames:filtered?8:300,pricedGames:0,libraryValueCents:null,completedValueCents:null,unplayedValueCents:null},trend:{daysTracked:0,minutesLast7Days:0,minutesLast30Days:0,dailyGains:[]},currency:"USD",bestValueGames:[],mostPlayed:[],recentCompletions:history.slice(0,4).map(c=>({gameId:c.gameId,title:c.title,appId:c.appId,playtimeMinutes:null,completedAt:c.product.completedAt,imageUrl:c.product.imageUrl})),completionSuggestions:[],cards:history.slice(0,4),availableExclusions:["puzzle"]}});
+      return route.fulfill({json:{revision:{library:"1",state:"1"},aggregates:{ownedGames:filtered?42:1234,familyGames:filtered?1:6,completedGames:filtered?2:50,completedPercent:filtered?5:4,totalMinutes:6000,knownPlaytimeGames:filtered?20:1000,unplayedGames:filtered?8:300,pricedGames:0,libraryValueCents:null,completedValueCents:null,unplayedValueCents:null},completionSummary:{count:notices?64:0,valueCents:notices?64000:0},completionActivity:notices?[{day:today,count:12,games:[{gameId:1001,title:"Recap one"},{gameId:1002,title:"Recap two"}]}]:[],trend:{streakDays:notices?2:0,daysTracked:notices?3:0,minutesLast7Days:notices?180:0,minutesLast30Days:notices?180:0,dailyGains:notices?[{day:today,minutes:180}]:[]},currency:"USD",bestValueGames:[],mostPlayed:[],recentCompletions:history.slice(0,4).map(c=>({gameId:c.gameId,title:c.title,appId:c.appId,playtimeMinutes:null,completedAt:c.product.completedAt,imageUrl:c.product.imageUrl})),completionSuggestions:[],cards:history.slice(0,4),availableExclusions:["puzzle"]}});
     }
     if(path==="/api/v2/library") {
       requests.push(url);
@@ -77,4 +80,18 @@ test("V2 Dashboard failure offers retry without presenting cached partial totals
   recover();
   await page.getByRole("button",{name:"Retry",exact:true}).click();
   await expect(page.getByRole("group",{name:"Library statistics"})).toContainText("50 / 1234");
+});
+
+for(const width of [1280,390])test(`V2 notices survive an empty pin cache and bounded highlights (${width}px)`,async({page})=>{
+  await page.setViewportSize({width,height:844});
+  await fixture(page,false,true);
+  const prompt=page.getByRole("link",{name:/64 games look finished/});
+  await expect(prompt).toBeVisible();await expect(prompt).toContainText("$640 worth of games");
+  const recap=page.getByRole("region",{name:"Since your last visit"});
+  await expect(recap).toContainText("3h played · 12 games finished");
+  await expect(recap).toContainText("2-day streak");
+  await expect(recap).toContainText("Recap one, Recap two +10");
+  await prompt.hover();await prompt.focus();await expect(prompt).toBeFocused();
+  await page.screenshot({path:`/private/tmp/vaultshuffle-fixed-notices-${width}.png`,fullPage:true});
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
 });

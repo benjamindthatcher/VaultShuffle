@@ -184,7 +184,7 @@ test("mobile grid and list keep every core action visible with no overflow", asy
 test("guest Playing Next replaces with one choice and supports Undo", async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem("vault-cookie-consent", "disabled"));
   await page.route("**/api/app-data", route => route.fulfill({ json: { session: { ...session, logged_in: false, account_type: "guest" } } }));
-  await page.route("**/guest-catalogue", route => route.fulfill({ json: { games: games.slice(0, 8) } }));
+  await page.route("**/guest-catalogue*", route => route.fulfill({ json: { games: games.slice(0, 8) } }));
   await page.goto("/library", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("tab", { name: "Active 8", exact: true })).toBeVisible();
   for (let id = 0; id < 3; id++) await card(page, id).getByRole("button", { name: "Playing Next", exact: true }).click();
@@ -287,7 +287,7 @@ test.describe("genre row pointer interaction", () => {
 test("adding to Playing Next preserves the current Library scroll position", async ({ page }) => {
   await page.addInitScript(() => { localStorage.setItem("vault-cookie-consent", "disabled"); localStorage.setItem("vault-analytics-notice-seen", "1"); });
   await page.route("**/api/app-data", route => route.fulfill({ json: { session: { ...session, logged_in: false, account_type: "guest" } } }));
-  await page.route("**/guest-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/guest-catalogue*", route => route.fulfill({ json: { games } }));
   await page.goto("/library", { waitUntil: "domcontentloaded" });
   await expect(page.getByRole("tab", { name: "Active 130", exact: true })).toBeVisible();
   await card(page, 30).getByRole("button", { name: "Playing Next", exact: true }).scrollIntoViewIfNeeded();

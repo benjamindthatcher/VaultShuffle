@@ -1,0 +1,80 @@
+name: Repository checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  merge_group:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Full repository check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+      VAULT_TEST_PG_BIN: /usr/lib/postgresql/17/bin
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install PostgreSQL 17 fixture tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-17 postgresql-server-dev-17
+          "$VAULT_TEST_PG_BIN/postgres" --version
+      - name: Install the tested PGMQ 1.5.1 extension
+        run: |
+          git clone --filter=blob:none --no-checkout https://github.com/pgmq/pgmq.git "$RUNNER_TEMP/pgmq"
+          git -C "$RUNNER_TEMP/pgmq" checkout --detach 7fd411d8ffd53b5313039f59167124c861d46430
+          make -C "$RUNNER_TEMP/pgmq/pgmq-extension" PG_CONFIG="$VAULT_TEST_PG_BIN/pg_config"
+          sudo make -C "$RUNNER_TEMP/pgmq/pgmq-extension" install PG_CONFIG="$VAULT_TEST_PG_BIN/pg_config"
+      - run: npm ci
+      - name: Create isolated build database
+        shell: bash
+        run: |
+          fixture_root=$(mktemp -d /tmp/vaultshuffle-ci-build-XXXXXX)
+          echo "VAULT_CI_PG_ROOT=$fixture_root" >> "$GITHUB_ENV"
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj '/CN=localhost' \
+            -addext 'subjectAltName=DNS:localhost,IP:127.0.0.1' \
+            -keyout "$fixture_root/server.key" -out "$fixture_root/server.crt" >/dev/null 2>&1
+          chmod 600 "$fixture_root/server.key"
+          "$VAULT_TEST_PG_BIN/initdb" -D "$fixture_root/data" -A trust -U postgres
+          "$VAULT_TEST_PG_BIN/pg_ctl" -D "$fixture_root/data" -l "$fixture_root/postgres.log" \
+            -o "-F -k $fixture_root -p 55432 -c listen_addresses=127.0.0.1 -c ssl=on -c ssl_cert_file=$fixture_root/server.crt -c ssl_key_file=$fixture_root/server.key" -w start || { cat "$fixture_root/postgres.log"; exit 1; }
+          "$VAULT_TEST_PG_BIN/createdb" -h 127.0.0.1 -p 55432 -U postgres vault_ci_build
+          for migration in database/v2/supabase/migrations/*.sql; do
+            "$VAULT_TEST_PG_BIN/psql" -X -q -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 55432 -U postgres -d vault_ci_build -f "$migration"
+          done
+          "$VAULT_TEST_PG_BIN/psql" -X -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 55432 -U postgres -d vault_ci_build \
+            -c "CREATE ROLE vault_ci_app LOGIN; GRANT vault_app TO vault_ci_app WITH INHERIT TRUE, SET FALSE; UPDATE ops.project_marker SET expected_project_ref='aaaaaaaaaaaaaaaaaaaa' WHERE marker;"
+          {
+            echo 'VAULT_DATABASE_AUTHORITY=v2'
+            echo 'V2_DATABASE_URL=postgres://vault_ci_app@127.0.0.1:55432/vault_ci_build'
+            echo 'V2_PROJECT_REF=aaaaaaaaaaaaaaaaaaaa'
+            echo 'V2_DATABASE_CA_PEM<<VAULT_CI_CA'
+            cat "$fixture_root/server.crt"
+            echo 'VAULT_CI_CA'
+          } >> "$GITHUB_ENV"
+      - name: Types, lint, main tests, V2 database tests and build
+        run: npm run check
+      - name: Stop isolated build database
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${VAULT_CI_PG_ROOT:-}" ] && [ -f "$VAULT_CI_PG_ROOT/data/postmaster.pid" ]; then
+            "$VAULT_TEST_PG_BIN/pg_ctl" -D "$VAULT_CI_PG_ROOT/data" -m immediate -w stop
+          fi

@@ -52,7 +52,7 @@ for(const width of [1280,390])test(`V2 pins refresh once with bounded response a
   await expect(state.shelf.getByRole('button',{name:/Refresh Playing Next game playtime in/})).toBeDisabled();
   await expect(state.shelf).toContainText('1 of 3');
   await expect(state.shelf).toContainText('Pinned Adventure');
-  await expect(state.shelf).toContainText('1h');
+  await expect(state.shelf).toContainText('1.0h played since choosing');
   expect(state.posts).toEqual([{}]);expect(state.legacy).toEqual([]);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
   await page.screenshot({path:`/private/tmp/vaultshuffle-v2-pinned-${width}.png`,fullPage:true});

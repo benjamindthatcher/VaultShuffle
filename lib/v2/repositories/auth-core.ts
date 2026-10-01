@@ -37,7 +37,7 @@ export class AuthRepository {
       if (!resolved) throw new DatabaseUnavailableError();
       const { user } = await this.readUser(resolved.principal);
       return { token, user, resumed: rows[0].resumed };
-    } catch { throw new DatabaseUnavailableError(); }
+    } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 
   async readUser(principal: VerifiedServerPrincipal): Promise<SessionUser> {
@@ -55,7 +55,7 @@ export class AuthRepository {
           display_name: row.display_name, steam_display_name: row.steam_display_name, avatar_url: row.avatar_url },
         steamPlaytimeVisible: row.playtime_visibility === "visible" ? true : row.playtime_visibility === "hidden" ? false : null };
       });
-    } catch { throw new DatabaseUnavailableError(); }
+    } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 
   async lookupManual(steamId: string) {
@@ -65,7 +65,7 @@ export class AuthRepository {
         select display_name,steam_display_name,avatar_url from app.lookup_manual_profile(${steamId}::bigint)
       `;
       return rows[0] ? { displayName: rows[0].display_name ?? "", steamDisplayName: rows[0].steam_display_name ?? "", avatarUrl: rows[0].avatar_url } : null;
-    } catch { throw new DatabaseUnavailableError(); }
+    } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 
   async revoke(principal: VerifiedServerPrincipal, token: string, secret: string) {
@@ -73,13 +73,13 @@ export class AuthRepository {
     const digest = createHmac("sha256", secret).update(token).digest();
     try { await this.database.withPrincipal(principal, async tx => {
       await tx`select app.revoke_current_session(${principal.sessionId}::bigint,${digest})`;
-    }); } catch { throw new DatabaseUnavailableError(); }
+    }); } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 
   async updateProfile(principal: VerifiedServerPrincipal, profile: SteamPlayerSummary): Promise<AppUser> {
     try { await this.database.withPrincipal(principal, async tx => {
       await tx`select app.update_current_profile(${profile.display_name},${profile.avatar_url})`;
-    }); } catch { throw new DatabaseUnavailableError(); }
+    }); } catch (error) { throw new DatabaseUnavailableError(error); }
     return (await this.readUser(principal)).user;
   }
 

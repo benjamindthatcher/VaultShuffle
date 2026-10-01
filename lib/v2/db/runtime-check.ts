@@ -19,7 +19,7 @@ export async function verifyRuntimeDatabase(database: DatabaseClient, expectedPr
       ) safe
     `;
     if (rows.length !== 1 || rows[0].safe !== true) throw new DatabaseUnavailableError();
-  } catch {
-    throw new DatabaseUnavailableError();
+  } catch (error) {
+    throw new DatabaseUnavailableError(error);
   }
 }

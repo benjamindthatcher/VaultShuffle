@@ -6,6 +6,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import { findCompletionCandidates, type CompletionCandidate } from "@/lib/completion-check";
 import { estimatedTimeToBeatMinutes } from "@/lib/game-duration";
 import { formatMoney } from "@/lib/backlog-stats";
@@ -229,7 +230,7 @@ export default function FinishedPage() {
 
       {error ? <p className={styles.error} role="alert">{error}</p> : null}
       {v2&&remote.error?<p className={styles.error} role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p>:null}
-      {(isLoading||(v2&&remote.pending&&!remote.page))?<p role="status">Loading completion check…</p>:null}
+      {(isLoading||(v2&&remote.pending&&!remote.page))?<VaultShuffleLoader active inline label="Loading completion check" />:null}
       {v2&&remote.page?<p role="status">{remainingCount} games left to review</p>:null}
 
       {candidates.length ? (

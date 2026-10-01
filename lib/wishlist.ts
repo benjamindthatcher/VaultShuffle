@@ -35,6 +35,9 @@ export const WISHLIST_DECK_SIZE = WISHLIST_PICK_COUNT * 80;
 export const WISHLIST_BUDGET_RESERVE = WISHLIST_PICK_COUNT * 8;
 export const WISHLIST_BUDGET_SCAN = WISHLIST_PICK_COUNT * 32;
 
+export type WishlistTasteSeed = Pick<DemoGame, "steamAppId" | "title" | "genres" | "tagProfile" | "status" | "hoursPlayed" | "accessSource">;
+export type WishlistLibraryContext = { appIds: number[]; editionKeys: string[]; seeds: WishlistTasteSeed[] };
+
 const NON_GAME = /\b(demo|playtest|soundtrack|dedicated server|benchmark|sdk)\b/i;
 const OPEN_ENDED_TAGS = new Set(["sandbox", "racing", "driving", "multiplayer", "pvp", "moba", "battleroyale", "mmorpg", "massivelymultiplayer", "sports", "partygame"]);
 export function cheapWishlistBand(game: WishlistGame, country: string): 1 | 2 | null {
@@ -77,8 +80,8 @@ function similarity(a: Map<string, number>, b: Map<string, number>) {
  * alone is not evidence of taste; blacklisted and borrowed games are not seeds.
  * Round-robin by strongest gameplay tag before taking additional similar games.
  */
-function playedWishlistSeeds(library: DemoGame[]) {
-  const groups = new Map<string, DemoGame[]>();
+export function playedWishlistSeeds(library: WishlistTasteSeed[]) {
+  const groups = new Map<string, WishlistTasteSeed[]>();
   const played = library.filter(game => game.status !== "Blacklisted" && game.accessSource !== "family"
     && (game.status === "Completed" || game.hoursPlayed >= 3))
     .sort((a, b) => Number(b.status === "Completed") - Number(a.status === "Completed") || b.hoursPlayed - a.hoursPlayed);
@@ -91,7 +94,7 @@ function playedWishlistSeeds(library: DemoGame[]) {
     const group = groups.get(category) ?? [];
     group.push(game); groups.set(category, group);
   }
-  const selected: DemoGame[] = [];
+  const selected: WishlistTasteSeed[] = [];
   for (let round = 0; selected.length < 120; round++) {
     let added = false;
     for (const group of groups.values()) {
@@ -104,8 +107,9 @@ function playedWishlistSeeds(library: DemoGame[]) {
 }
 
 /** Match against the full, unfiltered library, including blacklisted and family games. */
-export function wishlistOwned(game: WishlistGame, library: DemoGame[]) {
-  return library.some((owned) => owned.steamAppId === game.appId || editionKey(owned.title) === editionKey(game.title));
+export function wishlistOwned(game: WishlistGame, library: WishlistTasteSeed[], context?: WishlistLibraryContext | null) {
+  return context ? context.appIds.includes(game.appId) || context.editionKeys.includes(editionKey(game.title))
+    : library.some((owned) => owned.steamAppId === game.appId || editionKey(owned.title) === editionKey(game.title));
 }
 
 function randomGenerator(seed: number) {
@@ -117,10 +121,10 @@ function randomGenerator(seed: number) {
  * A supplied session seed randomizes relevant candidates, never eligibility.
  * Library behavior outweighs saves; one batch can use at most one wishlist seed.
  */
-export function recommendWishlist(catalogue: WishlistGame[], library: DemoGame[], saved: WishlistGame[], mode: WishlistMode = "for-you", sessionSeed = 0, country = "GB"): WishlistPick[] {
+export function recommendWishlist(catalogue: WishlistGame[], library: WishlistTasteSeed[], saved: WishlistGame[], mode: WishlistMode = "for-you", sessionSeed = 0, country = "GB", context?: WishlistLibraryContext | null): WishlistPick[] {
   const random = randomGenerator(sessionSeed);
-  const owned = new Set(library.map((game) => game.steamAppId));
-  const ownedEditions = new Set(library.map((game) => editionKey(game.title)));
+  const owned = new Set(context?.appIds ?? library.map((game) => game.steamAppId));
+  const ownedEditions = new Set(context?.editionKeys ?? library.map((game) => editionKey(game.title)));
   const savedIds = new Set(saved.map((game) => game.appId));
   const cheapBandOneCount = mode === "cheap" ? catalogue.filter((game) => cheapWishlistBand(game, country) === 1 && !owned.has(game.appId) && !savedIds.has(game.appId) && !ownedEditions.has(editionKey(game.title)) && !NON_GAME.test(game.title)).length : 0;
   const played = playedWishlistSeeds(library);
