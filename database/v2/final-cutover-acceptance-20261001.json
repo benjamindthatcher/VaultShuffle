@@ -137,7 +137,15 @@
       "steamspy"
     ],
     "vercel_cron_schedules": 5,
-    "target_pg_cron": false
+    "target_pg_cron": false,
+    "removed_unused_environment_variables": [
+      "IGDB_CLIENT_ID",
+      "IGDB_CLIENT_SECRET"
+    ],
+    "removed_unused_environment_scopes": [
+      "Production",
+      "Preview"
+    ]
   },
   "source_retained_read_only": {
     "fenced_tables": 44,
