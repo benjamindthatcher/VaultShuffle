@@ -166,3 +166,48 @@ test('V2 Vault empty collections remain usable and Clear snoozes uses one bounde
   expect((await cleared).postDataJSON()).toEqual({});
   await expect(page.getByText('64 of 200 matches',{exact:true})).toBeVisible();
 });
+
+
+for (const width of [1280, 390]) test(`V2 Vault waits for an explicit draw after returning (${width}px)`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 844 });
+  const errors: string[] = [];
+  page.on('pageerror', error => errors.push(error.message));
+  const state = await fixture(page);
+  const quickDraw = page.getByRole('button', { name: 'Roll the dice', exact: true });
+  await expect(quickDraw).toBeEnabled();
+  await expect(pick(page)).toHaveCount(0);
+  expect(state.requests).toHaveLength(0);
+
+  await quickDraw.click();
+  await expect(pick(page)).toHaveText('Vault Game 151');
+  await page.reload();
+  await expect(quickDraw).toBeEnabled();
+  await expect(page.getByText('64 of 199 matches', { exact: true })).toBeVisible();
+  await expect(pick(page)).toHaveCount(0);
+  expect(state.requests).toHaveLength(1);
+
+  await page.getByRole('button', { name: 'Short Session', exact: true }).click();
+  await page.getByRole('button', { name: 'Chill', exact: true }).click();
+  await page.getByRole('button', { name: 'Surprise Me', exact: true }).click();
+  const guidedDraw = page.getByRole('button', { name: 'Draw from Vault', exact: true });
+  await expect(guidedDraw).toBeEnabled();
+  await guidedDraw.focus();
+  await guidedDraw.hover();
+  await expect(pick(page)).toHaveCount(0);
+  expect(state.requests).toHaveLength(1);
+  await page.screenshot({ path: `/private/tmp/vault-waits-for-draw-${width}.png`, fullPage: true });
+
+  await guidedDraw.click();
+  await expect(pick(page)).toHaveText('Vault Game 152');
+  expect(state.requests).toHaveLength(2);
+  await page.getByRole('button', { name: /^Draw History/ }).click();
+  await expect(page.locator('#vault-history-panel').getByText('Vault Game 151', { exact: true })).toBeVisible();
+  await page.getByRole('link', { name: 'FAQ', exact: true }).click();
+  await page.waitForURL('**/faq');
+  await page.goBack();
+  await page.waitForURL('**/vault');
+  await expect(quickDraw).toBeEnabled();
+  await expect(pick(page)).toHaveCount(0);
+  expect(state.requests).toHaveLength(2);
+  expect(errors).toEqual([]);
+});

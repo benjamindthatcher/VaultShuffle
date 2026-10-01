@@ -148,6 +148,8 @@ export default function VaultPage() {
   // What the rail focuses on, set when the draw starts so the animation knows
   // where it is heading.
   const [drawWinnerId, setDrawWinnerId] = useState<string | null>(null);
+  // Visit-local: only an explicit draw may reveal a result. Never restore this
+  // from the saved current pick when opening or returning to the Vault.
   // What the result card shows, set only once the reveal lands. These used to be
   // the same value, so the card named the game at the moment the draw started —
   // the answer arrived a full animation before the animation that announces it.
@@ -363,14 +365,6 @@ export default function VaultPage() {
       }).catch(() => { if (!controller.signal.aborted) setActionError("Game details could not be loaded. Please try again."); });
     return () => controller.abort();
   },[v2,detailsGameId,rememberLibraryGames,libraryDataVersion]);
-
-  useEffect(() => {
-    if (v2 && vaultState.currentPickId && !revealedPickId && drawState === "idle") {
-      setRevealedPickId(vaultState.currentPickId);
-      setCurrentDrawId(vaultState.currentDrawId ?? null);
-      pendingDrawIdRef.current = Promise.resolve(vaultState.currentDrawId ?? null);
-    }
-  },[v2,vaultState.currentPickId,vaultState.currentDrawId,revealedPickId,drawState]);
 
   useEffect(() => {
     if (v2 && vaultState.currentPickId === revealedPickId && vaultState.currentDrawId === null && currentDrawId) {
