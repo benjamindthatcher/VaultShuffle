@@ -1254,7 +1254,6 @@ test("quarantine hides excluded games across app reads without losing ownership 
     }
   });
 
-
 test('V2 Family current-app access is atomic, owner-protected and preserves authored data',async t=>{
   const fixture=createFixture();t.after(()=>disposeFixture(fixture));
   const family=new FamilyRepository(fixture.database);
