@@ -1,6 +1,6 @@
 # Coordinated V2 cutover
 
-Prepared 1 October 2026. The final frozen transfer and all eight fresh library recoveries are accepted. Source **pfvblcopcmairdfeqdep** in Ireland remains fenced/read-only; target **vbjtbwelnhbbdfrqczyf** in Virginia now contains the full final data and26 immutable migrations. Final opening/post-switch acceptance is recorded in [execution status](v2-execution-status.md), which supersedes historical states in the preparation checklist below. Preserve UTC instants without a geographic offset.
+Prepared 1 October 2026. The final frozen transfer and all eight fresh library recoveries are accepted. Source **pfvblcopcmairdfeqdep** in Ireland remains fenced/read-only; target **vbjtbwelnhbbdfrqczyf** in Virginia now contains the full final data and26 immutable migrations. Final opening/post-switch acceptance passed at11:08:02.828928UTC and is recorded in [execution status](v2-execution-status.md), which supersedes historical states in the preparation checklist below. Preserve UTC instants without a geographic offset.
 
 ## Before any release or source freeze
 

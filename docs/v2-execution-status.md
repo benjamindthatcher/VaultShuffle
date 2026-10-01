@@ -1,12 +1,12 @@
 # VaultShuffle V2 execution status
 
-**Latest resume point: “Current checkpoint — 1 October, HLTB and replacement backup accepted” at the end of this file.** Read that section first. Earlier pending selections are historical: the user chose all seven groups, excluding optional logging. Source remains authoritative; credential upload and final transfer/switch remain.
+**Current status — 1 October 2026: the approved seven-group release is live on V2 Virginia, and final transfer, eight library recoveries, current-chain backup/restore and post-switch acceptance have passed.** Read “Live V2 release accepted — 1 October” at the end and `database/v2/final-cutover-acceptance-20261001.json`. Source Ireland remains fenced/read-only for recovery. Earlier pending selections, credentials and transfer notes below are historical; do not repeat them.
 
 **Final release-selection gate (user request, 30 September):** Before pushing/deploying the combined release or fully switching database authority, collect and name the pending work on main and other branches/worktrees. Present a concrete release list and ask which items to push and which to exclude. The user intends to release the selected work together. Earlier cutover authorization does not bypass this new selection gate. Preserve unrelated work and do not merge/push it merely because it is present. Continue database preparation and validation meanwhile.
 
 Updated 29 September 2026, Europe/London. Current plan: [V2 delivery plan](VaultShuffle_v2_architecture_plan.md).
 
-## Current position
+## Historical recovery position — 29 September
 
 The recovery audit, plan update and first V2 reconciliation batch are complete. The database migration is **not** complete. M1–M2 foundations and substantial M3/M4 work survive in Git; current application development has advanced independently. Continue with a focused reconciliation batch, not another redesign or a wholesale branch merge.
 
@@ -884,3 +884,17 @@ Current26-chain final backup COMPLETE:49,291,632bytes, SHA7672aebe2c075b2a3b9550
 Source read-only recheck remains44 fenced tables/zero active cron/zero importing/743accounts/400341raw owned. Current V2 facts after accepted fresh recovery:743accounts/29488catalogue games/408519owned/812sessions/4362Blacklisted,469175443bytes; active jobs0. Difference in owned rows is explicit fresh provider observation, not source-copy loss.
 
 All3 intended existing V2 providers enabled after final gates. Target has no pg_cron extension; the approved5 nightly schedules are already in vercel.json and execute V2 code in Production only. No source cron re-enabled, no daily quota reset. Vercel saved recovery0 Production and maintenance0 Production+Preview; authorityv2 and six restricted connection/CA keys retained, original cookie/cron/Steam secrets unchanged. Next push of this checkpoint triggers the approved open deployment. Wait for its exact SHA READY and verify public/live existing-cookie flows before recording validated_cutover_at/retention deadlines or declaring complete.
+
+
+## Live V2 release accepted — 1 October
+
+**All seven selected groups released; optional logging and redundant worktree copies excluded.** Opening commit75eb2a6cefbe7efdd12d4620cca88da23163e119, READY deploymentdpl_6wuWhfHv9etfQUQLkh8n2Mk6wFfv, https://vaultshuffle.com. Virginia V2 is production authority; maintenance0 and scoped recovery0, all original session/cron/Steam secrets unchanged. Existing signed-in browser tab reloaded without a new sign-in and loaded Dashboard, Library, the Blacklisted pool with manual Reactivate, Wishlist suggestions, the preserved Collections shelf and Vault draw/candidates. Public home/FAQ/releases/blog/guest catalogue and small216-byte guest bootstrap200; unauthenticated V2 bootstrap/worker401/no-store. Authenticated worker200 with no remaining queued jobs. Initial probe of nonexistent /api/v2/guest/bootstrap404 was corrected to the actual /guest-catalogue and /api/app-data endpoints; not waived.
+
+Complete frozen-source facts743accounts/400341raw owned; exact97/29 copy verified before live refreshes. Current owned408519 and games29488 reflect eight explicitly accepted fresh complete observations, including11,335-game account. All authored state unchanged before opening,4362Blacklisted,812transferredsessions, noIGDBestimates.26 immutable applied migrations; focused57import tests, actual20k publication/replay,123manifest tests, typecheck/lint, current26-chain actual backup/restore and earlier69selected browser flows accepted. Database469175443bytes (~469MB decimal),14,303,232bytes reclaimed from measured regrowth. No speculative heap rewrite, new schema/history/state or extra indexes.
+
+Actual final backup SHA7672aebe2c075b2a3b9550342eab8612994b131d4350661b435e2d3eed5aff6d remains protected in target-backup-26-final; exact97/29 restored with private ACLs and sequence/rollback checks. Frozen exports and older accepted packets remain protected until registered retention gates. Cutover validated **2026-10-01T11:08:02.828928Z**; existing30-day staging deadline **2026-10-31T11:08:02.828928Z**, subject only to a recorded bounded recovery incident. Do not purge durable account-keyed exceptions under the staging policy. Source still44-table fenced with zero active cron/imports. Since V2 has new writes, recovery is forward on V2; do not blindly reopen source.
+
+Current5 nightly schedules in vercel.json use the existing V2 runtime, provider quotas and Production-only gates. All3 intended providers enabled; no target pg_cron job or old IGDB worker activated. Runtime uses restricted app/worker roles on verifiedTLS transaction6543, apppool2/workerpool1, preparefalse. Security advisor has no warning/error. User8766 and excluded worktrees/patch preserved. Machine-readable acceptance: database/v2/final-cutover-acceptance-20261001.json. Remaining optional hosted cleanup: unused IGDB_CLIENT_ID/IGDB_CLIENT_SECRET confirmed present; action-time permanent-deletion question pending. They are unused by the released HLTB-only runtime.
+
+
+**Operational cleanup:** disposable local final-load PostgreSQL55884 stopped cleanly after acceptance; its protected files/exports/backups retained. User server8766 untouched. The live receipt screenshot is protected `/private/tmp/vaultshuffle-final-cutover-20261001/live-release.png`. No response yet to optional permanent deletion of the two unused IGDB settings; leave them unchanged until explicit action-time approval. This does not reactivate any IGDB runtime/database functionality.

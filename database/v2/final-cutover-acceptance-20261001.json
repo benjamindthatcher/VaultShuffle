@@ -1,0 +1,153 @@
+{
+  "status": "live-accepted",
+  "source_project_ref": "pfvblcopcmairdfeqdep",
+  "target_project_ref": "vbjtbwelnhbbdfrqczyf",
+  "opening_commit": "75eb2a6cefbe7efdd12d4620cca88da23163e119",
+  "opening_deployment": "dpl_6wuWhfHv9etfQUQLkh8n2Mk6wFfv",
+  "opening_url": "https://vaultshuffle.com",
+  "selected_release_groups": 7,
+  "excluded": [
+    "optional legacy worker logging patch",
+    "redundant old worktree copies"
+  ],
+  "migration_count": 26,
+  "source_domains": 46,
+  "final_copy_relations_verified": 97,
+  "final_copy_sequences_verified": 29,
+  "accounts_at_transfer": 743,
+  "source_raw_owned_at_freeze": 400341,
+  "source_snapshot_owned_at_copy": 398338,
+  "owned_after_fresh_recoveries": 408519,
+  "catalogue_games_after_recoveries": 29488,
+  "sessions_at_transfer": 812,
+  "blacklisted_states_at_transfer": 4362,
+  "igdb_estimates": 0,
+  "complete_affected_libraries": 8,
+  "largest_recovered_library": 11335,
+  "authored_state_unchanged_before_opening": true,
+  "database_bytes_after_compaction": 469175443,
+  "index_reclaimed_bytes": 14303232,
+  "final_backup": {
+    "status": "complete",
+    "project": "vbjtbwelnhbbdfrqczyf",
+    "migration_count": 26,
+    "relations": 97,
+    "sequences": 29,
+    "dump_bytes": 49291632,
+    "dump_sha256": "7672aebe2c075b2a3b9550342eab8612994b131d4350661b435e2d3eed5aff6d",
+    "production_changes": 0,
+    "created_at": "2026-10-01T10:57:18Z"
+  },
+  "final_restore": {
+    "status": "accepted",
+    "migration_count": 26,
+    "restored_relation_fingerprints": 97,
+    "restored_sequences": 29,
+    "replacement_closure": 86,
+    "late_failure_rolled_back_all_data": true,
+    "sequence_compensation_accepted": true,
+    "private_review_acl_preserved": true,
+    "definers_owned_by_postgres": true,
+    "dump_sha256": "7672aebe2c075b2a3b9550342eab8612994b131d4350661b435e2d3eed5aff6d",
+    "remote_mutations": 0
+  },
+  "public_acceptance": {
+    "checked_at": "2026-10-01T11:05:55.081626+00:00",
+    "responses": [
+      {
+        "path": "/",
+        "status": 200,
+        "bytes": 69336,
+        "seconds": 0.231,
+        "cache_control": "public, max-age=0, must-revalidate"
+      },
+      {
+        "path": "/faq",
+        "status": 200,
+        "bytes": 89678,
+        "seconds": 0.078,
+        "cache_control": "public, max-age=0, must-revalidate"
+      },
+      {
+        "path": "/releases",
+        "status": 200,
+        "bytes": 113756,
+        "seconds": 0.176,
+        "cache_control": "public, max-age=0, must-revalidate"
+      },
+      {
+        "path": "/blog",
+        "status": 200,
+        "bytes": 42195,
+        "seconds": 0.074,
+        "cache_control": "public, max-age=0, must-revalidate"
+      },
+      {
+        "path": "/guest-catalogue",
+        "status": 200,
+        "bytes": 1840408,
+        "seconds": 5.146,
+        "cache_control": "public"
+      },
+      {
+        "path": "/api/app-data",
+        "status": 200,
+        "bytes": 216,
+        "seconds": 0.159,
+        "cache_control": "private, no-store, max-age=0"
+      },
+      {
+        "path": "/api/v2/bootstrap",
+        "status": 401,
+        "bytes": 28,
+        "seconds": 0.171,
+        "cache_control": "private, no-store"
+      },
+      {
+        "path": "/api/v2/workers/owned-games",
+        "status": 401,
+        "bytes": 24,
+        "seconds": 0.182,
+        "cache_control": "private, no-store"
+      }
+    ]
+  },
+  "existing_cookie_acceptance": {
+    "used_original_signed_in_browser_tab": true,
+    "required_new_sign_in": false,
+    "dashboard_loaded": true,
+    "library_loaded": true,
+    "blacklisted_section_and_manual_reactivate_visible": true,
+    "wishlist_suggestions_loaded": true,
+    "collections_loaded": true,
+    "vault_existing_draw_and_candidates_loaded": true
+  },
+  "configuration": {
+    "authority": "v2",
+    "maintenance": false,
+    "cutover_workers": false,
+    "secret_values_rotated": false,
+    "runtime_pooler_port": 6543,
+    "tls_verify_full": true,
+    "app_pool": 2,
+    "worker_pool": 1,
+    "providers": [
+      "steam",
+      "steam_store",
+      "steamspy"
+    ],
+    "vercel_cron_schedules": 5,
+    "target_pg_cron": false
+  },
+  "source_retained_read_only": {
+    "fenced_tables": 44,
+    "active_cron": 0,
+    "active_imports": 0
+  },
+  "cutover": {
+    "validated_cutover_at": "2026-10-01T11:08:02.828928+00:00",
+    "staging_due_at": "2026-10-31T11:08:02.828928+00:00",
+    "staging_retention_days": 30
+  },
+  "recovery_boundary": "After V2 writes, recover forward on V2. Blind source rollback is not accepted."
+}

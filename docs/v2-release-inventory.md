@@ -1,8 +1,8 @@
 # Coordinated release inventory
 
-Assessed inventory, 1 October 2026. The user selected all seven groups on 1 October and excluded the optional logging patch. This authorizes the selected coordinated release. The remaining credential-upload confirmation and cutover verification still apply. The selected work is assembled in an unpublished local main release commit whose parent is `bbd836e`; do not wholesale merge/reset other worktrees.
+Released 1 October 2026. The user selected all seven groups and excluded optional logging and redundant older worktree copies. All selected work is now live on main/V2 Virginia; final transfer and post-switch acceptance passed. The prepared inventory below documents that selection and preserves excluded work. Do not ask for selection again or wholesale merge/reset older worktrees.
 
-## Named pending work
+## Selected work and preserved preparation notes
 
 | Name for release selection | Current source / scope | Remaining assessment |
 | --- | --- | --- |
