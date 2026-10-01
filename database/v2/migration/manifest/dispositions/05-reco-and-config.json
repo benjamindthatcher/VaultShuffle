@@ -329,19 +329,19 @@
         }
       },
       "archive_purpose": "Retain per-key created_at/updated_at, which the single-document app.account_preferences structurally cannot hold, so 'when did this setting change' stays answerable after the row-to-document collapse.",
-    "archive_retention": "Durable private fact: the collapsed preference document and its per-key provenance are retained while the account exists, removed by account deletion and included in the account export. The raw staging copy is bounded to 30 days after validated cutover once the durable document carries the required provenance.",
+      "archive_retention": "Durable private fact: the collapsed preference document and its per-key provenance are retained while the account exists, removed by account deletion and included in the account export. The raw staging copy is bounded to 30 days after validated cutover once the durable document carries the required provenance.",
       "retention": {
         "class": "durable-private-fact",
         "bound": "while-the-account-exists",
-      "destination": "app.account_preferences",
+        "destination": "app.account_preferences",
         "carries_account_identity": true,
-      "account_deletion": "The durable app.account_preferences row cascades from app.accounts(id); the raw migration.legacy_account_preferences_evidence copy also carries the mapped account key and source UUID and cascades before its staging window closes.",
+        "account_deletion": "The durable app.account_preferences row cascades from app.accounts(id); the raw migration.legacy_account_preferences_evidence copy also carries the mapped account key and source UUID and cascades before its staging window closes.",
         "account_export": "Retired per-account preference values are the user's own settings and belong in the account export.",
         "authority": [
           "docs/VaultShuffle_v2_architecture_plan.md section 13: 'Account/authored state/retired personal facts - retained while account exists; account deletion removes private derivatives too'",
           "coordinator ruling 12, docs/v2-m3-b-database-batch.md: preserve original facts; do not discard sole authored or provenance evidence"
         ],
-      "note": "Per-account preferences, not global configuration: the durable destination carries an account key, so it is personal data. The staging archive is a bounded copy of per-key provenance."
+        "note": "Per-account preferences, not global configuration: the durable destination carries an account key, so it is personal data. The staging archive is a bounded copy of per-key provenance."
       },
       "settled_decisions": [
         "D-PREF-1 SETTLED (manifest-authored, constrained by ruling 12's 'preserve original facts first'): every legacy value is TEXT, so every value is preserved as a JSON STRING in the account_preferences document. A value that merely looks numeric or boolean is never silently retyped; typed interpretation is left to the reader. The raw key/value rows are additionally archived in migration.legacy_account_preferences_evidence, so the reshaping is reversible. Subject to coordinator review as an authored disposition.",
@@ -359,11 +359,10 @@
       "evidence": [
         "readiness 7",
         "coordinator ruling, 9 September",
-        "readiness 14 (roughly twenty class-A sweep rows wrongly treated the M2 quota tables as destinations)"
+        "readiness 14 (roughly twenty class-A sweep rows wrongly treated the M2 quota tables as destinations)",
+        "D-ABUSE-3 resolved by the frozen final-load run e3e86719-c2cc-4e6e-b512-17f79f869c52: actual known bucket windows supplied by the caller, UTC source anchors retained, zero unknown-window activation holds and no reset. The existing conservative runtime bridge remains authoritative until each preserved deadline expires."
       ],
-      "open_decisions": [
-        "D-ABUSE-3 OPEN (cutover): whether, and for how long, an UNEXPIRED legacy cooldown continues to bind after cutover. Ruling 4 settles the destination and requires the algorithm/version, source time/window and expiration needed for a conservative bridge to be recorded, and it explicitly authorises no reset or activation here. The bridge's actual behaviour is an M6/M7 cutover decision that depends on which windows are still outstanding at the freeze: snapshot check S-ABUSE-BRIDGE."
-      ],
+      "open_decisions": [],
       "columns": {
         "bucket": {
           "disposition": "preserved",

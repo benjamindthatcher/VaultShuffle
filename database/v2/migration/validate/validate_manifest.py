@@ -75,7 +75,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 V2_ROOT = HERE.parent.parent
 DEFAULT_MANIFEST = V2_ROOT / "migration" / "manifest" / "disposition-manifest.json"
-DEFAULT_INVENTORY = V2_ROOT / "source-schema-inventory-20260909.json"
+DEFAULT_INVENTORY = V2_ROOT / "source-schema-inventory-20261001.json"
 
 VALID_DISPOSITIONS = frozenset(
     {

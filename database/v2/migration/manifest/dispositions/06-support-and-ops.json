@@ -397,11 +397,10 @@
         "readiness 7",
         "readiness 14.5 (processing_token is a lease, not a job identity)",
         "plan 14.2",
-        "plan section 13"
+        "plan section 13",
+        "D-IMP-1 resolved at the 1 October source freeze: eight exact accounts recorded privately before their stalled jobs were truthfully cancelled and fenced. All eight mappings and recovery queue accepted; full refresh acceptance remains a launch gate tracked in execution status, not an unknown snapshot decision."
       ],
-      "open_decisions": [
-        "D-IMP-1 OPEN (cutover): an account whose import was in flight at the freeze may carry a PARTIAL library into v2. Plan 14.2 settles that in-flight production jobs are not resumed on preview and that work restarts safely, and the M3 migration provides migration.legacy_import_freeze_report for the per-account report. What remains genuinely open is WHICH accounts are affected at the actual freeze and therefore need a re-run, which cannot be known before the freeze: snapshot check S-IMPORT-FREEZE."
-      ],
+      "open_decisions": [],
       "columns": {
         "user_id": {
           "disposition": "audit-archive",

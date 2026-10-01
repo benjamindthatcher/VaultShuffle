@@ -39,7 +39,7 @@ MIGRATION_ROOT = HERE.parent
 V2_ROOT = MIGRATION_ROOT.parent
 REPO_ROOT = V2_ROOT.parent.parent
 
-INVENTORY = V2_ROOT / "source-schema-inventory-20260929.json"
+INVENTORY = V2_ROOT / "source-schema-inventory-20261001.json"
 MANIFEST = MIGRATION_ROOT / "manifest" / "disposition-manifest.json"
 BUILDER = MIGRATION_ROOT / "manifest" / "build_manifest.py"
 DECISIONS_DIR = MIGRATION_ROOT / "manifest" / "dispositions"
@@ -369,7 +369,10 @@ class TestCommittedArtefactsAreValid(MutationHarness):
         self.assertTrue(any("V18" in failure for failure in failures))
 
     def test_applied_schema_does_not_waive_final_snapshot_decisions(self):
-        result = run_validator(MANIFEST, INVENTORY, "--final-load")
+        man = copy.deepcopy(self.manifest)
+        man["relations"][0]["open_decisions"] = ["Synthetic unresolved final-snapshot decision"]
+        mp, ip = self.write_pair(man, self.inventory)
+        result = run_validator(mp, ip, "--final-load")
         self.assertEqual(result.returncode, 1)
         self.assertIn("V13", result.stderr)
         self.assertNotIn("V18", result.stderr)
@@ -377,7 +380,7 @@ class TestCommittedArtefactsAreValid(MutationHarness):
     def test_destination_index_records_the_complete_applied_chain(self):
         index = json.loads((MANIFEST.parent / "physical-destination-index.json").read_text())
         migrations = sorted((V2_ROOT / "supabase" / "migrations").glob("*.sql"))
-        self.assertEqual(len(migrations), 25)
+        self.assertEqual(len(migrations), 26)
         self.assertEqual([source["file"] for source in index["sources"]], [path.name for path in migrations])
         for source, path in zip(index["sources"], migrations):
             self.assertTrue(source["applied"])
@@ -579,7 +582,10 @@ class TestValidatorCatchesDrift(MutationHarness):
         self.assert_fails_with(self.manifest, inv, "V12")
 
     def test_v13_strict_final_load_rejects_unresolved_decisions(self):
-        result = run_validator(MANIFEST, INVENTORY, "--final-load")
+        man = copy.deepcopy(self.manifest)
+        man["relations"][0]["open_decisions"] = ["Synthetic unresolved final-snapshot decision"]
+        mp, ip = self.write_pair(man, self.inventory)
+        result = run_validator(mp, ip, "--final-load")
         self.assertEqual(result.returncode, 1)
         self.assertIn("V13", result.stderr)
         self.assertIn("unresolved", result.stderr.lower())

@@ -115,6 +115,7 @@ MIGRATION_SOURCES = (
     ("20260930235530_m5_catalogue_review_deck_parity.sql", "m5-catalogue-review-deck-parity", True, None),
     ("20261001003836_m5_wishlist_discovery.sql", "m5-wishlist-discovery", True, None),
     ("20261001011037_m5_hltb_review_runtime.sql", "m5-hltb-review-runtime", True, None),
+    ("20261001103901_m5_large_owned_libraries.sql", "m5-large-owned-libraries", True, None),
 )
 
 # Words that open a TABLE-level constraint rather than a column definition.

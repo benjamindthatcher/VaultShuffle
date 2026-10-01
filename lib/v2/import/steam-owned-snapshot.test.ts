@@ -21,6 +21,19 @@ function response(games: unknown[], gameCount = games.length) {
 const OBSERVATION_TIME = 1_800_000_000;
 const observation = { observationTimeEpochSeconds: OBSERVATION_TIME };
 
+test("accepts a complete large library while retaining the game and byte bounds", () => {
+  const games = Array.from({length: 20_000}, (_, index) => ({appid: index + 1}));
+  const result = normalizeSteamOwnedSnapshot(response(games), observation);
+  assert.equal(result.status, "complete");
+  if (result.status === "complete") assert.equal(result.games.length, 20_000);
+  const oversized = normalizeSteamOwnedSnapshot(response(games, 20_001), observation);
+  assert.equal(oversized.status, "invalid");
+  if (oversized.status === "invalid") assert.equal(oversized.reason, "too_many_games");
+  const byteLimited = normalizeSteamOwnedSnapshot(response(games), {...observation, maxPayloadBytes: 100});
+  assert.equal(byteLimited.status, "invalid");
+  if (byteLimited.status === "invalid") assert.equal(byteLimited.reason, "payload_too_large");
+});
+
 function normalize(input: unknown) {
   return normalizeSteamOwnedSnapshot(input, observation);
 }

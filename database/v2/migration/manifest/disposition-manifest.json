@@ -10,7 +10,7 @@
   },
   "physical_destination_index": {
     "path": "physical-destination-index.json",
-    "sha256": "0b205d71400fae8f52cea53d5d30418504c51a0fd3d9209686cf9bf2e0aa553d",
+    "sha256": "f688ab3eeb7b55bdb3404d76d22a78572a7b9fdcb47d4605e948d93eae819aa5",
     "totals": {
       "relations": 96,
       "applied_relations": 96,
@@ -26,9 +26,9 @@
     "project_ref": "pfvblcopcmairdfeqdep",
     "database": "postgres",
     "timezone": "UTC",
-    "captured_at": "2026-09-29T20:23:01.421468+00:00",
-    "inventory_file": "source-schema-inventory-20260929.json",
-    "inventory_sha256": "991e99c1c106a6cb7bc62fef06b820bbc7966db95650cd1e7e1f6bc2e470af11",
+    "captured_at": "2026-10-01T09:54:31.413491+00:00",
+    "inventory_file": "source-schema-inventory-20261001.json",
+    "inventory_sha256": "0fc66c9f685d074f7dc6e2d4b1d62da9008695025e36a35c07a2ec373d5c5666",
     "schemas_present": [
       "auth",
       "cron",
@@ -36,11 +36,13 @@
       "graphql",
       "graphql_public",
       "net",
+      "pgbouncer",
       "public",
       "realtime",
       "storage",
       "supabase_migrations",
-      "vault"
+      "vault",
+      "vault_cutover"
     ]
   },
   "decision_files": [
@@ -108,7 +110,7 @@
     },
     {
       "file": "05-reco-and-config.json",
-      "sha256": "9e477eb0963a463228ac6a8695d1b8ea63f969440a2845ab570cf1c4052d4c95",
+      "sha256": "1d45aeb137336bd007c76843d41b4a3bf5017c2ebe793a4feb165e5dae6c2e52",
       "relations": [
         "algorithm_weights",
         "api_rate_limits",
@@ -120,7 +122,7 @@
     },
     {
       "file": "06-support-and-ops.json",
-      "sha256": "c85eea7c435e3486ced18978d661afdf0bc22bcf7ccb98c47f5330d32a963801",
+      "sha256": "58c2008eae68aa1dd37f27b72483c2a89fd7c93644e6da7ca7a87dd095e19ff7",
       "relations": [
         "contact_messages",
         "feedback_submissions",
@@ -448,13 +450,12 @@
       "archive_purpose": null,
       "archive_retention": null,
       "retention": null,
-      "open_decisions": [
-        "D-ABUSE-3 OPEN (cutover): whether, and for how long, an UNEXPIRED legacy cooldown continues to bind after cutover. Ruling 4 settles the destination and requires the algorithm/version, source time/window and expiration needed for a conservative bridge to be recorded, and it explicitly authorises no reset or activation here. The bridge's actual behaviour is an M6/M7 cutover decision that depends on which windows are still outstanding at the freeze: snapshot check S-ABUSE-BRIDGE."
-      ],
+      "open_decisions": [],
       "evidence": [
         "readiness 7",
         "coordinator ruling, 9 September",
-        "readiness 14 (roughly twenty class-A sweep rows wrongly treated the M2 quota tables as destinations)"
+        "readiness 14 (roughly twenty class-A sweep rows wrongly treated the M2 quota tables as destinations)",
+        "D-ABUSE-3 resolved by the frozen final-load run e3e86719-c2cc-4e6e-b512-17f79f869c52: actual known bucket windows supplied by the caller, UTC source anchors retained, zero unknown-window activation holds and no reset. The existing conservative runtime bridge remains authoritative until each preserved deadline expires."
       ],
       "decision_file": "05-reco-and-config.json",
       "column_count": 5,
@@ -5807,14 +5808,13 @@
         ],
         "note": "Cutover evidence about in-flight imports. The physical default 'm3-signoff' is tighter than the 30-day bound and is therefore compliant, not a divergence."
       },
-      "open_decisions": [
-        "D-IMP-1 OPEN (cutover): an account whose import was in flight at the freeze may carry a PARTIAL library into v2. Plan 14.2 settles that in-flight production jobs are not resumed on preview and that work restarts safely, and the M3 migration provides migration.legacy_import_freeze_report for the per-account report. What remains genuinely open is WHICH accounts are affected at the actual freeze and therefore need a re-run, which cannot be known before the freeze: snapshot check S-IMPORT-FREEZE."
-      ],
+      "open_decisions": [],
       "evidence": [
         "readiness 7",
         "readiness 14.5 (processing_token is a lease, not a job identity)",
         "plan 14.2",
-        "plan section 13"
+        "plan section 13",
+        "D-IMP-1 resolved at the 1 October source freeze: eight exact accounts recorded privately before their stalled jobs were truthfully cancelled and fenced. All eight mappings and recovery queue accepted; full refresh acceptance remains a launch gate tracked in execution status, not an unknown snapshot decision."
       ],
       "decision_file": "06-support-and-ops.json",
       "column_count": 12,
@@ -8497,7 +8497,7 @@
         {
           "name": "wishlist_store_cache_country_check",
           "type": "c",
-          "definition": "CHECK ((country = ANY (ARRAY['GB'::text, 'US'::text, 'DE'::text, 'CA'::text, 'AU'::text])))"
+          "definition": "CHECK ((country = ANY (ARRAY['GB'::text, 'US'::text, 'DE'::text, 'CA'::text, 'AU'::text, 'AF'::text, 'AX'::text, 'AL'::text, 'DZ'::text, 'AS'::text, 'AD'::text, 'AO'::text, 'AI'::text, 'AQ'::text, 'AG'::text, 'AR'::text, 'AM'::text, 'AW'::text, 'AT'::text, 'AZ'::text, 'BS'::text, 'BH'::text, 'BD'::text, 'BB'::text, 'BY'::text, 'BE'::text, 'BZ'::text, 'BJ'::text, 'BM'::text, 'BT'::text, 'BO'::text, 'BQ'::text, 'BA'::text, 'BW'::text, 'BV'::text, 'BR'::text, 'IO'::text, 'BN'::text, 'BG'::text, 'BF'::text, 'BI'::text, 'KH'::text, 'CM'::text, 'CV'::text, 'KY'::text, 'CF'::text, 'TD'::text, 'CL'::text, 'CN'::text, 'CX'::text, 'CC'::text, 'CO'::text, 'KM'::text, 'CD'::text, 'CG'::text, 'CK'::text, 'CR'::text, 'CI'::text, 'HR'::text, 'CU'::text, 'CW'::text, 'CY'::text, 'CZ'::text, 'DK'::text, 'DJ'::text, 'DM'::text, 'DO'::text, 'EC'::text, 'EG'::text, 'SV'::text, 'GQ'::text, 'ER'::text, 'EE'::text, 'SZ'::text, 'ET'::text, 'FK'::text, 'FO'::text, 'FJ'::text, 'FI'::text, 'FR'::text, 'GF'::text, 'PF'::text, 'TF'::text, 'GA'::text, 'GM'::text, 'GE'::text, 'GH'::text, 'GI'::text, 'GR'::text, 'GL'::text, 'GD'::text, 'GP'::text, 'GU'::text, 'GT'::text, 'GG'::text, 'GN'::text, 'GW'::text, 'GY'::text, 'HT'::text, 'HM'::text, 'VA'::text, 'HN'::text, 'HK'::text, 'HU'::text, 'IS'::text, 'IN'::text, 'ID'::text, 'IR'::text, 'IQ'::text, 'IE'::text, 'IM'::text, 'IL'::text, 'IT'::text, 'JM'::text, 'JP'::text, 'JE'::text, 'JO'::text, 'KZ'::text, 'KE'::text, 'KI'::text, 'KR'::text, 'XK'::text, 'KW'::text, 'KG'::text, 'LA'::text, 'LV'::text, 'LB'::text, 'LS'::text, 'LR'::text, 'LY'::text, 'LI'::text, 'LT'::text, 'LU'::text, 'MO'::text, 'MG'::text, 'MW'::text, 'MY'::text, 'MV'::text, 'ML'::text, 'MT'::text, 'MH'::text, 'MQ'::text, 'MR'::text, 'MU'::text, 'YT'::text, 'MX'::text, 'FM'::text, 'MD'::text, 'MC'::text, 'MN'::text, 'ME'::text, 'MS'::text, 'MA'::text, 'MZ'::text, 'MM'::text, 'NA'::text, 'NR'::text, 'NP'::text, 'NL'::text, 'NC'::text, 'NZ'::text, 'NI'::text, 'NE'::text, 'NG'::text, 'NU'::text, 'NF'::text, 'MK'::text, 'MP'::text, 'NO'::text, 'OM'::text, 'PK'::text, 'PW'::text, 'PS'::text, 'PA'::text, 'PG'::text, 'PY'::text, 'PE'::text, 'PH'::text, 'PN'::text, 'PL'::text, 'PT'::text, 'PR'::text, 'QA'::text, 'RE'::text, 'RO'::text, 'RU'::text, 'RW'::text, 'BL'::text, 'SH'::text, 'KN'::text, 'LC'::text, 'MF'::text, 'PM'::text, 'VC'::text, 'WS'::text, 'SM'::text, 'ST'::text, 'SA'::text, 'SN'::text, 'RS'::text, 'SC'::text, 'SL'::text, 'SG'::text, 'SX'::text, 'SK'::text, 'SI'::text, 'SB'::text, 'SO'::text, 'ZA'::text, 'GS'::text, 'SS'::text, 'ES'::text, 'LK'::text, 'SD'::text, 'SR'::text, 'SJ'::text, 'SE'::text, 'CH'::text, 'SY'::text, 'TW'::text, 'TJ'::text, 'TZ'::text, 'TH'::text, 'TL'::text, 'TG'::text, 'TK'::text, 'TO'::text, 'TT'::text, 'TN'::text, 'TM'::text, 'TC'::text, 'TV'::text, 'TR'::text, 'UG'::text, 'UA'::text, 'AE'::text, 'UM'::text, 'UY'::text, 'UZ'::text, 'VU'::text, 'VE'::text, 'VN'::text, 'VG'::text, 'VI'::text, 'WF'::text, 'EH'::text, 'YE'::text, 'ZM'::text, 'ZW'::text])))"
         },
         {
           "name": "wishlist_store_cache_pkey",

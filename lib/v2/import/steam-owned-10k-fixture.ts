@@ -3,7 +3,6 @@ import {
   type SteamOwnedFetchComplete
 } from "./steam-owned-fetch.ts";
 import {
-  DEFAULT_MAX_GAMES,
   normalizeSteamOwnedSnapshot,
   type SteamOwnedSnapshotResult
 } from "./steam-owned-snapshot.ts";
@@ -16,7 +15,7 @@ import {
 // Historical fixture evidence keeps local SQL runs valid on any current clock.
 // The SQL harness replaces only provenance observation time at execution.
 export const STEAM_10K_FIXTURE_OBSERVATION_EPOCH_SECONDS = 1_700_000_000;
-export const STEAM_10K_FIXTURE_GAME_COUNT = DEFAULT_MAX_GAMES;
+export const STEAM_10K_FIXTURE_GAME_COUNT = 10_000;
 
 export type SteamOwned10kProviderGame = {
   appid: number;

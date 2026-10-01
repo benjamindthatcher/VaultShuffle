@@ -653,3 +653,34 @@ if (INTEGRATION_ENABLED) {
     }
   });
 }
+
+if (INTEGRATION_ENABLED) {
+  test("publishes a complete 20,000-game library and replays without changes", async () => {
+    const config = requireConfig();
+    assertFrozenM2Migration();
+    const sql = createPsqlM2SqlInvoker({psqlPath: config.psqlPath, host: config.host,
+      port: config.port, user: config.workerUser, database: config.database,
+      workerRole: config.workerRole, fixtureMode: true, timeoutMs: 120_000});
+    const accountId = createFixtureAccount(config);
+    const now = () => Math.floor(Date.now() / 1000);
+    try {
+      const games = Array.from({length: 20_000}, (_, index) => ({appid: index + 1}));
+      const snapshot = makeSnapshot(games, now());
+      const firstJob = seedOwnedJob(config, accountId, randomUUID());
+      const first = await runFetchedJob(sql, snapshot, now);
+      assert.equal(first.result.status, "published");
+      assert.equal(jobSummary(config, firstJob).status, "succeeded");
+      assert.equal(jobSummary(config, firstJob).observedCount, 20_000);
+      const before = accountFingerprint(config, accountId);
+      assert.equal(before.libraryRows, 20_000);
+      const secondJob = seedOwnedJob(config, accountId, randomUUID());
+      const replay = await runFetchedJob(sql, snapshot, now);
+      assert.equal(replay.result.status, "published");
+      assert.equal(jobSummary(config, secondJob).libraryChanged, 0);
+      assert.equal(jobSummary(config, secondJob).activityChanged, 0);
+      assert.deepEqual(accountFingerprint(config, accountId), before);
+    } finally {
+      deleteFixtureAccount(config, accountId);
+    }
+  });
+}

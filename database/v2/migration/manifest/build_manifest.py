@@ -2,13 +2,13 @@
 """Generate the M3 source-disposition manifest from live schema metadata.
 
 The manifest is GENERATED, never hand-typed. Every relation and every column in
-``database/v2/source-schema-inventory-20260929.json`` is enumerated from the
+``database/v2/source-schema-inventory-20261001.json`` is enumerated from the
 inventory itself, so a column cannot be missing from the manifest: it can only be
 missing a *decision*, and a missing decision is a hard build failure.
 
 Inputs
 ------
-1. ``database/v2/source-schema-inventory-20260929.json`` -- live ``public`` schema
+1. ``database/v2/source-schema-inventory-20261001.json`` -- live ``public`` schema
    metadata captured 29 September 2026 (46 relations / 502 columns). Read-only.
 2. ``database/v2/migration/manifest/dispositions/*.json`` -- the hand-authored
    decisions, split by domain so each file is independently reviewable. Each file
@@ -60,7 +60,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 V2_ROOT = HERE.parent.parent
-INVENTORY = V2_ROOT / "source-schema-inventory-20260929.json"
+INVENTORY = V2_ROOT / "source-schema-inventory-20261001.json"
 DECISIONS_DIR = HERE / "dispositions"
 OUTPUT = HERE / "disposition-manifest.json"
 DESTINATION_INDEX = HERE / "physical-destination-index.json"

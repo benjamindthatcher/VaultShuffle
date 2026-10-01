@@ -360,6 +360,14 @@
       "applied_at": null,
       "sha256": "112e2019fde8cadd6d8ae10c43b4bbcf2393639aa49c57964b71218bd7c23bc1",
       "relations_defined": []
+    },
+    {
+      "file": "20261001103901_m5_large_owned_libraries.sql",
+      "origin": "m5-large-owned-libraries",
+      "applied": true,
+      "applied_at": null,
+      "sha256": "c194e1b5af1d5f384263ae7daf9e68fa64d706b4dfa9fac4b1081fdfe7cd59c2",
+      "relations_defined": []
     }
   ],
   "schemas": [

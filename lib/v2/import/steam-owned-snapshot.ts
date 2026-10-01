@@ -10,7 +10,7 @@ export const STEAM_APP_ID_MAX = 4_294_967_295;
 export const MAX_PLAYTIME_MINUTES = 2_147_483_647;
 
 /** A full owned-games response is intentionally bounded before publication. */
-export const DEFAULT_MAX_GAMES = 10_000;
+export const DEFAULT_MAX_GAMES = 20_000;
 export const DEFAULT_MAX_PAYLOAD_BYTES = 8 * 1024 * 1024;
 
 /**
@@ -212,7 +212,7 @@ export function normalizeSteamOwnedSnapshot(
 
   const gameCount = parseGameCount(response.game_count);
   if (gameCount === null) return invalid("invalid_game_count", "game_count must be a nonnegative safe integer");
-  if (gameCount > maxGames) return invalid("too_many_games", `game_count exceeds ${maxGames}`);
+  if (gameCount > maxGames) return invalid("too_many_games", `game_count ${gameCount} exceeds ${maxGames}`);
 
   const rawGames = response.games;
   if (rawGames === undefined) {
