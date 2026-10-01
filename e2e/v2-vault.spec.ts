@@ -13,7 +13,7 @@ function card(id:number):LibraryCard {
       platforms:{windows:null,mac:null,linux:null},deckCompatibility:null,duration:{mainStoryMinutes:300,source:'hltb',confidence:'high',endless:false},durationKind:'finite',durationStatus:'ready',tagsStatus:'ready',
       reviews:{positive:null,negative:null,total:null},price:{currency:'USD',initial:1000,final:1000,isFree:false},familyOwnerSteamId:null,familyOwnerName:null}};
 }
-async function fixture(page:Page,failPreview=false,failDraw=false,noCollections=false) {
+async function fixture(page:Page,failPreview=false,failDraw=false,noCollections=false,winnerInDeck=false) {
   const cards=Array.from({length:200},(_,i)=>card(i+1));
   let currentId:number|null=null,currentDrawId:string|null=null,revision=1,snoozes=[199];
   const draws:Record<string,unknown>[]=[],writes:Record<string,unknown>[]=[],events:Record<string,unknown>[]=[],requests:VaultDrawRequest[]=[];
@@ -40,13 +40,13 @@ async function fixture(page:Page,failPreview=false,failDraw=false,noCollections=
       const full=pool(setup).filter(entry=>!body.excludeIds.includes(entry.game.id));
       // Deliberately return a server-chosen game outside all initial preview
       // cards. The browser must display it without inventing its own selection.
-      const winner=full.find(entry=>entry.game.id===String(150+requests.length))??full.at(-1)!;
+      const winner=full.find(entry=>entry.game.id===String((winnerInDeck ? 0 : 150)+requests.length))??full.at(-1)!;
       currentId=Number(winner.game.id);currentDrawId=body.requestKey;
       const draw={id:currentDrawId,steamAppId:winner.game.steamAppId,drawnAt:'2026-09-30T12:00:00Z',session:setup.session,mood:setup.mood,goal:setup.goal,collectionId:setup.collectionId,
         selectedGenres:setup.genres,eligiblePoolCount:full.length,rerollIndex:body.cycleIds.length,events:[]};
       draws.unshift(draw);
       const explanation=body.quick||body.collectionId?null:buildVaultMatchExplanation({entry:winner,pool:full,session:body.session,mood:body.mood,goal:body.goal,selectedGenres:body.genres,includePersonalTaste:false});
-      return route.fulfill({json:{game:winner.game,draw,explanation,reasons:body.quick?[]:winner.reasons,collectionName:body.collectionId?'My whole collection':null,arm:'control',cycleReset:false,deckSize:64}});
+      return route.fulfill({json:{game:{...winner.game,description:`Synopsis for ${winner.game.title}. Explore a mysterious world and choose your next adventure.`},draw,explanation,reasons:body.quick?[]:winner.reasons,collectionName:body.collectionId?'My whole collection':null,arm:'control',cycleReset:false,deckSize:64}});
     }
     if(path==='/api/v2/vault/history') {
       if(request.method()==='DELETE'){draws.length=0;currentDrawId=null;return route.fulfill({json:{cleared:true}});}
@@ -85,9 +85,11 @@ for(const width of [1280,390])test(`V2 Vault draws from whole pool, rerolls, bla
   await expect(page.getByText('64 of 199 matches',{exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Roll the dice',exact:true}).click();
   await expect(pick(page)).toHaveText('Vault Game 151');
+  await expect(page.locator('[class*="resultCopy"]')).toContainText('Synopsis for Vault Game 151.');
   expect(state.requests[0].quick).toBe(true);expect(state.requests[0].cycleIds).toEqual([]);
   await page.getByRole('button',{name:/^Reroll/}).click();
   await expect(pick(page)).toHaveText('Vault Game 152');
+  await expect(page.locator('[class*="resultCopy"]')).toContainText('Synopsis for Vault Game 152.');
   expect(state.requests[1].cycleIds).toEqual(['151']);expect(state.requests[1].previousId).toBe('151');
   await page.getByRole('button',{name:/^Blacklist/}).click();
   await expect(pick(page)).toHaveText('Vault Game 153');
@@ -117,6 +119,7 @@ test('V2 Vault preserves guided setup and whole Collection Draw without extra fi
   await expect(page.getByRole('button',{name:'Draw from Vault',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Draw from Vault',exact:true}).click();
   await expect(pick(page)).toHaveText('Vault Game 151');
+  await expect(page.locator('[class*="resultCopy"]')).toContainText('Synopsis for Vault Game 151.');
   expect(state.requests[0]).toMatchObject({quick:false,session:'short',mood:'chill',goal:'surprise'});
   await page.getByRole('tab',{name:'Collection Draw',exact:true}).click();
   await page.getByRole('button',{name:'Choose which collection to draw from.',exact:true}).click();
@@ -124,6 +127,7 @@ test('V2 Vault preserves guided setup and whole Collection Draw without extra fi
   await expect(page.getByRole('button',{name:'Draw from My whole collection',exact:true})).toBeEnabled();
   await page.getByRole('button',{name:'Draw from My whole collection',exact:true}).click();
   await expect(pick(page)).toHaveText('Vault Game 152');
+  await expect(page.locator('[class*="resultCopy"]')).toContainText('Synopsis for Vault Game 152.');
   expect(state.requests[1]).toMatchObject({quick:false,collectionId,session:null,mood:null,goal:null,genres:[]});
 });
 
@@ -210,4 +214,21 @@ for (const width of [1280, 390]) test(`V2 Vault waits for an explicit draw after
   await expect(pick(page)).toHaveCount(0);
   expect(state.requests).toHaveLength(2);
   expect(errors).toEqual([]);
+});
+
+
+for (const width of [1280, 390]) test(`V2 Vault retains the drawn synopsis after deck refresh (${width}px)`, async ({ page }) => {
+  await page.setViewportSize({ width, height: 844 });
+  const state = await fixture(page, false, false, false, true);
+  await page.getByRole('button', { name: 'Roll the dice', exact: true }).click();
+  await expect(pick(page)).toHaveText('Vault Game 001');
+  const description = page.locator('[class*="resultCopy"]');
+  await expect(description).toContainText('Synopsis for Vault Game 001.');
+  const previews = state.previews;
+  await page.getByRole('button', { name: 'Short Session', exact: true }).click();
+  await expect.poll(() => state.previews).toBeGreaterThan(previews);
+  await expect(page.getByText('64 of 199 matches', { exact: true })).toBeVisible();
+  await expect(description).toContainText('Synopsis for Vault Game 001.');
+  expect(state.requests).toHaveLength(1);
+  await page.locator('[class*="resultCard"]').screenshot({ path: `/private/tmp/vault-description-${width}.png` });
 });

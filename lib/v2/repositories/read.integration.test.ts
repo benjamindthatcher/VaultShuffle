@@ -1059,11 +1059,17 @@ test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acce
     const last=expected.at(-1)!.game;
     assert.ok(!preview.deck.some(row=>row.game.id===last.id));
     const request: VaultDrawRequest={...setup,requestKey:'99999999-9999-4999-8999-999999999901',quick:true,arm:'test',previousId:null,cycleIds:[],excludeIds:[]};
+    psql(fixture, `update catalog.game_metadata set short_description='Explore &amp; discover a mysterious world.' where game_id=${Number(last.id)}`);
     const drawn=await vault.draw(ACCOUNT_A,request,()=>0.99999999);
+    assert.equal(drawn?.game.description,'Explore & discover a mysterious world.');
+    assert.equal(drawn?.game.notes,'');
     assert.equal(drawn?.game.id,last.id);assert.equal(drawn?.arm,'control');assert.equal(drawn?.explanation,null);
     assert.equal(drawn?.draw.eligiblePoolCount,expected.length);
     assert.equal(psql(fixture,'select current_game_id from app.vault_state where account_id=1',true),last.id);
-    assert.equal((await vault.draw(ACCOUNT_A,request,()=>0))?.game.id,last.id);
+    const repeated=await vault.draw(ACCOUNT_A,request,()=>0);
+    assert.equal(repeated?.game.id,last.id);
+    assert.equal(repeated?.game.description,'Explore & discover a mysterious world.');
+    assert.ok((await vault.preview(ACCOUNT_A,setup)).deck.every(row=>!row.game.description));
     assert.equal(psql(fixture,`select count(*) from app.vault_draws where public_id='${request.requestKey}'`,true),'1');
     await assert.rejects(()=>vault.draw(ACCOUNT_A,{...request,quick:false,session:'short',mood:'chill',goal:'surprise'}),InvalidPageQueryError);
     const excluded=await vault.draw(ACCOUNT_A,{...request,requestKey:'99999999-9999-4999-8999-999999999902',excludeIds:[last.id]},()=>0.99999999);

@@ -4,6 +4,7 @@ import { libraryGlobalFilters } from "./library-global-filters.ts";
 import { libraryProducts } from "./library-product.ts";
 import { readLibraryCards, type LibraryCard } from "./library-core.ts";
 import { libraryGame } from "../library-view-model.ts";
+import { decodeHtmlEntities } from "../../html-entities.ts";
 import { smartEligibleCte, parseSmartRule, smartPredicate } from "./smart-predicates.ts";
 import { buildGenrePreferenceIndex, type GenrePreference } from "../../genre-preferences.ts";
 import type { GameVerdicts } from "../../game-verdict.ts";
@@ -77,8 +78,13 @@ export class VaultRepository {
           on conflict (account_id) do update set current_game_id=excluded.current_game_id,
             current_draw_ref=excluded.current_draw_ref,revision=app.vault_state.revision+1,updated_at=now()`;
       }
+      // Preview/scoring cards omit prose. Hydrate only the selected game's
+      // synopsis, including request retries, before returning the result card.
+      const metadata = (await tx<{ short_description: string | null }[]>`
+        select short_description from catalog.game_metadata where game_id=${Number(winner.id)}`)[0];
+      const resultGame = { ...winner, description: decodeHtmlEntities(metadata?.short_description ?? "") };
       const entry = pool.find(value => value.game.id === winner.id);
-      return { game: winner, draw: drawView(saved, []), arm, cycleReset, deckSize: Math.min(MAX_VAULT_DECK_SIZE, deck.length),activeSnoozedIds:[...data.snoozedIds],
+      return { game: resultGame, draw: drawView(saved, []), arm, cycleReset, deckSize: Math.min(MAX_VAULT_DECK_SIZE, deck.length),activeSnoozedIds:[...data.snoozedIds],
         explanation: !uniform && entry ? buildVaultMatchExplanation({ entry, pool, session: setup.session,
           mood: setup.mood, goal: setup.goal, selectedGenres: setup.genres, includePersonalTaste: arm === "test" }) : null,
         reasons: request.quick ? [] : entry?.reasons ?? [], collectionName: data.collectionName };

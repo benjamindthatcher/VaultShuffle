@@ -81,6 +81,7 @@ type DeferredDeckQueue = { setupKey: string; gameIds: string[] };
  */
 type DrawSnapshot = {
   pickId: string;
+  description?: string;
   quick: boolean;
   explanation: VaultMatchExplanation | null;
   reasons: string[];
@@ -545,7 +546,7 @@ export default function VaultPage() {
       pendingDrawIdRef.current = Promise.resolve(result.draw.id);
       setDrawArm(result.arm);setCurrentDrawId(result.draw.id);
       setHighlightedGameId(result.game.id);setRevealedPickId(result.game.id);
-      setDrawSnapshot({pickId:result.game.id,quick,explanation:result.explanation,reasons:result.reasons,
+      setDrawSnapshot({pickId:result.game.id,description:result.game.description,quick,explanation:result.explanation,reasons:result.reasons,
         collectionDraw:!quick && Boolean(result.draw.collectionId),collectionName:result.collectionName,
         session:result.draw.session,mood:result.draw.mood,goal:result.draw.goal,genres:result.draw.selectedGenres});
       setDrawState("revealed");setDrawMessage(`Vault opened. ${result.game.title} selected.`);
@@ -1194,7 +1195,7 @@ export default function VaultPage() {
                 <VaultIcon name="new" size={22} />
                 <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={16} />Current pick</span>
               </div>
-              <p className={styles.resultCopy}>{currentPick.description}</p>
+              <p className={styles.resultCopy}>{pickDraw?.description ?? currentPick.description}</p>
               <FilteredSteamDeckBadge category={currentPick.deckCompatibility} />
               {/* Sat on the summary bar until it ran out of room and truncated
                   to "ESTIMATED PLAYTHROUG". It reads better next to the game it
