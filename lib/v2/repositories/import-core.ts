@@ -37,7 +37,7 @@ export class ImportRepository {
   }
   private async run<T>(principal:VerifiedServerPrincipal,operation:(tx:TenantTransaction)=>Promise<T>):Promise<T>{
     try{return await this.database.withPrincipal(principal,operation);}
-    catch(error){if(error instanceof InvalidPageQueryError||error instanceof RequestLimitError)throw error;throw new DatabaseUnavailableError();}
+    catch(error){if(error instanceof InvalidPageQueryError||error instanceof RequestLimitError)throw error;throw new DatabaseUnavailableError(error);}
   }
 }
 export function importStatus(row:Row):OwnedImportStatus {

@@ -1,5 +1,5 @@
 import "server-only";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { getV2Runtime } from "../runtime.ts";
 import { VAULT_SESSION_COOKIE_NAME } from "../repositories/session-core.ts";
 import type { VerifiedServerPrincipal } from "../db/client.ts";
@@ -8,10 +8,18 @@ import { createHmac } from "node:crypto";
 import { RequestLimitError, DatabaseUnavailableError } from "../db/errors.ts";
 import { assertSameOrigin, readJsonBody } from "../../http.ts";
 import { InvalidPageQueryError } from "../repositories/page-errors.ts";
+import { RequestDiagnostics } from "../../diagnostics-server";
 
 export async function v2Read(read: (runtime: Awaited<ReturnType<typeof getV2Runtime>>, principal: VerifiedServerPrincipal) => Promise<unknown>) {
+  const context = await headers();
+  const diagnostics = new RequestDiagnostics(new Headers(context), "v2_database_request",
+    context.get("x-vault-route") ?? "/api/v2/:id", context.get("x-vault-method") ?? "GET");
   const token = (await cookies()).get(VAULT_SESSION_COOKIE_NAME)?.value;
-  return authenticatedRead(token, process.env.SESSION_SECRET, getV2Runtime, read);
+  const response = await authenticatedRead(token, process.env.SESSION_SECRET, getV2Runtime, read, (error, stage) => {
+    diagnostics.stage(stage);
+    diagnostics.event("failed", { status: 503 }, error);
+  });
+  return diagnostics.response(response);
 }
 
 export async function v2Write(request: Request, write: (runtime: Awaited<ReturnType<typeof getV2Runtime>>, principal: VerifiedServerPrincipal) => Promise<unknown>) {

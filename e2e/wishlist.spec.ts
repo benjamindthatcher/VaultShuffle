@@ -1,4 +1,6 @@
 import { expect, test } from "@playwright/test";
+import { decodeCatalogue, encodeCatalogue } from "../lib/catalogue-wire";
+import type { WishlistGame } from "../lib/wishlist";
 
 // UI flows use deterministic provider details; the public catalogue itself is
 // read from the selected runtime and checked separately against real V2 data.
@@ -61,7 +63,7 @@ test("Steam search saves a real result, filters update and import explains profi
 
 test("Budget picks uses verified regional prices and shuffles in place", async ({ page }) => {
   const games = Array.from({ length: 72 }, (_, i) => ({ appId: i + 1, title: `Discovery ${i + 1}world`, image: "", genres: ["Adventure"], tags: { Adventure: 100 }, positive: 940, reviews: 1000 }));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: encodeCatalogue(games) }));
   await page.route("**/api/wishlist/details?*", route => {
     const params = new URL(route.request().url()).searchParams;
     return route.fulfill({ json: { games: params.get("ids")!.split(",").map(Number).map((appId) => ({ appId, description: "A compact adventure.", storeStatus: "available", price: { current: appId % 3 === 0 ? "£14.99" : "£8.99", discount: 0, country: "GB", currency: "GBP", amountMinor: appId % 3 === 0 ? 1499 : 899 } })) } });
@@ -112,10 +114,10 @@ test("legacy route and navigation reach Wishlist, including on mobile", async ({
 });
 
 test("reshuffles prepare unique batches and keep every card locked while details load", async ({ page }) => {
-  await page.route("**/wishlist-catalogue", async (route) => {
+  await page.route("**/wishlist-catalogue*", async (route) => {
     const response = await route.fetch();
-    const data = await response.json();
-    await route.fulfill({ json: { games: data.games.map((game: { title: string }) => ({ ...game, title: `${game.title}: A deliberately long adventure title that exceeds two lines and needs truncation` })) } });
+    const games = decodeCatalogue<WishlistGame>(await response.json());
+    await route.fulfill({ json: encodeCatalogue(games.map(game => ({ ...game, title: `${game.title}: A deliberately long adventure title that exceeds two lines and needs truncation` }))) });
   });
   await page.route("**/api/wishlist/details?*", async (route) => {
     const params = new URL(route.request().url()).searchParams;
@@ -159,7 +161,7 @@ test("connected preview excludes the complete library and import failures preser
   let imported = false;
   let failImport = false;
   await page.addInitScript(() => localStorage.setItem("vault-cookie-consent", "disabled"));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games: catalogue } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games: catalogue } }));
   await page.route("**/api/**", route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/app-data") return route.fulfill({ json: { session, games: owned, collections: [], memberships: [], vaultState: { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null } } });
@@ -195,7 +197,7 @@ test("connected preview excludes the complete library and import failures preser
 test("region menu stays anchored and saved cards match the three-column recommendations", async ({ page }) => {
   const games = Array.from({ length: 27 }, (_, index) => ({ appId: index + 1, title: `Wishlist ${String.fromCharCode(65 + index)}world`, genres: ["Adventure"], image: "", endless: true, reviews: 1000, positive: 950 }));
   await page.addInitScript(() => localStorage.setItem("vault-cookie-consent", "disabled"));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", route => {
     const params = new URL(route.request().url()).searchParams;
     return route.fulfill({ json: { games: params.get("ids")!.split(",").map(Number).map(appId => ({ appId, storeStatus: "available", description: "Explore a world filled with secrets and characters. ".repeat(10) })) } });
@@ -253,7 +255,7 @@ test("Budget picks renders before background prices finish and reuses fresh pric
   let backgroundBlocked = false;
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", async route => {
     const params = new URL(route.request().url()).searchParams;
     const ids = params.get("ids")!.split(",").map(Number);
@@ -292,7 +294,7 @@ test("Budget picks renders before background prices finish and reuses fresh pric
 
 test("Wishlist opens the Library-style popup on click and keeps descriptions out of cards", async ({ page }) => {
   const games = Array.from({ length: 27 }, (_, i) => ({ appId: i + 1, title: `Preview ${i + 1}world`, image: "", genres: ["Adventure"], positive: 940, reviews: 1000 }));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", route => route.fulfill({ json: { games: new URL(route.request().url()).searchParams.get("ids")!.split(",").map(Number).map(appId => ({ appId, description: "Full popup description. ".repeat(8), storeStatus: "available" })) } }));
   await page.goto("/wishlist");
   const region = page.getByRole("region", { name: "Worth a spot on your wishlist" });
@@ -385,7 +387,7 @@ test("Wishlist and Library render the same details layout", async ({ page }) => 
 test("Steam pricing markets are searchable, keyboard accessible and keep regional USD prices separate", async ({ page }) => {
   const games = Array.from({ length: 40 }, (_, i) => ({ appId: i + 1, title: `Regional ${i + 1}world`, image: "", genres: ["Adventure"], tags: { Adventure: 100 }, positive: 940, reviews: 1000 }));
   const countries: string[] = [];
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", route => {
     const params = new URL(route.request().url()).searchParams;
     const country = params.get("country")!;
@@ -448,7 +450,7 @@ test("store region survives refresh and navigation, ignores invalid values and t
   const requestedCountries: string[] = [];
   const pageErrors: string[] = [];
   page.on("pageerror", error => pageErrors.push(error.message));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", route => {
     const params = new URL(route.request().url()).searchParams;
     const country = params.get("country")!;
@@ -505,7 +507,7 @@ test("For you uses the connected player's played interests and remembers served 
   const owned = tastes.map((tag, i) => ({ id: `owned-${i}`, user_id: session.user_id, title: `Finished ${tag}`, steam_appid: String(i + 20000), genre: tag, steam_tags: { [tag]: 100 }, ownership: "Owned", access_source: "owned", store: "Steam", status: "Completed", hours_played: 20, rating: 0, completion_percentage: 100, priority: "Medium", notes: "", date_added: null, last_played_at: null }));
   const saved = [{ appId: 30000, title: "A saved shooter", genres: ["Action"], tags: { Shooter: 100 }, image: "" }];
   await page.addInitScript(() => localStorage.setItem("vault-cookie-consent", "disabled"));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/**", route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/app-data") return route.fulfill({ json: { session, games: owned, collections: [], memberships: [], vaultState: { pinnedIds: [], pins: [], snoozedIds: [], currentPickId: null } } });
@@ -540,7 +542,7 @@ test("For you uses the connected player's played interests and remembers served 
 test("each tab offers many fresh batches without repeats or moving the page", async ({ page }) => {
   const games = Array.from({ length: 400 }, (_, i) => ({ appId: i + 1, title: `Reserve ${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + i % 26)}world`, image: "", genres: ["Adventure"], tags: { Adventure: 100 }, minutes: 240, positive: 940, reviews: 1000, budgetHint: true }));
   await page.addInitScript(() => localStorage.setItem("vault-cookie-consent", "disabled"));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", route => route.fulfill({ json: { games: new URL(route.request().url()).searchParams.get("ids")!.split(",").map(Number).map(appId => ({ appId, storeStatus: "available", detailsExpiresAt: new Date(Date.now() + 3600000).toISOString(), price: { current: "£8.99", currency: "GBP", amountMinor: 899, discount: 0, country: "GB" } })) } }));
   await page.goto("/wishlist");
   const recommendations = page.getByRole("region", { name: "Worth a spot on your wishlist" });
@@ -573,7 +575,7 @@ test("each tab offers many fresh batches without repeats or moving the page", as
 test("cold Budget picks warms more choices and replenishes in place after eight sets", async ({ page }) => {
   const games = Array.from({ length: 200 }, (_, i) => ({ appId: i + 1, title: `Bargain ${String.fromCharCode(97 + Math.floor(i / 26))}${String.fromCharCode(97 + i % 26)}world`, image: "", genres: ["Adventure"], tags: { Adventure: 100 }, positive: 940, reviews: 1000, budgetHint: true }));
   await page.addInitScript(() => localStorage.setItem("vault-cookie-consent", "disabled"));
-  await page.route("**/wishlist-catalogue", route => route.fulfill({ json: { games } }));
+  await page.route("**/wishlist-catalogue*", route => route.fulfill({ json: { games } }));
   await page.route("**/api/wishlist/details?*", route => route.fulfill({ json: { games: new URL(route.request().url()).searchParams.get("ids")!.split(",").map(Number).map(appId => ({ appId, storeStatus: "available", detailsExpiresAt: new Date(Date.now() + 3600000).toISOString(), price: { current: "£8.99", currency: "GBP", amountMinor: 899, discount: 0, country: "GB" } })) } }));
   await page.goto("/wishlist");
   await page.getByRole("button", { name: "Budget picks", exact: true }).click();

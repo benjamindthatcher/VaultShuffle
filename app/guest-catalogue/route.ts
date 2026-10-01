@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { listGuestCatalogueGames } from "@/lib/guest-catalogue";
 import { reportServiceWarning } from "@/lib/diagnostics-server";
+import { encodeCatalogue } from "@/lib/catalogue-wire";
 
 /**
  * The guest preview pool, on a public URL of its own so that the CDN can serve
@@ -24,11 +25,12 @@ import { reportServiceWarning } from "@/lib/diagnostics-server";
  */
 const CACHE_CONTROL = "public, s-maxage=3600, stale-while-revalidate=86400";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const games = await listGuestCatalogueGames();
+    const compact = new URL(request.url).searchParams.get("format") === "compact-v1";
     return NextResponse.json(
-      { games, guest_pool_source: "live_catalogue" },
+      { ...(compact ? encodeCatalogue(games) : { games }), guest_pool_source: "live_catalogue" },
       { headers: { "Cache-Control": CACHE_CONTROL } }
     );
   } catch (error) {

@@ -42,6 +42,6 @@ export class GuestRepository {
         const byId=new Map(full.map(row=>[row.game_id,{...row,genres:labels(row.genres),tags:tags(row.tags),categories:labels(row.categories)}]));
         return selected.flatMap(selected=>{const row=byId.get(selected.game_id);return row&&fullyEnriched(row)?[guestGameFromCatalogue(row)]:[];});
       });
-    }catch{throw new DatabaseUnavailableError();}
+    }catch (error){throw new DatabaseUnavailableError(error);}
   }
 }

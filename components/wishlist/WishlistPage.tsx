@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { requestJson } from "@/lib/api-client";
+import { decodeCatalogue, type CataloguePayload } from "@/lib/catalogue-wire";
 import { WISHLIST_PICK_COUNT, WISHLIST_BUDGET_RESERVE, WISHLIST_BUDGET_SCAN, cheapWishlistBand, recommendWishlist, wishlistOwned, type WishlistGame, type WishlistMode, type WishlistInteractionContext, type WishlistPick } from "@/lib/wishlist";
 import { ANALYTICS_EVENTS, trackEvent, trackNavigationEvent } from "@/lib/analytics";
 import { isSteamStoreCountry, steamPriceMarket } from "@/lib/steam-store-regions";
@@ -72,8 +73,8 @@ function WishlistContent() {
     async function load() {
       setCatalogueLoading(true); setCatalogueError("");
       try {
-        const data = await requestJson<{ games: WishlistGame[] }>("/wishlist-catalogue", { signal: controller.signal });
-        setCatalogue(data.games);
+        const data = await requestJson<CataloguePayload<WishlistGame>>("/wishlist-catalogue?format=compact-v1", { signal: controller.signal });
+        setCatalogue(decodeCatalogue(data));
         setShuffleSeed(crypto.getRandomValues(new Uint32Array(1))[0] || 1);
       } catch {
         if (!controller.signal.aborted) setCatalogueError("Recommendations are taking a break. You can still search Steam and use your wishlist.");

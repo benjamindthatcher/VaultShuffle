@@ -100,7 +100,7 @@ export class CollectionMutationsRepository {
   }
   private async run<T>(principal:VerifiedServerPrincipal,operation:(tx:TenantTransaction)=>Promise<T>):Promise<T> {
     try{return await this.database.withPrincipal(principal,operation);}
-    catch(error){if(error instanceof InvalidPageQueryError) throw error; throw new DatabaseUnavailableError();}
+    catch(error){if(error instanceof InvalidPageQueryError) throw error; throw new DatabaseUnavailableError(error);}
   }
 }
 async function collection(tx:TenantTransaction,accountId:number,id:string):Promise<Row> {

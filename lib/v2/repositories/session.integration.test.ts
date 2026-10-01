@@ -9,7 +9,7 @@ import { parseDatabaseConfig } from "../db/config.ts";
 import { DatabaseUnavailableError } from "../db/errors.ts";
 import { SessionRepository } from "./session-core.ts";
 
-const PG_BIN = join(process.cwd(), "node_modules/.cache/vaultshuffle-pg17-20260910/bin");
+const PG_BIN = process.env.VAULT_TEST_PG_BIN ?? join(process.cwd(), "node_modules/.cache/vaultshuffle-pg17-20260910/bin");
 const MIGRATION = join(process.cwd(), "database/v2/supabase/migrations/20260906093036_m1_private_foundation.sql");
 const TOUCH_MIGRATION = join(process.cwd(), "database/v2/supabase/migrations/20260913191021_m4_manual_session_touch.sql");
 const SECRET = "m4-private-fixture-secret";

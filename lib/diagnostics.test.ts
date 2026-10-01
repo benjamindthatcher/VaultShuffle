@@ -3,6 +3,7 @@ import test from "node:test";
 import { diagnosticConsent, diagnosticFailure, diagnosticId, diagnosticRoute, safeDiagnosticProperties } from "./diagnostics.ts";
 import { deliverDiagnostics, type DiagnosticEvent } from "./diagnostics-transport.ts";
 import { SteamApiError } from "./steam-api-error.ts";
+import { DatabaseUnavailableError } from "./v2/db/errors.ts";
 
 const id = "11111111-2222-4333-8444-555555555555";
 const event: DiagnosticEvent = { event: "server_error", uuid: id, timestamp: "2026-08-31T01:14:34Z", properties: { request_id: id, operation: "manual_profile_lookup", error_code: "steam_rate_limited" } };
@@ -37,6 +38,37 @@ test("PostHog diagnostics require consent and honour DNT/GPC without reading app
   assert.equal(diagnosticConsent(new Headers({ cookie, DNT: "1" })).enabled, false);
   assert.equal(diagnosticConsent(new Headers({ cookie, "sec-gpc": "1" })).enabled, false);
   assert.equal(diagnosticConsent(new Headers({ cookie: "vault_diagnostics=disabled" })).enabled, false);
+});
+
+test("V2 diagnostics retain wrapped database and connection codes without private error contents", () => {
+  const secret = "private-password-query-row-url";
+  const origin = Object.assign(new Error(secret), { code: "42702", query: secret, parameters: [secret] });
+  origin.stack = `Error: ${secret}\n    at read (/private/${secret}/library-core.ts:100:5)`;
+  const wrapped = new DatabaseUnavailableError(new DatabaseUnavailableError(new DatabaseUnavailableError(origin)));
+  const properties = diagnosticFailure(wrapped);
+  assert.equal(properties.error_type, "database");
+  assert.equal(properties.error_code, "database_unavailable");
+  assert.equal(properties.database_code, "42702");
+  assert.equal(properties.error_fingerprint, diagnosticFailure(new DatabaseUnavailableError(origin)).error_fingerprint);
+  assert.ok(!JSON.stringify(properties).includes(secret));
+  const other = Object.assign(new Error(secret), { code: "42702" });
+  other.stack = `Error: ${secret}\n    at read (/private/${secret}/library-core.ts:200:5)`;
+  assert.notEqual(properties.error_fingerprint, diagnosticFailure(new DatabaseUnavailableError(other)).error_fingerprint);
+  const connection = diagnosticFailure(new DatabaseUnavailableError(Object.assign(new Error(secret), { code: "CONNECT_TIMEOUT", host: secret })));
+  assert.equal(connection.connection_code, "CONNECT_TIMEOUT");
+  assert.ok(!JSON.stringify(connection).includes(secret));
+  assert.deepEqual(safeDiagnosticProperties({ connection_code: secret, message: secret, query: secret }), {});
+  assert.equal(diagnosticRoute(`/api/v2/library/${secret}?key=${secret}`), "/api/v2/library/:id");
+  assert.equal(diagnosticFailure(new Error("Missing session configuration")).error_code, "configuration_missing");
+});
+
+test("diagnostic cause traversal is bounded and tolerates cycles", () => {
+  const cyclic = Object.assign(new Error("private"), { cause: undefined as unknown, code: "ETIMEDOUT" });
+  cyclic.cause = cyclic;
+  assert.equal(diagnosticFailure(new DatabaseUnavailableError(cyclic)).connection_code, "ETIMEDOUT");
+  let deep: unknown = { code: "private" };
+  for (let index = 0; index < 100; index++) deep = { cause: deep };
+  assert.match(String(diagnosticFailure(deep).error_fingerprint), /^[a-f0-9]{8}$/);
 });
 
 test("delivery is bounded, directly awaited, anonymous by default and has no person creation", async () => {

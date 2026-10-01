@@ -62,7 +62,7 @@ export class DashboardRepository {
         trend:Object.freeze({daysTracked:daily.length?daily.length+1:0,minutesLast7Days:sumWithin(gains,7),minutesLast30Days:sumWithin(gains,30),dailyGains:Object.freeze(gains)}),
         mostPlayed:Object.freeze(highlights.map(game)),recentCompletions:Object.freeze(completions.map(game)),
         completionSuggestions:Object.freeze(suggestions.map(x=>Object.freeze({game:game(x),estimatedMinutes:Number(x.estimated_minutes),progressPercent:Number(x.progress_percent),confidence:Number(x.confidence)})))});
-    });}catch(error){if(error instanceof DatabaseUnavailableError || error instanceof InvalidPageQueryError)throw error;throw new DatabaseUnavailableError();}
+    });}catch(error){if(error instanceof DatabaseUnavailableError || error instanceof InvalidPageQueryError)throw error;throw new DatabaseUnavailableError(error);}
   }
 }
 

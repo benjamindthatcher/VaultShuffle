@@ -34,6 +34,6 @@ export class BootstrapRepository {
       const capabilities:SteamCapabilities={canUsePersonalLibrary:ownedTotal>0,canUseProgress:ownedTotal>0&&row.playtime_visible&&row.has_playtime,
         canUseRecency:ownedTotal>0&&row.recency_count>=Math.min(3,ownedTotal),canUseHistory:ownedTotal>0&&row.history_days>=2};
       return Object.freeze({capabilities:Object.freeze(capabilities),accountPublicId:row.public_id,libraryRevision:String(row.library_revision),stateRevision:String(row.state_revision),ownedTotal,familyTotal:Number(row.family_total),pins:Object.freeze(pins),snoozedIds:Object.freeze(row.snoozed_ids),currentPick:row.current_game_id&&row.current_title?{gameId:row.current_game_id,title:row.current_title,drawId:row.current_draw_ref}:null});
-    }); } catch(error) { if(error instanceof DatabaseUnavailableError) throw error; throw new DatabaseUnavailableError(); }
+    }); } catch(error) { if(error instanceof DatabaseUnavailableError) throw error; throw new DatabaseUnavailableError(error); }
   }
 }

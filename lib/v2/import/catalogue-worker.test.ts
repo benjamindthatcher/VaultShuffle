@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {fetchCatalogueMetadata,fetchCatalogueSignals,runCatalogueWorker,type CatalogueClaim} from './catalogue-worker-core.ts';
+import {fetchCatalogueMetadata,fetchCatalogueSignals,runCatalogueWorker,type CatalogueClaim,type CatalogueResult} from './catalogue-worker-core.ts';
 const signal=()=>AbortSignal.timeout(3000);
 const appId='4294967295';
 const complete=(overrides={})=>({[appId]:{success:true,data:{steam_appid:Number(appId),name:'Fixture',type:'game',is_free:false,genres:[],categories:[],...overrides}}});
@@ -56,14 +56,73 @@ test('Malformed or failed optional signals preserve good app details without man
     {success:1,query_summary:{total_reviews:0,total_positive:0}}),signal());
   assert.equal(zero.status,'complete');if(zero.status!=='complete')throw Error('fixture');assert.equal(zero.details.reviewTotal,0);
 });
-test('Optional 429 stops the Store batch and optional oversized bodies stay bounded',async()=>{
+test('Review 429 retains authoritative details and skips the Deck request',async()=>{
   let calls=0;
   const result=await fetchCatalogueSignals(appId,async input=>{calls++;return String(input).includes('appdetails')?
     Response.json(complete()):new Response('',{status:429});},signal());
-  assert.deepEqual(result,{appId,status:'retryable',rateLimited:true});assert.equal(calls,2);
+  assert.equal(result.status,'complete');assert.equal(result.rateLimited,true);assert.equal(calls,2);
+  if(result.status!=='complete')throw Error('fixture');
+  assert.equal(result.details.title,'Fixture');assert.equal(result.details.reviewTotal,null);assert.equal(result.details.deckCategory,null);
+});
+test('Deck 429 publishes details and successful reviews, stops the batch and replays the same publication',async()=>{
+  const claim:CatalogueClaim={outbox_id:'1',lease_token:'synthetic',steam_app_id:appId,provider_mode:'live'};
+  let claims=0,fetches=0,finishes=0;const results:CatalogueResult[]=[];
+  const totals=await runCatalogueWorker({queue:async()=>2,claim:async()=>{claims++;return claim;},finish:async(_claim,result)=>{
+    results.push(result);if(++finishes===1)throw Error('response_lost');return 'replayed';}},
+    {fetch:async input=>{fetches++;return String(input).includes('appdetails')?Response.json(complete()):
+      String(input).includes('appreviews')?Response.json({success:1,query_summary:{total_reviews:120,total_positive:90}}):new Response('',{status:429});},
+    deadlineAt:Date.now()+30000,maxJobs:2});
+  assert.deepEqual(totals,{queued:2,claimed:1,published:1,skipped:0,failed:0,stale:0,rateLimited:true});
+  assert.equal(claims,1);assert.equal(fetches,3);assert.equal(finishes,2);assert.equal(results[0],results[1]);
+  const result=results[0];assert.equal(result.status,'complete');assert.equal(result.rateLimited,true);
+  if(result.status!=='complete')throw Error('fixture');
+  assert.equal(result.details.title,'Fixture');
+  assert.deepEqual([result.details.reviewTotal,result.details.reviewPositive,result.details.deckCategory],[120,90,null]);
+});
+test('Main details 429 stops the batch without publishing a partial primary response',async()=>{
+  let claims=0,fetches=0;const results:unknown[]=[];
+  const totals=await runCatalogueWorker({queue:async()=>2,claim:async()=>{claims++;return {outbox_id:'1',lease_token:'x',steam_app_id:appId,provider_mode:'live'};},
+    finish:async(_claim,result)=>{results.push(result);return 'retryable';}},
+    {fetch:async()=>{fetches++;return new Response('',{status:429});},deadlineAt:Date.now()+30000,maxJobs:2});
+  assert.deepEqual(results,[{appId,status:'retryable',rateLimited:true}]);
+  assert.equal(claims,1);assert.equal(fetches,1);assert.equal(totals.published,0);assert.equal(totals.rateLimited,true);
+});
+test('Optional oversized bodies stay bounded',async()=>{
   const large=await fetchCatalogueSignals(appId,async input=>String(input).includes('appdetails')?
     Response.json(complete()):new Response('x'.repeat(65537)),signal());
   assert.equal(large.status,'complete');if(large.status!=='complete')throw Error('fixture');assert.equal(large.details.reviewTotal,null);
+});
+test('Fresh details do not prevent independent review or Deck refreshes',async()=>{
+  for(const plan of [{details:false,reviews:true,deck:false},{details:false,reviews:false,deck:true},{details:true,reviews:false,deck:false}]) {
+    const paths:string[]=[];
+    const result=await fetchCatalogueSignals(appId,async input=>{
+      const path=new URL(String(input)).pathname;paths.push(path);
+      return Response.json(path.includes('appdetails')?complete():path.includes('appreviews')?
+        {success:1,query_summary:{total_reviews:0,total_positive:0}}:{success:1,results:{resolved_category:0}});
+    },signal(),plan);
+    assert.equal(paths.length,1);
+    assert.equal(paths[0].includes(plan.details?'appdetails':plan.reviews?'appreviews':'ajaxgetdeckappcompatibilityreport'),true);
+    assert.equal(result.optionalIncomplete,undefined);
+    if(plan.details)assert.equal(result.status,'complete');
+    else {assert.equal(result.status,'signals');if(result.status!=='signals')throw Error('fixture');
+      assert.deepEqual(result.signals,{reviewTotal:plan.reviews?0:null,reviewPositive:plan.reviews?0:null,deckCategory:plan.deck?0:null});}
+  }
+});
+test('Fully current queued jobs finish without a Store request or spacing delay',async()=>{
+  let claims=0,calls=0;const results:CatalogueResult[]=[];
+  const totals=await runCatalogueWorker({queue:async()=>2,claim:async()=>++claims<=2?
+    {outbox_id:String(claims),lease_token:'synthetic',steam_app_id:appId,provider_mode:'live',needs_details:false,needs_reviews:false,needs_deck:false}:null,
+    finish:async(_claim,result)=>{results.push(result);return 'current';}},
+    {fetch:async()=>{calls++;throw Error('unexpected Store call');},deadlineAt:Date.now()+30000,maxJobs:2});
+  assert.equal(calls,0);assert.deepEqual(results,[{appId,status:'current'},{appId,status:'current'}]);
+  assert.deepEqual(totals,{queued:2,claimed:2,published:0,skipped:2,failed:0,stale:0,rateLimited:false});
+});
+test('Optional-only failures keep a retry and optional-only 429 prevents the next signal',async()=>{
+  const unavailable=await fetchCatalogueSignals(appId,async()=>Response.json({success:0}),signal(),{details:false,reviews:true,deck:false});
+  assert.deepEqual(unavailable,{appId,status:'signals',signals:{reviewTotal:null,reviewPositive:null,deckCategory:null},optionalIncomplete:true});
+  let calls=0;
+  const paused=await fetchCatalogueSignals(appId,async()=>{calls++;return new Response('',{status:429});},signal(),{details:false,reviews:true,deck:true});
+  assert.equal(calls,1);assert.equal(paused.status,'signals');assert.equal(paused.rateLimited,true);assert.equal(paused.optionalIncomplete,true);
 });
 test('fixture mode and insufficient deadline never send a live Store call',async()=>{
   let calls=0;const repository={queue:async()=>0,claim:async()=>({outbox_id:'1',lease_token:'x',steam_app_id:appId,provider_mode:'fixture' as const}),finish:async()=>{throw Error('unexpected');}};

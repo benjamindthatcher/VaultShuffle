@@ -3,14 +3,16 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { requestFingerprint } from "@/lib/rate-limit";
 import type { z } from "zod";
 import type { contactMessageSchema, feedbackSubmissionSchema } from "@/lib/validation";
+import { isV2Authority } from "@/lib/database-authority";
+import { getV2Runtime } from "@/lib/v2/runtime";
+import type { VerifiedServerPrincipal } from "@/lib/v2/db/client";
+import { DuplicateSubmissionError, SubmissionStorageError } from "@/lib/v2/repositories/support-core";
 
 type FeedbackInput = z.infer<typeof feedbackSubmissionSchema>;
 type ContactInput = z.infer<typeof contactMessageSchema>;
 const SUPPORT_INBOX = process.env.SUPPORT_INBOX_EMAIL || "support@vaultshuffle.com";
 
-export class SubmissionStorageError extends Error {}
-
-export class DuplicateSubmissionError extends Error {}
+export { DuplicateSubmissionError, SubmissionStorageError };
 
 export class InvalidSubmissionError extends Error {}
 
@@ -43,19 +45,9 @@ async function notifySupport(subject: string, text: string, replyTo?: string | n
   }
 }
 
-export async function saveFeedback(userId: string | null, fingerprint: string, input: FeedbackInput) {
-  const supabase = getSupabaseAdmin();
+export async function saveFeedback(userId: string | null, fingerprint: string, input: FeedbackInput, principal: VerifiedServerPrincipal | null = null) {
   const dedupeHash = contentHash([fingerprint, input.feedback_type, input.message.toLowerCase()]);
-  const { data: duplicate } = await supabase
-    .from("feedback_submissions")
-    .select("id")
-    .eq("dedupe_hash", dedupeHash)
-    .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
-    .maybeSingle();
-  if (duplicate) throw new DuplicateSubmissionError("This feedback was already sent.");
-
-  const { error } = await supabase.from("feedback_submissions").insert({
-    user_id: userId,
+  const submission = {
     feedback_type: input.feedback_type === "bug" ? 1 : 0,
     message: input.message,
     contact_allowed: input.contact_allowed,
@@ -64,8 +56,29 @@ export async function saveFeedback(userId: string | null, fingerprint: string, i
     app_area: input.app_area || null,
     client_context: input.client_context || null,
     dedupe_hash: dedupeHash
-  });
-  if (error) throw new SubmissionStorageError("We couldn’t send your feedback. Please try again.");
+  };
+  if (isV2Authority()) {
+    try { await (await getV2Runtime()).support.feedback(principal, submission); }
+    catch (error) {
+      if (error instanceof DuplicateSubmissionError) throw error;
+      throw new SubmissionStorageError("We couldn’t send your feedback. Please try again.", error);
+    }
+  } else {
+    const supabase = getSupabaseAdmin();
+    const { data: duplicate } = await supabase
+      .from("feedback_submissions")
+      .select("id")
+      .eq("dedupe_hash", dedupeHash)
+      .gte("created_at", new Date(Date.now() - 5 * 60 * 1000).toISOString())
+      .maybeSingle();
+    if (duplicate) throw new DuplicateSubmissionError("This feedback was already sent.");
+
+    const { error } = await supabase.from("feedback_submissions").insert({
+      user_id: userId,
+      ...submission
+    });
+    if (error) throw new SubmissionStorageError("We couldn’t send your feedback. Please try again.", error);
+  }
   await notifySupport(
     `[VaultShuffle ${input.feedback_type === "bug" ? "Bug Report" : "Feedback"}] ${input.app_area || input.route || "Website"}`,
     `${input.message}\n\nRoute: ${input.route || "Unknown"}\nArea: ${input.app_area || "Unknown"}\nFollow-up allowed: ${input.contact_allowed ? "Yes" : "No"}`,
@@ -73,26 +86,37 @@ export async function saveFeedback(userId: string | null, fingerprint: string, i
   );
 }
 
-export async function saveContactMessage(userId: string | null, fingerprint: string, input: ContactInput) {
-  const supabase = getSupabaseAdmin();
+export async function saveContactMessage(userId: string | null, fingerprint: string, input: ContactInput, principal: VerifiedServerPrincipal | null = null) {
   const dedupeHash = contentHash([fingerprint, input.email.toLowerCase(), input.subject.toLowerCase(), input.message.toLowerCase()]);
-  const { data: duplicate } = await supabase
-    .from("contact_messages")
-    .select("id")
-    .eq("dedupe_hash", dedupeHash)
-    .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
-    .maybeSingle();
-  if (duplicate) throw new DuplicateSubmissionError("This message was already sent.");
-
-  const { error } = await supabase.from("contact_messages").insert({
-    user_id: userId,
+  const submission = {
     enquiry_type: ["account", "steam-data", "privacy", "technical", "business", "other"].indexOf(input.enquiry_type),
     email: input.email,
     subject: input.subject,
     message: input.message,
     dedupe_hash: dedupeHash
-  });
-  if (error) throw new SubmissionStorageError("We couldn’t send your message. Please try again.");
+  };
+  if (isV2Authority()) {
+    try { await (await getV2Runtime()).support.contact(principal, submission); }
+    catch (error) {
+      if (error instanceof DuplicateSubmissionError) throw error;
+      throw new SubmissionStorageError("We couldn’t send your message. Please try again.", error);
+    }
+  } else {
+    const supabase = getSupabaseAdmin();
+    const { data: duplicate } = await supabase
+      .from("contact_messages")
+      .select("id")
+      .eq("dedupe_hash", dedupeHash)
+      .gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString())
+      .maybeSingle();
+    if (duplicate) throw new DuplicateSubmissionError("This message was already sent.");
+
+    const { error } = await supabase.from("contact_messages").insert({
+      user_id: userId,
+      ...submission
+    });
+    if (error) throw new SubmissionStorageError("We couldn’t send your message. Please try again.", error);
+  }
   // Into the mail rather than a new column: support reads these by hand, and a
   // migration to hold two strings we only ever print is not worth it.
   const context = [

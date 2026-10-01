@@ -110,7 +110,7 @@ export class FamilyRepository {
         family_not_found:['not_found','That family member is no longer on your account.',404],family_snapshot_invalid:['library_unavailable','Steam did not return a complete valid library.',400],
         family_snapshot_stale:['library_unavailable','That library check expired. Please try again.',409]};
       if(known[message])throw new FamilyRequestError(...known[message]);
-      throw new DatabaseUnavailableError();
+      throw new DatabaseUnavailableError(error);
     }
   }
 }

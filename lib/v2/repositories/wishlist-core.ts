@@ -59,7 +59,7 @@ export class WishlistRepository {
 
   private async run<T>(principal: VerifiedServerPrincipal, operation: (tx: TenantTransaction) => Promise<T>): Promise<T> {
     try { return await this.database.withPrincipal(principal, operation); }
-    catch { throw new DatabaseUnavailableError(); }
+    catch (error) { throw new DatabaseUnavailableError(error); }
   }
 }
 

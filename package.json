@@ -9,7 +9,7 @@
     "start": "next start -p 8766",
     "lint": "npm run theme:check && eslint .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "check": "npm run typecheck && npm run lint && npm test && npm run test:v2 && npm run build",
     "test": "node --experimental-strip-types --test lib/*.test.ts scripts/catalogue/*.test.mjs scripts/durations/*.test.mjs",
     "catalogue:fetch-top": "node scripts/catalogue/fetch-steamspy-top.mjs",
     "catalogue:fetch-steamspy-owners": "node scripts/catalogue/fetch-steamspy-owners.mjs",

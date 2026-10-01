@@ -3,8 +3,8 @@ export class DatabaseUnavailableError extends Error {
   readonly code = "database_unavailable";
   readonly retryable = true;
 
-  constructor() {
-    super("VaultShuffle data is temporarily unavailable. Please retry shortly.");
+  constructor(cause?: unknown) {
+    super("VaultShuffle data is temporarily unavailable. Please retry shortly.", { cause });
     this.name = "DatabaseUnavailableError";
   }
 }

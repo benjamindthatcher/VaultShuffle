@@ -46,7 +46,7 @@ export class LibraryRepository {
       });
     } catch (error) {
       if (error instanceof InvalidPageQueryError || error instanceof PageCursorRestartRequiredError || error instanceof DatabaseUnavailableError) throw error;
-      throw new DatabaseUnavailableError();
+      throw new DatabaseUnavailableError(error);
     }
   }
   async completionReview(principal: VerifiedServerPrincipal, query: Pick<LibraryQuery,"cursor"|"limit"> = {}) {
@@ -56,7 +56,7 @@ export class LibraryRepository {
     if (!Number.isSafeInteger(gameId) || gameId < 1) throw new InvalidPageQueryError("The game ID is invalid.");
     try { return await this.database.withPrincipal(principal, async tx => {
       return (await readLibraryCards(tx, principal.accountId, [gameId], true))[0] ?? null;
-    }); } catch(error) { if(error instanceof InvalidPageQueryError || error instanceof DatabaseUnavailableError) throw error; throw new DatabaseUnavailableError(); }
+    }); } catch(error) { if(error instanceof InvalidPageQueryError || error instanceof DatabaseUnavailableError) throw error; throw new DatabaseUnavailableError(error); }
   }
 }
 

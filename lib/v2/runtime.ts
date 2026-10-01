@@ -21,6 +21,7 @@ import { GuestRepository } from "./repositories/guest.ts";
 
 import { BlogRepository } from "./repositories/blog.ts";
 import { WishlistDiscoveryRepository } from "./repositories/wishlist-discovery.ts";
+import { SupportRepository } from "./repositories/support.ts";
 
 let runtime: ReturnType<typeof createRuntime> | undefined;
 
@@ -63,9 +64,10 @@ async function createRuntime() {
       guest: new GuestRepository(database),
       blog: new BlogRepository(database),
       wishlistDiscovery: new WishlistDiscoveryRepository(database),
+      support: new SupportRepository(database),
     };
-  } catch {
+  } catch (error) {
     await database?.close().catch(() => {});
-    throw new DatabaseUnavailableError();
+    throw new DatabaseUnavailableError(error);
   }
 }

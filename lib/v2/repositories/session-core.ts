@@ -48,8 +48,8 @@ export class SessionRepository {
                session_kind, identity_verified, expires_at
           from app.resolve_session(${digest}, ${sessionKind})
       `;
-    } catch {
-      throw new DatabaseUnavailableError();
+    } catch (error) {
+      throw new DatabaseUnavailableError(error);
     }
     if (rows.length === 0) return null;
     if (rows.length !== 1) throw new DatabaseUnavailableError();

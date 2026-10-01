@@ -42,8 +42,9 @@ import {createOwnedWorkerInvoker,runOwnedWorkerBatch} from "../import/owned-work
 import {PinnedRepository,PinnedRefreshError} from './pinned-core.ts';
 import {refreshV2PinnedPlaytime} from '../pinned-playtime.ts';
 import {GuestRepository} from './guest-core.ts';
+import { SupportRepository, DuplicateSubmissionError, SubmissionStorageError } from "./support-core.ts";
 
-const PG_BIN = join(process.cwd(), "node_modules/.cache/vaultshuffle-pg17-20260910/bin");
+const PG_BIN = process.env.VAULT_TEST_PG_BIN ?? join(process.cwd(), "node_modules/.cache/vaultshuffle-pg17-20260910/bin");
 const MIGRATION_ROOT = join(process.cwd(), "database/v2/supabase/migrations");
 const MIGRATIONS = readdirSync(MIGRATION_ROOT).filter(name => name.endsWith(".sql")).sort()
   .map(name => join(MIGRATION_ROOT, name));
@@ -269,6 +270,39 @@ async function collect(repository: LibraryRepository, principal: VerifiedServerP
 test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acceptance fixture", async (t) => {
   const fixture = createFixture();
   t.after(async () => disposeFixture(fixture));
+
+  await t.test("support writes persist for guests and accounts without granting access to support content", async () => {
+    const support = new SupportRepository(fixture.database);
+    const contact = { enquiry_type: 3, email: "fixture@example.invalid", subject: "Support fixture", message: "A synthetic contact message.", dedupe_hash: "a".repeat(64) };
+    const feedback = { feedback_type: 1, message: "A synthetic bug report.", contact_allowed: false, contact_email: "discard@example.invalid", route: "/library", app_area: "Library", client_context: { viewport: "desktop" }, dedupe_hash: "b".repeat(64) };
+    await support.contact(ACCOUNT_A, contact);
+    await support.feedback(null, feedback);
+    assert.deepEqual(JSON.parse(psql(fixture, `select json_build_object('account',account_id,'public',source_account_public_id,'status',status_code) from support.contact_messages where dedupe_hash='${contact.dedupe_hash}'`, true)), { account: 1, public: ACCOUNT_A.accountPublicId, status: 0 });
+    assert.deepEqual(JSON.parse(psql(fixture, `select json_build_object('account',account_id,'email',contact_email,'context',client_context) from support.feedback_submissions where dedupe_hash='${feedback.dedupe_hash}'`, true)), { account: null, email: null, context: { viewport: "desktop" } });
+    await assert.rejects(() => support.contact(null, contact), DuplicateSubmissionError);
+    await assert.rejects(() => support.feedback(ACCOUNT_B, feedback), DuplicateSubmissionError);
+    await assert.rejects(() => fixture.database.sql`select * from support.contact_messages`, /permission denied/);
+    await assert.rejects(() => fixture.database.sql`select * from support.feedback_submissions`, /permission denied/);
+    psql(fixture, "create role anon; create role authenticated");
+    assert.equal(psql(fixture, "select has_function_privilege('anon','support.submit_contact(jsonb)','execute') or has_function_privilege('authenticated','support.submit_feedback(jsonb)','execute') or has_function_privilege('vault_worker','support.submit_feedback(jsonb)','execute')", true), "f");
+    await assert.rejects(() => support.contact(null, { ...contact, dedupe_hash: "c".repeat(64), subject: "x" }), SubmissionStorageError);
+    assert.equal(psql(fixture, `select count(*) from support.contact_messages where dedupe_hash='${"c".repeat(64)}'`, true), "0");
+    await support.contact(null, { ...contact, dedupe_hash: "d".repeat(64) });
+    assert.equal(psql(fixture, `select account_id is null and source_account_public_id is null from support.contact_messages where dedupe_hash='${"d".repeat(64)}'`, true), "t");
+    psql(fixture, `update support.contact_messages set created_at=now()-interval '11 minutes' where dedupe_hash='${contact.dedupe_hash}'`);
+    await support.contact(null, contact);
+    assert.equal(psql(fixture, `select count(*) from support.contact_messages where dedupe_hash='${contact.dedupe_hash}'`, true), "2");
+
+    // Separate pool connections exercise the DB lock rather than serial JS calls.
+    const other = createDatabaseClient(parseDatabaseConfig({ connectionString: `postgres://vault_read_runtime@localhost:${fixture.port}/vault_m4_read`, socketPath: fixture.socket, maxConnections: 2 }));
+    try {
+      const concurrent = { ...feedback, dedupe_hash: "e".repeat(64), contact_allowed: true, contact_email: "fixture@example.invalid" };
+      const outcomes = await Promise.allSettled([support.feedback(ACCOUNT_A, concurrent), new SupportRepository(other).feedback(ACCOUNT_B, concurrent)]);
+      assert.equal(outcomes.filter(result => result.status === "fulfilled").length, 1);
+      assert.ok(outcomes.some(result => result.status === "rejected" && result.reason instanceof DuplicateSubmissionError));
+      assert.equal(psql(fixture, `select count(*) from support.feedback_submissions where dedupe_hash='${concurrent.dedupe_hash}'`, true), "1");
+    } finally { await other.close(); }
+  });
 
   await t.test("runtime connection refuses wrong projects and operator or worker privileges", async () => {
     await verifyRuntimeDatabase(fixture.database, "vbjtbwelnhbbdfrqczyf");
@@ -1220,6 +1254,7 @@ test("quarantine hides excluded games across app reads without losing ownership 
     }
   });
 
+
 test('V2 Family current-app access is atomic, owner-protected and preserves authored data',async t=>{
   const fixture=createFixture();t.after(()=>disposeFixture(fixture));
   const family=new FamilyRepository(fixture.database);
@@ -1693,6 +1728,60 @@ test('V2 catalogue outbox drains with leases, stale fences and preserved authore
     assert.equal(await repository.finish(claim,{...result,details:{...result.details,reviewTotal:null,reviewPositive:null,deckCategory:null}}),'published');
     assert.equal(psql(fixture,"select review_total||':'||deck_compatibility_detail from catalog.game_features where game_id=5",true),'100:3');
   });
+  await t.test('fresh queued identities skip provider calls; review and Deck clocks remain independent',async()=>{
+    queue();psql(fixture,"insert into ops.enrichment_outbox(provider,game_id,catalog_revision,kind) values('steam_store',5,0,'owned_identity')");
+    let claim=await repository.claim();assert.ok(claim);
+    assert.deepEqual([claim.needs_details,claim.needs_reviews,claim.needs_deck],[false,false,false]);
+    const before=psql(fixture,"select feature_revision||':'||(select fetched_at from catalog.game_metadata where game_id=5)||':'||reviews_checked_at||':'||deck_checked_at from catalog.game_features where game_id=5",true);
+    assert.equal(await repository.finish(claim,{appId:'100005',status:'current'}),'current');
+    assert.equal(await repository.finish(claim,{appId:'100005',status:'current'}),'replayed');
+    const duplicate=await repository.claim();assert.ok(duplicate,'skipping releases the Store lease immediately');
+    assert.equal(await repository.finish(duplicate,{appId:'100005',status:'current'}),'current');
+    assert.equal(psql(fixture,"select feature_revision||':'||(select fetched_at from catalog.game_metadata where game_id=5)||':'||reviews_checked_at||':'||deck_checked_at from catalog.game_features where game_id=5",true),before);
+    queue();psql(fixture,"update catalog.game_features set deck_checked_at=clock_timestamp()-interval '31 days' where game_id=5");
+    claim=await repository.claim();assert.ok(claim);
+    assert.deepEqual([claim.needs_details,claim.needs_reviews,claim.needs_deck],[false,false,true]);
+    await assert.rejects(repository.finish(claim,{appId:'100005',status:'current'}),error=>(error as {code:string}).code==='22023');
+    for(const signals of [{reviewTotal:10,reviewPositive:11,deckCategory:null},{reviewTotal:null,reviewPositive:null,deckCategory:4}])
+      await assert.rejects(repository.finish(claim,{appId:'100005',status:'signals',signals}),error=>(error as {code:string}).code==='22023');
+    const primary=psql(fixture,"select row_to_json(m) from catalog.game_metadata m where game_id=5",true);
+    const offers=psql(fixture,'select count(*) from catalog.offer_prices',true);
+    const deck={appId:'100005',status:'signals' as const,signals:{reviewTotal:null,reviewPositive:null,deckCategory:0}};
+    assert.equal(await repository.finish(claim,deck),'published');assert.equal(await repository.finish(claim,deck),'replayed');
+    assert.equal(psql(fixture,"select deck_compatibility_detail||':'||deck_compatibility from catalog.game_features where game_id=5",true),'0:unknown');
+    assert.equal(psql(fixture,"select row_to_json(m) from catalog.game_metadata m where game_id=5",true),primary);
+    assert.equal(psql(fixture,'select count(*) from catalog.offer_prices',true),offers,'signal publication cannot rewrite primary details/prices');
+    queue();psql(fixture,'update catalog.game_features set reviews_checked_at=null where game_id=5');
+    claim=await repository.claim();assert.ok(claim);
+    assert.deepEqual([claim.needs_details,claim.needs_reviews,claim.needs_deck],[false,true,false]);
+    assert.equal(await repository.finish(claim,{appId:'100005',status:'signals',signals:{reviewTotal:0,reviewPositive:0,deckCategory:null}}),'published');
+    assert.equal(psql(fixture,"select review_total||':'||review_positive||':'||review_negative||':'||(reviews_checked_at is not null) from catalog.game_features where game_id=5",true),'0:0:0:true');
+    // Restore existing fixture facts for the publication tests below.
+    queue();claim=await repository.claim();assert.ok(claim);assert.equal(await repository.finish(claim,result),'published');
+    assert.equal(psql(fixture,"select has_function_privilege('vault_worker','ops.finish_catalogue_details(bigint,uuid,jsonb)','EXECUTE') or has_function_privilege('vault_app','ops.claim_catalogue_refresh()','EXECUTE')",true),'f');
+  });
+  await t.test('signal retries preserve primary freshness, bound attempts and replay without clock changes',async()=>{
+    for(const rateLimited of [false,true]) {
+      queue();psql(fixture,'update catalog.game_features set reviews_checked_at=null where game_id=5');
+      const claim=await repository.claim();assert.ok(claim);
+      const partial={appId:'100005',status:'signals' as const,signals:{reviewTotal:null,reviewPositive:null,deckCategory:null},optionalIncomplete:true,...(rateLimited?{rateLimited:true}:{})};
+      const primary=psql(fixture,"select fetched_at from catalog.game_metadata where game_id=5",true);
+      assert.equal(await repository.finish(claim,partial),'published');
+      const receipt=psql(fixture,"select status||':'||available_at||':'||encode(result_hash,'hex') from ops.enrichment_outbox where game_id=5",true);
+      assert.equal(await repository.finish(claim,partial),'replayed');
+      assert.equal(psql(fixture,"select status||':'||available_at||':'||encode(result_hash,'hex') from ops.enrichment_outbox where game_id=5",true),receipt);
+      assert.equal(psql(fixture,"select fetched_at from catalog.game_metadata where game_id=5",true),primary);
+      assert.equal(psql(fixture,"select last_error_code from ops.enrichment_outbox where game_id=5",true),rateLimited?'optional_rate_limited':'optional_incomplete');
+      if(rateLimited)assert.equal(await repository.claim(),null);
+      psql(fixture,"delete from ops.abuse_cooldowns where bucket='catalogue_store_pause';update ops.enrichment_outbox set available_at=statement_timestamp()-interval '1 second',lease_expires_at=statement_timestamp()-interval '1 second',attempt=4");
+      const last=await repository.claim();assert.ok(last);
+      assert.equal(await repository.finish(claim,partial),'stale');
+      assert.equal(await repository.finish(last,partial),'published');
+      assert.equal(psql(fixture,"select status||':'||attempt from ops.enrichment_outbox where game_id=5",true),'failed:5');
+      psql(fixture,"delete from ops.abuse_cooldowns where bucket='catalogue_store_pause'");
+    }
+    queue();const claim=await repository.claim();assert.ok(claim);assert.equal(await repository.finish(claim,result),'published');
+  });
   await t.test('expired attempt cannot publish; an independent newer revision fences stale metadata',async()=>{
     queue();const expired=await repository.claim();assert.ok(expired);
     psql(fixture,"update ops.enrichment_outbox set lease_expires_at=clock_timestamp()-interval '1 second'");
@@ -1712,6 +1801,56 @@ test('V2 catalogue outbox drains with leases, stale fences and preserved authore
     queue();const missing=await repository.claim();assert.ok(missing);
     assert.equal(await repository.finish(missing,{appId:'100005',status:'unavailable'}),'retryable');
     assert.equal(psql(fixture,"select genres->>0 from catalog.game_metadata where game_id=5",true),'Adventure');
+  });
+  await t.test('optional 429 publishes primary facts, preserves missing signals, pauses and replays without side effects',async()=>{
+    for(const reviews of [null,{reviewTotal:120,reviewPositive:90}]) {
+      queue();
+      psql(fixture,"insert into ops.enrichment_outbox(provider,game_id,catalog_revision,kind) values('steam_store',6,0,'metadata')");
+      const claim=await repository.claim();assert.ok(claim);
+      const partial: typeof result={...result,rateLimited:true,details:{...result.details,shortDescription:'Fresh details despite optional 429',
+        reviewTotal:reviews?.reviewTotal??null,reviewPositive:reviews?.reviewPositive??null,deckCategory:null}};
+      await assert.rejects(repository.finish(claim,{...partial,rateLimited:'true'} as unknown as typeof partial),error=>(error as {code:string}).code==='22023');
+      assert.equal(await repository.finish(claim,partial),'published');
+      assert.equal(psql(fixture,"select short_description from catalog.game_metadata where game_id=5",true),'Fresh details despite optional 429');
+      assert.equal(psql(fixture,"select review_total||':'||review_positive||':'||deck_compatibility_detail from catalog.game_features where game_id=5",true),reviews?'120:90:3':'100:80:3');
+      assert.equal(psql(fixture,"select status||':'||attempt||':'||last_error_code||':'||(completed_at is null) from ops.enrichment_outbox where game_id=5",true),'retryable:1:optional_rate_limited:true');
+      assert.equal(psql(fixture,"select bool_and(available_at>=statement_timestamp()+interval '29 minutes') from ops.enrichment_outbox where status in('pending','retryable')",true),'t');
+      assert.equal(psql(fixture,"select status from catalog.provider_state where game_id=5 and provider='steam_store' and evidence_kind='metadata'",true),'ready');
+      assert.equal(await repository.claim(),null,'shared pause blocks other fresh Store jobs');
+      const receipt=()=>psql(fixture,`select jsonb_build_object(
+        'revision',(select feature_revision from catalog.game_features where game_id=5),
+        'offerRows',(select count(*) from catalog.offer_prices),
+        'cooldown',(select expires_at from ops.abuse_cooldowns where bucket='catalogue_store_pause'),
+        'outbox',(select jsonb_build_object('status',status,'attempt',attempt,'available',available_at,'hash',encode(result_hash,'hex')) from ops.enrichment_outbox where game_id=5))`,true);
+      const published=receipt();
+      assert.equal(await repository.finish({...claim,lease_token:'00000000-0000-4000-8000-000000000000'},partial),'stale');
+      assert.equal(await repository.finish(claim,{...partial,details:{...partial.details,title:'Changed payload'}}),'stale');
+      assert.equal(await repository.finish(claim,partial),'replayed');
+      assert.equal(receipt(),published,'response-loss replay cannot republish facts/history or extend the pause/retry');
+      // Advance only the isolated fixture clock barriers to simulate the next run.
+      psql(fixture,"delete from ops.abuse_cooldowns where bucket='catalogue_store_pause';update ops.enrichment_outbox set available_at=statement_timestamp()-interval '1 second',lease_expires_at=case when lease_token is not null then statement_timestamp()-interval '1 second' end");
+      const retry=await repository.claim();assert.ok(retry);assert.equal(retry.outbox_id,claim.outbox_id);assert.notEqual(retry.lease_token,claim.lease_token);
+      assert.equal(await repository.finish(claim,partial),'stale','old receipt cannot publish after a new attempt claims the job');
+      assert.equal(await repository.finish(retry,result),'published');
+      assert.equal(psql(fixture,"select status||':'||attempt from ops.enrichment_outbox where game_id=5",true),'succeeded:2');
+    }
+  });
+  await t.test('optional 429 respects stale publication fences and the terminal attempt still saves primary details',async()=>{
+    const partial={...result,rateLimited:true,details:{...result.details,shortDescription:'Saved on last attempt',reviewTotal:null,reviewPositive:null,deckCategory:null}};
+    queue();const expired=await repository.claim();assert.ok(expired);
+    psql(fixture,"update ops.enrichment_outbox set lease_expires_at=clock_timestamp()-interval '1 second'");
+    assert.equal(await repository.finish(expired,partial),'stale');
+    const fresh=await repository.claim();assert.ok(fresh);
+    psql(fixture,'update catalog.game_features set feature_revision=feature_revision+1 where game_id=5');
+    assert.equal(await repository.finish(fresh,partial),'stale');
+    assert.equal(psql(fixture,"select count(*) from ops.abuse_cooldowns where bucket='catalogue_store_pause'",true),'0','rejected partial metadata cannot pause other jobs');
+    queue();psql(fixture,'update ops.enrichment_outbox set attempt=4');
+    const last=await repository.claim();assert.ok(last);
+    assert.equal(await repository.finish(last,partial),'published');
+    assert.equal(psql(fixture,"select short_description from catalog.game_metadata where game_id=5",true),'Saved on last attempt');
+    assert.equal(psql(fixture,"select status||':'||attempt||':'||last_error_code||':'||(completed_at is not null) from ops.enrichment_outbox where game_id=5",true),'failed:5:optional_rate_limited:true');
+    assert.equal(await repository.finish(last,partial),'replayed');assert.equal(await repository.claim(),null);
+    psql(fixture,"delete from ops.abuse_cooldowns where bucket='catalogue_store_pause'");
   });
   await t.test('429 blocks fresh queues too; bounded failures become terminal',async()=>{
     queue();const claim=await repository.claim();assert.ok(claim);

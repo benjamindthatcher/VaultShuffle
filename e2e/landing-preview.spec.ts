@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { encodeCatalogue } from "../lib/catalogue-wire";
 
 async function setupPreview(page: Page, count = 3) {
   const errors: string[] = [];
@@ -19,7 +20,7 @@ async function setupPreview(page: Page, count = 3) {
     steam_appid: String([1145360, 620, 504230][index]), main_story_minutes: 1200,
     duration_kind: "finite", steam_tags: {}, platform_windows: true
   }));
-  await page.route("**/guest-catalogue", (route) => route.fulfill({ json: { games } }));
+  await page.route("**/guest-catalogue*", (route) => route.fulfill({ json: encodeCatalogue(games) }));
   await page.goto("/");
   await page.locator("#how").scrollIntoViewIfNeeded();
   await expect(page.locator("#how").getByText(`Drawing from a preview library of ${count} popular Steam games.`, { exact: false })).toBeVisible();

@@ -6,7 +6,7 @@ export function diagnosticId(value: unknown): string | undefined {
 }
 
 // Unknown/dynamic segments are never sent to analytics, even if they look like names.
-const ROUTE_SEGMENTS = new Set("api auth steam callback manual-profile lookup create account secure-profile session logout owned-games games collections vault draw draws events pin pins history preferences genre-preferences playtime summary analytics consent feedback contact catalogue process dashboard library purge stats export import completion complete review suggest tags health snapshot settings acknowledge secure app-data cron catalogue-metadata durations nightly-metadata steam-tags completions restore flags reviews state apps".split(" "));
+const ROUTE_SEGMENTS = new Set("api auth steam callback manual-profile lookup create account secure-profile session logout owned-games games collections vault draw draws events pin pins history preferences genre-preferences playtime summary analytics consent feedback contact catalogue process dashboard library purge stats export import completion complete review suggest tags health snapshot settings acknowledge secure app-data cron catalogue-metadata durations nightly-metadata steam-tags completions restore flags reviews state apps v2 bootstrap wishlist family snoozes completion-review pinned-playtime".split(" "));
 export function diagnosticRoute(path: string) {
   return path.split(/[?#]/, 1)[0].split("/").filter(Boolean).slice(0, 8)
     .map((segment) => ROUTE_SEGMENTS.has(segment) ? segment : ":id").join("/").replace(/^/, "/");
@@ -21,7 +21,9 @@ const ERROR_CODES = new Set([
   "steam_identity_unverified", "link_session_missing", "link_intent_invalid", "link_session_mismatch",
   "link_intent_consumed", "link_intent_expired", "steam_account_mismatch", "link_merge_failed", "link_merge_conflict",
   "configuration_missing", "cache_unavailable", "import_staging_failed", "analytics_delivery_failed",
+  "database_unavailable", "support_storage_unavailable",
 ]);
+const CONNECTION_CODES = new Set(["ECONNREFUSED", "ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "EAI_AGAIN", "EPIPE", "CONNECT_TIMEOUT", "CONNECTION_CLOSED", "CONNECTION_ENDED", "CONNECTION_DESTROYED", "CERT_HAS_EXPIRED", "DEPTH_ZERO_SELF_SIGNED_CERT", "SELF_SIGNED_CERT_IN_CHAIN", "UNABLE_TO_VERIFY_LEAF_SIGNATURE", "ERR_TLS_CERT_ALTNAME_INVALID"]);
 export type DiagnosticProperties = Record<string, string | number | boolean>;
 const TEXT_FIELDS = new Set(["operation", "stage", "outcome", "account_type", "source", "cache_result", "upstream_operation", "error_type"]);
 const ID_FIELDS = new Set(["request_id", "operation_id", "flow_id", "account_id", "replay_id"]);
@@ -35,6 +37,7 @@ export function safeDiagnosticProperties(input: Record<string, unknown>): Diagno
     else if (key === "method" && typeof value === "string" && /^(GET|POST|PUT|PATCH|DELETE|OPTIONS|HEAD)$/.test(value)) safe[key] = value;
     else if (key === "error_code" && typeof value === "string") safe[key] = ERROR_CODES.has(value) ? value : "unexpected_error";
     else if (key === "database_code" && typeof value === "string" && /^(?:[0-9]{2}[A-Z0-9]{3}|P000[1-4]|XX00[012]|PGRST[0-9]{3})$/.test(value)) safe[key] = value;
+    else if (key === "connection_code" && typeof value === "string" && CONNECTION_CODES.has(value)) safe[key] = value;
     else if (key === "digest" && typeof value === "string" && /^[0-9]{1,20}$/.test(value)) safe[key] = value;
     else if (key === "error_fingerprint" && typeof value === "string" && /^[a-f0-9]{8}$/.test(value)) safe[key] = value;
     else if (TEXT_FIELDS.has(key) && typeof value === "string" && /^[a-z][a-z0-9_]{0,59}$/.test(value)) safe[key] = value;
@@ -43,24 +46,31 @@ export function safeDiagnosticProperties(input: Record<string, unknown>): Diagno
 }
 
 export function diagnosticFailure(error: unknown): DiagnosticProperties {
-  const item = error && typeof error === "object" ? error as Record<string, unknown> : {};
-  const cause = item.cause && typeof item.cause === "object" ? item.cause as Record<string, unknown> : {};
-  const nestedCause = cause.cause && typeof cause.cause === "object" ? cause.cause as Record<string, unknown> : {};
+  const chain: Record<string, unknown>[] = [];
+  let current = error;
+  while (current && typeof current === "object" && chain.length < 8 && !chain.includes(current as Record<string, unknown>)) {
+    chain.push(current as Record<string, unknown>);
+    current = (current as Record<string, unknown>).cause;
+  }
+  const item = chain[0] ?? {};
+  const detail = (key: string) => chain.map(value => value[key]).find(value => value !== undefined && value !== null);
+  const codes = chain.map(value => value.code).filter((value): value is string => typeof value === "string");
   const name = error instanceof Error ? error.name : "UnknownError";
-  const type = ({ ZodError: "validation", SessionRequiredError: "session", SessionLookupError: "session", SteamApiError: "steam", ManualSteamProfileError: "profile", ManualProfileSecurityError: "account_link", SteamLibraryUnavailableError: "library", HttpError: "request", TypeError: "type_error", SyntaxError: "syntax_error", TimeoutError: "timeout", AbortError: "aborted", CooldownError: "rate_limit" } as Record<string, string>)[name] ?? "unexpected";
+  const type = ({ DatabaseUnavailableError: "database", SubmissionStorageError: "database", ZodError: "validation", SessionRequiredError: "session", SessionLookupError: "session", SteamApiError: "steam", ManualSteamProfileError: "profile", ManualProfileSecurityError: "account_link", SteamLibraryUnavailableError: "library", HttpError: "request", TypeError: "type_error", SyntaxError: "syntax_error", TimeoutError: "timeout", AbortError: "aborted", CooldownError: "rate_limit" } as Record<string, string>)[name] ?? "unexpected";
   const code = typeof item.code === "string" && ERROR_CODES.has(item.code) ? item.code
-    : error instanceof Error && /^Missing required environment variable:/i.test(error.message) ? "configuration_missing"
+    : error instanceof Error && /^(?:Missing required environment variable:|Missing session configuration$)/i.test(error.message) ? "configuration_missing"
     : name === "ZodError" || name === "HttpError" ? "invalid_request"
       : name === "SessionRequiredError" ? "unauthorized" : name === "SessionLookupError" ? "session_lookup_failed" : "unexpected_error";
   // Group unexpected failures by code location without exporting raw stacks or
   // error messages (which often contain URLs, credentials or database values).
-  const frames = error instanceof Error ? error.stack?.split("\n").slice(1).flatMap((line) => line.match(/[a-zA-Z0-9_.-]+\.(?:js|mjs|ts|tsx):[0-9]+:[0-9]+/g) ?? []).slice(0, 4).join("|") : "";
+  const origin = [...chain].reverse().find(value => value instanceof Error && value.stack);
+  const frames = typeof origin?.stack === "string" ? origin.stack.split("\n").slice(1).flatMap((line) => line.match(/[a-zA-Z0-9_.-]+\.(?:js|mjs|ts|tsx):[0-9]+:[0-9]+/g) ?? []).slice(0, 4).join("|") : "";
   let hash = 2166136261;
   for (const char of `${type}:${code}:${frames ?? ""}`) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619);
-  return safeDiagnosticProperties({ error_type: type, error_code: code, error_fingerprint: (hash >>> 0).toString(16).padStart(8, "0"), database_code: nestedCause.code ?? cause.code ?? item.code, digest: item.digest,
-    upstream_status: item.upstreamStatus ?? cause.upstreamStatus ?? nestedCause.upstreamStatus,
-    upstream_operation: item.operation ?? cause.operation ?? nestedCause.operation,
-    retry_after_seconds: item.retryAfterSeconds ?? cause.retryAfterSeconds ?? nestedCause.retryAfterSeconds });
+  return safeDiagnosticProperties({ error_type: type, error_code: code, error_fingerprint: (hash >>> 0).toString(16).padStart(8, "0"),
+    database_code: codes.find(value => safeDiagnosticProperties({ database_code: value }).database_code),
+    connection_code: codes.find(value => CONNECTION_CODES.has(value)), digest: item.digest,
+    upstream_status: detail("upstreamStatus"), upstream_operation: detail("operation"), retry_after_seconds: detail("retryAfterSeconds") });
 }
 
 export function diagnosticConsent(headers: Headers) {
