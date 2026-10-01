@@ -15,6 +15,20 @@ export type PlaytimeSummary = {
   dailyGains: Array<{ day: string; minutes: number }>;
 };
 
+/** Missing days and unknown coverage break the streak; yesterday may be newest. */
+export function playtimeStreak(gains: readonly {day:string;minutes:number}[], today = new Date()) {
+  const byDay = new Map(gains.map(gain => [gain.day, gain.minutes]));
+  const key = (offset:number) => {
+    const date = new Date(today);
+    date.setUTCDate(date.getUTCDate() - offset);
+    return date.toISOString().slice(0,10);
+  };
+  let offset = (byDay.get(key(0)) ?? 0) > 0 ? 0 : 1;
+  let count = 0;
+  while ((byDay.get(key(offset++)) ?? 0) > 0) count++;
+  return count;
+}
+
 /**
  * Pure so it can be reasoned about and tested without a database.
  *

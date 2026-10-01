@@ -7,6 +7,7 @@ import { VaultIcon } from "@/components/shared/VaultIcon";
 import { completionCandidateValue, findCompletionCandidates } from "@/lib/completion-check";
 import { formatMoney } from "@/lib/backlog-stats";
 import styles from "./CompletionClaimBanner.module.css";
+import type { DashboardPayload } from "@/lib/v2/repositories/dashboard-core";
 
 /**
  * The pull toward the completion sweep.
@@ -16,18 +17,20 @@ import styles from "./CompletionClaimBanner.module.css";
  * player already is, and disappears the moment the queue is empty, so it works
  * like an inbox rather than another permanent destination.
  */
-export function useCompletionClaimNotice() {
-  const { games, isLive } = useAppData();
-  const candidates = useMemo(() => (isLive ? findCompletionCandidates(games) : []), [games, isLive]);
-  if (!candidates.length) return null;
+export function useCompletionClaimNotice(dashboard?: DashboardPayload | null) {
+  const { games, isLive, dataAuthority } = useAppData();
+  const v2 = dataAuthority === "v2";
+  const candidates = useMemo(() => (isLive && !v2 ? findCompletionCandidates(games) : []), [games, isLive, v2]);
+  const count = v2 ? dashboard?.completionSummary?.count ?? 0 : candidates.length;
+  if (!isLive || !count) return null;
 
-  const value = completionCandidateValue(candidates);
+  const value = v2 ? dashboard?.completionSummary?.valueCents ?? 0 : completionCandidateValue(candidates);
 
   return (
     <Link data-vault-card="interactive" className={styles.banner} href="/finished">
       <span className={styles.icon}><VaultIcon name="completed" size={20} /></span>
       <span className={styles.copy}>
-        <strong>{candidates.length} {candidates.length === 1 ? "game looks" : "games look"} finished</strong>
+        <strong>{count} {count === 1 ? "game looks" : "games look"} finished</strong>
         <small>
           Your playtime says you reached the credits{value ? ` on ${formatMoney(value)} worth of games` : ""}. Claim them to
           move your completed value.

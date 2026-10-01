@@ -23,7 +23,7 @@ export function WishlistDetailsDrawer({ game, saved, owned, disabled, busy, cont
 
   const duration = hasFiniteWishlistStory(game) ? `~${Math.max(1, Math.round(game.minutes! / 60))}h story` : game.endless ? "Endless" : "Not available";
   return <GameDetailsDialog
-    gameId={String(game.appId)} title={game.title} artwork={steamHeaderImage(game.appId)}
+    gameId={String(game.appId)} title={game.title} artwork={game.image || steamHeaderImage(game.appId)}
     description={game.description || (game.storeStatus ? "Steam hasn’t supplied a description. Open the store page to learn more." : "Loading Steam description…")}
     actions={<>
         <a data-vault-control="steam" className={styles.steamButton} href={steamStoreUrl(game.appId)} target="_blank" rel="noreferrer" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.wishlistStoreOpened, { ...context, steam_appid: game.appId, is_saved: saved, in_library: owned, control: "details_store_button" })}>

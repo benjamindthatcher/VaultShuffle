@@ -11,6 +11,7 @@ import type { DemoGame } from "@/lib/demo-data";
 import { SectionHeading } from "@/components/shared/SectionHeading";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { editableSmartCollectionPreset, matchesSmartPreset, smartCollectionPresets } from "@/lib/smart-collections";
 import { useV2Collections } from "@/components/collections/useV2Collections";
@@ -326,7 +327,7 @@ export default function CollectionsPage() {
             </button>
           </>}
         />
-        {v2&&remote.metadataPending?<p role="status">Loading your collections…</p>:null}
+        {v2&&remote.metadataPending?<VaultShuffleLoader active inline label="Loading your collections" />:null}
         {v2&&remote.metadataError?<p role="alert">{remote.metadataError} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p>:null}
         <div ref={collectionRailRef} className={styles.collectionGrid} role="region" tabIndex={0} aria-label="Your collections">
           {baseCollections.length || v2 && (remote.metadataPending || remote.metadataError) ? null : (
@@ -370,7 +371,7 @@ export default function CollectionsPage() {
         />
         {!composerOpen && mutationError ? <p className={styles.formError} role="alert">{mutationError}</p> : null}
         {v2&&remote.error?<p role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retryMembers}>Retry</button></p>:null}
-        {v2&&remote.pending&&!selectedGames.length?<p role="status">Loading collection games…</p>:null}
+        {v2&&remote.pending&&!selectedGames.length?<VaultShuffleLoader active inline label="Loading collection games" />:null}
         <div className={styles.selectedGames}>
           {selectedCollection && selectedGames.length ? (
             selectedGames.map((game) => <GameCard key={game.id} game={game} onClick={() => openDetails(game.id)} />)

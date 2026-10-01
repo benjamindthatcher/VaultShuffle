@@ -7,7 +7,7 @@ const SHOW_DELAY_MS = 0;
 const MIN_VISIBLE_MS = 400;
 const FADE_OUT_MS = 200;
 
-export function VaultShuffleLoader({ active }: { active: boolean }) {
+export function VaultShuffleLoader({ active, inline = false, label = "Loading" }: { active: boolean; inline?: boolean; label?: string }) {
   const [mounted, setMounted] = useState(active);
   const [visible, setVisible] = useState(active);
   const mountedRef = useRef(active);
@@ -63,9 +63,9 @@ export function VaultShuffleLoader({ active }: { active: boolean }) {
 
   return (
     <div
-      className={`${styles.loader} ${visible ? styles.visible : ""}`}
+      className={`${styles.loader} ${inline ? styles.inline : ""} ${visible ? styles.visible : ""}`}
       role="status"
-      aria-label="Loading"
+      aria-label={label}
     >
       <video className={styles.animation} autoPlay muted loop playsInline preload="auto" aria-hidden="true">
         <source src="/assets/loading/vaultshuffle-loader-transparent.webm" type="video/webm" />

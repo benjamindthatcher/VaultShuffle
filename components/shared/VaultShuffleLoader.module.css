@@ -27,6 +27,22 @@
 
 .staticIcon { display: none; }
 
+.inline {
+  position: relative;
+  inset: auto;
+  z-index: auto;
+  min-height: min(72vw, 360px);
+  background: transparent;
+  pointer-events: none;
+}
+
+.inline .animation {
+  width: min(72vw, 360px);
+  height: min(72vw, 360px);
+}
+
+.inline.visible { pointer-events: none; }
+
 @media (max-width: 560px) {
   .animation {
     width: min(86vw, 340px);

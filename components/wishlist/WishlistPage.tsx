@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import { requestJson } from "@/lib/api-client";
 import { decodeCatalogue, type CataloguePayload } from "@/lib/catalogue-wire";
 import { WISHLIST_PICK_COUNT, WISHLIST_BUDGET_RESERVE, WISHLIST_BUDGET_SCAN, cheapWishlistBand, recommendWishlist, wishlistOwned, type WishlistGame, type WishlistMode, type WishlistInteractionContext, type WishlistPick } from "@/lib/wishlist";
@@ -16,6 +17,7 @@ import { WishlistDetailsDrawer } from "./WishlistDetailsDrawer";
 import { WishlistCard } from "./WishlistCard";
 import { WishlistRegionMenu } from "./WishlistRegionMenu";
 import { useWishlist } from "./useWishlist";
+import { useWishlistLibraryContext } from "./useWishlistLibraryContext";
 import styles from "./Wishlist.module.css";
 
 const EMPTY_LIBRARY: ReturnType<typeof useAppData>["allGames"] = [];
@@ -27,7 +29,9 @@ export function WishlistPage() {
 }
 
 function WishlistContent() {
-  const { allGames, isLive, isLoading, session } = useAppData();
+  const { allGames, isLive, isLoading, session, dataAuthority, libraryDataVersion } = useAppData();
+  const v2 = isLive && dataAuthority === "v2";
+  const ownedLibrary = useWishlistLibraryContext(v2, libraryDataVersion);
   const wishlist = useWishlist(isLive);
   const [catalogue, setCatalogue] = useState<WishlistGame[]>([]);
   const [catalogueLoading, setCatalogueLoading] = useState(true);
@@ -40,7 +44,7 @@ function WishlistContent() {
   const [queuedPicks, setQueuedPicks] = useState<WishlistPick[]>([]);
   const [cheapLoading, setCheapLoading] = useState(false);
   const [cheapError, setCheapError] = useState("");
-  const [libraryLoaded, setLibraryLoaded] = useState(!isLive);
+  const [legacyLibraryLoaded, setLibraryLoaded] = useState(!isLive);
   const [country, setCountry] = useState("GB");
   const searchInput = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -91,7 +95,9 @@ function WishlistContent() {
     if (!isLoading) setLibraryLoaded(true);
   }, [isLoading]);
 
-  const library = isLive ? allGames : EMPTY_LIBRARY;
+  const libraryLoaded = v2 ? Boolean(ownedLibrary.context) : legacyLibraryLoaded;
+  const library = v2 ? ownedLibrary.context?.seeds ?? EMPTY_LIBRARY : isLive ? allGames : EMPTY_LIBRARY;
+  const libraryContext = v2 ? ownedLibrary.context : null;
   const savedIds = useMemo(() => new Set(wishlist.appIds), [wishlist.appIds]);
   const { enrich, detailsClient } = useWishlistDetails([
     ...(selected ? [selected.game.appId] : []),
@@ -140,8 +146,8 @@ function WishlistContent() {
           });
           // Historical USD prices guide where to look, never qualify a pick.
           return [
-            ...recommendWishlist(eligible.filter(game => game.budgetHint), library, wishlist.games, "for-you", shuffleSeed),
-            ...recommendWishlist(eligible.filter(game => !game.budgetHint), library, wishlist.games, "for-you", shuffleSeed),
+            ...recommendWishlist(eligible.filter(game => game.budgetHint), library, wishlist.games, "for-you", shuffleSeed, country, libraryContext),
+            ...recommendWishlist(eligible.filter(game => !game.budgetHint), library, wishlist.games, "for-you", shuffleSeed, country, libraryContext),
           ].slice(0, WISHLIST_BUDGET_SCAN);
         }
         let candidates = budgetCandidates(true);
@@ -161,7 +167,7 @@ function WishlistContent() {
           const source = [...priced.values()];
           // Keep the £10 preference: use the £20 fallback only after the scan.
           if (!complete && source.filter(game => cheapWishlistBand(game, country) === 1).length < WISHLIST_PICK_COUNT) return;
-          const deck = recommendWishlist(source, library, wishlist.games, mode, shuffleSeed, country);
+          const deck = recommendWishlist(source, library, wishlist.games, mode, shuffleSeed, country, libraryContext);
           if (!published) {
             const first = deck.slice(0, WISHLIST_PICK_COUNT);
             rememberPicks(first);
@@ -202,10 +208,10 @@ function WishlistContent() {
       }
       if (controller.signal.aborted) return;
       const eligible = source.filter(game => !savedIds.has(game.appId) && !previousBatch.includes(game.appId));
-      let deck = recommendWishlist(eligible.filter(game => !seenPicks.current.has(game.appId)), library, wishlist.games, mode, shuffleSeed, country);
+      let deck = recommendWishlist(eligible.filter(game => !seenPicks.current.has(game.appId)), library, wishlist.games, mode, shuffleSeed, country, libraryContext);
       if (deck.length < WISHLIST_PICK_COUNT && seenPicks.current.size) {
         seenPicks.current.clear();
-        deck = recommendWishlist(eligible, library, wishlist.games, mode, shuffleSeed, country);
+        deck = recommendWishlist(eligible, library, wishlist.games, mode, shuffleSeed, country, libraryContext);
       }
       rememberPicks(deck.slice(0, WISHLIST_PICK_COUNT));
       setPicks(deck.slice(0, WISHLIST_PICK_COUNT));
@@ -244,7 +250,7 @@ function WishlistContent() {
   }
 
   function renderCard(game: WishlistGame, context: WishlistInteractionContext, reason?: string, eager = false) {
-    return <WishlistCard key={game.appId} game={enrich(game)} context={context} reason={reason} eager={eager} saved={savedIds.has(game.appId)} owned={wishlistOwned(game, library)} disabled={!wishlist.ready || wishlist.loading || wishlist.busy} busy={wishlist.pending?.appId === game.appId} onToggle={(item) => void wishlist.toggle(item, context)} onOpen={() => { setSelected({ game, context, reason }); trackEvent(ANALYTICS_EVENTS.wishlistAction, { ...context, action: "game_preview_opened", steam_appid: game.appId, control: "card" }); }} />;
+    return <WishlistCard key={game.appId} game={enrich(game)} context={context} reason={reason} eager={eager} saved={savedIds.has(game.appId)} owned={wishlistOwned(game, library, libraryContext)} disabled={!libraryLoaded || !wishlist.ready || wishlist.loading || wishlist.busy} busy={wishlist.pending?.appId === game.appId} onToggle={(item) => void wishlist.toggle(item, context)} onOpen={() => { setSelected({ game, context, reason }); trackEvent(ANALYTICS_EVENTS.wishlistAction, { ...context, action: "game_preview_opened", steam_appid: game.appId, control: "card" }); }} />;
   }
 
   function changeMode(nextMode: WishlistMode) {
@@ -259,8 +265,8 @@ function WishlistContent() {
   }
 
   function showMore(control: "top" | "bottom") {
-    if (cheapLoading) return;
-    const eligible = queuedPicks.filter((pick) => !savedIds.has(pick.game.appId) && !wishlistOwned(pick.game, library));
+    if (!libraryLoaded || cheapLoading) return;
+    const eligible = queuedPicks.filter((pick) => !savedIds.has(pick.game.appId) && !wishlistOwned(pick.game, library, libraryContext));
     trackEvent(ANALYTICS_EVENTS.wishlistAction, { action: "recommendations_refreshed", recommendation_mode: mode, page: shownCount + 1, control });
     if (eligible.length < WISHLIST_PICK_COUNT) {
       setPreviousBatch(picks.map((pick) => pick.game.appId));
@@ -275,7 +281,7 @@ function WishlistContent() {
 
   return <div className={styles.page} data-vault-controls="standard">
     <h1 className="visually-hidden">Wishlist</h1>
-    <WishlistDetailsDrawer game={selected ? enrich(selected.game) : null} context={selected?.context ?? { surface: "recommendations" }} saved={selected ? savedIds.has(selected.game.appId) : false} owned={selected ? wishlistOwned(selected.game, library) : false} disabled={!wishlist.ready || wishlist.loading || wishlist.busy} busy={Boolean(selected && wishlist.pending?.appId === selected.game.appId)} onToggle={game => { if (selected) void wishlist.toggle(game, selected.context); }} onClose={() => setSelected(null)} />
+    <WishlistDetailsDrawer game={selected ? enrich(selected.game) : null} context={selected?.context ?? { surface: "recommendations" }} saved={selected ? savedIds.has(selected.game.appId) : false} owned={selected ? wishlistOwned(selected.game, library, libraryContext) : false} disabled={!libraryLoaded || !wishlist.ready || wishlist.loading || wishlist.busy} busy={Boolean(selected && wishlist.pending?.appId === selected.game.appId)} onToggle={game => { if (selected) void wishlist.toggle(game, selected.context); }} onClose={() => setSelected(null)} />
     {!isLive ? <GuestPreviewNotice feature="Wishlist" icon="heart">Explore purchase recommendations and save games in this browser. Connect your Steam library for personal picks that exclude the games you already own.</GuestPreviewNotice> : null}
     <div className={styles.toolbar}>
       <p>Find something worth adding to your library.</p>
@@ -306,13 +312,13 @@ function WishlistContent() {
       <a data-vault-control="text" className={styles.storeLink} href={`https://store.steampowered.com/search/?term=${encodeURIComponent(searched)}`} target="_blank" rel="noreferrer" onClick={() => trackNavigationEvent(ANALYTICS_EVENTS.wishlistAction, { action: "steam_search_opened", query_length: searched.length })}>See all results on Steam <VaultIcon name="external-link" size={14} /></a>
     </section> : null}
 
-    <section className={styles.section} aria-labelledby="recommendations-title" aria-busy={catalogueLoading || cheapLoading}>
+    <section className={styles.section} aria-labelledby="recommendations-title" aria-busy={catalogueLoading || cheapLoading || ownedLibrary.pending}>
       <div className={styles.sectionHeading}>
         <div><h2 id="recommendations-title">Worth a spot on your wishlist</h2><p>{mode === "cheap" ? "Well reviewed games at a good price on Steam right now." : isLive ? "New games, drawn from different corners of your playing history." : "Discovery preview. Connect Steam to make these picks personal."}</p></div>
         <div className={styles.recommendationControls}><div className={styles.filters} aria-label="Recommendation style">{([{ id: "for-you", label: "For you" }, { id: "short", label: "Short & sweet" }, { id: "cheap", label: "Budget picks" }, { id: "acclaimed", label: "Highly rated" }] as const).map((filter) => <button data-vault-control="selection" data-control-hover="secondary" data-control-indicator="bar" key={filter.id} aria-pressed={mode === filter.id} onClick={() => changeMode(filter.id)}>{filter.label}</button>)}</div><button data-vault-control="secondary" data-control-size="icon" className={styles.refreshIconButton} type="button" aria-label="Refresh picks" title="Refresh picks" disabled={catalogueLoading || cheapLoading || !picks.length} aria-busy={cheapLoading} onClick={() => showMore("top")}>{cheapLoading ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="refresh-data" size={19} />}</button></div>
       </div>
-      {catalogueLoading || (cheapLoading && !picks.length) ? <div className={styles.grid} aria-label="Loading recommendations">{Array.from({ length: WISHLIST_PICK_COUNT }, (_, index) => <div key={index} className={styles.skeleton} />)}</div> : catalogueError || cheapError ? <div className={styles.error}><p>{catalogueError || cheapError}</p><button data-vault-control="secondary" onClick={() => { if (cheapError) setShuffleSeed(crypto.getRandomValues(new Uint32Array(1))[0] || 1); else setCatalogueAttempt((value) => value + 1); }}>Try again</button></div> : picks.length ? <div className={styles.grid}>{picks.map((pick, index) => renderCard(pick.game, { surface: "recommendations", recommendation_mode: mode, rank: (shownCount - 1) * WISHLIST_PICK_COUNT + index + 1 }, pick.reason, index === 0))}</div> : <p className={styles.emptySmall}>No new matches in this selection. Try another style or search Steam above.</p>}
-      {!catalogueLoading && !catalogueError && !cheapError && picks.length ? <div className={styles.moreRow}><button data-vault-control="secondary" className={styles.shuffleButton} type="button" disabled={cheapLoading} aria-busy={cheapLoading} onClick={() => showMore("bottom")}>{cheapLoading ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="refresh-data" size={17} />}{cheapLoading ? "Finding picks…" : "Refresh picks"}</button></div> : null}
+      {(catalogueLoading || !libraryLoaded || (cheapLoading && !picks.length)) && !ownedLibrary.error ? <VaultShuffleLoader active inline label="Loading recommendations" /> : catalogueError || cheapError || ownedLibrary.error ? <div className={styles.error} role="alert"><p>{ownedLibrary.error || catalogueError || cheapError}</p><button data-vault-control="secondary" onClick={() => { if (ownedLibrary.error) ownedLibrary.retry(); else if (cheapError) setShuffleSeed(crypto.getRandomValues(new Uint32Array(1))[0] || 1); else setCatalogueAttempt((value) => value + 1); }}>Try again</button></div> : picks.length ? <div className={styles.grid}>{picks.map((pick, index) => renderCard(pick.game, { surface: "recommendations", recommendation_mode: mode, rank: (shownCount - 1) * WISHLIST_PICK_COUNT + index + 1 }, pick.reason, index === 0))}</div> : <p className={styles.emptySmall}>No new matches in this selection. Try another style or search Steam above.</p>}
+      {libraryLoaded && !catalogueLoading && !catalogueError && !cheapError && !ownedLibrary.error && picks.length ? <div className={styles.moreRow}><button data-vault-control="secondary" className={styles.shuffleButton} type="button" disabled={cheapLoading} aria-busy={cheapLoading} onClick={() => showMore("bottom")}>{cheapLoading ? <span data-control-spinner aria-hidden="true" /> : <VaultIcon name="refresh-data" size={17} />}{cheapLoading ? "Finding picks…" : "Refresh picks"}</button></div> : null}
     </section>
 
     <section className={`${styles.section} ${styles.savedSection}`} aria-labelledby="saved-title" aria-busy={wishlist.loading}>

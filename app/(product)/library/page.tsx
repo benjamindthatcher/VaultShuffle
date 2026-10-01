@@ -15,6 +15,7 @@ import { LibraryToolbar } from "@/components/library/LibraryToolbar";
 import { EMPTY_LIBRARY_FILTERS, availableGenres, matchesLibraryFilters, type LibraryFilters } from "@/lib/library-filters";
 import { PlaceholderSlots } from "@/components/shared/PlaceholderSlots";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
 import { GuestPreviewNotice } from "@/components/guest/GuestPreviewNotice";
 import { recencySortKey } from "@/lib/recency";
@@ -465,7 +466,7 @@ export default function LibraryPage() {
         ) : null}
 
         <div className={styles.gamesScroller} aria-label={`${v2 ? remote.page?.total ?? 0 : filteredGames.length} games`} aria-busy={v2 && remote.pending}>
-          {v2 && remote.pending && !remote.page ? <p role="status">Loading your Library…</p> : ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} resetKey={JSON.stringify([query, filters, sort, sortReversed, statusTab, viewMode])} onComplete={(id) => void changeStatus(id, "complete")} onRestore={(id) => void changeStatus(id, "reactivate")} onBlacklist={(id) => void changeStatus(id, "blacklist")} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} loadMore={v2 && remote.page?.nextCursor ? () => void remote.loadMore() : undefined} total={v2 ? remote.page?.total : undefined} loadingMore={v2 && remote.pending} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
+          {v2 && remote.pending && !remote.page ? <VaultShuffleLoader active inline label="Loading your Library" /> : ordinaryGames.length ? <LibraryGameGrid games={ordinaryGames} viewMode={viewMode} onSelect={(id) => openGame(id, "catalogue")} resetKey={JSON.stringify([query, filters, sort, sortReversed, statusTab, viewMode])} onComplete={(id) => void changeStatus(id, "complete")} onRestore={(id) => void changeStatus(id, "reactivate")} onBlacklist={(id) => void changeStatus(id, "blacklist")} onTogglePin={(game) => void togglePin(game)} pinnedIds={vaultState.pinnedIds} loadMore={v2 && remote.page?.nextCursor ? () => void remote.loadMore() : undefined} total={v2 ? remote.page?.total : undefined} loadingMore={v2 && remote.pending} selectable={selectionMode} selectedIds={selected} onToggleSelect={toggleSelected} /> : (
             <div className={styles.placeholderGrid}>
               <PlaceholderSlots
                 count={4}

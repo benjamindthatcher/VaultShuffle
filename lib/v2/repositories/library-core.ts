@@ -5,6 +5,7 @@ import { libraryProducts, type LibraryProduct } from "./library-product.ts";
 import type { DatabaseClient, TenantTransaction, VerifiedServerPrincipal } from "../db/client.ts";
 import { DatabaseUnavailableError } from "../db/errors.ts";
 import { InvalidPageQueryError, PageCursorRestartRequiredError } from "./page-errors.ts";
+import { libraryAddedSort, libraryProgressSort } from "./library-sort.ts";
 
 export const LIBRARY_SORTS = ["recent", "title", "hours", "progress", "added", "duration", "status"] as const;
 export type LibrarySort = (typeof LIBRARY_SORTS)[number];
@@ -124,8 +125,8 @@ async function pageRows(tx: TenantTransaction, accountId: number, q: Normalized,
         (case when playtime_minutes <= duration_minutes*1.5 then '10' when playtime_minutes <= duration_minutes*2.5 then '08'
           when playtime_minutes <= duration_minutes*4 then '06' else '04' end)||':'||lpad(queue_value::text,20,'0')
         else case ${q.sort} when 'title' then lower(normalized_sort_title) when 'hours' then case when playtime_minutes is not null then lpad(playtime_minutes::text,20,'0') end
-        when 'progress' then case when manual_progress is not null then lpad(round(manual_progress*100)::text,20,'0') when duration_minutes>0 and playtime_minutes is not null then lpad(least(10000,round(playtime_minutes*10000.0/duration_minutes))::text,20,'0') end
-        when 'added' then case when date_added ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$' then date_added end when 'duration' then case when duration_minutes is not null then lpad(duration_minutes::text,20,'0') end
+        when 'progress' then ${libraryProgressSort(tx)}
+        when 'added' then ${libraryAddedSort(tx)} when 'duration' then case when duration_minutes is not null then lpad(duration_minutes::text,20,'0') end
         when 'status' then case when completed then '4' when blacklisted then '1' when coalesce(playtime_minutes,0)>0 then '3' else '2' end else case when ${q.section}='blacklisted' then lower(normalized_sort_title) when ${q.section}='completed' then to_char(completed_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS.US') when recency_evidence_kind in ('steam_exact','observed_playtime_change') then to_char(last_played_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS.US') when recency_evidence_kind='steam_recent_window' then to_char(observed_at at time zone 'UTC','YYYY-MM-DD HH24:MI:SS.US') end end end sort_value
       from base where (not ${q.completionCheck} or (access='owned' and playtime_minutes is not null and not completed
           and coalesce(duration_kind,'unknown')<>'endless' and duration_minutes>=120 and playtime_minutes>=duration_minutes*0.75

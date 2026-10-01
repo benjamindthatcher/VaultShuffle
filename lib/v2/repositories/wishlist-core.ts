@@ -1,6 +1,9 @@
 import type { DatabaseClient, TenantTransaction, VerifiedServerPrincipal } from "../db/client.ts";
 import { DatabaseUnavailableError } from "../db/errors.ts";
 import { InvalidPageQueryError } from "./page-errors.ts";
+import { playedWishlistSeeds, type WishlistLibraryContext, type WishlistTasteSeed } from "../../wishlist.ts";
+import { editionKey, playNextTagProfile } from "../../play-next.ts";
+import { splitGenres, steamTagGenreLabels, topLevelGenresFor } from "../../genres.ts";
 
 export type SavedWishlistGame = Readonly<{ appId: number; source: "local" | "steam"; addedAt: string }>;
 export type WishlistPage = Readonly<{ items: readonly SavedWishlistGame[]; appIds: readonly number[]; total: number }>;
@@ -13,6 +16,31 @@ export class InvalidWishlistQueryError extends InvalidPageQueryError {
 export class WishlistRepository {
   private readonly database: DatabaseClient;
   constructor(database: DatabaseClient) { this.database = database; }
+
+  /** Complete exclusions, with only the existing 120 representative taste seeds. */
+  async libraryContext(principal: VerifiedServerPrincipal): Promise<WishlistLibraryContext> {
+    return this.run(principal, async tx => {
+      const rows = await tx<{app_id:string;title:string;access:"owned"|"family";minutes:number|null;completed:boolean;blacklisted:boolean;genres:Array<string|{label:string}>;tags:Array<{tag:string;weight:number}>}[]>`
+        with accessible as (
+          select game_id,playtime_minutes,'owned'::text access from app.library_games where account_id=${principal.accountId}
+          union all select distinct game_id,null::integer,'family'::text from app.family_game_access f where account_id=${principal.accountId}
+            and not exists(select 1 from app.library_games l where l.account_id=f.account_id and l.game_id=f.game_id)
+        ) select g.steam_app_id::text app_id,g.title,a.access,a.playtime_minutes minutes,
+          s.completed_at is not null completed,coalesce(s.blacklisted,false) blacklisted,
+          coalesce(m.genres,'[]') genres,coalesce(m.weighted_tags,'[]') tags
+        from accessible a join catalog.games g on g.id=a.game_id
+        left join app.game_state s on s.account_id=${principal.accountId} and s.game_id=a.game_id
+        left join catalog.game_metadata m on m.game_id=a.game_id
+        where g.steam_app_id is not null order by g.id`;
+      const seeds: WishlistTasteSeed[] = rows.filter(row=>row.access==='owned'&&!row.blacklisted&&(row.completed||(row.minutes??0)>=180)).map(row=>{
+        const canonical=splitGenres(row.genres.map(genre=>typeof genre==='string'?genre:genre.label).join(' / '));
+        const tags=Object.fromEntries(row.tags.map(tag=>[tag.tag,tag.weight]));
+        const genres=splitGenres([...topLevelGenresFor([...canonical,...steamTagGenreLabels(tags,8)].join(' / '),row.title),...canonical,...steamTagGenreLabels(tags,8)].join(' / ')).slice(0,8);
+        return {steamAppId:Number(row.app_id),title:row.title,accessSource:row.access,status:row.completed?'Completed':'In Progress',hoursPlayed:(row.minutes??0)/60,genres,tagProfile:playNextTagProfile(tags)};
+      });
+      return {appIds:[...new Set(rows.map(row=>Number(row.app_id)))],editionKeys:[...new Set(rows.map(row=>editionKey(row.title)))],seeds:playedWishlistSeeds(seeds)};
+    });
+  }
 
   async list(principal: VerifiedServerPrincipal, offset = 0, limit = 24): Promise<WishlistPage> {
     if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100_000

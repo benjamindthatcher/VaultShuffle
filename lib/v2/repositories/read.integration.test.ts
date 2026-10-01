@@ -2232,3 +2232,94 @@ test('V2 reviewed HLTB writeback preserves overrides, quarantine, identity confl
   // A normal application cannot apply the operator-only writeback/resolver.
   await assert.rejects(fixture.database.sql`select catalog.reconcile_hltb_duration(5)`);
 });
+
+test("v1.2 regression summaries and sort keys work beyond the hydrated cache", async t => {
+  const fixture=createFixture();
+  t.after(()=>disposeFixture(fixture));
+  await t.test("Wishlist exclusions cover owned, blacklisted, retired and family games; taste stays bounded", async()=>{
+    const wishlist=new WishlistRepository(fixture.database);
+    const context=await wishlist.libraryContext(ACCOUNT_A);
+    assert.equal(context.appIds.length,1105);
+    for(const appId of [100001,100011,101005,101006,101105]) assert.ok(context.appIds.includes(appId));
+    assert.equal(context.seeds.length,120);
+    assert.ok(context.seeds.some(game=>game.status==='Completed'));
+    assert.ok(context.seeds.every(game=>game.accessSource==='owned'&&game.status!=='Blacklisted'));
+    const full=await collect(fixture.library,ACCOUNT_A,{section:'all'});
+    const {playedWishlistSeeds,recommendWishlist,wishlistOwned}=await import('../../wishlist.ts');
+    const {editionKey}=await import('../../play-next.ts');
+    assert.deepEqual(context.seeds.map(game=>game.steamAppId),playedWishlistSeeds(full.items.map(libraryGame)).map(game=>game.steamAppId));
+    const catalogue=[{appId:100011,title:'Owned',image:'',genres:['Strategy']},{appId:101006,title:'Borrowed',image:'',genres:['Strategy']},
+      {appId:999998,title:'Game 0000',image:'',genres:['Strategy']},{appId:999999,title:'New strategy adventure',image:'',genres:['Strategy']}];
+    assert.ok(context.editionKeys.includes(editionKey('Game 0000')));
+    assert.equal(wishlistOwned(catalogue[1],[],context),true);
+    assert.equal(wishlistOwned(catalogue[2],[],context),true);
+    const picks=recommendWishlist(catalogue,context.seeds,[],'for-you',1,'GB',context);
+    assert.deepEqual(picks.map(pick=>pick.game.appId),[999999]);
+    assert.equal(picks[0].signal,'library');
+    assert.deepEqual((await wishlist.libraryContext(ACCOUNT_B)).appIds,[101150]);
+    assert.deepEqual(await wishlist.libraryContext(EMPTY_ACCOUNT),{appIds:[],editionKeys:[],seeds:[]});
+  });
+  await t.test("Dashboard notices count every candidate and completion with trusted daily gains",async()=>{
+    psql(fixture,`
+      insert into catalog.games(id,steam_app_id,title,normalized_sort_title) overriding system value
+        select id,200000+id,'Recap '||id,'recap '||id from generate_series(3001,3080) id;
+      insert into app.library_games(account_id,game_id,playtime_minutes)
+        select 3,id,case when id=3079 then 0 when id=3080 then null else 240 end from generate_series(3001,3080) id;
+      insert into catalog.game_features(game_id,main_duration_minutes,duration_kind)
+        select id,300,case when id=3077 then 'endless' else 'finite' end from generate_series(3001,3080) id;
+      insert into app.game_state(account_id,game_id,completed_at)
+        select 3,id,current_timestamp-interval '1 day' from generate_series(3065,3076) id;
+      insert into app.game_state(account_id,game_id,completion_dismissed_at,completion_dismissed_playtime)
+        values(3,3078,current_timestamp,240);
+      insert into catalog.offers(game_id,provider,region_code,is_free,first_observed_at,last_observed_at)
+        select id,'steam','US',false,now(),now() from generate_series(3001,3080) id;
+      insert into catalog.offer_prices(offer_id,observed_at,currency,price_initial_cents,price_final_cents,is_free,is_current,retention_until)
+        select id,now(),'USD',1000,500,false,true,now()+interval '90 days' from catalog.offers where game_id between 3001 and 3080;
+      insert into app.playtime_daily(account_id,activity_day,observed_minutes,coverage)
+        select 3,(current_timestamp at time zone 'UTC')::date-day_offset,180-day_offset*60,'complete' from generate_series(0,3) day_offset;
+    `);
+    const payload=await fixture.dashboard.read(EMPTY_ACCOUNT);
+    assert.deepEqual(payload.completionSummary,{count:64,valueCents:64000});
+    assert.equal(payload.completionSuggestions.length,50);
+    const queue=await fixture.library.completionReview(EMPTY_ACCOUNT);
+    assert.equal(queue.total,64);assert.equal(queue.completionValueCents,64000);
+    assert.equal(payload.recentCompletions.length,8);
+    assert.equal(payload.completionActivity.length,1);
+    assert.equal(payload.completionActivity[0].count,12);
+    assert.equal(payload.completionActivity[0].games.length,2);
+    assert.equal(payload.trend.streakDays,3);
+    assert.deepEqual(payload.trend.dailyGains.map(gain=>gain.minutes),[60,60,60]);
+    psql(fixture,`update app.playtime_daily set coverage='unknown' where account_id=3 and activity_day=(current_timestamp at time zone 'UTC')::date-1`);
+    assert.equal((await fixture.dashboard.read(EMPTY_ACCOUNT)).trend.streakDays,0);
+    psql(fixture,`delete from app.playtime_daily where account_id=3 and activity_day=(current_timestamp at time zone 'UTC')::date-1`);
+    assert.equal((await fixture.dashboard.read(EMPTY_ACCOUNT)).trend.dailyGains.some(gain=>gain.day===new Date().toISOString().slice(0,10)),false,'a multi-day observation cannot prove today played');
+    assert.equal((await fixture.dashboard.read(ACCOUNT_B)).completionSummary.count,0);
+  });
+  await t.test("Progress and Added sorts match displayed values across keyset pages",async()=>{
+    psql(fixture,`
+      insert into catalog.games(id,steam_app_id,title,normalized_sort_title) overriding system value
+        select id,300000+id,'Parity '||id,'parity '||id from generate_series(4001,4008) id;
+      insert into app.library_games(account_id,game_id,playtime_minutes) values
+        (2,4001,300),(2,4002,0),(2,4003,null),(2,4004,100),(2,4005,101),(2,4006,0),(2,4007,null),(2,4008,500);
+      insert into catalog.game_features(game_id,main_duration_minutes,duration_kind)
+        select id,600,case when id=4002 then 'endless' else 'finite' end from generate_series(4001,4008) id;
+      insert into app.game_state(account_id,game_id,completed_at,manual_progress) values
+        (2,4003,null,80.25),(2,4006,current_timestamp,12),(2,4002,null,2),(2,4008,null,80);
+      insert into app.library_legacy_measurements(account_id,steam_app_id,legacy_date_added_raw) values
+        (2,304001,'2026-09-30T00:30:00+01:00'),(2,304002,'2026-09-01T08:00:00Z'),
+        (2,304003,'30/09/2026'),(2,304004,'2026-09-29'),(2,304005,'2026-09-30T00:00:00.123456Z'),
+        (2,304006,'2026-02-30'),(2,304007,'unknown'),(2,304008,'31/02/2026');
+    `);
+    for(const direction of ['asc','desc'] as const){
+      const progress=await collect(fixture.library,ACCOUNT_B,{section:'all',search:'Parity',sort:'progress',direction,limit:2});
+      const displayed=progress.items.map(libraryGame);
+      const expected=[...displayed].sort((a,b)=>(a.completionPercent-b.completionPercent||Number(a.id)-Number(b.id))*(direction==='asc'?1:-1));
+      assert.deepEqual(displayed.map(game=>game.id),expected.map(game=>game.id));
+    }
+    const added=await collect(fixture.library,ACCOUNT_B,{section:'all',search:'Parity',sort:'added',direction:'desc',limit:2});
+    assert.deepEqual(added.items.map(game=>game.gameId),[4005,4003,4001,4004,4002,4008,4007,4006]);
+    assert.equal(added.items.find(game=>game.gameId===4001)?.product?.dateAdded,'2026-09-30T00:30:00+01:00');
+    const oldest=await collect(fixture.library,ACCOUNT_B,{section:'all',search:'Parity',sort:'added',direction:'asc',limit:2});
+    assert.deepEqual(oldest.items.map(game=>game.gameId),[4002,4004,4001,4003,4005,4006,4007,4008]);
+  });
+});

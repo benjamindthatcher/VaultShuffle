@@ -23,13 +23,13 @@ export function steamImageUrl(appId: string | null | undefined, type: SteamImage
 }
 
 export function gameImageUrl(game: SteamArtworkSource | null | undefined, type: SteamImageType) {
-  const cached = type === "header" ? game?.header_url : type === "capsule" ? game?.capsule_url : "";
-  return steamImageUrl(game?.steam_appid, type) || cached;
+  const cached = type === "header" ? game?.header_url : game?.capsule_url;
+  return cached || steamImageUrl(game?.steam_appid, type);
 }
 
 export function steamImageCandidates(game: SteamArtworkSource | null | undefined, type: SteamImageType) {
   const clean = String(game?.steam_appid ?? "").replace(/\D/g, "");
-  const cached = type === "header" ? game?.header_url : type === "capsule" ? game?.capsule_url : "";
+  const cached = type === "header" ? game?.header_url : game?.capsule_url;
   const generated = clean ? STEAM_IMAGE_HOSTS.map((host) => steamImageUrl(clean, type, host)) : [];
-  return [...new Set([...generated, cached].filter(Boolean))] as string[];
+  return [...new Set([cached, ...generated].filter(Boolean))] as string[];
 }

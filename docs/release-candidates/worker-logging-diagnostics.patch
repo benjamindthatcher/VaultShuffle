@@ -1,0 +1,21 @@
+diff --git a/lib/worker-runs.ts b/lib/worker-runs.ts
+index d609fa8..cdcdaed 100644
+--- a/lib/worker-runs.ts
++++ b/lib/worker-runs.ts
+@@ -126,8 +126,12 @@ export function formatMetadataWorkerError(error: unknown, maxLength = 1_000) {
+ 
+ function logRunError(workerName: string, stage: "start" | "finish", error: unknown) {
+   const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+-  // Expected during a rolling deployment where code and migration can briefly
+-  // arrive in either order. All other errors stay visible in Vercel logs.
+-  if (code === "42P01" || code === "PGRST205") return;
+-  console.warn(`Could not ${stage} ${workerName} worker run record.`, error);
++  // A missing table or an unrefreshed PostgREST schema cache is expected during a
++  // rolling deployment, where code and migration can briefly arrive in either
++  // order. It is not expected to survive one, and dropping this exact class of
++  // error elsewhere is how a stale schema cache kept a dead duration queue
++  // looking healthy, so it stays in the logs - just below warning level.
++  const expectedDuringDeploy = code === "42P01" || code === "PGRST205";
++  const record = expectedDuringDeploy ? console.info : console.warn;
++  record(`Could not ${stage} ${workerName} worker run record.`, error);
+ }

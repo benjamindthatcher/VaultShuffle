@@ -13,17 +13,17 @@ type WishlistCardProps = {
 
 export function WishlistCard(props: WishlistCardProps) {
   const { game, reason, saved, owned, disabled, busy = false, context, eager = false, onToggle, onOpen } = props;
-  const [failed, setFailed] = useState(false);
-  const image = steamHeaderImage(game.appId);
+  const image = game.image || steamHeaderImage(game.appId);
+  const [failedImage, setFailedImage] = useState<string | null>(null);
   function trackStoreOpen() {
     trackNavigationEvent(ANALYTICS_EVENTS.wishlistStoreOpened, { ...context, steam_appid: game.appId, is_saved: saved, in_library: Boolean(owned), control: "store_button" });
   }
   return <article className={styles.card} data-vault-card="interactive" data-appid={game.appId}>
     <button type="button" className={styles.detailsTrigger} data-vault-card-trigger aria-label={`Details for ${game.title}`} aria-haspopup="dialog" onClick={onOpen} />
     <div className={styles.art}>
-      {/* Native Steam header artwork is already 460×215; preserve its ratio without image optimisation. */}
+      {/* Preserve Steam header proportions and serve the current artwork directly. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      {!failed ? <img src={image} alt="" width={460} height={215} loading={eager ? "eager" : "lazy"} onError={() => setFailed(true)} /> : <span className={styles.artFallback}><VaultIcon name="all-games" size={40} />{game.title}</span>}
+      {failedImage !== image ? <img src={image} alt="" width={460} height={215} loading={eager ? "eager" : "lazy"} onError={() => setFailedImage(image)} /> : <span className={styles.artFallback}><VaultIcon name="all-games" size={40} />{game.title}</span>}
       {game.source === "steam" ? <span className={styles.source}>From Steam</span> : null}
     </div>
     <div className={styles.cardBody}>

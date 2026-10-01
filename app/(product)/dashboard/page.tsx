@@ -18,6 +18,7 @@ import { libraryGame } from "@/lib/v2/library-view-model";
 import { globalFilterParams } from "@/lib/v2/filter-query";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
+import { VaultShuffleLoader } from "@/components/shared/VaultShuffleLoader";
 import { LibraryOverview } from "@/components/dashboard/LibraryOverview";
 import { buildBacklogStats, formatMoney } from "@/lib/backlog-stats";
 import { LOCAL_DASHBOARD_PREVIEW } from "@/lib/dashboard-preview";
@@ -75,8 +76,8 @@ export default function DashboardPage() {
     setDetailsGameId(null);
     setDetailsSurface(null);
   }
-  const completionNotice = useCompletionClaimNotice();
-  const welcomeNotice = useWelcomeBackNotice();
+  const completionNotice = useCompletionClaimNotice(remote.payload);
+  const welcomeNotice = useWelcomeBackNotice(remote.payload);
 
   const stats = useMemo(() => v2 && remote.payload ? dashboardStats(remote.payload) : buildBacklogStats(games), [v2,remote.payload,games]);
 
@@ -264,7 +265,7 @@ export default function DashboardPage() {
             emptySlotLabel="Let Vault find something worth playing."
           />
 
-          {v2 && remote.pending ? <p role="status">Loading your dashboard…</p> : null}
+          {v2 && remote.pending ? <VaultShuffleLoader active inline label="Loading your dashboard" /> : null}
           {v2 && remote.error ? <p role="alert">{remote.error} <button type="button" data-vault-control="secondary" onClick={remote.retry}>Retry</button></p> : null}
           {!v2 || remote.payload ? <LibraryOverview stats={stats} /> : null}
 

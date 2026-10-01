@@ -50,7 +50,9 @@ export function steamDetailPayload(appid: string, data: Record<string, unknown>)
     store: "Steam",
     notes: "",
     steam_appid: appid,
-    capsule_url: steamImageUrl(appid, "capsule"),
+    // Landscape cards need the current provider URL, including Steam's asset
+    // hash/version. A guessed small capsule can be stale or unavailable.
+    capsule_url: headerImage || steamImageUrl(appid, "header"),
     header_url: headerImage || steamImageUrl(appid, "header"),
     price_currency: cleanCurrency(price?.currency),
     price_initial: cleanMinorUnits(price?.initial),
