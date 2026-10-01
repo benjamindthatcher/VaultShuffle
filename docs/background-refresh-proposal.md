@@ -1,7 +1,7 @@
 # Background refresh proposal
 
-Status: the wider refresh policy below remains proposed. Two concrete catalogue
-bugs were fixed on 1 October 2026; their rollout status is recorded below.
+Status: partial publication and independent freshness are implemented. The
+remaining prioritisation and capacity suggestions below remain proposals.
 User constraint: all automatic background refresh must run nightly.
 
 ## Implemented bug fixes
@@ -17,8 +17,7 @@ User constraint: all automatic background refresh must run nightly.
   five-attempt bound. Exact response-loss replay cannot republish details, add
   price history or extend the cooldown. The supporting
   `20261001165805_preserve_metadata_on_optional_rate_limit.sql` migration is
-  applied to live V2; the worker change in
-  `lib/v2/import/catalogue-worker-core.ts` still requires application deployment.
+  applied to live V2. The corresponding worker change is included in this release.
 
 Both live migration records match their repository source hashes, and the live
 function body matches the tested implementation. Worker-only execution and the
@@ -28,7 +27,26 @@ not drain or modify the 13,292 pending jobs. The full repository check passed:
 Focused mocked-provider and isolated PostgreSQL cases cover optional 429s,
 preserved facts, replay, stale attempts and retry exhaustion.
 
-## What needs fixing
+## Independent freshness implemented
+
+`20261001172131_catalogue_signal_freshness.sql` and the catalogue worker recheck
+metadata, reviews and Deck freshness when claiming a job. Each has a 30-day
+clock. Existing review data has no invented check date and receives one refresh.
+Current jobs finish without a Store request or spacing delay. Reviews-only and
+Deck-only jobs preserve primary details, provider state and price history.
+
+Missing or failed optional signals retain their previous values and a bounded
+retry. Successful signals advance only their own clock; zero reviews and Valve's
+explicit Unknown rating count as valid results. Lease/revision fences and replay
+receipts apply to these partial updates as well as full metadata publication.
+
+The nightly schedules, daily guards, 100-game ceiling, 100-second deadline,
+650 ms Store spacing and shared 30-minute rate-limit pause remain unchanged.
+The worker summary now includes skipped jobs. Required CI runs type checking,
+lint/theme checks, main tests, isolated PostgreSQL V2 tests and a production build.
+CI uses an empty TLS-enabled local database with restricted app credentials.
+
+## Remaining capacity considerations
 
 The catalogue queue contains 13,292 pending games. These jobs were created after
 today's 04:00 UTC worker slot, so the absence of completions does not establish a
@@ -36,8 +54,8 @@ stuck worker. The problem is capacity: one short run each day cannot keep a larg
 backlog current.
 
 The V2 catalogue worker has a 100-second deadline and a nominal limit of 100
-games. Each successful game currently needs details, reviews and Steam Deck
-requests, with 650 ms spacing. The deadline will usually stop work before the
+games. A game with all three signals due needs details, reviews and Steam Deck
+requests, with 650 ms spacing. Current and partially current games use fewer calls. The deadline will usually stop work before the
 100-game limit. The owned-library scheduler admits up to 20 accounts per daily
 run; the audit found 741 eligible accounts, including 238 seen in the last month.
 Even with successful processing, a complete rotation at 20 per day takes about
@@ -56,10 +74,8 @@ Even with successful processing, a complete rotation at 20 per day takes about
    merely because an old `owned_identity` job remains pending. Metadata, reviews
    and Deck ratings need their own freshness decisions; a recent description
    must not prevent a genuinely due Deck update.
-3. **Publish details independently.** The optional-429 bug is fixed as described
-   above. A wider change to independent freshness decisions and requests for
-   details, reviews and Deck ratings remains proposed. The current bounded retry
-   still refetches the full bundle on the next admitted nightly run.
+3. **Publish details independently.** This is implemented as described above.
+   The next admitted retry fetches only signals whose freshness check is due.
 4. **Use the existing nightly time efficiently.** Retain the nightly schedules,
    daily admission guard and 100-second work deadlines. Spend most catalogue
    capacity on missing primary details, with a reserved share for due reviews
@@ -108,4 +124,5 @@ several nights of actual batch counts and queue-age movement before increasing
 any ceiling. Use the existing run records and bounded operational history.
 
 Nightly schedules, daily admission guards and batch/time ceilings are unchanged.
-The wider priority, freshness and capacity proposals have not been implemented.
+Priority, cohort refill and increased capacity remain proposals pending nightly
+throughput measurements; independent freshness and request skipping are implemented.
