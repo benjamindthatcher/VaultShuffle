@@ -3,6 +3,7 @@
 import type { CSSProperties } from "react";
 import { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
+import { SteamDeckDetails } from "@/components/shared/SteamDeckCompatibility";
 import { GameDetailsDialog } from "@/components/shared/GameDetailsDialog";
 import { Artwork } from "@/components/shared/Artwork";
 import { useIsMounted } from "@/components/shared/useIsMounted";
@@ -146,7 +147,7 @@ export function LibraryDetailsDrawer({
   if (!isPinnedSpotlight) return <GameDetailsDialog
     gameId={game.id} title={game.title} artwork={game.bannerUrl} description={game.description}
     titleAccessory={familyLine ? <FamilyMark title={familyLine} /> : undefined}
-    notice={familyLine ? <p className={styles.familyNotice}>{familyLine}</p> : undefined}
+    notice={<>{familyLine ? <p className={styles.familyNotice}>{familyLine}</p> : null}<SteamDeckDetails category={game.deckCompatibility} /></>}
     actions={<>{steamAction}<LibraryGameActions status={game.status} pinned={Boolean(pinSlot)} onBlacklist={onBlacklist ? () => void onBlacklist().catch(() => undefined) : undefined} onComplete={onComplete ? () => void onComplete().catch(() => undefined) : undefined} onRestore={onRestore ? () => void onRestore().catch(() => undefined) : undefined} onPlayingNext={pinHandler} /></>}
     stats={[
       { icon: "play-now", label: "Status", value: game.status === "Blacklisted" ? "Blacklisted" : game.status },
@@ -206,6 +207,7 @@ export function LibraryDetailsDrawer({
                 </div>
 
                 <p className={styles.pinnedLead} id={descriptionId}>You chose this for next. Give it the session you saved it for.</p>
+                <SteamDeckDetails category={game.deckCompatibility} />
 
                 <dl className={styles.spotlightStats}>
                   <div>

@@ -7,6 +7,7 @@ import { useAppData } from "@/components/app-shell/AppDataProvider";
 import { LibraryDetailsDrawer } from "@/components/library/LibraryDetailsDrawer";
 import { FilterPill } from "@/components/shared/FilterPill";
 import { ActionIcon } from "@/components/library/LibraryGameActions";
+import { FilteredSteamDeckBadge } from "@/components/shared/SteamDeckCompatibility";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { ManagePinsDialog } from "@/components/shared/ManagePinsDialog";
@@ -1200,6 +1201,7 @@ export default function VaultPage() {
                 <span className={styles.currentPickBadge}><VaultIcon name="current-pick" size={16} />Current pick</span>
               </div>
               <p className={styles.resultCopy}>{currentPick.description}</p>
+              <FilteredSteamDeckBadge category={currentPick.deckCompatibility} />
               {/* Sat on the summary bar until it ran out of room and truncated
                   to "ESTIMATED PLAYTHROUG". It reads better next to the game it
                   describes, in space that was going spare. */}

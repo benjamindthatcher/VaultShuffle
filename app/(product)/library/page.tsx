@@ -65,7 +65,7 @@ export default function LibraryPage() {
     const params = new URLSearchParams({limit:"60",section:statusTab,sort:serverSort,
       direction:(ascending !== sortReversed) ? "asc" : "desc",search:query,
       progress:filters.progress,length:filters.length,exclude_pins:"1",
-      access:globalFilters.access,device:globalFilters.device,players:globalFilters.players,
+      access:globalFilters.access,device:globalFilters.device,deck_rating:globalFilters.deckRating??"verified-playable",players:globalFilters.players,
       release_age:globalFilters.releaseAge,game_type:globalFilters.gameType,
       hide_poorly_reviewed:globalFilters.hidePoorlyReviewed ? "1" : "0"});
     for (const genre of filters.genres) params.append("genre",genre);

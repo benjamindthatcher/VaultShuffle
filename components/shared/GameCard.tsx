@@ -4,6 +4,7 @@ import { isEndlessProgress, progressLabel } from "@/lib/progress-display";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { DemoGame } from "@/lib/demo-data";
+import { FilteredSteamDeckBadge } from "@/components/shared/SteamDeckCompatibility";
 import { Artwork } from "@/components/shared/Artwork";
 import { useSteamPlayLink } from "@/components/shared/useSteamLaunch";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -104,6 +105,7 @@ export function GameCard({ game, layout = "grid", onClick, onComplete, onRestore
           {!isList ? <span className={styles.status}>{game.status}</span> : null}
         </div>
         <p className={styles.copy}>{game.description}</p>
+        <FilteredSteamDeckBadge category={game.deckCompatibility} />
         <div className={styles.metaRow}>
           {/* "Fresh pick" is a claim about the player, and on a family game the
               only hours that exist belong to whoever owns it. Saying nothing is

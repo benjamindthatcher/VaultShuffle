@@ -28,21 +28,22 @@ test('Store response-loss replay uses the same record and makes no second provid
   const totals=await runCatalogueWorker({queue:async()=>1,claim:async()=>claim,finish:async(_claim,result)=>{
     results.push(result);if(++finishes===1)throw Error('response_lost');return 'replayed';}},
     {fetch:async()=>{fetches++;return Response.json(complete());},deadlineAt:Date.now()+30000,maxJobs:1});
-  assert.equal(totals.published,1);assert.equal(fetches,2);assert.equal(finishes,2);assert.equal(results[0],results[1]);
+  assert.equal(totals.published,1);assert.equal(fetches,3);assert.equal(finishes,2);assert.equal(results[0],results[1]);
 });
-test('Store metadata refreshes reviews and looks up Deck only when no category is stored',async()=>{
+test('Store metadata refreshes reviews and rechecks Deck ratings on each scheduled refresh',async()=>{
   const paths:string[]=[];
+  let deckCategory=3;
   const fetch=async(input:RequestInfo|URL)=>{
     const url=new URL(String(input));paths.push(url.pathname);
     return Response.json(url.pathname.includes('appdetails')?complete():url.pathname.includes('appreviews')?
-      {success:1,query_summary:{total_reviews:100,total_positive:80}}:{success:1,results:{resolved_category:3}});
+      {success:1,query_summary:{total_reviews:100,total_positive:80}}:{success:1,results:{resolved_category:deckCategory}});
   };
   const unknown=await fetchCatalogueSignals(appId,fetch,signal());assert.equal(unknown.status,'complete');
   if(unknown.status!=='complete')throw Error('fixture');
   assert.deepEqual([unknown.details.reviewTotal,unknown.details.reviewPositive,unknown.details.deckCategory],[100,80,3]);
-  assert.equal(paths.length,3);paths.length=0;
-  const known=await fetchCatalogueSignals(appId,fetch,signal(),0);assert.equal(known.status,'complete');
-  if(known.status!=='complete')throw Error('fixture');assert.equal(known.details.deckCategory,null);assert.equal(paths.length,2);
+  assert.equal(paths.length,3);paths.length=0;deckCategory=0;
+  const known=await fetchCatalogueSignals(appId,fetch,signal());assert.equal(known.status,'complete');
+  if(known.status!=='complete')throw Error('fixture');assert.equal(known.details.deckCategory,0);assert.equal(paths.length,3);
 });
 test('Malformed or failed optional signals preserve good app details without manufacturing zero',async()=>{
   for(const summary of [null,{total_reviews:3,total_positive:4},{total_reviews:'3',total_positive:2}]) {
@@ -52,7 +53,7 @@ test('Malformed or failed optional signals preserve good app details without man
     assert.equal(result.details.reviewTotal,null);assert.equal(result.details.deckCategory,null);
   }
   const zero=await fetchCatalogueSignals(appId,async input=>Response.json(String(input).includes('appdetails')?complete():
-    {success:1,query_summary:{total_reviews:0,total_positive:0}}),signal(),3);
+    {success:1,query_summary:{total_reviews:0,total_positive:0}}),signal());
   assert.equal(zero.status,'complete');if(zero.status!=='complete')throw Error('fixture');assert.equal(zero.details.reviewTotal,0);
 });
 test('Optional 429 stops the Store batch and optional oversized bodies stay bounded',async()=>{
@@ -61,7 +62,7 @@ test('Optional 429 stops the Store batch and optional oversized bodies stay boun
     Response.json(complete()):new Response('',{status:429});},signal());
   assert.deepEqual(result,{appId,status:'retryable',rateLimited:true});assert.equal(calls,2);
   const large=await fetchCatalogueSignals(appId,async input=>String(input).includes('appdetails')?
-    Response.json(complete()):new Response('x'.repeat(65537)),signal(),2);
+    Response.json(complete()):new Response('x'.repeat(65537)),signal());
   assert.equal(large.status,'complete');if(large.status!=='complete')throw Error('fixture');assert.equal(large.details.reviewTotal,null);
 });
 test('fixture mode and insufficient deadline never send a live Store call',async()=>{

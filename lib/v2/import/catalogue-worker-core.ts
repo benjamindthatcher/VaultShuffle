@@ -56,7 +56,7 @@ export async function fetchCatalogueMetadata(appId:string,transport:typeof fetch
 }
 
 /** Keep optional Store signals separate from the authoritative app-details body. */
-export async function fetchCatalogueSignals(appId:string,transport:typeof fetch,signal:AbortSignal,knownDeck:number|null=null):Promise<CatalogueResult> {
+export async function fetchCatalogueSignals(appId:string,transport:typeof fetch,signal:AbortSignal):Promise<CatalogueResult> {
   const result=await fetchCatalogueMetadata(appId,transport,signal);
   if(result.status!=='complete')return result;
   async function optionalJson(url:string):Promise<{payload:unknown;rateLimited:boolean}> {
@@ -83,8 +83,10 @@ export async function fetchCatalogueSignals(appId:string,transport:typeof fetch,
     summary.total_reviews!>=0&&summary.total_reviews!<=2147483647&&summary.total_positive!>=0&&summary.total_positive!<=summary.total_reviews!) {
     result.details.reviewTotal=summary.total_reviews!;result.details.reviewPositive=summary.total_positive!;
   }
-  // Match the existing once-only lookup: a stored category 0 is a known result.
-  if(knownDeck===null&&!signal.aborted) {
+  // Jobs are queued when metadata is at least 30 days old. Recheck known
+  // ratings too: Valve may upgrade or downgrade compatibility. A failed lookup
+  // stays null here so finish_catalogue_metadata preserves the stored rating.
+  if(!signal.aborted) {
     const deck=await optionalJson(`https://store.steampowered.com/saleaction/ajaxgetdeckappcompatibilityreport?nAppID=${appId}&l=english`);
     if(deck.rateLimited)return {appId,status:'retryable',rateLimited:true};
     const payload=deck.payload as {success?:number;results?:{resolved_category?:number}}|null;
@@ -121,7 +123,7 @@ export async function runCatalogueWorker(repository:Pick<CatalogueWorkerReposito
     // Fixtures may be tested through the core but are never sent to live Steam.
     if(claim.provider_mode!=='live')break;
     totals.claimed++;
-    const result=await fetchCatalogueSignals(claim.steam_app_id,options.fetch,AbortSignal.timeout(Math.min(15000,options.deadlineAt-Date.now()-2000)),claim.known_deck??null);
+    const result=await fetchCatalogueSignals(claim.steam_app_id,options.fetch,AbortSignal.timeout(Math.min(15000,options.deadlineAt-Date.now()-2000)));
     let outcome:string;
     try {outcome=await repository.finish(claim,result);}
     catch {outcome=await repository.finish(claim,result);} // response-loss replay of the same record

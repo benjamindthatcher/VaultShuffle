@@ -2,6 +2,7 @@
 
 import { memo, useCallback, useEffect, useRef } from "react";
 import { type VaultPoolEntry } from "@/lib/vault";
+import { FilteredSteamDeckBadge } from "@/components/shared/SteamDeckCompatibility";
 import { Artwork } from "@/components/shared/Artwork";
 import { VaultIcon } from "@/components/shared/VaultIcon";
 import { candidateFallback } from "@/lib/vaultshuffle-assets";
@@ -161,6 +162,7 @@ const PoolCard = memo(function PoolCard({ game, score, index, highlighted, onSel
         </div>
         <div className={styles.cardBody}>
           <h3 className={styles.cardTitle}>{game.title}</h3>
+          <FilteredSteamDeckBadge category={game.deckCompatibility} />
           <div className={styles.tagRow}>{game.genres.slice(0, 2).map((genre) => <span key={genre}>{genre}</span>)}</div>
           <div className={styles.cardMeta}>
             <strong className={styles.fitLabel} data-fit={fit}><span aria-hidden="true">★</span>{fitLabel}</strong>

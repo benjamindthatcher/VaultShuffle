@@ -1,4 +1,5 @@
 import type { DemoGame } from "@/lib/demo-data";
+import { FilteredSteamDeckBadge } from "@/components/shared/SteamDeckCompatibility";
 import { Artwork } from "@/components/shared/Artwork";
 import { FamilyGameMark } from "@/components/shared/FamilyMark";
 import { formatGameDuration } from "@/lib/game-duration";
@@ -28,6 +29,7 @@ export function LibraryGameCard({ game, layout, onSelect, onBlacklist, onComplet
         <span className={styles.artwork}><Artwork src={game.bannerUrl} sizes={layout === "list" ? "240px" : "(max-width: 760px) 100vw, 25vw"} /><FamilyGameMark game={game} overlay /></span>
         <span className={styles.body}>
           <span className={styles.title}>{game.title}</span>
+          <FilteredSteamDeckBadge category={game.deckCompatibility} />
           <span className={styles.status} data-status={game.status}>{game.status === "Blacklisted" ? "Blacklisted" : game.status}</span>
           <span className={styles.meta}>{game.accessSource === "family" ? "Family library" : game.playtimeKnown === false ? "Playtime unavailable" : game.hoursPlayed > 0 ? `${game.hoursPlayed}h played` : "Fresh pick"}{duration ? ` · ${duration}` : ""}</span>
           <span className={styles.progress}>{progressLabel(game)}<span> progress</span></span>

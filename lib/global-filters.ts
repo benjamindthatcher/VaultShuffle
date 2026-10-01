@@ -39,6 +39,8 @@ export type AccessMode = "all" | "owned" | "family";
 
 export type GlobalFilters = {
   device: DeviceMode;
+  /** Optional for older saved filters; only applies while device is Steam Deck. */
+  deckRating?: "verified-playable" | "verified";
   players: "any" | PlayerMode;
   releaseAge: ReleaseAge;
   gameType: GameType;
@@ -58,6 +60,7 @@ export type GlobalFilters = {
 
 export const DEFAULT_GLOBAL_FILTERS: GlobalFilters = {
   device: "all",
+  deckRating: "verified-playable",
   players: "any",
   releaseAge: "any",
   gameType: "all",
@@ -102,7 +105,7 @@ export function parsePlayerMode(value: string | null | undefined): PlayerMode | 
  * 1 unsupported, 0 unknown. Unknown is excluded rather than assumed playable -
  * the point of the mode is confidence that a pick will actually run.
  */
-function matchesDevice(game: DemoGame, mode: DeviceMode) {
+function matchesDevice(game: DemoGame, mode: DeviceMode, deckRating: GlobalFilters["deckRating"]) {
   if (mode === "all") return true;
   if (mode === "mac") return Boolean(game.platforms?.mac);
   // A native Linux build, which is a different question from Deck: the Deck
@@ -110,7 +113,7 @@ function matchesDevice(game: DemoGame, mode: DeviceMode) {
   // build" are neither the same set nor one inside the other. Someone on a
   // desktop Linux machine wants this one.
   if (mode === "linux") return Boolean(game.platforms?.linux);
-  return (game.deckCompatibility ?? 0) >= 2;
+  return game.deckCompatibility === 3 || (deckRating !== "verified" && game.deckCompatibility === 2);
 }
 
 function matchesPlayers(game: DemoGame, want: GlobalFilters["players"]) {
@@ -187,7 +190,7 @@ function matchesExclusions(game: DemoGame, excluded: string[]) {
 }
 
 export function matchesGlobalFilters(game: DemoGame, filters: GlobalFilters, now = Date.now()) {
-  return matchesDevice(game, filters.device)
+  return matchesDevice(game, filters.device, filters.deckRating)
     && matchesPlayers(game, filters.players)
     && matchesReleaseAge(game, filters.releaseAge, now)
     && matchesGameType(game, filters.gameType)
@@ -246,6 +249,7 @@ export function parseGlobalFilters(raw: string | null | undefined): GlobalFilter
 
   return {
     device: pick(value.device, ["all", "mac", "linux", "deck"] as const, "all"),
+    deckRating: pick(value.deckRating, ["verified-playable", "verified"] as const, "verified-playable"),
     players: pick(value.players, ["any", "single", "coop", "multi"] as const, "any"),
     releaseAge: pick(value.releaseAge, ["any", "recent", "modern", "established", "classic"] as const, "any"),
     gameType: pick(value.gameType, ["all", "finite", "endless"] as const, "all"),

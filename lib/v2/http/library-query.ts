@@ -1,7 +1,7 @@
 import { LIBRARY_SORTS, type LibraryQuery } from "../repositories/library-core.ts";
 import { InvalidPageQueryError } from "../repositories/page-errors.ts";
 
-const KEYS = ["cursor", "limit", "search", "access", "progress", "length", "genre", "section", "sort", "direction", "device", "players", "release_age", "game_type", "hide_poorly_reviewed", "excluded", "exclude_pins", "exclude_collection"];
+const KEYS = ["cursor", "limit", "search", "access", "progress", "length", "genre", "section", "sort", "direction", "device", "deck_rating", "players", "release_age", "game_type", "hide_poorly_reviewed", "excluded", "exclude_pins", "exclude_collection"];
 
 export function libraryQuery(params: URLSearchParams): LibraryQuery {
   if (params.toString().length > 4096) throw new InvalidPageQueryError();
@@ -27,6 +27,7 @@ export function libraryQuery(params: URLSearchParams): LibraryQuery {
     excludeCollection: params.get("exclude_collection") ?? undefined,
     globalFilters: {
       device: choice(params, "device", ["all", "mac", "linux", "deck"]) ?? "all",
+      deckRating: choice(params, "deck_rating", ["verified-playable", "verified"]) ?? "verified-playable",
       players: choice(params, "players", ["any", "single", "coop", "multi"]) ?? "any",
       releaseAge: choice(params, "release_age", ["any", "recent", "modern", "established", "classic"]) ?? "any",
       gameType: choice(params, "game_type", ["all", "finite", "endless"]) ?? "all",

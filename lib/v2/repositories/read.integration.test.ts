@@ -506,7 +506,7 @@ test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acce
   await t.test("standing filters and Library pins affect the complete server rowset before paging", async () => {
     const all = await collect(fixture.library, ACCOUNT_A, { section: 'all', limit: 100 });
     for (const changes of [
-      { device: 'mac' }, { device: 'linux' }, { device: 'deck' }, { players: 'single' },
+      { device: 'mac' }, { device: 'linux' }, { device: 'deck' }, { device: 'deck', deckRating: 'verified' }, { players: 'single' },
       { releaseAge: 'recent' }, { releaseAge: 'classic' }, { gameType: 'finite' }, { gameType: 'endless' },
       { hidePoorlyReviewed: true }, { excluded: ['strategy'] }, { excluded: ['strategy','puzzle'] },
     ] as const) {
@@ -1619,6 +1619,17 @@ test('V2 catalogue outbox drains with leases, stale fences and preserved authore
     assert.equal(psql(fixture,"select review_total||':'||review_positive||':'||review_negative||':'||deck_compatibility_detail||':'||deck_compatibility from catalog.game_features where game_id=5",true),'100:80:20:3:supported');
   });
   const queue=()=>psql(fixture,"delete from ops.enrichment_outbox;insert into ops.enrichment_outbox(provider,game_id,catalog_revision,kind) values('steam_store',5,0,'metadata')");
+  await t.test('scheduled Deck refreshes replace known ratings, including Unknown, and replay stays fenced',async()=>{
+    for(const category of [2,1,0,3]) {
+      queue();const claim=await repository.claim();assert.ok(claim);
+      const refresh: typeof result={...result,details:{...result.details,deckCategory:category}};
+      assert.equal(await repository.finish(claim,refresh),'published');
+      const checked=psql(fixture,"select deck_checked_at from catalog.game_features where game_id=5",true);
+      assert.equal(await repository.finish(claim,refresh),'replayed');
+      assert.equal(psql(fixture,"select deck_checked_at from catalog.game_features where game_id=5",true),checked);
+      assert.equal(psql(fixture,"select deck_compatibility_detail||':'||deck_compatibility from catalog.game_features where game_id=5",true),`${category}:${category>=2?'supported':category===1?'unsupported':'unknown'}`);
+    }
+  });
   await t.test('optional failures preserve reviews/Deck; invalid signal bundles cannot publish',async()=>{
     queue();const claim=await repository.claim();assert.ok(claim);assert.equal(claim.known_deck,3);
     for(const fields of [{reviewTotal:10,reviewPositive:11},{reviewTotal:null,reviewPositive:1},{deckCategory:4}])

@@ -1,0 +1,24 @@
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: fit-content;
+  max-width: 100%;
+  grid-column: 1 / -1;
+  padding: 3px 7px;
+  border: 1px solid var(--vault-border);
+  border-radius: 6px;
+  background: var(--vault-well-surface);
+  color: var(--vault-text-muted);
+  font-size: .7rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+}
+.badge img, .badge svg { width: 18px; height: 18px; flex: none; object-fit: contain; }
+.badge[data-rating="verified"] { color: var(--vault-success); }
+.badge[data-rating="playable"] { color: var(--vault-warning); }
+.badge[data-rating="unsupported"] { color: var(--vault-danger); }
+.details { margin: 12px 0; }
+.details .badge { font-size: .78rem; }
+.details p { margin: 7px 0 0; color: var(--vault-text-muted); font-size: .8rem; line-height: 1.55; }

@@ -319,8 +319,7 @@ async function fetchSteamReviewSummary(appid: string): Promise<SteamAppDetails |
  *
  * Not part of appdetails — it lives on its own store endpoint and returns a
  * resolved category: 0 unknown, 1 unsupported, 2 playable, 3 verified. Fetched
- * only for games that have no value yet, so it costs one extra request per game
- * once rather than on every refresh.
+ * for missing or stale ratings during catalogue metadata refreshes.
  */
 export async function fetchSteamDeckCompatibility(appid: string): Promise<number | null> {
   try {
@@ -331,8 +330,8 @@ export async function fetchSteamDeckCompatibility(appid: string): Promise<number
     if (!response.ok) return null;
     const payload = await response.json() as { success?: number; results?: { resolved_category?: number } };
     if (!payload?.success || !payload.results) return null;
-    const category = Number(payload.results.resolved_category);
-    return Number.isFinite(category) ? category : null;
+    const category = payload.results.resolved_category;
+    return typeof category === "number" && Number.isInteger(category) && category >= 0 && category <= 3 ? category : null;
   } catch {
     return null;
   }

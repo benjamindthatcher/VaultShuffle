@@ -201,7 +201,7 @@ test("a stored shape from an older release cannot empty the library", () => {
   // the player never asked to hide, on a filter they have never seen.
   assert.deepEqual(
     parseGlobalFilters('{"device":"deck","players":"coop","releaseAge":"classic","gameType":"endless","hidePoorlyReviewed":true}'),
-    { device: "deck", players: "coop", releaseAge: "classic", gameType: "endless", access: "all", hidePoorlyReviewed: true, excluded: [] }
+    { device: "deck", deckRating: "verified-playable", players: "coop", releaseAge: "classic", gameType: "endless", access: "all", hidePoorlyReviewed: true, excluded: [] }
   );
   assert.equal(parseGlobalFilters('{"access":"borrowed"}').access, "all");
   assert.equal(parseGlobalFilters('{"access":"family"}').access, "family");
@@ -239,4 +239,17 @@ test("the access filter separates what you own from what a family lends", () => 
 test("access counts as an active filter and clears with the rest", () => {
   assert.equal(activeGlobalFilterCount(filters({ access: "family" })), 1);
   assert.equal(activeGlobalFilterCount(filters({ access: "all" })), 0);
+});
+
+test("Deck verified-only applies only in Deck mode and older preferences stay inclusive", () => {
+  const strict = filters({ device: "deck", deckRating: "verified" });
+  for (const rating of [0, 1, 2, 3, null, undefined, 4]) {
+    assert.equal(matchesGlobalFilters(game({ deckCompatibility: rating }), strict, now), rating === 3);
+  }
+  assert.equal(matchesGlobalFilters(game({ deckCompatibility: 2 }), filters({ device: "deck", deckRating: undefined }), now), true);
+  assert.equal(matchesGlobalFilters(game({ deckCompatibility: 0 }), filters({ device: "all", deckRating: "verified" }), now), true);
+  assert.equal(activeGlobalFilterCount(strict), 1);
+  assert.equal(parseGlobalFilters('{"device":"deck"}').deckRating, "verified-playable");
+  assert.equal(parseGlobalFilters('{"device":"deck","deckRating":"bad"}').deckRating, "verified-playable");
+  assert.equal(parseGlobalFilters(JSON.stringify(strict)).deckRating, "verified");
 });

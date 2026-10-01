@@ -1,4 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { shouldRefreshDeckRating } from "./steam-deck";
 import { fetchSteamAppDetails, SteamAppRequestError, SteamAppUnavailableError, fetchSteamDeckCompatibility } from "@/lib/steam";
 import type { GamePayload } from "@/lib/types";
 import { catalogueGameStubRows } from "@/lib/catalogue-stubs";
@@ -339,15 +340,18 @@ async function persistSteamCatalogueDetails(
   const reviewTotal = Math.max(0, Number(details.review_total || 0));
   const reviewPositive = Math.max(0, Number(details.review_positive || 0));
 
-  // Only fetched when we do not already have it, so the extra request happens
-  // once per game rather than on every metadata refresh.
+  // Refresh ratings monthly; a failed lookup must not erase a known rating
+  // or make its checked timestamp look newer than it really is.
   const { data: existingDeck } = await supabase
     .from("catalog_games")
-    .select("deck_compatibility")
+    .select("deck_compatibility,deck_checked_at")
     .eq("steam_appid", steamAppId)
     .maybeSingle();
-  const knownDeck = (existingDeck as { deck_compatibility?: number | null } | null)?.deck_compatibility ?? null;
-  const deckCompatibility = knownDeck ?? await fetchSteamDeckCompatibility(String(steamAppId));
+  const previousDeck = existingDeck as { deck_compatibility?: number | null; deck_checked_at?: string | null } | null;
+  const knownDeck = previousDeck?.deck_compatibility ?? null;
+  const refreshedDeck = shouldRefreshDeckRating(knownDeck, previousDeck?.deck_checked_at)
+    ? await fetchSteamDeckCompatibility(String(steamAppId)) : null;
+  const deckCompatibility = refreshedDeck ?? knownDeck;
   const isUsd = details.price_currency === "USD";
   const { error } = await supabase.from("catalog_games").upsert({
     steam_appid: steamAppId,
@@ -362,7 +366,7 @@ async function persistSteamCatalogueDetails(
     release_date: details.release_date || null,
     is_free: Boolean(details.is_free),
     deck_compatibility: deckCompatibility,
-    deck_checked_at: deckCompatibility === null ? null : now,
+    deck_checked_at: refreshedDeck !== null ? now : previousDeck?.deck_checked_at ?? null,
     platform_windows: details.platform_windows ?? null,
     platform_mac: details.platform_mac ?? null,
     platform_linux: details.platform_linux ?? null,

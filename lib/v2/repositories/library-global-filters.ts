@@ -6,6 +6,7 @@ import { InvalidPageQueryError } from "./page-errors.ts";
 export function libraryGlobalFilters(value?: GlobalFilters): GlobalFilters {
   const f = value ?? DEFAULT_GLOBAL_FILTERS;
   if (!f || !["all", "mac", "linux", "deck"].includes(f.device)
+    || (f.deckRating !== undefined && !["verified-playable", "verified"].includes(f.deckRating))
     || !["any", "single", "coop", "multi"].includes(f.players)
     || !["any", "recent", "modern", "established", "classic"].includes(f.releaseAge)
     || !["all", "finite", "endless"].includes(f.gameType)
@@ -13,7 +14,7 @@ export function libraryGlobalFilters(value?: GlobalFilters): GlobalFilters {
     || typeof f.hidePoorlyReviewed !== "boolean" || !Array.isArray(f.excluded)
     || f.excluded.length > EXCLUSION_CATEGORIES.length
     || f.excluded.some(id => !EXCLUSION_CATEGORIES.some(c => c.id === id))) throw new InvalidPageQueryError();
-  return { ...f, excluded: [...new Set(f.excluded)].sort() };
+  return { ...f, deckRating: f.deckRating ?? "verified-playable", excluded: [...new Set(f.excluded)].sort() };
 }
 
 /** Same standing filters as the current product, applied before counts/paging. */
@@ -46,7 +47,8 @@ export function libraryGlobalPredicate(tx: TenantTransaction, f: GlobalFilters) 
   return tx`
     (${f.device}='all' or (${f.device}='mac' and gf.mac_compatibility='supported')
       or (${f.device}='linux' and gf.linux_compatibility='supported')
-      or (${f.device}='deck' and gf.deck_compatibility_detail>=2))
+      or (${f.device}='deck' and (gf.deck_compatibility_detail=3
+        or (${f.deckRating ?? 'verified-playable'}='verified-playable' and gf.deck_compatibility_detail=2))))
     and (${f.players}='any' or gf.player_mode=${f.players})
     and (${f.releaseAge}='any' or (gm.release_date is not null and case ${f.releaseAge}
       when 'recent' then extract(epoch from (${now}::timestamptz-(gm.release_date::timestamp at time zone 'UTC')))/31557600 < 2
