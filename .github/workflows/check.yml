@@ -48,7 +48,7 @@ jobs:
           chmod 600 "$fixture_root/server.key"
           "$VAULT_TEST_PG_BIN/initdb" -D "$fixture_root/data" -A trust -U postgres
           "$VAULT_TEST_PG_BIN/pg_ctl" -D "$fixture_root/data" -l "$fixture_root/postgres.log" \
-            -o "-F -p 55432 -c listen_addresses=127.0.0.1 -c ssl=on -c ssl_cert_file=$fixture_root/server.crt -c ssl_key_file=$fixture_root/server.key" -w start
+            -o "-F -k $fixture_root -p 55432 -c listen_addresses=127.0.0.1 -c ssl=on -c ssl_cert_file=$fixture_root/server.crt -c ssl_key_file=$fixture_root/server.key" -w start || { cat "$fixture_root/postgres.log"; exit 1; }
           "$VAULT_TEST_PG_BIN/createdb" -h 127.0.0.1 -p 55432 -U postgres vault_ci_build
           for migration in database/v2/supabase/migrations/*.sql; do
             "$VAULT_TEST_PG_BIN/psql" -X -q -v ON_ERROR_STOP=1 -h 127.0.0.1 -p 55432 -U postgres -d vault_ci_build -f "$migration"
