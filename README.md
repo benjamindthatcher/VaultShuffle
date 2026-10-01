@@ -36,16 +36,15 @@ flowchart LR
 
 ## Data Model
 
-The main hosted data lives in Supabase:
+Production uses the V2 private PostgreSQL schemas in Virginia. V1 has been deleted.
 
-- `app_users`: Steam identity, display name, avatar, and account timestamps.
-- `catalog_games`: one canonical row per Steam AppID containing shared titles, artwork, genres, tags, reviews, prices, and duration data.
-- `user_games`: the mutable per-account ownership and progress record. Its stable UUID is referenced by Collections, Purge, pins, snoozes, and Vault state.
-- `user_games_with_catalog`: the read model joining each ownership record to its canonical catalogue data.
-- `sessions`: server-side session records used by the HTTP-only auth cookie.
-- `vault_draws` and `vault_draw_events`: bounded draw history and follow-up actions.
+- `app.accounts` and `app.sessions`: stable account identities and existing session cookies.
+- `catalog.games` and related catalogue tables: shared Steam metadata, tags, HLTB durations, human review and regional Store prices.
+- `app.library_games`, `app.game_activity` and `app.game_state`: ownership, personal observations and sparse authored decisions, including permanent Blacklist.
+- Owner-scoped Collections, Wishlist, Family access and Vault state/history.
+- `ops` and `reco`: bounded workers, provider quotas and recommendation state.
 
-Guest mode is read-only and draws from 250 popular records in the live canonical catalogue. It never creates ownership rows.
+See [database architecture](docs/database-architecture.md) and [database operations](docs/v2-cutover-runbook.md). Guest mode uses the public catalogue without creating account/library rows.
 
 ## Notable Implementation Details
 
@@ -53,20 +52,24 @@ Guest mode is read-only and draws from 250 popular records in the live canonical
 - **Canonical metadata:** Steam app details are stored once in the catalogue and refreshed in leased batches.
 - **Top-level genre filters:** Games can keep detailed genre tags, but filtering is intentionally reduced to broad useful categories.
 - **Shared game classification:** status, progress, length, and endless-game logic are centralised so the app and API agree.
-- **Hosted environment:** secrets such as the Steam API key and Supabase service role key live in Vercel environment variables.
+- **Hosted environment:** Steam, session and cron secrets plus restricted V2 app/worker connection settings live in Vercel environment variables; ordinary requests do not use the database owner.
 
 
 Local development is possible with the same variables, but the public project is intended to be reviewed through the live deployment.
 
 ## Quality Checks
 
-The main safety check is the production build:
+Run the checks appropriate to a change:
 
 ```bash
+npm run typecheck
+npm run lint
+npm test
+npm run test:v2
 npm run build
 ```
 
-The project is actively being tightened up with more extracted components, shared helpers, and future automated checks.
+V2 repository and worker tests include disposable PostgreSQL integration checks. Applied migrations remain immutable; completed migration setup tooling is retired.
 
 ## Roadmap
 

@@ -22,7 +22,8 @@ import {
 } from "./steam-owned-snapshot.ts";
 
 /**
- * These names and positional argument arrays mirror database/v2/M2-contract.md.
+ * These names and positional argument arrays mirror the applied M2 SQL migration
+ * and its additive follow-ups in database/v2/supabase/migrations.
  * The mapping core has no SQL client or implicit connection; a caller may opt
  * into the bounded local psql adapter below when the migration is frozen.
  */

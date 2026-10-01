@@ -157,5 +157,11 @@
     "staging_due_at": "2026-10-31T11:08:02.828928+00:00",
     "staging_retention_days": 30
   },
-  "recovery_boundary": "After V2 writes, recover forward on V2. Blind source rollback is not accepted."
+  "recovery_boundary": "After V2 writes, recover forward on V2. Blind source rollback is not accepted.",
+  "source_lifecycle": {
+    "state": "deleted",
+    "reported_by": "user",
+    "reported_on": "2026-10-01",
+    "note": "The source fence above records acceptance-time evidence, not a current recovery option. Recovery uses V2 backups."
+  }
 }

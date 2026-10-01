@@ -19,7 +19,7 @@
     "duration:hltb": "python3 scripts/durations/enrich-hltb.py",
     "test:e2e": "playwright test",
     "theme:check": "node --experimental-strip-types scripts/check-theme.mjs",
-    "test:v2": "node --experimental-strip-types --test lib/v2/**/*.test.ts lib/v2/migration/**/*.test.ts scripts/migration/*.test.mjs"
+    "test:v2": "node --experimental-strip-types --test lib/v2/**/*.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

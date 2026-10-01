@@ -1,96 +1,29 @@
 # Database architecture
 
-VaultShuffle separates shared game facts from user-specific state.
+Production uses the V2 PostgreSQL database in Virginia, project `vbjtbwelnhbbdfrqczyf`. V1 has been deleted. The applied schema lives in `database/v2/supabase/migrations`; use additive migrations for future changes.
 
-## Shared, AppID-keyed data
+## Shared catalogue and personal data
 
-- `catalog_games` is the canonical Steam game record. Titles, genres, artwork,
-  reviews, prices, quarantine classification, and duration estimates belong
-  here and are stored once.
-- `catalog_ingest_queue` and `game_duration_jobs` contain at most one current
-  job per Steam AppID.
-- `catalog_user_imports` is the private many-to-many import ledger. Its
-  `(user_id, steam_appid)` primary key prevents duplicate ownership records
-  across repeated syncs.
+`catalog.games` stores stable internal game keys and Steam AppIDs. Shared metadata, classifications, tags, HLTB duration estimates, human review and region-specific Store data stay in the catalogue rather than being copied into every library.
 
-Metadata refreshes must update these shared tables only. They must never fan
-out an update across every user's copy of the same Steam game.
+`app.accounts` retains public account UUIDs alongside compact internal keys. `app.library_games` records personal ownership; Family access is separate. `app.game_activity` records the player's own observed activity, and `app.game_state` stores sparse authored decisions. Losing access does not erase completion, notes or other personal history. Lender playtime is never treated as borrower playtime.
 
-## Per-user game data
+Collections, pins, Vault state, draw history, preferences and Wishlist entries have owner-scoped relations. Wishlist remains independent of Library ownership. SteamID64 values cross JavaScript/JSON boundaries as strings; Steam AppIDs are not narrowed to signed 32-bit integers.
 
-- `user_games` is the mutable per-account boundary used by application writes.
-  It is the physical **access** table and retains the stable UUID used by
-  collections, pins, purge reviews, and other user state. It was the ownership
-  table until Steam Families; `access_source` is what now says whether a row is
-  owned outright (`owned`) or reachable through a family member's library
-  (`family`). Every pre-existing row is `owned`.
-- `user_games_with_catalog` is a read-only, security-invoker view that joins
-  every ownership record to exactly one `catalog_games` row.
-- The ownership record's catalogue foreign key references the shared
-  `catalog_games` row.
-- Ownership, lifecycle status, playtime, progress, notes, and lifecycle
-  timestamps stay on `user_games`.
-- `ownership` no longer means "owned". It means "on the shelf", and `Wishlist`
-  is the tombstone every read model filters out. What the account actually paid
-  for is `access_source = 'owned'`, and that is what the money and value figures
-  in `lib/backlog-stats.ts` count.
-- Family rows deliberately store no playtime. The owner's hours are never copied
-  across, so `hours_played` stays 0 and `access_source = 'family'` is what says
-  that 0 means "never told" rather than "never played". Anything about to make
-  that claim must check first; see `lib/family-sharing.ts`.
-- Shared title, genre, artwork, reviews, pricing, quarantine, and duration data
-  never live on `user_games`; application reads receive them through
-  `user_games_with_catalog`.
+Blacklist is an undated boolean with manual reactivation. There is no timed Sleep or automatic restoration. Vault snoozes remain a separate timed feature. Durations use validated HLTB evidence and human overrides; missing values remain unknown, with no IGDB fallback.
 
-## Family access
+## Access and connections
 
-- `user_family_members` holds up to five Steam profiles per account, capped by a
-  trigger as well as by the API. `candidate_appids` stores each member's whole
-  public library so a re-check is a catalogue question rather than another read
-  of six Steam profiles.
-- Two doors write to `user_games`, with different rules.
-  `upsert_user_steam_games` owns the `owned` rows and treats Steam's
-  GetOwnedGames response as authoritative. `upsert_user_family_games` owns the
-  family rows and never modifies an `owned` one.
-- The ownership sweep in `lib/steam-import-jobs.ts` is scoped to
-  `access_source = 'owned'`. Without that filter every Steam refresh would retire
-  the entire family shelf, because family games are never in GetOwnedGames.
-- Losing access is not the same as deleting history. Removing a member, or a game
-  dropping out of an exact sync, deletes untouched family rows but retires ones
-  carrying a note or a Completed/Slept status, so the player's own record of
-  having played something survives losing the ability to play it.
+Next.js server repositories use parameterized SQL, verified TLS and transaction-local tenant context. Ordinary requests use the non-owner `vault_app_runtime` login/group `vault_app`; workers use a separate restricted login with group `vault_worker`. Neither role bypasses RLS or owns application objects. Forced RLS and compound foreign keys enforce tenant and parent ownership.
 
-## Bounded user state and history
+The server resolves the existing hashed session cookie to a principal; request bodies cannot choose an account. Missing or invalid tenant context fails closed. Database unavailability is a service failure, not a request to log out or use V1.
 
-- `user_game_pins` still accepts the retired `wishlist` scope so historical
-  rows remain readable; the current product only creates `library` pins.
-- `user_game_snoozes` replaces an unbounded JSON array in `app_settings`.
-- `user_vault_state` stores one current-pick row per user.
-- `vault_draws` retains the latest 50 draws per user. `vault_draw_events`
-  cascade when their parent draw is trimmed.
-- `user_genre_preferences` is derived, not authored. The nightly
-  `genre-preferences` worker rebuilds it wholesale from `vault_draw_events`; the
-  application only ever reads it. Because it is downstream of `vault_draws`, the
-  50-draw trim above is also the ceiling on what the recommender can learn from
-  — see `docs/vault-recommender.md`.
-- `vault_events` and `purge_reviews` remain append-only audit sources. Retention
-  must be introduced as an explicit product/data-retention decision rather
-  than silently deleting existing history.
+Production uses the transaction pooler on port 6543 with prepared statements disabled, application pool size 2 and worker pool size 1. Private schemas are not browser/Data API schemas. Credentials and CA configuration remain server-side.
 
-`app_settings` is reserved for genuine preferences, not collections of game
-IDs or mutable domain state. Compatibility keys are retained for one release
-so a rollback does not lose state.
+## Workers and preservation
 
-## Current production invariant
+`ops` holds bounded jobs, publication generations, leases, quota/cooldown state and shared enrichment work. Complete owned-library publication is atomic and supports up to 20,000 games within the existing byte bound. Invalid or partial imports preserve the previous complete library. Five existing Vercel schedules perform bounded Steam/Store/SteamSpy and recommendation work; there is no target database cron job or hosted duration worker.
 
-- Steam Families is **not applied to production**. Its migration
-  (`20260901193000_share_a_family_library.sql`) is written down but unapplied,
-  and every surface is gated behind `NEXT_PUBLIC_FAMILY_SHARING`, which is set
-  in `.env.local` only. See `docs/steam-families.md`.
-- There is no `games` compatibility object or `steam_app_metadata` table.
-- `(user_id, catalog_steam_appid)` is unique and every ownership row has a
-  valid catalogue foreign key.
-- Steam refreshes upsert only ownership and per-user state. Catalogue and
-  duration workers update shared AppID-keyed records once.
-- The application service role has the minimum required table/view grants;
-  browser roles have no direct access to private ownership data.
+`reco` contains recommendation state. The `migration` schema retains required identity mappings, preservation evidence, cutover validation and retention controls. Completed setup code has been removed; this does not authorize deleting preserved production rows or their security boundaries.
+
+See [operating and recovery notes](v2-cutover-runbook.md), [HLTB workflow](../supabase/README.md), [worker policy](nightly-workers.md), and [the final acceptance receipt](../database/v2/final-cutover-acceptance-20261001.json).
