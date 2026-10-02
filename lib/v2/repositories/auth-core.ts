@@ -64,7 +64,13 @@ export class AuthRepository {
       const rows = await this.database.sql<{ display_name: string | null; steam_display_name: string | null; avatar_url: string | null }[]>`
         select display_name,steam_display_name,avatar_url from app.lookup_manual_profile(${steamId}::bigint)
       `;
-      return rows[0] ? { displayName: rows[0].display_name ?? "", steamDisplayName: rows[0].steam_display_name ?? "", avatarUrl: rows[0].avatar_url } : null;
+      const row = rows[0];
+      if (!row) return null;
+      // Imported profiles may have no Vault name. The setup form needs a
+      // nonempty name to resume them; this fallback does not rename the account.
+      const displayName = row.display_name?.trim() ? row.display_name
+        : row.steam_display_name?.trim().slice(0, 80) || "Steam player";
+      return { displayName, steamDisplayName: row.steam_display_name?.trim() || displayName, avatarUrl: row.avatar_url };
     } catch (error) { throw new DatabaseUnavailableError(error); }
   }
 

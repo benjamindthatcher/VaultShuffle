@@ -798,6 +798,16 @@ test("M4 bootstrap and library repositories pass a 1,000+ row PostgreSQL 17 acce
     const updated = await auth.readUser(manualSession.principal);
     assert.equal(updated.user.display_name, "My Vault");
     assert.equal(updated.user.steam_display_name, "Updated Steam");
+    psql(fixture, `update app.accounts set display_name=null where public_id='${resumed.user.id}'`);
+    const lookup = await auth.lookupManual(steamId);
+    assert.equal(lookup?.displayName, "Updated Steam", "a missing Vault name must not disable profile resumption");
+    const retry = await auth.startManual({ ...input, displayName: lookup!.displayName }, secret);
+    assert.equal(retry.resumed, true);
+    assert.equal(retry.user.id, resumed.user.id);
+    assert.equal(psql(fixture, `select display_name is null from app.accounts where public_id='${resumed.user.id}'`, true), "t", "lookup fallback does not rename the account");
+    psql(fixture, `update app.steam_profiles set steam_display_name=null where account_id=(select id from app.accounts where public_id='${resumed.user.id}')`);
+    assert.equal((await auth.lookupManual(steamId))?.displayName, "Steam player");
+    assert.equal((await auth.lookupManual(steamId))?.steamDisplayName, "Steam player");
     await auth.revoke(manualSession.principal, resumed.token, secret);
     assert.equal(await sessions.resolveCookie(resumed.token, secret), null);
     assert.equal(psql(fixture, "select has_function_privilege('vault_worker','app.start_session(bigint,text,bytea,timestamptz,text,text,text,text)','EXECUTE')", true), "f");
